@@ -2,6 +2,7 @@
     "name": "maru_front",
     "version": "0.1.0",
     "private": true,
+    "type": "module",
     "dependencies": {
         "@radix-ui/react-slot": "^1.2.3",
         "@tailwindcss/vite": "^4.1.11",
