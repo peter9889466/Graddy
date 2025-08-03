@@ -11,7 +11,7 @@ export const TestModal: React.FC = () => {
                 className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
                 {...getToggleButtonProps()}
             >
-                Open Modal
+                모달 열기
             </button>
 
             {isOpen && (
@@ -25,14 +25,14 @@ export const TestModal: React.FC = () => {
                         onClick={(e) => e.stopPropagation()}
                         {...getModalProps()}
                     >
-                        <h2 className="text-xl font-bold mb-4">Modal Title</h2>
-                        <p className="mb-6">This is the modal content. You can close it by clicking the button below, clicking outside, or pressing the 'Escape' key.</p>
+                        <h2 className="text-xl font-bold mb-4">모달 제목</h2>
+                        <p className="mb-6">이것은 모달 내용입니다. 아래 버튼을 클릭하거나, 외부를 클릭하거나, 'Escape' 키를 눌러서 닫을 수 있습니다.</p>
                         <div className="text-right">
                             <button
                                 className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
                                 onClick={close}
                             >
-                                Close
+                                닫기
                             </button>
                         </div>
                     </div>
