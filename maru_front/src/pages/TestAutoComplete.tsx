@@ -2,7 +2,12 @@
 import React from 'react';
 import { useAutoComplete } from '../hooks/useAutoComplete';
 
-const ALL_ITEMS = ['apple', 'banana', 'coding', 'javascript', '원티드', '프리온보딩', '프론트엔드'];
+const ALL_ITEMS = [
+    // 프로그래밍 언어
+    'HTML', 'CSS', 'JavaScript', 'TypeScript', 'Python', 'Java', 'C++', 'Kotlin', 'SpringBoot', 'Spring', 'Linux',
+    'React', 'Next.js', 'Node.js', 'React Router', 'Zustand', 'React Query', 'Tailwind CSS', 'Lombok',
+
+];
 
 // useAutoComplete 훅에 전달할 필터링 로직
 const filterItems = (item: string, inputValue: string) =>
