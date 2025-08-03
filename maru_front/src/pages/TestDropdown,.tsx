@@ -8,9 +8,9 @@ interface Item {
 }
 
 const items: Item[] = [
-    { id: 1, label: '리액트' },
-    { id: 2, label: '타입스크립트' },
-    { id: 3, label: '테일윈드CSS' },
+    { id: 1, label: 'React' },
+    { id: 2, label: 'TypeScript' },
+    { id: 3, label: 'TailwindCSS' },
 ];
 
 export const TestDropdown: React.FC = () => {
@@ -22,7 +22,7 @@ export const TestDropdown: React.FC = () => {
         getItemProps
     } = useDropdown({
         items,
-        onSelect: (item) => alert(`선택됨: ${item.label}`),
+        onSelect: (item) => alert(`Selected: ${item.label}`),
     });
 
     return (
@@ -33,7 +33,7 @@ export const TestDropdown: React.FC = () => {
                     className="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
                     {...getToggleButtonProps()}
                 >
-                    옵션 선택
+                    Options
                 </button>
             </div>
 
