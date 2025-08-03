@@ -1,29 +1,38 @@
 // src/hooks/useAutoComplete.ts
 import { useState, useMemo, useCallback } from 'react';
+import { useDebounce } from '../utils/eventLimiter';
 
 // 훅에 전달할 옵션 타입 정의
 interface UseAutoCompleteOptions<T> {
     items: T[]; // 전체 검색 대상 아이템 배열
     filterFn: (item: T, inputValue: string) => boolean; // 사용자 정의 필터링 함수
+    debounceDelay?: number; // 디바운스 지연 시간 (기본값: 300ms)
 }
 
-export const useAutoComplete = <T>({ items, filterFn }: UseAutoCompleteOptions<T>) => {
+export const useAutoComplete = <T>({ items, filterFn, debounceDelay = 300 }: UseAutoCompleteOptions<T>) => {
     const [inputValue, setInputValue] = useState('');
+    const [debouncedInputValue, setDebouncedInputValue] = useState('');
     const [activeIndex, setActiveIndex] = useState(-1);
 
-    // 입력값이 바뀔 때만 필터링된 리스트를 다시 계산 (성능 최적화)
+    // 디바운스된 입력값 업데이트 함수
+    const updateDebouncedValue = useDebounce((value: string) => {
+        setDebouncedInputValue(value);
+    }, debounceDelay);
+
+    // 디바운스된 입력값이 바뀔 때만 필터링된 리스트를 다시 계산 (성능 최적화)
     const filteredItems = useMemo(() => {
-        if (inputValue === '') {
+        if (debouncedInputValue === '') {
             return [];
         }
-        return items.filter(item => filterFn(item, inputValue));
-    }, [inputValue, items, filterFn]);
+        return items.filter(item => filterFn(item, debouncedInputValue));
+    }, [debouncedInputValue, items, filterFn]);
 
     // 드롭다운 메뉴의 노출 여부는 상태가 아닌, 파생된 값으로 처리
-    const isOpen = inputValue.length > 0 && filteredItems.length > 0;
+    const isOpen = debouncedInputValue.length > 0 && filteredItems.length > 0;
 
     const reset = useCallback(() => {
         setInputValue('');
+        setDebouncedInputValue('');
         setActiveIndex(-1);
     }, []);
 
@@ -55,7 +64,9 @@ export const useAutoComplete = <T>({ items, filterFn }: UseAutoCompleteOptions<T
     const getInputProps = () => ({
         value: inputValue,
         onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-            setInputValue(e.target.value);
+            const value = e.target.value;
+            setInputValue(value);
+            updateDebouncedValue(value); // 디바운스된 업데이트
             setActiveIndex(-1); // 입력 시 활성 인덱스 초기화
         },
         onKeyDown: handleKeyDown,
@@ -78,6 +89,7 @@ export const useAutoComplete = <T>({ items, filterFn }: UseAutoCompleteOptions<T
     return {
         isOpen,
         inputValue,
+        debouncedInputValue,
         filteredItems,
         activeIndex,
         getInputProps,
