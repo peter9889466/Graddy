@@ -4,7 +4,8 @@ import { ErrorBoundary } from "react-error-boundary";
 import "./App.css";
 import ErrorFallback from "./pages/error/ErrorFallback";
 import LoadingOverlay from "./components/shared/LoadingOverlay";
-import { MainPage } from "./pages/MainPage";
+import DeleteModal from "./components/modal/DeleteModal";
+import MainPage from "./pages/mainPage";
 
 function App() {
     return (
@@ -12,6 +13,7 @@ function App() {
             <Suspense fallback={<LoadingOverlay />}>
                 <Routes>
                     <Route path="/" element={<MainPage />} />
+                    <Route path="/delete" element={<DeleteModal/>}/>
                 </Routes>
             </Suspense>
         </ErrorBoundary>
