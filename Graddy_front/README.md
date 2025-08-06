@@ -1,21 +1,21 @@
-# MARU Frontend
+# Graddy Frontend
 
-MARU는 스터디 그룹 매칭 및 커뮤니티 플랫폼의 애플리케이션입니다. React와 TypeScript를 기반으로 구축되었으며, 재사용 가능한 커스텀 훅과 컴포넌트를 활용한 모던 웹 애플리케이션입니다.
+Graddy는 스터디 그룹 매칭 및 커뮤니티 플랫폼의 애플리케이션입니다. React와 TypeScript를 기반으로 구축되었으며, 재사용 가능한 커스텀 훅과 컴포넌트를 활용한 모던 웹 애플리케이션입니다.
 
 ## 🛠 기술 스택
 
-- **Frontend Framework**: React 18 + TypeScript
-- **Build Tool**: Vite
-- **Styling**: Tailwind CSS
-- **State Management**: Zustand
-- **Routing**: React Router DOM
-- **Testing**: Vitest + Testing Library
-- **Error Handling**: React Error Boundary
+-   **Frontend Framework**: React 18 + TypeScript
+-   **Build Tool**: Vite
+-   **Styling**: Tailwind CSS
+-   **State Management**: Zustand
+-   **Routing**: React Router DOM
+-   **Testing**: Vitest + Testing Library
+-   **Error Handling**: React Error Boundary
 
 ## 📁 프로젝트 구조
 
 ```
-maru_front/
+graddy_front/
 ├── public/                 # 정적 파일
 │   ├── favicon.ico
 │   ├── index.html
@@ -67,29 +67,33 @@ maru_front/
 ## 🎯 주요 기능
 
 ### 커스텀 훅
-- **useAutoComplete**: 검색 자동완성 기능 (디바운스 적용)
-- **useDropdown**: 드롭다운 메뉴 관리 (스로틀링 적용)
-- **useModal**: 모달 상태 관리 및 키보드 이벤트 처리
-- **useOutsideClick**: 외부 클릭 감지 (스로틀링 적용)
-- **useToggle**: 불린 상태 토글 관리
+
+-   **useAutoComplete**: 검색 자동완성 기능 (디바운스 적용)
+-   **useDropdown**: 드롭다운 메뉴 관리 (스로틀링 적용)
+-   **useModal**: 모달 상태 관리 및 키보드 이벤트 처리
+-   **useOutsideClick**: 외부 클릭 감지 (스로틀링 적용)
+-   **useToggle**: 불린 상태 토글 관리
 
 ### 성능 최적화
-- **디바운스**: 검색 입력 시 API 호출 최적화
-- **스로틀링**: 키보드 네비게이션 및 클릭 이벤트 최적화
-- **메모이제이션**: React.memo, useMemo, useCallback 활용
+
+-   **디바운스**: 검색 입력 시 API 호출 최적화
+-   **스로틀링**: 키보드 네비게이션 및 클릭 이벤트 최적화
+-   **메모이제이션**: React.memo, useMemo, useCallback 활용
 
 ### 페이지 구성
-- **메인 페이지**: 스터디 그룹 소개 및 주요 기능 안내
-- **스터디 검색**: 조건별 스터디 그룹 검색 및 필터링
-- **스터디 상세**: 개별 스터디 그룹 정보 및 참여 기능
-- **커뮤니티**: 사용자 간 소통 공간
-- **프로필**: 사용자 정보 관리
+
+-   **메인 페이지**: 스터디 그룹 소개 및 주요 기능 안내
+-   **스터디 검색**: 조건별 스터디 그룹 검색 및 필터링
+-   **스터디 상세**: 개별 스터디 그룹 정보 및 참여 기능
+-   **커뮤니티**: 사용자 간 소통 공간
+-   **프로필**: 사용자 정보 관리
 
 ## 🚀 시작하기
 
 ### 필수 요구사항
-- Node.js 18.0.0 이상
-- npm 또는 yarn
+
+-   Node.js 18.0.0 이상
+-   npm 또는 yarn
 
 ### 설치 및 실행
 
@@ -111,6 +115,7 @@ npm run type-check
 ```
 
 ### 개발 서버
+
 개발 서버는 기본적으로 `http://localhost:5173`에서 실행됩니다.
 
 ## 🧪 테스트
@@ -130,19 +135,19 @@ npm run test:ui
 
 ## 📝 코딩 컨벤션
 
-- **TypeScript**: 엄격한 타입 체크 적용
-- **ESLint**: 코드 품질 관리
-- **Prettier**: 코드 포맷팅 자동화
-- **Prop Getter 패턴**: 커스텀 훅에서 컴포넌트 props 관리
-- **Compound Component 패턴**: 복잡한 UI 컴포넌트 구조화
+-   **TypeScript**: 엄격한 타입 체크 적용
+-   **ESLint**: 코드 품질 관리
+-   **Prettier**: 코드 포맷팅 자동화
+-   **Prop Getter 패턴**: 커스텀 훅에서 컴포넌트 props 관리
+-   **Compound Component 패턴**: 복잡한 UI 컴포넌트 구조화
 
 ## 🔧 주요 라이브러리
 
-- `react-router-dom`: 클라이언트 사이드 라우팅
-- `zustand`: 경량 상태 관리
-- `tailwindcss`: 유틸리티 기반 CSS 프레임워크
-- `react-error-boundary`: 에러 경계 처리
-- `lucide-react`: 아이콘 라이브러리
+-   `react-router-dom`: 클라이언트 사이드 라우팅
+-   `zustand`: 경량 상태 관리
+-   `tailwindcss`: 유틸리티 기반 CSS 프레임워크
+-   `react-error-boundary`: 에러 경계 처리
+-   `lucide-react`: 아이콘 라이브러리
 
 ## 📄 라이선스
 

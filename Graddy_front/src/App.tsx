@@ -9,17 +9,22 @@ import MainPage from "./pages/mainPage";
 import { TestModal } from "./pages/TestModal";
 import { TestDropdown } from "./pages/TestDropdown,";
 import { TestAutoCompleteSearch } from "./pages/TestAutoComplete";
+import Header from "./components/layout/Header";
 
 function App() {
     return (
         <ErrorBoundary FallbackComponent={ErrorFallback}>
+            <Header />
             <Suspense fallback={<LoadingOverlay />}>
                 <Routes>
                     <Route path="/" element={<MainPage />} />
                     <Route path="/delete" element={<DeleteModal />} />
                     <Route path="/modal" element={<TestModal />} />
                     <Route path="/dropdown" element={<TestDropdown />} />
-                    <Route path="/autocomplete" element={<TestAutoCompleteSearch />} />
+                    <Route
+                        path="/autocomplete"
+                        element={<TestAutoCompleteSearch />}
+                    />
                 </Routes>
             </Suspense>
         </ErrorBoundary>
