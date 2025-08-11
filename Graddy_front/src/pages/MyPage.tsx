@@ -1,6 +1,10 @@
 import React, { useState } from "react";
 import { User, Settings, Trash2, Edit3 } from "lucide-react";
 import DeleteModal from "../components/modal/DeleteModal";
+import PageLayout from "../components/layout/PageLayout";
+import ResponsiveContainer from "../components/layout/ResponsiveContainer";
+import ResponsiveSidebar from "../components/layout/ResponsiveSidebar";
+import ResponsiveMainContent from "../components/layout/ResponsiveMainContent";
 
 export const MyPage = () => {
     const [activeTab, setActiveTab] = useState("마이페이지");
@@ -34,18 +38,18 @@ export const MyPage = () => {
     ];
 
     return (
-        <div className="min-h-screen" style={{ backgroundColor: "#FFF3D2" }}>
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="flex gap-8">
+        <>
+            <PageLayout>
+                <ResponsiveContainer variant="sidebar">
                     {/* 사이드 네비게이션 */}
-                    <div className="w-64 space-y-4">
+                    <ResponsiveSidebar>
                         {/* 마이페이지 섹션 */}
                         <div
-                            className="bg-white rounded-xl shadow-sm border-2 p-4"
+                            className="bg-white rounded-xl shadow-sm border-2 p-3 sm:p-4"
                             style={{ borderColor: "#8B85E9" }}
                         >
                             <h3
-                                className="font-bold mb-3"
+                                className="font-bold mb-3 text-sm sm:text-base"
                                 style={{ color: "#8B85E9" }}
                             >
                                 마이페이지
@@ -55,7 +59,7 @@ export const MyPage = () => {
                                     <button
                                         key={item.name}
                                         onClick={() => setActiveTab(item.name)}
-                                        className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 group ${
+                                        className={`w-full text-left px-2 sm:px-3 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 group text-sm sm:text-base ${
                                             activeTab === item.name
                                                 ? "font-medium"
                                                 : "text-gray-600 hover:bg-purple-50"
@@ -88,247 +92,244 @@ export const MyPage = () => {
                                             }
                                         }}
                                     >
-                                        <item.icon className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                                        <span>{item.name}</span>
+                                        <item.icon className="w-3 h-3 sm:w-4 sm:h-4 group-hover:scale-110 transition-transform" />
+                                        <span className="truncate">
+                                            {item.name}
+                                        </span>
                                     </button>
                                 ))}
                                 <button
                                     onClick={handleDeleteAccount}
-                                    className="w-full text-left px-3 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 group text-red-600 hover:bg-red-50"
+                                    className="w-full text-left px-2 sm:px-3 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 group text-red-600 hover:bg-red-50 text-sm sm:text-base"
                                 >
-                                    <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                                    <span>회원탈퇴</span>
+                                    <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 group-hover:scale-110 transition-transform" />
+                                    <span className="truncate">회원탈퇴</span>
                                 </button>
                             </div>
                         </div>
 
                         {/* 내 스터디 목록 */}
                         <div
-                            className="bg-white rounded-xl shadow-sm border-2 p-4"
+                            className="bg-white rounded-xl shadow-sm border-2 p-3 sm:p-4"
                             style={{ borderColor: "#8B85E9" }}
                         >
                             <h3
-                                className="font-bold mb-3"
+                                className="font-bold mb-3 text-sm sm:text-base"
                                 style={{ color: "#8B85E9" }}
                             >
                                 내 스터디 목록
                             </h3>
-                            <div className="text-gray-500 text-sm">
+                            <div className="text-gray-500 text-xs sm:text-sm">
                                 {/* DB에서 스터디 목록을 받아올 예정 */}
                                 스터디 목록을 불러오는 중...
                             </div>
                         </div>
-                    </div>
+                    </ResponsiveSidebar>
 
                     {/* 메인 콘텐츠 */}
-                    <div className="flex-1">
-                        <div
-                            className="bg-white rounded-xl shadow-sm border-2 p-8"
-                            style={{ borderColor: "#8B85E9" }}
-                        >
-                            {activeTab === "마이페이지" && (
-                                <div className="space-y-8">
-                                    {/* 상단 영역: 프로필 정보와 관심분야를 양옆에 배치 */}
-                                    <div className="flex gap-8">
-                                        {/* 왼쪽: 프로필 정보 */}
-                                        <div className="flex-1 space-y-6">
-                                            {/* 프로필 이미지 */}
-                                            <div className="flex justify-start">
-                                                <div className="w-20 h-20 rounded-full overflow-hidden border-2">
-                                                    <img
-                                                        src="/android-icon-36x36.png"
-                                                        alt="프로필 이미지"
-                                                        className="w-full h-full object-cover"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            {/* 기본 정보 */}
-                                            <div className="space-y-4">
-                                                <div>
-                                                    <label
-                                                        className="block text-sm font-medium mb-2"
-                                                        style={{
-                                                            color: "#8B85E9",
-                                                        }}
-                                                    >
-                                                        닉네임
-                                                    </label>
-                                                    <div className="px-4 py-3 bg-gray-100 rounded-lg text-gray-600">
-                                                        {/* {nickname} */}
-                                                        사용자{" "}
-                                                        {/* 임시 데이터 */}
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <label
-                                                        className="block text-sm font-medium mb-2"
-                                                        style={{
-                                                            color: "#8B85E9",
-                                                        }}
-                                                    >
-                                                        이메일
-                                                    </label>
-                                                    <div className="px-4 py-3 bg-gray-100 rounded-lg text-gray-600">
-                                                        {/* {email} */}
-                                                        graddy@gmail.com{" "}
-                                                        {/* 임시 데이터 */}
-                                                    </div>
-                                                </div>
+                    <ResponsiveMainContent padding="md">
+                        {activeTab === "마이페이지" && (
+                            <div className="space-y-6 sm:space-y-8">
+                                {/* 상단 영역: 프로필 정보와 관심분야를 양옆에 배치 */}
+                                <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+                                    {/* 왼쪽: 프로필 정보 */}
+                                    <div className="flex-1 space-y-4 sm:space-y-6">
+                                        {/* 프로필 이미지 */}
+                                        <div className="flex justify-center lg:justify-start">
+                                            <div
+                                                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2"
+                                                style={{
+                                                    borderColor: "#8B85E9",
+                                                }}
+                                            >
+                                                <img
+                                                    src="/android-icon-36x36.png"
+                                                    alt="프로필 이미지"
+                                                    className="w-full h-full object-cover"
+                                                />
                                             </div>
                                         </div>
 
-                                        {/* 오른쪽: 관심분야 */}
-                                        <div className="flex-1">
-                                            <h4
-                                                className="text-lg font-semibold mb-4"
-                                                style={{ color: "#8B85E9" }}
-                                            >
-                                                관심분야
-                                            </h4>
-                                            <div
-                                                className="border-2 border-dashed rounded-lg p-8 text-center text-gray-500 h-48 flex items-center justify-center"
-                                                style={{
-                                                    borderColor: "#8B85E9",
-                                                    opacity: 0.6,
-                                                }}
-                                            >
-                                                관심분야 설정 기능은 추후
-                                                업데이트 예정입니다.
+                                        {/* 기본 정보 */}
+                                        <div className="space-y-3 sm:space-y-4">
+                                            <div>
+                                                <label
+                                                    className="block text-xs sm:text-sm font-medium mb-2"
+                                                    style={{
+                                                        color: "#8B85E9",
+                                                    }}
+                                                >
+                                                    닉네임
+                                                </label>
+                                                <div className="px-3 sm:px-4 py-2 sm:py-3 bg-gray-100 rounded-lg text-gray-600 text-sm sm:text-base">
+                                                    {/* {nickname} */}
+                                                    사용자 {/* 임시 데이터 */}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label
+                                                    className="block text-xs sm:text-sm font-medium mb-2"
+                                                    style={{
+                                                        color: "#8B85E9",
+                                                    }}
+                                                >
+                                                    이메일
+                                                </label>
+                                                <div className="px-3 sm:px-4 py-2 sm:py-3 bg-gray-100 rounded-lg text-gray-600 text-sm sm:text-base break-all">
+                                                    {/* {email} */}
+                                                    graddy@gmail.com{" "}
+                                                    {/* 임시 데이터 */}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <hr
-                                        style={{
-                                            borderColor: "#8B85E9",
-                                            opacity: 0.3,
-                                        }}
-                                    />
+                                    {/* 오른쪽: 관심분야 */}
+                                    <div className="flex-1">
+                                        <h4
+                                            className="text-base sm:text-lg font-semibold mb-3 sm:mb-4"
+                                            style={{ color: "#8B85E9" }}
+                                        >
+                                            관심분야
+                                        </h4>
+                                        <div
+                                            className="border-2 border-dashed rounded-lg p-4 sm:p-8 text-center text-gray-500 h-32 sm:h-48 flex items-center justify-center text-xs sm:text-sm"
+                                            style={{
+                                                borderColor: "#8B85E9",
+                                                opacity: 0.6,
+                                            }}
+                                        >
+                                            관심분야 설정 기능은 추후 업데이트
+                                            예정입니다.
+                                        </div>
+                                    </div>
+                                </div>
 
-                                    {/* 내 소개 - 더 넓은 영역 */}
-                                    <div
-                                        className="rounded-xl p-8"
-                                        style={{ backgroundColor: "#F3F2FF" }}
-                                    >
-                                        <div className="flex justify-between items-center mb-6">
-                                            <h4
-                                                className="text-xl font-semibold"
+                                <hr
+                                    style={{
+                                        borderColor: "#8B85E9",
+                                        opacity: 0.3,
+                                    }}
+                                />
+
+                                {/* 내 소개 - 더 넓은 영역 */}
+                                <div
+                                    className="rounded-xl p-4 sm:p-6 lg:p-8"
+                                    style={{ backgroundColor: "#F3F2FF" }}
+                                >
+                                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-0">
+                                        <h4
+                                            className="text-lg sm:text-xl font-semibold"
+                                            style={{ color: "#8B85E9" }}
+                                        >
+                                            내 소개
+                                        </h4>
+                                        {!isEditingIntro && (
+                                            <button
+                                                onClick={handleEditIntro}
+                                                className="flex items-center justify-center sm:justify-start space-x-2 px-3 sm:px-4 py-2 rounded-lg transition-all duration-200 group text-sm sm:text-base"
                                                 style={{ color: "#8B85E9" }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.backgroundColor =
+                                                        "#E8E6FF";
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.backgroundColor =
+                                                        "transparent";
+                                                }}
                                             >
-                                                내 소개
-                                            </h4>
-                                            {!isEditingIntro && (
+                                                <Edit3 className="w-3 h-3 sm:w-4 sm:h-4 group-hover:scale-110 transition-transform" />
+                                                <span>수정</span>
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {isEditingIntro ? (
+                                        <div className="space-y-4">
+                                            <textarea
+                                                value={introduction}
+                                                onChange={(e) =>
+                                                    setIntroduction(
+                                                        e.target.value
+                                                    )
+                                                }
+                                                className="w-full p-3 sm:p-4 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent resize-none text-sm sm:text-base"
+                                                style={{
+                                                    borderColor: "#8B85E9",
+                                                }}
+                                                onFocus={(e) => {
+                                                    e.target.style.boxShadow =
+                                                        "0 0 0 2px rgba(139, 133, 233, 0.2)";
+                                                }}
+                                                onBlur={(e) => {
+                                                    e.target.style.boxShadow =
+                                                        "none";
+                                                }}
+                                                rows={4}
+                                                placeholder="자신을 소개해보세요..."
+                                            />
+                                            <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
                                                 <button
-                                                    onClick={handleEditIntro}
-                                                    className="flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 group"
-                                                    style={{ color: "#8B85E9" }}
+                                                    onClick={() =>
+                                                        setIsEditingIntro(false)
+                                                    }
+                                                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-200 text-sm sm:text-base"
+                                                >
+                                                    취소
+                                                </button>
+                                                <button
+                                                    onClick={handleSaveIntro}
+                                                    className="px-4 sm:px-6 py-2 text-white rounded-lg transition-all duration-200 transform hover:scale-105 text-sm sm:text-base"
+                                                    style={{
+                                                        backgroundColor:
+                                                            "#8B85E9",
+                                                    }}
                                                     onMouseEnter={(e) => {
                                                         e.currentTarget.style.backgroundColor =
-                                                            "#E8E6FF";
+                                                            "#7A73E0";
                                                     }}
                                                     onMouseLeave={(e) => {
                                                         e.currentTarget.style.backgroundColor =
-                                                            "transparent";
+                                                            "#8B85E9";
                                                     }}
                                                 >
-                                                    <Edit3 className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                                                    <span>수정</span>
+                                                    저장
                                                 </button>
-                                            )}
+                                            </div>
                                         </div>
-
-                                        {isEditingIntro ? (
-                                            <div className="space-y-4">
-                                                <textarea
-                                                    value={introduction}
-                                                    onChange={(e) =>
-                                                        setIntroduction(
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    className="w-full p-4 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent resize-none"
-                                                    style={{
-                                                        borderColor: "#8B85E9",
-                                                    }}
-                                                    onFocus={(e) => {
-                                                        e.target.style.boxShadow =
-                                                            "0 0 0 2px rgba(139, 133, 233, 0.2)";
-                                                    }}
-                                                    onBlur={(e) => {
-                                                        e.target.style.boxShadow =
-                                                            "none";
-                                                    }}
-                                                    rows={6}
-                                                    placeholder="자신을 소개해보세요..."
-                                                />
-                                                <div className="flex justify-end space-x-3">
-                                                    <button
-                                                        onClick={() =>
-                                                            setIsEditingIntro(
-                                                                false
-                                                            )
-                                                        }
-                                                        className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-200"
-                                                    >
-                                                        취소
-                                                    </button>
-                                                    <button
-                                                        onClick={
-                                                            handleSaveIntro
-                                                        }
-                                                        className="px-6 py-2 text-white rounded-lg transition-all duration-200 transform hover:scale-105"
-                                                        style={{
-                                                            backgroundColor:
-                                                                "#8B85E9",
-                                                        }}
-                                                        onMouseEnter={(e) => {
-                                                            e.currentTarget.style.backgroundColor =
-                                                                "#7A73E0";
-                                                        }}
-                                                        onMouseLeave={(e) => {
-                                                            e.currentTarget.style.backgroundColor =
-                                                                "#8B85E9";
-                                                        }}
-                                                    >
-                                                        저장
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="min-h-[120px] flex items-start">
-                                                <p className="text-gray-700 leading-relaxed text-lg">
-                                                    {introduction}
-                                                </p>
-                                            </div>
-                                        )}
-                                    </div>
+                                    ) : (
+                                        <div className="min-h-[80px] sm:min-h-[120px] flex items-start">
+                                            <p className="text-gray-700 leading-relaxed text-sm sm:text-base lg:text-lg">
+                                                {introduction}
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
-                            )}
+                            </div>
+                        )}
 
-                            {activeTab === "회원정보 수정" && (
-                                <div className="space-y-6">
-                                    <h2
-                                        className="text-2xl font-bold"
-                                        style={{ color: "#8B85E9" }}
-                                    >
-                                        회원정보 수정
-                                    </h2>
-                                    <div className="text-gray-500">
-                                        회원정보 수정 기능은 추후 업데이트
-                                        예정입니다.
-                                    </div>
+                        {activeTab === "회원정보 수정" && (
+                            <div className="space-y-4 sm:space-y-6">
+                                <h2
+                                    className="text-xl sm:text-2xl font-bold"
+                                    style={{ color: "#8B85E9" }}
+                                >
+                                    회원정보 수정
+                                </h2>
+                                <div className="text-gray-500 text-sm sm:text-base">
+                                    회원정보 수정 기능은 추후 업데이트
+                                    예정입니다.
                                 </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
+                            </div>
+                        )}
+                    </ResponsiveMainContent>
+                </ResponsiveContainer>
+            </PageLayout>
 
             {/* 회원탈퇴 모달 */}
             {showDeleteModal && (
                 <DeleteModal onClose={() => setShowDeleteModal(false)} />
             )}
-        </div>
+        </>
     );
 };
