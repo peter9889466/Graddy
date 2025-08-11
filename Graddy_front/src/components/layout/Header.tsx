@@ -23,6 +23,11 @@ const Header: React.FC = () => {
         setIsMobileMenuOpen(false);
     };
 
+    const handleLogoClick = () => {
+        navigate("/");
+        setIsMobileMenuOpen(false);
+    };
+
     const toggleMobileMenu = () => {
         setIsMobileMenuOpen(!isMobileMenuOpen);
     };
@@ -35,11 +40,14 @@ const Header: React.FC = () => {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-14 sm:h-16">
                     {/* 로고 */}
-                    <div className="flex items-center space-x-2 cursor-pointer transform hover:scale-105 transition-transform duration-200">
+                    <div
+                        onClick={handleLogoClick}
+                        className="flex items-center space-x-2 cursor-pointer transform hover:scale-105 transition-transform duration-200"
+                    >
                         <img
                             src="/logo.png"
                             alt="Graddy Logo"
-                            className="h-8 sm:h-10 lg:h-12 w-auto drop-shadow-sm"
+                            className="h-10 sm:h-12 lg:h-14 w-auto drop-shadow-sm"
                         />
                     </div>
 
