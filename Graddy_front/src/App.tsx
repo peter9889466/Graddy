@@ -6,6 +6,7 @@ import ErrorFallback from "./pages/error/ErrorFallback";
 import LoadingOverlay from "./components/shared/LoadingOverlay";
 import DeleteModal from "./components/modal/DeleteModal";
 import MainPage from "./pages/MainPage";
+import { MyPage } from "./pages/MyPage";
 import { TestModal } from "./pages/TestModal";
 import { TestDropdown } from "./pages/TestDropdown,";
 import { TestAutoCompleteSearch } from "./pages/TestAutoComplete";
@@ -18,6 +19,7 @@ function App() {
             <Suspense fallback={<LoadingOverlay />}>
                 <Routes>
                     <Route path="/" element={<MainPage />} />
+                    <Route path="/mypage" element={<MyPage />} />
                     <Route path="/delete" element={<DeleteModal />} />
                     <Route path="/modal" element={<TestModal />} />
                     <Route path="/dropdown" element={<TestDropdown />} />
