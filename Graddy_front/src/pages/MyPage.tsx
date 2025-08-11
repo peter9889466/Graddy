@@ -5,7 +5,7 @@ import PageLayout from "../components/layout/PageLayout";
 import ResponsiveContainer from "../components/layout/ResponsiveContainer";
 import ResponsiveSidebar from "../components/layout/ResponsiveSidebar";
 import ResponsiveMainContent from "../components/layout/ResponsiveMainContent";
-import InterestSelection from "../components/interest/InterestSelection";
+import InterestSelection from "../components/modal/InterestModal";
 
 export const MyPage = () => {
     const [activeTab, setActiveTab] = useState("마이페이지");

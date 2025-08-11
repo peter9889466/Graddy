@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Search, X } from "lucide-react";
 
 // 타입 정의
@@ -23,7 +23,7 @@ interface TabConfig {
     label: string;
 }
 
-interface InterestSelectionProps {
+interface InterestProps {
     maxSelections?: number;
     initialSelections?: string[];
     onComplete?: (selectedTags: string[]) => void;
@@ -116,7 +116,7 @@ const tabs: TabConfig[] = [
     { id: "skills", label: "역량/개념" },
 ];
 
-const InterestSelection: React.FC<InterestSelectionProps> = ({
+const InterestSelection: React.FC<InterestProps> = ({
     maxSelections = 10,
     initialSelections = [],
     onComplete,
@@ -126,6 +126,30 @@ const InterestSelection: React.FC<InterestSelectionProps> = ({
         useState<string[]>(initialSelections);
     const [currentCategory, setCurrentCategory] = useState<Category>("all");
     const [searchTerm, setSearchTerm] = useState("");
+
+    // 모달 ref
+    const modalRef = useRef<HTMLDivElement>(null);
+
+    // ESC 키 이벤트 리스너
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") {
+                handleCancel();
+            }
+        };
+
+        document.addEventListener("keydown", handleKeyDown);
+        return () => {
+            document.removeEventListener("keydown", handleKeyDown);
+        };
+    }, []);
+
+    // 모달이 열릴 때 포커스 설정
+    useEffect(() => {
+        if (modalRef.current) {
+            modalRef.current.focus();
+        }
+    }, []);
 
     // 현재 카테고리의 태그들 가져오기
     const getCurrentTags = useMemo((): string[] => {
@@ -170,9 +194,26 @@ const InterestSelection: React.FC<InterestSelectionProps> = ({
         onCancel?.();
     };
 
+    // 백드롭 클릭 핸들러
+    const handleBackdropClick = (e: React.MouseEvent) => {
+        if (e.target === e.currentTarget) {
+            handleCancel();
+        }
+    };
+
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div
+            className="fixed inset-0 bg-gray-900/60 flex items-center justify-center p-4 z-50"
+            onClick={handleBackdropClick}
+        >
+            <div
+                ref={modalRef}
+                className="bg-white rounded-2xl p-6 sm:p-8 shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+                tabIndex={-1}
+                role="dialog"
+                aria-modal="true"
+                onClick={(e) => e.stopPropagation()}
+            >
                 {/* 헤더 */}
                 <div className="text-center mb-6">
                     <h2
