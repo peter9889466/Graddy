@@ -11,24 +11,33 @@ import { TestModal } from "./pages/TestModal";
 import { TestDropdown } from "./pages/TestDropdown,";
 import { TestAutoCompleteSearch } from "./pages/TestAutoComplete";
 import Header from "./components/layout/Header";
+import Footer from "./components/layout/Footer";
 
 function App() {
     return (
         <ErrorBoundary FallbackComponent={ErrorFallback}>
-            <Header />
-            <Suspense fallback={<LoadingOverlay />}>
-                <Routes>
-                    <Route path="/" element={<MainPage />} />
-                    <Route path="/mypage" element={<MyPage />} />
-                    <Route path="/delete" element={<DeleteModal />} />
-                    <Route path="/modal" element={<TestModal />} />
-                    <Route path="/dropdown" element={<TestDropdown />} />
-                    <Route
-                        path="/autocomplete"
-                        element={<TestAutoCompleteSearch />}
-                    />
-                </Routes>
-            </Suspense>
+            <div className="min-h-screen flex flex-col">
+                <Header />
+                <main className="flex-1">
+                    <Suspense fallback={<LoadingOverlay />}>
+                        <Routes>
+                            <Route path="/" element={<MainPage />} />
+                            <Route path="/mypage" element={<MyPage />} />
+                            <Route path="/delete" element={<DeleteModal />} />
+                            <Route path="/modal" element={<TestModal />} />
+                            <Route
+                                path="/dropdown"
+                                element={<TestDropdown />}
+                            />
+                            <Route
+                                path="/autocomplete"
+                                element={<TestAutoCompleteSearch />}
+                            />
+                        </Routes>
+                    </Suspense>
+                </main>
+                <Footer />
+            </div>
         </ErrorBoundary>
     );
 }

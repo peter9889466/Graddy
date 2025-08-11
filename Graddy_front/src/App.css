@@ -1,0 +1,59 @@
+/* 전체 레이아웃 설정 */
+html,
+body,
+#root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+/* 스크롤바 스타일링 (선택사항) */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #8b85e9;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #7a73e0;
+}
+
+/* 모바일에서 스크롤 개선 */
+* {
+    -webkit-overflow-scrolling: touch;
+}
+
+/* 포커스 아웃라인 개선 */
+button:focus,
+input:focus,
+textarea:focus {
+    outline: 2px solid #8b85e9;
+    outline-offset: 2px;
+}
+
+/* 애니메이션 성능 최적화 */
+* {
+    box-sizing: border-box;
+}
+
+.animate-fadeIn {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

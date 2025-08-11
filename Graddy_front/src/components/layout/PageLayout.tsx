@@ -31,10 +31,12 @@ const PageLayout: React.FC<PageLayoutProps> = ({
 
     return (
         <div
-            className={`min-h-screen ${className}`}
+            className={`flex-1 ${className}`}
             style={{ backgroundColor: "#FFFBEF" }}
         >
-            <div className={`max-w-7xl mx-auto ${paddingClasses[padding]}`}>
+            <div
+                className={`max-w-7xl mx-auto ${paddingClasses[padding]} min-h-full`}
+            >
                 {children}
             </div>
         </div>
