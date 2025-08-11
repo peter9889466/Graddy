@@ -1,22 +1,32 @@
-import React, { useState } from "react";
-import { User, Settings, Trash2, Edit3 } from "lucide-react";
+import React, { useState, useRef } from "react";
+import { User, Settings, Trash2, Edit3, Camera, Star } from "lucide-react";
 import DeleteModal from "../components/modal/DeleteModal";
 import PageLayout from "../components/layout/PageLayout";
 import ResponsiveContainer from "../components/layout/ResponsiveContainer";
 import ResponsiveSidebar from "../components/layout/ResponsiveSidebar";
 import ResponsiveMainContent from "../components/layout/ResponsiveMainContent";
+import InterestSelection from "../components/interest/InterestSelection";
 
 export const MyPage = () => {
     const [activeTab, setActiveTab] = useState("마이페이지");
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isEditingIntro, setIsEditingIntro] = useState(false);
+    const [showInterestModal, setShowInterestModal] = useState(false);
+    const [profileImage, setProfileImage] = useState("/android-icon-72x72.png");
+    const [userInterests, setUserInterests] = useState<string[]>([
+        "React",
+        "JavaScript",
+        "Node.js",
+    ]);
     const [introduction, setIntroduction] = useState(
         "안녕하세요! 함께 성장하는 개발자가 되고 싶습니다."
     );
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // 임시 데이터 (나중에 DB에서 받아올 예정)
     // const nickname = "개발자김씨";
     // const email = "developer@example.com";
+    const userScore = 1000; // 백엔드에서 받아올 점수
 
     const handleDeleteAccount = () => {
         setShowDeleteModal(true);
@@ -29,6 +39,36 @@ export const MyPage = () => {
     const handleSaveIntro = () => {
         setIsEditingIntro(false);
         // 여기서 서버에 저장 로직 추가
+    };
+
+    const handleProfileImageClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                setProfileImage(e.target?.result as string);
+                // 여기서 서버에 이미지 업로드 로직 추가
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleInterestEdit = () => {
+        setShowInterestModal(true);
+    };
+
+    const handleInterestComplete = (selectedTags: string[]) => {
+        setUserInterests(selectedTags);
+        setShowInterestModal(false);
+        // 여기서 서버에 관심분야 저장 로직 추가
+    };
+
+    const handleInterestCancel = () => {
+        setShowInterestModal(false);
     };
 
     const sideMenuItems = [
@@ -136,16 +176,31 @@ export const MyPage = () => {
                                     <div className="flex-1 space-y-4 sm:space-y-6">
                                         {/* 프로필 이미지 */}
                                         <div className="flex justify-center lg:justify-start">
-                                            <div
-                                                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2"
-                                                style={{
-                                                    borderColor: "#8B85E9",
-                                                }}
-                                            >
-                                                <img
-                                                    src="/android-icon-36x36.png"
-                                                    alt="프로필 이미지"
-                                                    className="w-full h-full object-cover"
+                                            <div className="relative">
+                                                <div
+                                                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 cursor-pointer group"
+                                                    style={{
+                                                        borderColor: "#8B85E9",
+                                                    }}
+                                                    onClick={
+                                                        handleProfileImageClick
+                                                    }
+                                                >
+                                                    <img
+                                                        src={profileImage}
+                                                        alt="프로필 이미지"
+                                                        className="w-full h-full object-cover group-hover:opacity-75 transition-opacity"
+                                                    />
+                                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black bg-opacity-30 rounded-full">
+                                                        <Camera className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                                                    </div>
+                                                </div>
+                                                <input
+                                                    ref={fileInputRef}
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={handleImageChange}
+                                                    className="hidden"
                                                 />
                                             </div>
                                         </div>
@@ -184,23 +239,100 @@ export const MyPage = () => {
                                         </div>
                                     </div>
 
-                                    {/* 오른쪽: 관심분야 */}
-                                    <div className="flex-1">
-                                        <h4
-                                            className="text-base sm:text-lg font-semibold mb-3 sm:mb-4"
-                                            style={{ color: "#8B85E9" }}
-                                        >
-                                            관심분야
-                                        </h4>
+                                    {/* 오른쪽: 유저 점수와 관심분야 */}
+                                    <div className="flex-1 space-y-4 sm:space-y-6">
+                                        {/* 유저 점수 */}
                                         <div
-                                            className="border-2 border-dashed rounded-lg p-4 sm:p-8 text-center text-gray-500 h-32 sm:h-48 flex items-center justify-center text-xs sm:text-sm"
-                                            style={{
-                                                borderColor: "#8B85E9",
-                                                opacity: 0.6,
-                                            }}
+                                            className="bg-gradient-to-r from-yellow-100 to-orange-100 rounded-xl p-4 border-2"
+                                            style={{ borderColor: "#8B85E9" }}
                                         >
-                                            관심분야 설정 기능은 추후 업데이트
-                                            예정입니다.
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <h4
+                                                        className="text-sm sm:text-base font-semibold mb-1"
+                                                        style={{
+                                                            color: "#8B85E9",
+                                                        }}
+                                                    >
+                                                        내 점수
+                                                    </h4>
+                                                    <p className="text-xs text-gray-600">
+                                                        활동 기반 평가 점수
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-center space-x-2">
+                                                    <Star className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500 fill-current" />
+                                                    <span
+                                                        className="text-xl sm:text-2xl font-bold"
+                                                        style={{
+                                                            color: "#8B85E9",
+                                                        }}
+                                                    >
+                                                        {userScore.toLocaleString()}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* 관심분야 */}
+                                        <div>
+                                            <div className="flex justify-between items-center mb-3 sm:mb-4">
+                                                <h4
+                                                    className="text-base sm:text-lg font-semibold"
+                                                    style={{ color: "#8B85E9" }}
+                                                >
+                                                    관심분야
+                                                </h4>
+                                                <button
+                                                    onClick={handleInterestEdit}
+                                                    className="flex items-center space-x-1 px-3 py-1 rounded-lg transition-all duration-200 text-xs sm:text-sm"
+                                                    style={{ color: "#8B85E9" }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.backgroundColor =
+                                                            "#E8E6FF";
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.backgroundColor =
+                                                            "transparent";
+                                                    }}
+                                                >
+                                                    <Edit3 className="w-3 h-3 sm:w-4 sm:h-4" />
+                                                    <span>수정</span>
+                                                </button>
+                                            </div>
+                                            <div
+                                                className="border-2 rounded-lg p-4 min-h-32 sm:min-h-40"
+                                                style={{
+                                                    borderColor: "#8B85E9",
+                                                    backgroundColor: "#F9F9FF",
+                                                }}
+                                            >
+                                                {userInterests.length === 0 ? (
+                                                    <div className="flex items-center justify-center h-full text-gray-500 text-xs sm:text-sm">
+                                                        관심분야를 설정해보세요
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {userInterests.map(
+                                                            (
+                                                                interest,
+                                                                index
+                                                            ) => (
+                                                                <span
+                                                                    key={index}
+                                                                    className="px-3 py-1 text-white rounded-full text-xs sm:text-sm font-medium"
+                                                                    style={{
+                                                                        backgroundColor:
+                                                                            "#8B85E9",
+                                                                    }}
+                                                                >
+                                                                    {interest}
+                                                                </span>
+                                                            )
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -329,6 +461,16 @@ export const MyPage = () => {
             {/* 회원탈퇴 모달 */}
             {showDeleteModal && (
                 <DeleteModal onClose={() => setShowDeleteModal(false)} />
+            )}
+
+            {/* 관심분야 수정 모달 */}
+            {showInterestModal && (
+                <InterestSelection
+                    maxSelections={10}
+                    initialSelections={userInterests}
+                    onComplete={handleInterestComplete}
+                    onCancel={handleInterestCancel}
+                />
             )}
         </>
     );
