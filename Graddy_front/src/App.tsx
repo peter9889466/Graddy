@@ -5,7 +5,7 @@ import "./App.css";
 import ErrorFallback from "./pages/error/ErrorFallback";
 import LoadingOverlay from "./components/shared/LoadingOverlay";
 import DeleteModal from "./components/modal/DeleteModal";
-import MainPage from "./pages/mainPage";
+import MainPage from "./pages/MainPage";
 import { TestModal } from "./pages/TestModal";
 import { TestDropdown } from "./pages/TestDropdown,";
 import { TestAutoCompleteSearch } from "./pages/TestAutoComplete";
