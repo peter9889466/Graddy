@@ -132,7 +132,7 @@ const SearchBar: React.FC = () => {
             <div className="relative" ref={dropdownRef}>
                 <button
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                    className="flex items-center justify-between px-3 py-2 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none min-w-[100px]"
+                    className="flex items-center justify-between px-3 py-2 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 min-w-[100px]"
                 >
                     <span className="text-sm font-medium text-gray-700">
                         {currentSearchTypeLabel}
@@ -183,7 +183,7 @@ const SearchBar: React.FC = () => {
                     {...getInputProps()}
                     type="text"
                     placeholder={`${currentSearchTypeLabel}으로 검색`}
-                    className="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-md focus:outline-none"
+                    className="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-md"
                 />
                 <button className="absolute right-3 top-1/2 transform -translate-y-1/2">
                     <svg

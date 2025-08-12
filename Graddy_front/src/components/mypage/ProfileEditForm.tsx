@@ -69,7 +69,7 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
                             value={password}
                             onChange={(e) => onPasswordChange(e.target.value)}
                             placeholder="변경할 비밀번호를 입력해주세요"
-                            className={`w-full px-4 py-3 border rounded-full focus:outline-none ${
+                            className={`w-full px-4 py-3 border rounded-full ${
                                 passwordError ? "border-red-500" : ""
                             }`}
                             style={{
@@ -95,7 +95,7 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
                                 onConfirmPasswordChange(e.target.value)
                             }
                             placeholder="비밀번호를 다시 입력하세요"
-                            className={`w-full px-4 py-3 border rounded-full focus:outline-none ${
+                            className={`w-full px-4 py-3 border rounded-full ${
                                 passwordError ? "border-red-500" : ""
                             }`}
                             style={{
@@ -147,7 +147,7 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
                             value={nickname}
                             onChange={(e) => onNicknameChange(e.target.value)}
                             placeholder="변경할 닉네임을 입력해주세요"
-                            className="w-full px-4 py-3 border rounded-full focus:outline-none"
+                            className="w-full px-4 py-3 border rounded-full"
                             style={{
                                 borderColor: "#777777",
                             }}
@@ -167,7 +167,7 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
                             value={email}
                             onChange={(e) => onEmailChange(e.target.value)}
                             placeholder="변경할 이메일을 입력해주세요"
-                            className="w-full px-4 py-3 border rounded-full focus:outline-none"
+                            className="w-full px-4 py-3 border rounded-full"
                             style={{
                                 borderColor: "#777777",
                             }}

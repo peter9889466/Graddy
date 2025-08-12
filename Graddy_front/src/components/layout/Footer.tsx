@@ -23,10 +23,10 @@ const Footer: React.FC = () => {
 
                     {/* 링크 섹션 */}
                     <div className="flex flex-row space-x-6 sm:space-x-8 text-center">
-                        <a className="text-xs sm:text-sm text-gray-600 hover:text-purple-600 transition-colors">
+                        <a className="text-xs sm:text-sm text-gray-600 transition-colors">
                             FAQ
                         </a>
-                        <a className="text-xs sm:text-sm text-gray-600 hover:text-purple-600 transition-colors">
+                        <a className="text-xs sm:text-sm text-gray-600 transition-colors">
                             문의하기
                         </a>
                     </div>
@@ -34,7 +34,7 @@ const Footer: React.FC = () => {
                     {/* 연락처 정보 */}
                     <div className="text-center md:text-right">
                         <a
-                            className="text-xs sm:text-sm text-gray-600 hover:text-purple-600 transition-colors"
+                            className="text-xs sm:text-sm text-gray-600 transition-colors"
                             href="https://www.github.com/peter9889466/Graddy"
                             target="_blank"
                             rel="noopener noreferrer"
@@ -45,7 +45,7 @@ const Footer: React.FC = () => {
                 </div>
 
                 {/* 저작권 정보 */}
-                <div className="mt-1 pt-1 border-t border-purple-200 text-center">
+                <div className="mt-1 pt-1 border-t border-gray-200 text-center">
                     <p className="text-xs text-gray-500">
                         © 2025 Graddy. All rights reserved.
                     </p>

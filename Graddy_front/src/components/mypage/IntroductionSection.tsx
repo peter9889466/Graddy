@@ -54,7 +54,7 @@ const IntroductionSection: React.FC<IntroductionSectionProps> = ({
                     <textarea
                         value={introduction}
                         onChange={(e) => onIntroductionChange(e.target.value)}
-                        className="w-full p-3 sm:p-4 border rounded-lg focus:outline-none resize-none text-sm sm:text-base"
+                        className="w-full p-3 sm:p-4 border rounded-lg resize-none text-sm sm:text-base"
                         style={{
                             borderColor: "#777777",
                         }}

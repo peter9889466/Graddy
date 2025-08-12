@@ -30,12 +30,11 @@ body,
     -webkit-overflow-scrolling: touch;
 }
 
-/* 포커스 아웃라인 개선 */
+/* 포커스 아웃라인 제거 */
 button:focus,
 input:focus,
 textarea:focus {
-    outline: 2px solid #8b85e9;
-    outline-offset: 2px;
+    outline: none;
 }
 
 /* 애니메이션 성능 최적화 */

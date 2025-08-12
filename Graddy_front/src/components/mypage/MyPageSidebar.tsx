@@ -45,7 +45,7 @@ const MyPageSidebar: React.FC<MyPageSidebarProps> = ({
                             className={`w-full text-left px-2 sm:px-3 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 group text-sm sm:text-base ${
                                 activeTab === item.name
                                     ? "font-medium"
-                                    : "text-gray-600 hover:bg-purple-50"
+                                    : "text-gray-600"
                             }`}
                             style={
                                 activeTab === item.name

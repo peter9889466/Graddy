@@ -235,7 +235,7 @@ const InterestSelection: React.FC<InterestProps> = ({
                         placeholder="기술이나 분야를 검색해보세요..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-4 pr-12 py-3 border-2 rounded-full text-sm outline-none transition-colors focus:ring-2"
+                        className="w-full pl-4 pr-12 py-3 border-2 rounded-full text-sm outline-none transition-colors"
                         style={{
                             borderColor: "#777777",
                         }}
@@ -290,7 +290,7 @@ const InterestSelection: React.FC<InterestProps> = ({
                                         className={`px-3 sm:px-4 py-2 rounded-full text-xs font-medium transition-all ${
                                             selectedTags.includes(tag)
                                                 ? "text-white shadow-md"
-                                                : "bg-white text-gray-700 border border-gray-200 hover:bg-purple-50"
+                                                : "bg-white text-gray-700 border border-gray-200"
                                         }`}
                                         style={
                                             selectedTags.includes(tag)

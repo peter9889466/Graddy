@@ -63,7 +63,7 @@ export default function DeleteModal({ onClose }: DeleteModalProps) {
                         <input
                             type="text"
                             placeholder="DELETE ACCOUNT"
-                            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-red-300 focus:ring-1 focus:ring-red-500 text-base disabled:bg-gray-100"
+                            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none text-base disabled:bg-gray-100"
                         />
                     </div>
 

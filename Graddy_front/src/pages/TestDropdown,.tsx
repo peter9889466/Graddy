@@ -1,6 +1,6 @@
 // src/components/Dropdown.tsx
-import React from 'react';
-import { useDropdown } from '../hooks/useDropdown';
+import React from "react";
+import { useDropdown } from "../hooks/useDropdown";
 
 interface Item {
     id: number;
@@ -8,9 +8,9 @@ interface Item {
 }
 
 const items: Item[] = [
-    { id: 1, label: 'React' },
-    { id: 2, label: 'TypeScript' },
-    { id: 3, label: 'TailwindCSS' },
+    { id: 1, label: "React" },
+    { id: 2, label: "TypeScript" },
+    { id: 3, label: "TailwindCSS" },
 ];
 
 export const TestDropdown: React.FC = () => {
@@ -19,7 +19,7 @@ export const TestDropdown: React.FC = () => {
         selectedIndex,
         getToggleButtonProps,
         getMenuProps,
-        getItemProps
+        getItemProps,
     } = useDropdown({
         items,
         onSelect: (item) => alert(`Selected: ${item.label}`),
@@ -30,7 +30,7 @@ export const TestDropdown: React.FC = () => {
             <div>
                 <button
                     type="button"
-                    className="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
+                    className="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
                     {...getToggleButtonProps()}
                 >
                     Options
@@ -39,15 +39,16 @@ export const TestDropdown: React.FC = () => {
 
             {isOpen && (
                 <ul
-                    className="origin-top-right absolute right-0 mt-2 w-full rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none"
+                    className="origin-top-right absolute right-0 mt-2 w-full rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5"
                     role="menu"
                     {...getMenuProps()}
                 >
                     {items.map((item, index) => (
                         <li
                             key={item.id}
-                            className={`block px-4 py-2 text-sm text-gray-700 cursor-pointer ${selectedIndex === index ? 'bg-gray-100' : ''
-                                }`}
+                            className={`block px-4 py-2 text-sm text-gray-700 cursor-pointer ${
+                                selectedIndex === index ? "bg-gray-100" : ""
+                            }`}
                             role="menuitem"
                             {...getItemProps(index)}
                         >
