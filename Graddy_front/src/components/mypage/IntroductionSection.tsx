@@ -56,7 +56,7 @@ const IntroductionSection: React.FC<IntroductionSectionProps> = ({
                         onChange={(e) => onIntroductionChange(e.target.value)}
                         className="w-full p-3 sm:p-4 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent resize-none text-sm sm:text-base"
                         style={{
-                            borderColor: "#8B85E9",
+                            borderColor: "#777777",
                         }}
                         onFocus={(e) => {
                             e.target.style.boxShadow =

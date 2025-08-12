@@ -165,7 +165,7 @@ export const MyPage = () => {
 
                                 <hr
                                     style={{
-                                        borderColor: "#8B85E9",
+                                        borderColor: "#777777",
                                         opacity: 0.3,
                                     }}
                                 />
@@ -193,14 +193,12 @@ export const MyPage = () => {
                                 nickname={nickname}
                                 email={email}
                                 onPasswordChange={handlePasswordChange}
-                                onConfirmPasswordChange={
-                                    handleConfirmPasswordChange
-                                }
-                                onNameChange={setName}
+                                onConfirmPasswordChange={handleConfirmPasswordChange}
                                 onNicknameChange={setNickname}
                                 onEmailChange={setEmail}
-                                onUpdateProfile={handleUpdateProfile}
-                            />
+                                onUpdateProfile={handleUpdateProfile} onEmailChangenge={function (value: string): void {
+                                    throw new Error("Function not implemented.");
+                                } }                            />
                         )}
                     </ResponsiveMainContent>
                 </ResponsiveContainer>

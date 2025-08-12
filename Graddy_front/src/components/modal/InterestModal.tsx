@@ -237,7 +237,7 @@ const InterestSelection: React.FC<InterestProps> = ({
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full pl-4 pr-12 py-3 border-2 rounded-full text-sm outline-none transition-colors focus:ring-2"
                         style={{
-                            borderColor: "#8B85E9",
+                            borderColor: "#777777",
                         }}
                         onFocus={(e) => {
                             e.target.style.boxShadow =
@@ -315,7 +315,7 @@ const InterestSelection: React.FC<InterestProps> = ({
                         className="min-h-16 p-4 rounded-xl border border-dashed"
                         style={{
                             backgroundColor: "#F3F2FF",
-                            borderColor: "#8B85E9",
+                            borderColor: "#777777",
                         }}
                     >
                         {selectedTags.length === 0 ? (

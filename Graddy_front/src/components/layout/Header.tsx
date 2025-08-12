@@ -35,7 +35,7 @@ const Header: React.FC = () => {
     return (
         <header
             className="shadow-lg transition-all duration-300 ease-in-out relative"
-            style={{ backgroundColor: "#FFF3D2" }}
+            style={{ backgroundColor: "#FFFFFF" }}
         >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-14 sm:h-16">

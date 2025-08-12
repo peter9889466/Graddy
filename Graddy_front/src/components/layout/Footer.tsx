@@ -4,7 +4,7 @@ const Footer: React.FC = () => {
     return (
         <footer
             className="mt-auto border-t shadow-sm"
-            style={{ backgroundColor: "#FFF3D2", borderColor: "#8B85E9" }}
+            style={{ backgroundColor: "#FFFFFF", bordercolor: "#777777" }}
         >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
                 <div className="flex flex-col md:flex-row justify-between items-center space-y-2 md:space-y-0">

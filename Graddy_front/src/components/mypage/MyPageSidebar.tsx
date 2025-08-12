@@ -28,8 +28,8 @@ const MyPageSidebar: React.FC<MyPageSidebarProps> = ({
         <>
             {/* 마이페이지 섹션 */}
             <div
-                className="bg-white rounded-xl shadow-sm border-2 p-3 sm:p-4"
-                style={{ borderColor: "#8B85E9" }}
+                className="bg-white rounded-xl shadow-sm border p-3 sm:p-4"
+                style={{ borderColor: "#777777" }}
             >
                 <h3
                     className="font-bold mb-3 text-sm sm:text-base"
@@ -87,8 +87,8 @@ const MyPageSidebar: React.FC<MyPageSidebarProps> = ({
 
             {/* 내 스터디 목록 */}
             <div
-                className="bg-white rounded-xl shadow-sm border-2 p-3 sm:p-4"
-                style={{ borderColor: "#8B85E9" }}
+                className="bg-white rounded-xl shadow-sm border p-3 sm:p-4"
+                style={{ borderColor: "#777777" }}
             >
                 <h3
                     className="font-bold mb-3 text-sm sm:text-base"

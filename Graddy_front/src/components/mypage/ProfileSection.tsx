@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React from "react";
 import { Edit3, Camera, Star } from "lucide-react";
 
 interface ProfileSectionProps {
@@ -28,9 +28,9 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                 <div className="flex justify-center lg:justify-start">
                     <div className="relative">
                         <div
-                            className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 cursor-pointer group"
+                            className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border cursor-pointer group"
                             style={{
-                                borderColor: "#8B85E9",
+                                borderColor: "#777777",
                             }}
                             onClick={onProfileImageClick}
                         >
@@ -88,8 +88,8 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
             <div className="flex-1 space-y-4 sm:space-y-6">
                 {/* 유저 점수 */}
                 <div
-                    className="bg-gradient-to-r from-yellow-100 to-orange-100 rounded-xl p-4 border-2"
-                    style={{ borderColor: "#8B85E9" }}
+                    className="bg-gradient-to-r from-yellow-100 to-orange-100 rounded-xl p-4 border"
+                    style={{ borderColor: "#777777" }}
                 >
                     <div className="flex items-center justify-between">
                         <div>
@@ -146,9 +146,9 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                         </button>
                     </div>
                     <div
-                        className="border-2 rounded-lg p-4 min-h-32 sm:min-h-40"
+                        className="border rounded-lg p-4 min-h-32 sm:min-h-40"
                         style={{
-                            borderColor: "#8B85E9",
+                            borderColor: "#777777",
                             backgroundColor: "#F9F9FF",
                         }}
                     >
