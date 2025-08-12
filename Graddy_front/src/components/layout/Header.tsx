@@ -9,7 +9,7 @@ const Header: React.FC = () => {
     const navigate = useNavigate();
 
     const handleLogin = () => {
-        setIsLoggedIn(true);
+        navigate("/login");
         setIsMobileMenuOpen(false);
     };
 

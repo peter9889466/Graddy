@@ -10,6 +10,9 @@ import { MyPage } from "./pages/MyPage";
 import { TestModal } from "./pages/TestModal";
 import { TestDropdown } from "./pages/TestDropdown,";
 import { TestAutoCompleteSearch } from "./pages/TestAutoComplete";
+import Join from "./pages/Join";
+import Join2 from "./pages/Join2";
+import Login from "./pages/Login";
 import Header from "./components/layout/Header";
 import Footer from "./components/layout/Footer";
 
@@ -32,7 +35,10 @@ function App() {
                             <Route
                                 path="/autocomplete"
                                 element={<TestAutoCompleteSearch />}
-                            />
+                            />ㄴ
+                            <Route path="/join" element={<Join />} />
+                            <Route path="/join2" element={<Join2 />} />
+                            <Route path="/login" element={<Login />} />
                         </Routes>
                     </Suspense>
                 </main>
