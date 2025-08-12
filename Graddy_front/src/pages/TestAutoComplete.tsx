@@ -1,12 +1,28 @@
 // src/components/AutoCompleteSearch.tsx
-import React from 'react';
-import { useAutoComplete } from '../hooks/useAutoComplete';
+import React from "react";
+import { useAutoComplete } from "../hooks/useAutoComplete";
 
 const ALL_ITEMS = [
     // 프로그래밍 언어
-    'HTML', 'CSS', 'JavaScript', 'TypeScript', 'Python', 'Java', 'C++', 'Kotlin', 'SpringBoot', 'Spring', 'Linux',
-    'React', 'Next.js', 'Node.js', 'React Router', 'Zustand', 'React Query', 'Tailwind CSS', 'Lombok',
-
+    "HTML",
+    "CSS",
+    "JavaScript",
+    "TypeScript",
+    "Python",
+    "Java",
+    "C++",
+    "Kotlin",
+    "SpringBoot",
+    "Spring",
+    "Linux",
+    "React",
+    "Next.js",
+    "Node.js",
+    "React Router",
+    "Zustand",
+    "React Query",
+    "Tailwind CSS",
+    "Lombok",
 ];
 
 // useAutoComplete 훅에 전달할 필터링 로직
@@ -29,7 +45,11 @@ export const TestAutoCompleteSearch: React.FC = () => {
         <div className="p-4 w-full max-w-xs mx-auto">
             <h1 className="text-2xl font-bold mb-4">자동완성</h1>
             <div className="relative">
-                <div className={`flex items-center p-2 border border-gray-300 focus-within:shadow-lg ${isOpen ? 'rounded-t-lg' : 'rounded-lg'}`}>
+                <div
+                    className={`flex items-center p-2 border border-gray-300 ${
+                        isOpen ? "rounded-t-lg" : "rounded-lg"
+                    }`}
+                >
                     <input
                         type="text"
                         className="flex-1 bg-transparent border-none outline-none"

@@ -35,7 +35,7 @@ const Header: React.FC = () => {
     return (
         <header
             className="shadow-lg transition-all duration-300 ease-in-out relative"
-            style={{ backgroundColor: "#FFF3D2" }}
+            style={{ backgroundColor: "#FFFFFF" }}
         >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-14 sm:h-16">
@@ -132,18 +132,18 @@ const Header: React.FC = () => {
 
                 {/* 모바일 드롭다운 메뉴 */}
                 {isMobileMenuOpen && (
-                    <div className="md:hidden absolute top-full left-0 right-0 bg-white shadow-lg border-t border-purple-200 z-50">
+                    <div className="md:hidden absolute top-full left-0 right-0 bg-white shadow-lg border-t border-gray-200 z-50">
                         <div className="px-4 py-4 space-y-3">
                             {isLoggedIn ? (
                                 <>
                                     <button
-                                        className="block w-full text-left px-4 py-3 rounded-lg transition-all duration-200 hover:bg-purple-50"
+                                        className="block w-full text-left px-4 py-3 rounded-lg transition-all duration-200"
                                         style={{ color: "#8B85E9" }}
                                     >
                                         자유게시판
                                     </button>
                                     <button
-                                        className="block w-full text-left px-4 py-3 rounded-lg transition-all duration-200 hover:bg-purple-50"
+                                        className="block w-full text-left px-4 py-3 rounded-lg transition-all duration-200"
                                         style={{ color: "#8B85E9" }}
                                     >
                                         스터디
@@ -166,13 +166,13 @@ const Header: React.FC = () => {
                             ) : (
                                 <>
                                     <button
-                                        className="block w-full text-left px-4 py-3 rounded-lg transition-all duration-200 hover:bg-purple-50"
+                                        className="block w-full text-left px-4 py-3 rounded-lg transition-all duration-200"
                                         style={{ color: "#8B85E9" }}
                                     >
                                         자유게시판
                                     </button>
                                     <button
-                                        className="block w-full text-left px-4 py-3 rounded-lg transition-all duration-200 hover:bg-purple-50"
+                                        className="block w-full text-left px-4 py-3 rounded-lg transition-all duration-200"
                                         style={{ color: "#8B85E9" }}
                                     >
                                         스터디

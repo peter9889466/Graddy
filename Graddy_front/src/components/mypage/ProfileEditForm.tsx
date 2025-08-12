@@ -9,7 +9,6 @@ interface ProfileEditFormProps {
     email: string;
     onPasswordChange: (value: string) => void;
     onConfirmPasswordChange: (value: string) => void;
-    onNameChange: (value: string) => void;
     onNicknameChange: (value: string) => void;
     onEmailChange: (value: string) => void;
     onUpdateProfile: () => void;
@@ -24,25 +23,16 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
     email,
     onPasswordChange,
     onConfirmPasswordChange,
-    onNameChange,
     onNicknameChange,
     onEmailChange,
     onUpdateProfile,
 }) => {
     return (
         <div className="space-y-6 sm:space-y-8">
-            <h2
-                className="text-xl sm:text-2xl font-bold"
-                style={{ color: "#8B85E9" }}
-            >
-                회원정보 수정
-            </h2>
+            <h2 className="text-xl sm:text-2xl font-bold">회원정보 수정</h2>
 
             {/* 회원정보 수정 폼 */}
-            <div
-                className="bg-white rounded-xl p-6 sm:p-8 shadow-sm border-2"
-                style={{ borderColor: "#8B85E9" }}
-            >
+            <div className="bg-white rounded-xl p-6 sm:p-8 shadow-sm">
                 <div className="space-y-6">
                     {/* 아이디 */}
                     <div>
@@ -78,22 +68,14 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
                             type="password"
                             value={password}
                             onChange={(e) => onPasswordChange(e.target.value)}
-                            placeholder="새 비밀번호를 입력하세요 (변경 시에만)"
-                            className={`w-full px-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:border-transparent ${
+                            placeholder="변경할 비밀번호를 입력해주세요"
+                            className={`w-full px-4 py-3 border rounded-full ${
                                 passwordError ? "border-red-500" : ""
                             }`}
                             style={{
                                 borderColor: passwordError
                                     ? "#EF4444"
-                                    : "#8B85E9",
-                            }}
-                            onFocus={(e) => {
-                                e.target.style.boxShadow = passwordError
-                                    ? "0 0 0 2px rgba(239, 68, 68, 0.2)"
-                                    : "0 0 0 2px rgba(139, 133, 233, 0.2)";
-                            }}
-                            onBlur={(e) => {
-                                e.target.style.boxShadow = "none";
+                                    : "#777777",
                             }}
                         />
                     </div>
@@ -113,21 +95,13 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
                                 onConfirmPasswordChange(e.target.value)
                             }
                             placeholder="비밀번호를 다시 입력하세요"
-                            className={`w-full px-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:border-transparent ${
+                            className={`w-full px-4 py-3 border rounded-full ${
                                 passwordError ? "border-red-500" : ""
                             }`}
                             style={{
                                 borderColor: passwordError
                                     ? "#EF4444"
-                                    : "#8B85E9",
-                            }}
-                            onFocus={(e) => {
-                                e.target.style.boxShadow = passwordError
-                                    ? "0 0 0 2px rgba(239, 68, 68, 0.2)"
-                                    : "0 0 0 2px rgba(139, 133, 233, 0.2)";
-                            }}
-                            onBlur={(e) => {
-                                e.target.style.boxShadow = "none";
+                                    : "#777777",
                             }}
                         />
                         {passwordError && (
@@ -149,19 +123,15 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
                         <input
                             type="text"
                             value={name}
-                            onChange={(e) => onNameChange(e.target.value)}
-                            className="w-full px-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:border-transparent"
+                            disabled
+                            className="w-full px-4 py-3 bg-gray-100 border rounded-full text-gray-500 cursor-not-allowed"
                             style={{
-                                borderColor: "#8B85E9",
-                            }}
-                            onFocus={(e) => {
-                                e.target.style.boxShadow =
-                                    "0 0 0 2px rgba(139, 133, 233, 0.2)";
-                            }}
-                            onBlur={(e) => {
-                                e.target.style.boxShadow = "none";
+                                borderColor: "#E5E7EB",
                             }}
                         />
+                        <p className="text-xs text-gray-500 mt-1">
+                            이름은 변경할 수 없습니다.
+                        </p>
                     </div>
 
                     {/* 닉네임 */}
@@ -176,16 +146,10 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
                             type="text"
                             value={nickname}
                             onChange={(e) => onNicknameChange(e.target.value)}
-                            className="w-full px-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:border-transparent"
+                            placeholder="변경할 닉네임을 입력해주세요"
+                            className="w-full px-4 py-3 border rounded-full"
                             style={{
-                                borderColor: "#8B85E9",
-                            }}
-                            onFocus={(e) => {
-                                e.target.style.boxShadow =
-                                    "0 0 0 2px rgba(139, 133, 233, 0.2)";
-                            }}
-                            onBlur={(e) => {
-                                e.target.style.boxShadow = "none";
+                                borderColor: "#777777",
                             }}
                         />
                     </div>
@@ -202,16 +166,10 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
                             type="email"
                             value={email}
                             onChange={(e) => onEmailChange(e.target.value)}
-                            className="w-full px-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:border-transparent"
+                            placeholder="변경할 이메일을 입력해주세요"
+                            className="w-full px-4 py-3 border rounded-full"
                             style={{
-                                borderColor: "#8B85E9",
-                            }}
-                            onFocus={(e) => {
-                                e.target.style.boxShadow =
-                                    "0 0 0 2px rgba(139, 133, 233, 0.2)";
-                            }}
-                            onBlur={(e) => {
-                                e.target.style.boxShadow = "none";
+                                borderColor: "#777777",
                             }}
                         />
                     </div>

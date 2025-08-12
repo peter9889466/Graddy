@@ -4,14 +4,12 @@ interface ResponsiveMainContentProps {
     children: React.ReactNode;
     className?: string;
     padding?: "none" | "sm" | "md" | "lg";
-    borderColor?: string;
 }
 
 const ResponsiveMainContent: React.FC<ResponsiveMainContentProps> = ({
     children,
     className = "",
     padding = "md",
-    borderColor = "#8B85E9",
 }) => {
     const paddingClasses = {
         none: "p-0",
@@ -24,7 +22,6 @@ const ResponsiveMainContent: React.FC<ResponsiveMainContentProps> = ({
         <div className="flex-1 min-w-0">
             <div
                 className={`bg-white rounded-xl shadow-sm border-2 ${paddingClasses[padding]} ${className}`}
-                style={{ borderColor }}
             >
                 {children}
             </div>

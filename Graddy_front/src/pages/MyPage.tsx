@@ -165,7 +165,7 @@ export const MyPage = () => {
 
                                 <hr
                                     style={{
-                                        borderColor: "#8B85E9",
+                                        borderColor: "#777777",
                                         opacity: 0.3,
                                     }}
                                 />
@@ -196,7 +196,6 @@ export const MyPage = () => {
                                 onConfirmPasswordChange={
                                     handleConfirmPasswordChange
                                 }
-                                onNameChange={setName}
                                 onNicknameChange={setNickname}
                                 onEmailChange={setEmail}
                                 onUpdateProfile={handleUpdateProfile}
