@@ -193,12 +193,13 @@ export const MyPage = () => {
                                 nickname={nickname}
                                 email={email}
                                 onPasswordChange={handlePasswordChange}
-                                onConfirmPasswordChange={handleConfirmPasswordChange}
+                                onConfirmPasswordChange={
+                                    handleConfirmPasswordChange
+                                }
                                 onNicknameChange={setNickname}
                                 onEmailChange={setEmail}
-                                onUpdateProfile={handleUpdateProfile} onEmailChangenge={function (value: string): void {
-                                    throw new Error("Function not implemented.");
-                                } }                            />
+                                onUpdateProfile={handleUpdateProfile}
+                            />
                         )}
                     </ResponsiveMainContent>
                 </ResponsiveContainer>

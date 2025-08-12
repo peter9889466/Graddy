@@ -54,16 +54,9 @@ const IntroductionSection: React.FC<IntroductionSectionProps> = ({
                     <textarea
                         value={introduction}
                         onChange={(e) => onIntroductionChange(e.target.value)}
-                        className="w-full p-3 sm:p-4 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent resize-none text-sm sm:text-base"
+                        className="w-full p-3 sm:p-4 border rounded-lg focus:outline-none resize-none text-sm sm:text-base"
                         style={{
                             borderColor: "#777777",
-                        }}
-                        onFocus={(e) => {
-                            e.target.style.boxShadow =
-                                "0 0 0 2px rgba(139, 133, 233, 0.2)";
-                        }}
-                        onBlur={(e) => {
-                            e.target.style.boxShadow = "none";
                         }}
                         rows={4}
                         placeholder="자신을 소개해보세요..."
