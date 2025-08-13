@@ -1,7 +1,5 @@
 // src/contexts/AuthContext.js
 
-// src/contexts/AuthContext.js
-
 import React, { createContext, useState, useEffect, PropsWithChildren } from 'react';
 
 // createContext의 초기값으로 null 대신 타입 지정
