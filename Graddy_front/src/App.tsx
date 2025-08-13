@@ -23,7 +23,7 @@ import { AuthProvider } from "./contexts/AuthContext"; // AuthProvider import
 function App() {
     return (
         <ErrorBoundary FallbackComponent={ErrorFallback}>
-            <AuthProvider> // Header와 Routes를 AuthProvider로 감싸기
+            <AuthProvider> 
                 <div className="min-h-screen flex flex-col">
                     <Header />
                     <main className="flex-1">
