@@ -122,7 +122,7 @@ const Join2: React.FC = () => {
                         {/* 하단 버튼 */}
                         <div className="flex justify-center space-x-4 pt-4">
                             <button
-                                onClick={() => navigate("/join")}
+                                onClick={() => navigate("/login")}
                                 className="py-3 px-6 text-white rounded-full font-medium transition-all duration-200 hover:opacity-90 transform hover:scale-[1.02]"
                                 style={{ backgroundColor: "#8B85E9", width: "calc(100% / 3)" }}
                                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#7A73E0"}

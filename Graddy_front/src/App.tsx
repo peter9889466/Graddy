@@ -1,3 +1,5 @@
+// src/App.tsx
+
 import { Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import { ErrorBoundary } from "react-error-boundary";
@@ -16,39 +18,42 @@ import Login from "./pages/Login";
 import Header from "./components/layout/Header";
 import Footer from "./components/layout/Footer";
 import { StudySearchPage } from "./pages/StudySearchPage";
+import { AuthProvider } from "./contexts/AuthContext"; // AuthProvider import
 
 function App() {
     return (
         <ErrorBoundary FallbackComponent={ErrorFallback}>
-            <div className="min-h-screen flex flex-col">
-                <Header />
-                <main className="flex-1">
-                    <Suspense fallback={<LoadingOverlay />}>
-                        <Routes>
-                            <Route path="/" element={<MainPage />} />
-                            <Route path="/mypage" element={<MyPage />} />
-                            <Route path="/delete" element={<DeleteModal />} />
-                            <Route path="/modal" element={<TestModal />} />
-                            <Route
-                                path="/dropdown"
-                                element={<TestDropdown />}
-                            />
-                            <Route
-                                path="/autocomplete"
-                                element={<TestAutoCompleteSearch />}
-                            />
-                            <Route path="/join" element={<Join />} />
-                            <Route path="/join2" element={<Join2 />} />
-                            <Route path="/login" element={<Login />} />
-                            <Route
-                                path="/search"
-                                element={<StudySearchPage />}
-                            />
-                        </Routes>
-                    </Suspense>
-                </main>
-                <Footer />
-            </div>
+            <AuthProvider> 
+                <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-1">
+                        <Suspense fallback={<LoadingOverlay />}>
+                            <Routes>
+                                <Route path="/" element={<MainPage />} />
+                                <Route path="/mypage" element={<MyPage />} />
+                                <Route path="/delete" element={<DeleteModal />} />
+                                <Route path="/modal" element={<TestModal />} />
+                                <Route
+                                    path="/dropdown"
+                                    element={<TestDropdown />}
+                                />
+                                <Route
+                                    path="/autocomplete"
+                                    element={<TestAutoCompleteSearch />}
+                                />
+                                <Route path="/join" element={<Join />} />
+                                <Route path="/join2" element={<Join2 />} />
+                                <Route path="/login" element={<Login />} />
+                                <Route
+                                    path="/search"
+                                    element={<StudySearchPage />}
+                                />
+                            </Routes>
+                        </Suspense>
+                    </main>
+                    <Footer />
+                </div>
+            </AuthProvider>
         </ErrorBoundary>
     );
 }
