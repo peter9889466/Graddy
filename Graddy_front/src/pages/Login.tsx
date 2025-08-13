@@ -2,27 +2,27 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 
 interface LoginProps {
-    id: string;
-    password: string;
-    idError: string;
-    passwordError: string;
-    onId: (value: string) => void;
-    onPassword: (value: string) => void;
+    id?: string;
+    password?: string;
+    idError?: string;
+    passwordError?: string;
+    onId?: (value: string) => void;
+    onPassword?: (value: string) => void;
 }
 
 const Login: React.FC<LoginProps> = ({
-    id,
-    password,
-    onId, 
-    onPassword,
-    idError, 
-    passwordError
+    id = "",
+    password = "",
+    onId = () => {},
+    onPassword = () => {},
+    idError = "",
+    passwordError = "",
 }) => {
     const navigate = useNavigate();
 
     const loginBtn = () => {
-        navigate("/")
-    }
+        navigate("/");
+    };
 
     return (
         <div className="flex items-center justify-center min-h-screen">
@@ -77,7 +77,9 @@ const Login: React.FC<LoginProps> = ({
                                     passwordError ? "border-red-500" : ""
                                 }`}
                                 style={{
-                                    borderColor: passwordError ? "#EF4444" : "#8B85E9",
+                                    borderColor: passwordError
+                                        ? "#EF4444"
+                                        : "#8B85E9",
                                 }}
                                 onFocus={(e) => {
                                     e.target.style.boxShadow = passwordError
@@ -97,7 +99,10 @@ const Login: React.FC<LoginProps> = ({
                                 id="rememberId"
                                 className="w-5 h-5 rounded-full border border-gray-400 text-[#8B85E9] focus:ring-[#8B85E9]"
                             />
-                            <label htmlFor="rememberId" className="text-gray-600 text-sm">
+                            <label
+                                htmlFor="rememberId"
+                                className="text-gray-600 text-sm"
+                            >
                                 아이디 저장
                             </label>
                         </div>
@@ -109,10 +114,12 @@ const Login: React.FC<LoginProps> = ({
                                 className="w-full py-3 px-6 text-white rounded-full font-medium transition-all duration-200 hover:opacity-90 transform hover:scale-[1.02]"
                                 style={{ backgroundColor: "#8B85E9" }}
                                 onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = "#7A73E0";
+                                    e.currentTarget.style.backgroundColor =
+                                        "#7A73E0";
                                 }}
                                 onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor = "#8B85E9";
+                                    e.currentTarget.style.backgroundColor =
+                                        "#8B85E9";
                                 }}
                             >
                                 로그인
@@ -123,12 +130,18 @@ const Login: React.FC<LoginProps> = ({
                         <div className="mt-4 text-center space-y-2">
                             <p className="text-sm text-gray-600">
                                 아직 회원이 아니신가요?{" "}
-                                <a href="/join" className="text-[#8B85E9] hover:underline">
+                                <a
+                                    href="/join"
+                                    className="text-[#8B85E9] hover:underline"
+                                >
                                     회원가입
                                 </a>
                             </p>
                             <p className="text-sm">
-                                <a href="/find-password" className="text-[#8B85E9] hover:underline">
+                                <a
+                                    href="/find-password"
+                                    className="text-[#8B85E9] hover:underline"
+                                >
                                     비밀번호 찾기
                                 </a>
                             </p>

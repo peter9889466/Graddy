@@ -34,14 +34,20 @@ const allInterests: InterestItem[] = [
     { id: 24, name: "Linux" },
 ];
 
-const Join2: React.FC<{ nextPage: () => void }> = ({ nextPage }) => {
-    const [selectedInterests, setSelectedInterests] = useState<InterestItem[]>([]);
+const Join2: React.FC<{ nextPage?: () => void }> = ({
+    nextPage = () => {},
+}) => {
+    const [selectedInterests, setSelectedInterests] = useState<InterestItem[]>(
+        []
+    );
     const [searchTerm, setSearchTerm] = useState<string>("");
 
     const handleInterestClick = (item: InterestItem) => {
         if (selectedInterests.find((i) => i.id === item.id)) {
             // Remove if already selected
-            setSelectedInterests(selectedInterests.filter((i) => i.id !== item.id));
+            setSelectedInterests(
+                selectedInterests.filter((i) => i.id !== item.id)
+            );
         } else if (selectedInterests.length < 10) {
             // Add if less than 10 selected
             setSelectedInterests([...selectedInterests, item]);
@@ -58,11 +64,11 @@ const Join2: React.FC<{ nextPage: () => void }> = ({ nextPage }) => {
 
     const navigate = useNavigate();
     const backPage = () => {
-        navigate("/login")
-    }
+        navigate("/login");
+    };
     const skipPage = () => {
-        navigate("/")
-    }
+        navigate("/");
+    };
 
     return (
         <div className="flex items-center justify-center min-h-screen">
@@ -104,15 +110,23 @@ const Join2: React.FC<{ nextPage: () => void }> = ({ nextPage }) => {
                             />
                             {/* FaSearch 아이콘을 SVG로 대체 */}
                             <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 512 512" fill="currentColor">
-                                    <path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 100-288 144 144 0 100 288z"/>
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-4 w-4"
+                                    viewBox="0 0 512 512"
+                                    fill="currentColor"
+                                >
+                                    <path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 100-288 144 144 0 100 288z" />
                                 </svg>
                             </div>
                         </div>
 
                         {/* 탭 버튼 - 두 줄로 배치되도록 수정 */}
                         <div className="flex flex-wrap gap-2 text-sm justify-center">
-                            <button className="px-4 py-2 rounded-full text-white font-medium" style={{ backgroundColor: "#8B85E9" }}>
+                            <button
+                                className="px-4 py-2 rounded-full text-white font-medium"
+                                style={{ backgroundColor: "#8B85E9" }}
+                            >
                                 전체
                             </button>
                             <button className="px-4 py-2 rounded-full text-gray-600 font-medium bg-gray-200">
@@ -131,19 +145,26 @@ const Join2: React.FC<{ nextPage: () => void }> = ({ nextPage }) => {
                                 역할/직무
                             </button>
                         </div>
-                        
+
                         {/* 관심분야 목록 */}
                         <div
                             className="p-4 border rounded-xl overflow-y-auto"
-                            style={{ borderColor: "#8B85E9", maxHeight: "200px" }}
+                            style={{
+                                borderColor: "#8B85E9",
+                                maxHeight: "200px",
+                            }}
                         >
                             <div className="flex flex-wrap gap-2 justify-center">
                                 {filteredInterests.map((item) => (
                                     <button
                                         key={item.id}
-                                        onClick={() => handleInterestClick(item)}
+                                        onClick={() =>
+                                            handleInterestClick(item)
+                                        }
                                         className={`px-3 py-1 text-sm rounded-full transition-all duration-200 ${
-                                            selectedInterests.find(i => i.id === item.id)
+                                            selectedInterests.find(
+                                                (i) => i.id === item.id
+                                            )
                                                 ? "bg-[#8B85E9] text-white"
                                                 : "bg-gray-200 text-gray-600 hover:bg-gray-300"
                                         }`}
@@ -156,19 +177,34 @@ const Join2: React.FC<{ nextPage: () => void }> = ({ nextPage }) => {
 
                         {/* 선택된 관심분야 */}
                         <div className="mt-6">
-                            <h3 className="font-medium mb-2" style={{ color: "#8B85E9" }}>선택된 관심분야</h3>
+                            <h3
+                                className="font-medium mb-2"
+                                style={{ color: "#8B85E9" }}
+                            >
+                                선택된 관심분야
+                            </h3>
                             <div
                                 className="p-4 border rounded-xl flex flex-wrap gap-2"
-                                style={{ borderColor: "#8B85E9", minHeight: "60px" }}
+                                style={{
+                                    borderColor: "#8B85E9",
+                                    minHeight: "60px",
+                                }}
                             >
                                 {selectedInterests.map((item) => (
                                     <span
                                         key={item.id}
                                         className="px-3 py-1 text-sm rounded-full flex items-center space-x-1"
-                                        style={{ backgroundColor: "#8B85E9", color: "white" }}
+                                        style={{
+                                            backgroundColor: "#8B85E9",
+                                            color: "white",
+                                        }}
                                     >
                                         <span>{item.name}</span>
-                                        <button onClick={() => handleInterestClick(item)}>
+                                        <button
+                                            onClick={() =>
+                                                handleInterestClick(item)
+                                            }
+                                        >
                                             <svg
                                                 xmlns="http://www.w3.org/2000/svg"
                                                 className="h-4 w-4"
@@ -184,7 +220,9 @@ const Join2: React.FC<{ nextPage: () => void }> = ({ nextPage }) => {
                                         </button>
                                     </span>
                                 ))}
-                                <span className="text-gray-500 text-sm ml-auto my-auto">{selectedInterests.length}/10 선택됨</span>
+                                <span className="text-gray-500 text-sm ml-auto my-auto">
+                                    {selectedInterests.length}/10 선택됨
+                                </span>
                             </div>
                         </div>
 
@@ -195,7 +233,7 @@ const Join2: React.FC<{ nextPage: () => void }> = ({ nextPage }) => {
                                 className="py-3 px-6 text-white rounded-full font-medium transition-all duration-200 hover:opacity-90 transform hover:scale-[1.02]"
                                 style={{
                                     backgroundColor: "#8B85E9",
-                                    width: "calc(100% / 3)"
+                                    width: "calc(100% / 3)",
                                 }}
                                 onMouseEnter={(e) => {
                                     e.currentTarget.style.backgroundColor =
@@ -214,7 +252,7 @@ const Join2: React.FC<{ nextPage: () => void }> = ({ nextPage }) => {
                                 style={{
                                     backgroundColor: "#E0E0E0",
                                     color: "#555",
-                                    width: "calc(100% / 3)"
+                                    width: "calc(100% / 3)",
                                 }}
                                 onMouseEnter={(e) => {
                                     e.currentTarget.style.backgroundColor =
