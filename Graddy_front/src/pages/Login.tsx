@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { AuthContext } from '../contexts/AuthContext';
 
 const Login: React.FC = () => {
     const [id, setId] = useState("");
@@ -9,20 +10,46 @@ const Login: React.FC = () => {
     const [passwordError, setPasswordError] = useState("");
     const navigate = useNavigate();
 
+    // useContext를 사용하여 AuthContext에서 login 함수를 가져옵니다.
+    const authContext = useContext(AuthContext);
+
+    // TypeScript 환경에서 authContext가 null일 경우를 대비한 안전 장치입니다.
+    if (!authContext) {
+        throw new Error('Login 컴포넌트는 AuthProvider 내에서 사용되어야 합니다.');
+    }
+    const { login } = authContext;
+
     useEffect(() => {
         const savedId = localStorage.getItem("savedId");
         if (savedId) {
             setId(savedId);
             setRememberId(true);
-        }   
+        }
     }, []);
 
     const loginBtn = async () => {
-        if (!id) return setIdError("아이디를 입력하세요.");
-        if (!password) return setPasswordError("비밀번호를 입력하세요.");
+        if (!id) {
+            setIdError("아이디를 입력하세요.");
+            return;
+        }
+        if (!password) {
+            setPasswordError("비밀번호를 입력하세요.");
+            return;
+        }
+
         try {
-            if (rememberId) localStorage.setItem("savedId", id);
-            else localStorage.removeItem("savedId");
+            // 실제 로그인 로직 (예: API 호출)은 여기에 구현하세요.
+            // 아래 코드는 로그인에 성공했다고 가정합니다.
+            
+            // 로그인 성공 시 AuthContext의 login 함수를 호출하여 전역 상태를 업데이트합니다.
+            login();
+
+            if (rememberId) {
+                localStorage.setItem("savedId", id);
+            } else {
+                localStorage.removeItem("savedId");
+            }
+            
             navigate("/");
         } catch {
             setPasswordError("로그인에 실패했습니다.");
@@ -46,7 +73,10 @@ const Login: React.FC = () => {
                             <input
                                 type="text"
                                 value={id}
-                                onChange={(e) => setId(e.target.value)}
+                                onChange={(e) => {
+                                    setId(e.target.value);
+                                    setIdError("");
+                                }}
                                 placeholder="아이디"
                                 className={`w-full px-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:border-transparent ${
                                     idError ? "border-red-500" : ""
@@ -63,6 +93,7 @@ const Login: React.FC = () => {
                                     e.target.style.boxShadow = "none";
                                 }}
                             />
+                            {idError && <p className="text-red-500 text-sm mt-1">{idError}</p>}
                         </div>
 
                         {/* 비밀번호 */}
@@ -70,7 +101,10 @@ const Login: React.FC = () => {
                             <input
                                 type="password"
                                 value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                onChange={(e) => {
+                                    setPassword(e.target.value);
+                                    setPasswordError("");
+                                }}
                                 placeholder="비밀번호"
                                 className={`w-full px-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:border-transparent ${
                                     passwordError ? "border-red-500" : ""
@@ -89,6 +123,7 @@ const Login: React.FC = () => {
                                     e.target.style.boxShadow = "none";
                                 }}
                             />
+                            {passwordError && <p className="text-red-500 text-sm mt-1">{passwordError}</p>}
                         </div>
 
                         {/* 아이디 저장 체크박스 */}

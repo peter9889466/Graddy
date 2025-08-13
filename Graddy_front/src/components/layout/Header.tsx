@@ -1,16 +1,19 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../../contexts/AuthContext"; // AuthContext 가져오기
 import { Menu, X } from "lucide-react";
 
 const Header: React.FC = () => {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const navigate = useNavigate();
+    const authContext = useContext(AuthContext); // Context를 가져옴
 
-    useEffect(() => {
-        const loggedIn = localStorage.getItem("isLoggedIn") === "true";
-        setIsLoggedIn(loggedIn);
-    }, []);
+    // authContext가 null인 경우를 대비한 안전 장치
+    if (!authContext) {
+        throw new Error('Header 컴포넌트는 AuthProvider 내에서 사용되어야 합니다.');
+    }
+    const { isLoggedIn, logout } = authContext;
+
 
     const handleLogin = () => {
         navigate("/login");
@@ -18,8 +21,7 @@ const Header: React.FC = () => {
     };
 
     const handleLogout = () => {
-        localStorage.removeItem("isLoggedIn");
-        setIsLoggedIn(false);
+        logout(); // Context의 logout 함수 호출
         setIsMobileMenuOpen(false);
         navigate("/");
     };
