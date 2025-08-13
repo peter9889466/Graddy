@@ -15,6 +15,7 @@ import Join2 from "./pages/Join2";
 import Login from "./pages/Login";
 import Header from "./components/layout/Header";
 import Footer from "./components/layout/Footer";
+import { StudySearchPage } from "./pages/StudySearchPage";
 
 function App() {
     return (
@@ -39,6 +40,10 @@ function App() {
                             <Route path="/join" element={<Join />} />
                             <Route path="/join2" element={<Join2 />} />
                             <Route path="/login" element={<Login />} />
+                            <Route
+                                path="/search"
+                                element={<StudySearchPage />}
+                            />
                         </Routes>
                     </Suspense>
                 </main>

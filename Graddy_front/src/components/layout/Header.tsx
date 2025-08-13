@@ -31,6 +31,10 @@ const Header: React.FC = () => {
     const toggleMobileMenu = () => {
         setIsMobileMenuOpen(!isMobileMenuOpen);
     };
+    const handleSearch = () => {
+        navigate("/search");
+        setIsMobileMenuOpen(false);
+    };
 
     return (
         <header
@@ -65,6 +69,7 @@ const Header: React.FC = () => {
                                 <button
                                     className="font-medium transition-all duration-200 hover:scale-105 hover:drop-shadow-sm relative group text-sm lg:text-base"
                                     style={{ color: "#8B85E9" }}
+                                    onClick={handleSearch}
                                 >
                                     스터디
                                     <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-current transition-all duration-300 group-hover:w-full"></span>
@@ -172,6 +177,7 @@ const Header: React.FC = () => {
                                         자유게시판
                                     </button>
                                     <button
+                                        onClick={handleSearch}
                                         className="block w-full text-left px-4 py-3 rounded-lg transition-all duration-200"
                                         style={{ color: "#8B85E9" }}
                                     >
