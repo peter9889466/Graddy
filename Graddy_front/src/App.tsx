@@ -36,7 +36,7 @@ function App() {
                             <Route
                                 path="/autocomplete"
                                 element={<TestAutoCompleteSearch />}
-                            />ㄴ
+                            />
                             <Route path="/join" element={<Join />} />
                             <Route path="/join2" element={<Join2 />} />
                             <Route path="/login" element={<Login />} />
