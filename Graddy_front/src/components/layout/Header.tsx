@@ -1,12 +1,16 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 
 const Header: React.FC = () => {
-    // 임시로 로그인 상태를 관리 (나중에 전역 상태나 context로 변경 가능)
-    const [isLoggedIn, setIsLoggedIn] = useState(true); // 테스트를 위해 true로 설정
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        const loggedIn = localStorage.getItem("isLoggedIn") === "true";
+        setIsLoggedIn(loggedIn);
+    }, []);
 
     const handleLogin = () => {
         navigate("/login");
@@ -14,8 +18,10 @@ const Header: React.FC = () => {
     };
 
     const handleLogout = () => {
+        localStorage.removeItem("isLoggedIn");
         setIsLoggedIn(false);
         setIsMobileMenuOpen(false);
+        navigate("/");
     };
 
     const handleMyPageClick = () => {
@@ -28,12 +34,13 @@ const Header: React.FC = () => {
         setIsMobileMenuOpen(false);
     };
 
-    const toggleMobileMenu = () => {
-        setIsMobileMenuOpen(!isMobileMenuOpen);
-    };
     const handleSearch = () => {
         navigate("/search");
         setIsMobileMenuOpen(false);
+    };
+
+    const toggleMobileMenu = () => {
+        setIsMobileMenuOpen(!isMobileMenuOpen);
     };
 
     return (
@@ -55,25 +62,25 @@ const Header: React.FC = () => {
                         />
                     </div>
 
-                    {/* 데스크톱 네비게이션 메뉴 */}
-                    <div className="hidden md:flex">
+                    {/* 데스크톱 메뉴 */}
+                    <div className="hidden md:flex items-center space-x-3 lg:space-x-6 animate-fadeIn">
+                        <button
+                            className="font-medium transition-all duration-200 hover:scale-105 relative group text-sm lg:text-base"
+                            style={{ color: "#8B85E9" }}
+                        >
+                            자유게시판
+                            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-current transition-all duration-300 group-hover:w-full"></span>
+                        </button>
+                        <button
+                            onClick={handleSearch}
+                            className="font-medium transition-all duration-200 hover:scale-105 relative group text-sm lg:text-base"
+                            style={{ color: "#8B85E9" }}
+                        >
+                            스터디
+                            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-current transition-all duration-300 group-hover:w-full"></span>
+                        </button>
                         {isLoggedIn ? (
-                            <div className="flex items-center space-x-3 lg:space-x-6 animate-fadeIn">
-                                <button
-                                    className="font-medium transition-all duration-200 hover:scale-105 hover:drop-shadow-sm relative group text-sm lg:text-base"
-                                    style={{ color: "#8B85E9" }}
-                                >
-                                    자유게시판
-                                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-current transition-all duration-300 group-hover:w-full"></span>
-                                </button>
-                                <button
-                                    className="font-medium transition-all duration-200 hover:scale-105 hover:drop-shadow-sm relative group text-sm lg:text-base"
-                                    style={{ color: "#8B85E9" }}
-                                    onClick={handleSearch}
-                                >
-                                    스터디
-                                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-current transition-all duration-300 group-hover:w-full"></span>
-                                </button>
+                            <>
                                 <button
                                     onClick={handleMyPageClick}
                                     className="px-3 lg:px-6 py-2 text-white rounded-lg font-medium transform hover:scale-105 hover:shadow-lg transition-all duration-200 active:scale-95 text-sm lg:text-base"
@@ -88,71 +95,50 @@ const Header: React.FC = () => {
                                 >
                                     로그아웃
                                 </button>
-                            </div>
+                            </>
                         ) : (
-                            <div className="flex items-center space-x-3 lg:space-x-6 animate-fadeIn">
-                                <button
-                                    className="font-medium transition-all duration-200 hover:scale-105 hover:drop-shadow-sm relative group text-sm lg:text-base"
-                                    style={{ color: "#8B85E9" }}
-                                >
-                                    자유게시판
-                                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-current transition-all duration-300 group-hover:w-full"></span>
-                                </button>
-                                <button
-                                    className="font-medium transition-all duration-200 hover:scale-105 hover:drop-shadow-sm relative group text-sm lg:text-base"
-                                    style={{ color: "#8B85E9" }}
-                                >
-                                    스터디
-                                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-current transition-all duration-300 group-hover:w-full"></span>
-                                </button>
-                                <button
-                                    onClick={handleLogin}
-                                    className="px-4 lg:px-8 py-2 text-white rounded-lg font-medium transform hover:scale-105 hover:shadow-lg transition-all duration-200 active:scale-95 relative overflow-hidden group text-sm lg:text-base"
-                                    style={{ backgroundColor: "#8B85E9" }}
-                                >
-                                    <span className="relative z-10">
-                                        로그인
-                                    </span>
-                                    <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-200"></div>
-                                </button>
-                            </div>
+                            <button
+                                onClick={handleLogin}
+                                className="px-4 lg:px-8 py-2 text-white rounded-lg font-medium transform hover:scale-105 hover:shadow-lg transition-all duration-200 active:scale-95 relative overflow-hidden group text-sm lg:text-base"
+                                style={{ backgroundColor: "#8B85E9" }}
+                            >
+                                <span className="relative z-10">로그인</span>
+                                <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-200"></div>
+                            </button>
                         )}
                     </div>
 
-                    {/* 모바일 햄버거 메뉴 버튼 */}
+                    {/* 모바일 햄버거 버튼 */}
                     <div className="md:hidden">
                         <button
                             onClick={toggleMobileMenu}
                             className="p-2 rounded-lg transition-all duration-200 hover:bg-white hover:bg-opacity-20"
                             style={{ color: "#8B85E9" }}
                         >
-                            {isMobileMenuOpen ? (
-                                <X className="w-6 h-6" />
-                            ) : (
-                                <Menu className="w-6 h-6" />
-                            )}
+                            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                         </button>
                     </div>
                 </div>
 
-                {/* 모바일 드롭다운 메뉴 */}
+                {/* 모바일 메뉴 */}
                 {isMobileMenuOpen && (
                     <div className="md:hidden absolute top-full left-0 right-0 bg-white shadow-lg border-t border-gray-200 z-50">
                         <div className="px-4 py-4 space-y-3">
+                            <button
+                                className="block w-full text-left px-4 py-3 rounded-lg transition-all duration-200"
+                                style={{ color: "#8B85E9" }}
+                            >
+                                자유게시판
+                            </button>
+                            <button
+                                onClick={handleSearch}
+                                className="block w-full text-left px-4 py-3 rounded-lg transition-all duration-200"
+                                style={{ color: "#8B85E9" }}
+                            >
+                                스터디
+                            </button>
                             {isLoggedIn ? (
                                 <>
-                                    <button
-                                        className="block w-full text-left px-4 py-3 rounded-lg transition-all duration-200"
-                                        style={{ color: "#8B85E9" }}
-                                    >
-                                        자유게시판
-                                    </button>
-                                    <button
-                                        className="block w-full text-left px-4 py-3 rounded-lg transition-all duration-200"
-                                        style={{ color: "#8B85E9" }}
-                                    >
-                                        스터디
-                                    </button>
                                     <button
                                         onClick={handleMyPageClick}
                                         className="block w-full text-left px-4 py-3 text-white rounded-lg font-medium transition-all duration-200"
@@ -169,28 +155,13 @@ const Header: React.FC = () => {
                                     </button>
                                 </>
                             ) : (
-                                <>
-                                    <button
-                                        className="block w-full text-left px-4 py-3 rounded-lg transition-all duration-200"
-                                        style={{ color: "#8B85E9" }}
-                                    >
-                                        자유게시판
-                                    </button>
-                                    <button
-                                        onClick={handleSearch}
-                                        className="block w-full text-left px-4 py-3 rounded-lg transition-all duration-200"
-                                        style={{ color: "#8B85E9" }}
-                                    >
-                                        스터디
-                                    </button>
-                                    <button
-                                        onClick={handleLogin}
-                                        className="block w-full text-left px-4 py-3 text-white rounded-lg font-medium transition-all duration-200"
-                                        style={{ backgroundColor: "#8B85E9" }}
-                                    >
-                                        로그인
-                                    </button>
-                                </>
+                                <button
+                                    onClick={handleLogin}
+                                    className="block w-full text-left px-4 py-3 text-white rounded-lg font-medium transition-all duration-200"
+                                    style={{ backgroundColor: "#8B85E9" }}
+                                >
+                                    로그인
+                                </button>
                             )}
                         </div>
                     </div>
@@ -199,19 +170,10 @@ const Header: React.FC = () => {
 
             <style>{`
                 @keyframes fadeIn {
-                    from {
-                        opacity: 0;
-                        transform: translateY(-10px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
+                    from { opacity: 0; transform: translateY(-10px); }
+                    to { opacity: 1; transform: translateY(0); }
                 }
-
-                .animate-fadeIn {
-                    animation: fadeIn 0.3s ease-out;
-                }
+                .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
             `}</style>
         </header>
     );

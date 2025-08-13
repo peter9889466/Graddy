@@ -1,41 +1,42 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 
-interface LoginProps {
-    id?: string;
-    password?: string;
-    idError?: string;
-    passwordError?: string;
-    onId?: (value: string) => void;
-    onPassword?: (value: string) => void;
-}
-
-const Login: React.FC<LoginProps> = ({
-    id = "",
-    password = "",
-    onId = () => {},
-    onPassword = () => {},
-    idError = "",
-    passwordError = "",
-}) => {
+const Login: React.FC = () => {
+    const [id, setId] = useState("");
+    const [password, setPassword] = useState("");
+    const [rememberId, setRememberId] = useState(false);
+    const [idError, setIdError] = useState("");
+    const [passwordError, setPasswordError] = useState("");
     const navigate = useNavigate();
 
-    const loginBtn = () => {
-        navigate("/");
+    useEffect(() => {
+        const savedId = localStorage.getItem("savedId");
+        if (savedId) {
+            setId(savedId);
+            setRememberId(true);
+        }   
+    }, []);
+
+    const loginBtn = async () => {
+        if (!id) return setIdError("아이디를 입력하세요.");
+        if (!password) return setPasswordError("비밀번호를 입력하세요.");
+        try {
+            if (rememberId) localStorage.setItem("savedId", id);
+            else localStorage.removeItem("savedId");
+            navigate("/");
+        } catch {
+            setPasswordError("로그인에 실패했습니다.");
+        }
     };
 
     return (
         <div className="flex items-center justify-center min-h-screen">
             <div className="w-1/2">
-                {/* 로그인 폼 */}
                 <div
                     className="bg-white rounded-xl p-6 sm:p-8 shadow-sm border-2 flex flex-col justify-center items-center h-[75vh]"
                     style={{ borderColor: "#8B85E9" }}
                 >
-                    <h2
-                        className="text-xl sm:text-2xl font-bold"
-                        style={{ color: "#8B85E9" }}
-                    >
+                    <h2 className="text-xl sm:text-2xl font-bold" style={{ color: "#8B85E9" }}>
                         로그인
                     </h2>
 
@@ -45,15 +46,13 @@ const Login: React.FC<LoginProps> = ({
                             <input
                                 type="text"
                                 value={id}
-                                onChange={(e) => onId(e.target.value)}
+                                onChange={(e) => setId(e.target.value)}
                                 placeholder="아이디"
                                 className={`w-full px-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:border-transparent ${
                                     idError ? "border-red-500" : ""
                                 }`}
                                 style={{
-                                    borderColor: idError
-                                        ? "#EF4444"
-                                        : "#8B85E9",
+                                    borderColor: idError ? "#EF4444" : "#8B85E9",
                                 }}
                                 onFocus={(e) => {
                                     e.target.style.boxShadow = idError
@@ -71,7 +70,7 @@ const Login: React.FC<LoginProps> = ({
                             <input
                                 type="password"
                                 value={password}
-                                onChange={(e) => onPassword(e.target.value)}
+                                onChange={(e) => setPassword(e.target.value)}
                                 placeholder="비밀번호"
                                 className={`w-full px-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:border-transparent ${
                                     passwordError ? "border-red-500" : ""
@@ -97,12 +96,11 @@ const Login: React.FC<LoginProps> = ({
                             <input
                                 type="checkbox"
                                 id="rememberId"
+                                checked={rememberId}
+                                onChange={(e) => setRememberId(e.target.checked)}
                                 className="w-5 h-5 rounded-full border border-gray-400 text-[#8B85E9] focus:ring-[#8B85E9]"
                             />
-                            <label
-                                htmlFor="rememberId"
-                                className="text-gray-600 text-sm"
-                            >
+                            <label htmlFor="rememberId" className="text-gray-600 text-sm">
                                 아이디 저장
                             </label>
                         </div>
@@ -114,12 +112,10 @@ const Login: React.FC<LoginProps> = ({
                                 className="w-full py-3 px-6 text-white rounded-full font-medium transition-all duration-200 hover:opacity-90 transform hover:scale-[1.02]"
                                 style={{ backgroundColor: "#8B85E9" }}
                                 onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor =
-                                        "#7A73E0";
+                                    e.currentTarget.style.backgroundColor = "#7A73E0";
                                 }}
                                 onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor =
-                                        "#8B85E9";
+                                    e.currentTarget.style.backgroundColor = "#8B85E9";
                                 }}
                             >
                                 로그인
@@ -130,20 +126,14 @@ const Login: React.FC<LoginProps> = ({
                         <div className="mt-4 text-center space-y-2">
                             <p className="text-sm text-gray-600">
                                 아직 회원이 아니신가요?{" "}
-                                <a
-                                    href="/join"
-                                    className="text-[#8B85E9] hover:underline"
-                                >
+                                <Link to="/join" className="text-[#8B85E9] hover:underline">
                                     회원가입
-                                </a>
+                                </Link>
                             </p>
                             <p className="text-sm">
-                                <a
-                                    href="/find-password"
-                                    className="text-[#8B85E9] hover:underline"
-                                >
+                                <Link to="/find-password" className="text-[#8B85E9] hover:underline">
                                     비밀번호 찾기
-                                </a>
+                                </Link>
                             </p>
                         </div>
                     </div>
