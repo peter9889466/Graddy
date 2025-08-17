@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+    # 백엔드 서비스
+    backend:
+        build:
+            context: ./Graddy_back
+            dockerfile: Dockerfile
+        container_name: graddy-backend
+        ports:
+            - "8080:8080"
+        environment:
+            - DB_PASSWORD=${DB_PASSWORD}
+            - SPRING_PROFILES_ACTIVE=prod
+        networks:
+            - graddy-network
+        restart: unless-stopped
+
+networks:
+    graddy-network:
+        driver: bridge
