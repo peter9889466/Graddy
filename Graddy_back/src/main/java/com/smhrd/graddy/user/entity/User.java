@@ -42,10 +42,20 @@ public class User {
     @Column(name = "git_url", length = 200)
     private String gitUrl;
 
+    // 유저 소개
     @Column(name = "user_refer", length = 500)
     private String userRefer;
 
+    @Column(name="alarm_type")
+    private boolean alarmType = false;
+
+    @Column(name = "solt_start", nullable = false)
+    private Timestamp soltStart;
+
+    @Column(name = "solt_end", nullable = false)
+    private Timestamp soltEnd;
+
     @CreationTimestamp // JPA가 엔티티를 저장할 때 현재 시간을 자동으로 기록
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false) // updatable = false : 나중에 User의 다른 정보가 변경되어 수정이 발생해도 이 필드는 업데이트 쿼리에서 제외
     private Timestamp createdAt;
 }

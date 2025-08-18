@@ -7,7 +7,6 @@ import "./App.css";
 import ErrorFallback from "./pages/error/ErrorFallback";
 import LoadingOverlay from "./components/shared/LoadingOverlay";
 import DeleteModal from "./components/modal/DeleteModal";
-import MainPage from "./pages/MainPage";
 import { MyPage } from "./pages/MyPage";
 import { TestModal } from "./pages/TestModal";
 import { TestDropdown } from "./pages/TestDropdown,";
@@ -19,6 +18,7 @@ import Header from "./components/layout/Header";
 import Footer from "./components/layout/Footer";
 import { StudySearchPage } from "./pages/StudySearchPage";
 import { AuthProvider } from "./contexts/AuthContext"; // AuthProvider import
+import MainPage from "./pages/mainPage";
 
 function App() {
     return (
@@ -29,7 +29,7 @@ function App() {
                     <main className="flex-1">
                         <Suspense fallback={<LoadingOverlay />}>
                             <Routes>
-                                <Route path="/" element={<MainPage />} />
+                                <Route path="/" element={<MainPage/>}/>
                                 <Route path="/mypage" element={<MyPage />} />
                                 <Route path="/delete" element={<DeleteModal />} />
                                 <Route path="/modal" element={<TestModal />} />
