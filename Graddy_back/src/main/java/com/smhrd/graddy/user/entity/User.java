@@ -53,7 +53,7 @@ public class User {
     private Timestamp soltStart;
 
     @Column(name = "solt_end", nullable = false)
-    private Timestamp soldEnd;
+    private Timestamp soltEnd;
 
     @CreationTimestamp // JPA가 엔티티를 저장할 때 현재 시간을 자동으로 기록
     @Column(name = "created_at", nullable = false, updatable = false) // updatable = false : 나중에 User의 다른 정보가 변경되어 수정이 발생해도 이 필드는 업데이트 쿼리에서 제외

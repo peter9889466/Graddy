@@ -32,6 +32,11 @@ public class UserService {
         newUser.setName(joinRequest.getName());
         newUser.setNick(joinRequest.getNick());
         newUser.setTel(joinRequest.getTel());
+        newUser.setGitUrl(joinRequest.getGitUrl());
+        newUser.setUserRefer(joinRequest.getUserRefer());
+        newUser.setAlarmType(joinRequest.isAlarmType());
+        newUser.setSoltStart(joinRequest.getSoltStart());
+        newUser.setSoltEnd(joinRequest.getSoltEnd());
 
         // 역할은 User엔티티의 기본값 사용됨
 
