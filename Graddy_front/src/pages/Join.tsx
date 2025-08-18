@@ -171,46 +171,15 @@ const Join: React.FC = () => {
                             )}
                         </div>
 
-                        {/* 알림 수신 방법 */}
-                        <div className="flex gap-4">
-                            <label className="flex items-center space-x-2">
-                                <input
-                                    type="radio"
-                                    checked={notificationPreference === "email"}
-                                    onChange={() => setNotificationPreference("email")}
-                                />
-                                <span>이메일</span>
-                            </label>
-                            <label className="flex items-center space-x-2">
-                                <input
-                                    type="radio"
-                                    checked={notificationPreference === "phone"}
-                                    onChange={() => setNotificationPreference("phone")}
-                                />
-                                <span>전화번호</span>
-                            </label>
-                        </div>
-
-                        {/* 이메일/전화번호 입력 */}
-                        {notificationPreference === "email" ? (
-                            <input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="이메일"
-                                className="w-full px-4 py-3 border rounded-full"
-                                style={{ borderColor: "#8B85E9" }}
-                            />
-                        ) : (
-                            <input
-                                type="tel"
-                                value={phoneNumber}
-                                onChange={(e) => setPhoneNumber(e.target.value)}
-                                placeholder="전화번호"
-                                className="w-full px-4 py-3 border rounded-full"
-                                style={{ borderColor: "#8B85E9" }}
-                            />
-                        )}
+                        {/* 전화번호 입력 */}
+                        <input
+                            type="tel"
+                            value={phoneNumber}
+                            onChange={(e) => setPhoneNumber(e.target.value)}
+                            placeholder="전화번호"
+                            className="w-full px-4 py-3 border rounded-full"
+                            style={{ borderColor: "#8B85E9" }}
+                        />
 
                         {/* 다음 버튼 */}
                         <div className="pt-4 flex justify-center">
