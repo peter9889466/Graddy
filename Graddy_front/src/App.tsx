@@ -18,20 +18,21 @@ import Header from "./components/layout/Header";
 import Footer from "./components/layout/Footer";
 import { StudySearchPage } from "./pages/StudySearchPage";
 import { AuthProvider } from "./contexts/AuthContext"; // AuthProvider import
-import MainPage from "./pages/mainPage";
 
 function App() {
     return (
         <ErrorBoundary FallbackComponent={ErrorFallback}>
-            <AuthProvider> 
+            <AuthProvider>
                 <div className="min-h-screen flex flex-col">
                     <Header />
                     <main className="flex-1">
                         <Suspense fallback={<LoadingOverlay />}>
                             <Routes>
-                                <Route path="/" element={<MainPage/>}/>
                                 <Route path="/mypage" element={<MyPage />} />
-                                <Route path="/delete" element={<DeleteModal />} />
+                                <Route
+                                    path="/delete"
+                                    element={<DeleteModal />}
+                                />
                                 <Route path="/modal" element={<TestModal />} />
                                 <Route
                                     path="/dropdown"
