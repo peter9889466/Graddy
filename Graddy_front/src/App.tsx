@@ -18,6 +18,7 @@ import Header from "./components/layout/Header";
 import Footer from "./components/layout/Footer";
 import { StudySearchPage } from "./pages/StudySearchPage";
 import { AuthProvider } from "./contexts/AuthContext"; // AuthProvider import
+import MainPage from "./pages/MainPage";
 
 function App() {
     return (
@@ -28,6 +29,7 @@ function App() {
                     <main className="flex-1">
                         <Suspense fallback={<LoadingOverlay />}>
                             <Routes>
+                                <Route path="/" element={<MainPage />} />
                                 <Route path="/mypage" element={<MyPage />} />
                                 <Route
                                     path="/delete"
