@@ -222,14 +222,6 @@ const Login: React.FC = () => {
                     회원가입
                     </Link>
                 </p>
-                <p className="text-sm">
-                    <Link
-                    to="/find-password"
-                    className="text-[#8B85E9] hover:underline"
-                    >
-                    비밀번호 찾기
-                    </Link>
-                </p>
                 </div>
             </div>
             </div>
