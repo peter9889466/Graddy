@@ -1,55 +1,45 @@
-// src/hooks/useModal.ts
-import { useEffect } from 'react';
-import { useToggle } from './useToggle';
-import { useOutsideClick } from './useOutsideClick';
+import { useState, useEffect } from 'react';
+import { keyPress } from '../utils/keyPress';
 
-/**
- * Modal UI 로직을 관리하는 커스텀 훅
- * @returns 모달 상태와 prop getter 함수들을 반환
- */
-export const useModal = () => {
-    const [isOpen, , open, close] = useToggle(false);
-    const onOutsideClick = useOutsideClick();
+interface UseModalProps {
+    onClose?: () => void;
+}
 
-    // Escape 키로 모달 닫기
+export const useModal = ({ onClose }: UseModalProps = {}) => {
+    const [isOpen, setIsOpen] = useState(false);
+
+    const openModal = () => setIsOpen(true);
+
+    const closeModal = () => {
+        setIsOpen(false);
+        onClose?.();
+    };
+
+    // ESC 키 핸들러
+    const handleKeyDown = keyPress({
+        onEscape: closeModal,
+    });
+
+    // 모달이 열릴 때 키보드 이벤트 리스너 추가
     useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
-                close();
-            }
-        };
-
         if (isOpen) {
-            document.addEventListener('keydown', handleKeyDown);
+            document.addEventListener('keydown', handleKeyDown as any);
+            // 모달이 열릴 때 body 스크롤 방지
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.removeEventListener('keydown', handleKeyDown as any);
+            document.body.style.overflow = 'unset';
         }
 
         return () => {
-            document.removeEventListener('keydown', handleKeyDown);
+            document.removeEventListener('keydown', handleKeyDown as any);
+            document.body.style.overflow = 'unset';
         };
-    }, [isOpen, close]);
-
-    const getToggleButtonProps = () => ({
-        onClick: open,
-    });
-
-    const getModalProps = () => ({
-        ref: onOutsideClick(close),
-        role: 'dialog',
-        'aria-modal': true,
-    });
-
-    // 백드롭 클릭 시 닫기 위한 prop getter
-    const getBackdropProps = () => ({
-        onClick: close,
-    });
-
+    }, [isOpen, handleKeyDown]);
 
     return {
         isOpen,
-        open,
-        close,
-        getToggleButtonProps,
-        getModalProps,
-        getBackdropProps,
+        openModal,
+        closeModal,
     };
 };
