@@ -154,26 +154,6 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
                         />
                     </div>
 
-                    {/* 이메일 */}
-                    <div>
-                        <label
-                            className="block text-sm font-medium mb-2"
-                            style={{ color: "#8B85E9" }}
-                        >
-                            이메일
-                        </label>
-                        <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => onEmailChange(e.target.value)}
-                            placeholder="변경할 이메일을 입력해주세요"
-                            className="w-full px-4 py-3 border rounded-full"
-                            style={{
-                                borderColor: "#777777",
-                            }}
-                        />
-                    </div>
-
                     {/* 저장 버튼 */}
                     <div className="pt-4">
                         <button
