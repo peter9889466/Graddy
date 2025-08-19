@@ -4,7 +4,6 @@ import banner1 from "../images/Banner.png";
 import banner2 from "../images/Banner2.png";
 import banner3 from "../images/Banner3.png";
 
-import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const banners = [

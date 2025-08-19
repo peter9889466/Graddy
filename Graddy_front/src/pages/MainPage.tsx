@@ -4,42 +4,12 @@ import PageLayout from "../components/layout/PageLayout";
 import ResponsiveContainer from "../components/layout/ResponsiveContainer";
 import BannerCarousel from "./BannerCarousel"; // 앞에서 만든 캐러셀
 import { useNavigate } from 'react-router-dom'; // useNavigate 훅 import
-import bannerImage from "../images/Banner.png";
-import banner2Image from "../images/Banner2.png"; // 새 이미지 import
-import banner3Image from "../images/Banner3.png"; // 새 이미지 import
-import "./MainPage.css";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import ScheduleModal from "../components/modal/ScheduleModal";
 import { useModal } from "../hooks/useModal";
 
-const banners = [
-    {
-        id: "banner1",
-        title: "함께 성장하는 스터디 플랫폼",
-        subtitle: "Graddy",
-        description:
-            "원하는 스터디를 찾고, 새로운 사람들과 함께 학습하며 성장하세요.",
-        image: bannerImage,
-    },
-    {
-        id: "banner2",
-        title: "실시간 소통과 피드백",
-        subtitle: "온라인 스터디",
-        description:
-            "화상 회의와 채팅으로 팀원들과 자유롭게 소통하며 목표를 달성하세요.",
-        image: banner2Image, // 이미지 변경
-    },
-    {
-        id: "banner3",
-        title: "성장하는 당신을 위한",
-        subtitle: "다양한 스터디",
-        description:
-            "코딩, 디자인, 언어 등 다양한 분야의 스터디에 참여해 보세요.",
-        image: banner3Image, // 이미지 변경
-    },
-];
 
 const MainPage = () => {
     const navigate = useNavigate(); // useNavigate 훅 사용
@@ -360,94 +330,32 @@ const MainPage = () => {
                         />
                     </div>
                 ) : (
-                    // ========== 비로그인 시 보이는 메인페이지 영역 ==========
-                    <div className="flex flex-col items-center justify-center mx-auto max-w-screen-xl min-h-[calc(100vh-64px)]">
-                        {banners.map((banner, index) => (
-                            <ResponsiveContainer
-                                key={banner.id}
-                                variant="default"
-                                className={"py-10 sm:py-12 lg:py-16"}
+                    <>
+                        <section className="flex flex-col items-center text-center bg-white pt-32 pb-12">
+                            <h1
+                                className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6"
+                                style={{ color: "#8B85E9" }}
                             >
-                                <div
-                                    ref={(el) => {
-                                        bannerRefs.current[index] = el;
-                                    }}
-                                    id={banner.id}
-                                    className={`relative flex flex-col items-center text-center mx-auto transition-opacity duration-1000 transform ${visibleBanners[banner.id]
-                                            ? "opacity-100 translate-y-0"
-                                            : "opacity-0 translate-y-8"
-                                        }`}
-                                >
-                                    <div className="max-w-3xl">
-                                        <h1
-                                            className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4"
-                                            style={{ color: "#8B85E9" }}
-                                        >
-                                            {banner.title} <br />
-                                            <span className="text-4xl sm:text-5xl lg:text-7xl">
-                                                {banner.subtitle}
-                                            </span>
-                                        </h1>
-                                        <p className="text-sm sm:text-base lg:text-lg text-gray-600 mb-0">
-                                            {banner.description}
-                                        </p>
-                                    </div>
-                                    <div className="mt-4 flex justify-center relative">
-                                        <img
-                                            src={banner.image}
-                                            alt={banner.title}
-                                            className="w-full max-w-[800px] lg:max-w-[1000px]"
-                                            ref={index === 0 ? imageRef : null}
-                                        />
-                                        {index === 0 && (
-                                            <button
-                                                onClick={scrollToNextBanner}
-                                                className="absolute bottom-16 left-1/2 transform -translate-x-1/2 p-4 rounded-full bg-white text-gray-600 shadow-md transition-transform duration-300 hover:scale-110 focus:outline-none"
-                                            >
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    className="h-6 w-6"
-                                                    fill="none"
-                                                    viewBox="0 0 24 24"
-                                                    stroke="currentColor"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth={2}
-                                                        d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                                                    />
-                                                </svg>
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            </ResponsiveContainer>
-                        ))}
-                    </div>
-                    // ========== 비로그인 시 보이는 메인페이지 영역 끝 ==========
-                )}
-                <section className="flex flex-col items-center text-center bg-white pt-32 pb-12">
-                    <h1
-                        className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6"
-                        style={{ color: "#8B85E9" }}
-                    >
-                        Graddy에 오신 것을 환영합니다!
-                    </h1>
-                    <p className="text-lg sm:text-xl lg:text-2xl text-gray-600 max-w-4xl px-4 mb-16">
-                        함께 성장하는 스터디 플랫폼에서 새로운 학습 경험을 시작해보세요.
-                    </p>
-                    <button
-                        onClick={handleJoinClick}
-                        className="bg-[#8B85E9] text-white font-bold py-3 px-8 rounded-full text-lg transform hover:scale-105 hover:shadow-lg transition-all duration-200 active:scale-95 relative overflow-hidden group text-sm lg:text-base"
-                    >
-                        지금 시작하기
-                    </button>
-                </section>
+                                Graddy에 오신 것을 환영합니다!
+                            </h1>
+                            <p className="text-lg sm:text-xl lg:text-2xl text-gray-600 max-w-4xl px-4 mb-16">
+                                함께 성장하는 스터디 플랫폼에서 새로운 학습 경험을 시작해보세요.
+                            </p>
+                            <button
+                                onClick={handleJoinClick}
+                                className="bg-[#8B85E9] text-white font-bold py-3 px-8 rounded-full text-lg transform hover:scale-105 hover:shadow-lg transition-all duration-200 active:scale-95 relative overflow-hidden group text-sm lg:text-base"
+                            >
+                                지금 시작하기
+                            </button>
+                        </section>
 
-                <section className="bg-white py-16 flex justify-center">
-                    <BannerCarousel />
-                </section>
+                        <section className="bg-white py-16 flex justify-center">
+                            <BannerCarousel />
+                        </section>
+                    </>
+                )
+                }
+
             </PageLayout>
         );
     };
