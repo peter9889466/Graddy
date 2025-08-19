@@ -19,6 +19,7 @@ import Footer from "./components/layout/Footer";
 import { StudySearchPage } from "./pages/StudySearchPage";
 import { AuthProvider } from "./contexts/AuthContext"; // AuthProvider import
 import MainPage from "./pages/MainPage";
+import StudyDetailPage from "./pages/StudyDetailPage";
 
 function App() {
     return (
@@ -51,6 +52,8 @@ function App() {
                                     path="/search"
                                     element={<StudySearchPage />}
                                 />
+                                <Route path="/study/:id"
+                                element={<StudyDetailPage/>}/>
                             </Routes>
                         </Suspense>
                     </main>

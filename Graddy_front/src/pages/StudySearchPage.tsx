@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import React, { useState, useMemo } from "react";
+import { Link, useNavigate } from "react-router-dom";      
 import { useAutoComplete } from "../hooks/useAutoComplete";
 import { studyList, searchSuggestions, StudyData } from "../data/studyData";
 import { Search } from "lucide-react";
@@ -7,7 +7,8 @@ import { Search } from "lucide-react";
 export const StudySearchPage = () => {
     const location = useLocation();
     const [selectedCategory, setSelectedCategory] = useState("제목");
-    const [selectedStatus, setSelectedStatus] = useState("전체");
+    const [selectedStatus, setSelectedStatus] = useState("모집중");
+    const navigate = useNavigate();
 
     const {
         inputValue,
@@ -162,7 +163,18 @@ export const StudySearchPage = () => {
                         </div>
 
                         <div className="flex-1">
-                            <div className="text-base mb-2 text-gray-800">
+                            <div
+                            onClick={() =>
+                                navigate(`/study/${study.id}`,{
+                                    state:{
+                                        title:study.title,
+                                        description:study.description,
+                                        leader:study.leader,
+                                        period:study.period,
+                                        tags:study.tags
+                                    }
+                                })}
+                            className="text-lg font-bold mb-1 text-gray-800 cursor-pointer hover:underline">
                                 {study.description}
                             </div>
 
@@ -183,7 +195,8 @@ export const StudySearchPage = () => {
                         </div>
 
                         <div className="text-right min-w-36">
-                            <div className="text-lg font-bold text-gray-800 mb-2">
+                            <div
+                            className="text-lg font-bold text-gray-800 mb-2">
                                 {study.title}
                             </div>
                             <div className="text-sm text-gray-600">
