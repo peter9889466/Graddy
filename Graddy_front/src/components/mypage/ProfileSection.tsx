@@ -75,10 +75,10 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                                 color: "#8B85E9",
                             }}
                         >
-                            이메일
+                            GitHub
                         </label>
                         <div className="px-3 sm:px-4 py-2 sm:py-3 bg-gray-100 rounded-lg text-gray-600 text-sm sm:text-base break-all">
-                            graddy@gmail.com {/* 임시 데이터 */}
+                            github.com/graddy/myproject {/* 임시 데이터 */}``
                         </div>
                     </div>
                 </div>

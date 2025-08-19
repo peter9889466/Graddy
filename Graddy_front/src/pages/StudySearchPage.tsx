@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";      
+import React, { useState, useMemo, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAutoComplete } from "../hooks/useAutoComplete";
 import { studyList, searchSuggestions, StudyData } from "../data/studyData";
 import { Search } from "lucide-react";
@@ -150,36 +150,17 @@ export const StudySearchPage = () => {
                         key={study.id}
                         className="flex items-center p-5 border border-gray-200 rounded-lg bg-white gap-5"
                     >
-                        <div className="min-w-20">
-                            <span
-                                className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                    study.isRecruiting
-                                        ? "bg-blue-50 text-blue-700"
-                                        : "bg-purple-50 text-purple-700"
-                                }`}
-                            >
-                                {study.recruitmentStatus}
-                            </span>
-                        </div>
-
                         <div className="flex-1">
-                            <div
-                            onClick={() =>
-                                navigate(`/study/${study.id}`,{
-                                    state:{
-                                        title:study.title,
-                                        description:study.description,
-                                        leader:study.leader,
-                                        period:study.period,
-                                        tags:study.tags
-                                    }
-                                })}
-                            className="text-lg font-bold mb-1 text-gray-800 cursor-pointer hover:underline">
+                            <div className="text-lg font-bold text-gray-800 mb-2">
+                                {study.title}
+                            </div>
+                            <div className="text-base mb-2 text-gray-800">
                                 {study.description}
                             </div>
 
                             <div className="text-sm text-gray-600 mb-2">
-                                스터디 기간: {study.period}
+                                스터디 기간: {study.period} / 스터디장:{" "}
+                                {study.leader}
                             </div>
 
                             <div className="flex gap-2 flex-wrap">
@@ -193,15 +174,16 @@ export const StudySearchPage = () => {
                                 ))}
                             </div>
                         </div>
-
-                        <div className="text-right min-w-36">
-                            <div
-                            className="text-lg font-bold text-gray-800 mb-2">
-                                {study.title}
-                            </div>
-                            <div className="text-sm text-gray-600">
-                                스터디장: {study.leader}
-                            </div>
+                        <div className="min-w-20">
+                            <span
+                                className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                    study.isRecruiting
+                                        ? "bg-blue-50 text-blue-700"
+                                        : "bg-purple-50 text-purple-700"
+                                }`}
+                            >
+                                {study.recruitmentStatus}
+                            </span>
                         </div>
                     </div>
                 ))}
