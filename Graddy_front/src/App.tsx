@@ -20,6 +20,7 @@ import { StudySearchPage } from "./pages/StudySearchPage";
 import { AuthProvider } from "./contexts/AuthContext"; // AuthProvider import
 import MainPage from "./pages/MainPage";
 import StudyDetailPage from "./pages/StudyDetailPage";
+import Join3 from "./pages/Join3";
 
 function App() {
     return (
@@ -47,6 +48,7 @@ function App() {
                                 />
                                 <Route path="/join" element={<Join />} />
                                 <Route path="/join2" element={<Join2 />} />
+                                <Route path="/join3" element={<Join3 />} />
                                 <Route path="/login" element={<Login />} />
                                 <Route
                                     path="/search"

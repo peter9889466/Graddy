@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Check, X, AlertCircle, User, Lock, Mail, Phone } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Eye, EyeOff, Check, X, AlertCircle, User, Lock, Mail, Phone, CheckCircle, Clock } from "lucide-react";
 
 const Join: React.FC = () => {
     // 상태 관리
@@ -18,10 +18,11 @@ const Join: React.FC = () => {
     const [nicknameChecked, setNicknameChecked] = useState(false);
     const [email, setEmail] = useState("");
     const [phoneNumber, setPhoneNumber] = useState("");
-    const [notificationPreference, setNotificationPreference] = useState<"email" | "phone">("email");
+    const [notificationPreference, setNotificationPreference] = useState<"email" | "phone" | "">("");
     const [hintMessage, setHintMessage] = useState<string>("");
     const [showHint, setShowHint] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
 
     // 힌트 메시지 자동 숨김
     useEffect(() => {
@@ -44,6 +45,12 @@ const Join: React.FC = () => {
         const validCombo = [hasLetter, hasNumber, hasSpecial].filter(Boolean).length >= 2;
         
         return validLength && validCombo;
+    };
+
+    // 전화번호 유효성 검사
+    const validatePhoneNumber = (phone: string) => {
+        const phoneRegex = /^010-\d{4}-\d{4}$/;
+        return phoneRegex.test(phone);
     };
 
     // 아이디 중복 확인
@@ -105,47 +112,130 @@ const Join: React.FC = () => {
         if (passwordError) setPasswordError("");
     };
 
-// 회원가입 다음 단계
-const nextPage = () => {
-    // 유효성 검사
-    if (!id || !password || !confirmPassword || !name || !nickname) {
-        setHintMessage("모든 필수 정보를 입력해주세요!");
-        return;
-    }
+    // 알림 방법 토글
+    const toggleNotificationPreference = (type: "email" | "phone") => {
+        setNotificationPreference(notificationPreference === type ? "" : type);
+    };
 
-    if (!idChecked) {
-        setHintMessage("아이디 중복확인을 해주세요!");
-        return;
-    }
+    // 회원가입 다음 단계
+    const nextPage = () => {
+        // 유효성 검사
+        if (!id || !password || !confirmPassword || !name || !nickname || !phoneNumber) {
+            setHintMessage("모든 필수 정보를 입력해주세요!");
+            return;
+        }
 
-    if (!nicknameChecked) {
-        setHintMessage("닉네임 중복확인을 해주세요!");
-        return;
-    }
+        if (!idChecked) {
+            setHintMessage("아이디 중복확인을 해주세요!");
+            return;
+        }
 
-    if (!validatePassword(password)) {
-        setPasswordError("비밀번호 조건을 확인해주세요.");
-        setHintMessage("비밀번호가 조건에 맞지 않습니다!");
-        return;
-    }
+        if (!nicknameChecked) {
+            setHintMessage("닉네임 중복확인을 해주세요!");
+            return;
+        }
 
-    if (password !== confirmPassword) {
-        setPasswordError("비밀번호가 일치하지 않습니다.");
-        setHintMessage("비밀번호 확인이 일치하지 않습니다!");
-        return;
-    }
+        if (!validatePassword(password)) {
+            setPasswordError("비밀번호 조건을 확인해주세요.");
+            setHintMessage("비밀번호가 조건에 맞지 않습니다!");
+            return;
+        }
 
-    // 모든 조건 통과 → 로그인 페이지로 이동
-    setPasswordError("");
-    setHintMessage("회원가입이 완료되었습니다!");
-    navigate("/join2");
-};
+        if (password !== confirmPassword) {
+            setPasswordError("비밀번호가 일치하지 않습니다.");
+            setHintMessage("비밀번호 확인이 일치하지 않습니다!");
+            return;
+        }
 
-    const isFormValid = id && password && confirmPassword && name && nickname && idChecked && nicknameChecked;
+        if (!validatePhoneNumber(phoneNumber)) {
+            setHintMessage("전화번호 형식이 올바르지 않습니다! (010-0000-0000)");
+            return;
+        }
+
+        // 모든 조건 통과 → Join2 페이지로 이동 (상태 전달)
+        setPasswordError("");
+        setHintMessage("회원가입이 완료되었습니다!");
+        
+        // 현재 폼 데이터를 state로 전달
+        const formData = {
+            id,
+            idChecked,
+            password,
+            confirmPassword,
+            name,
+            nickname,
+            nicknameChecked,
+            email,
+            phoneNumber,
+            notificationPreference
+        };
+        
+        navigate("/join2", { state: { formData } });
+    };
+
+    const isFormValid = id && password && confirmPassword && name && nickname && phoneNumber && 
+                        idChecked && nicknameChecked && validatePhoneNumber(phoneNumber);
+
+    // Join2에서 돌아올 때 전달된 formData 가져오기
+    const previousFormData = location.state?.formData;
+
+    // 📌 Join2 → Join 으로 돌아올 때 값 복원
+    useEffect(() => {
+        if (previousFormData) {
+        setId(previousFormData.id || "");
+        setPassword(previousFormData.password || "");
+        setConfirmPassword(previousFormData.confirmPassword || "");
+        setName(previousFormData.name || "");
+        setNickname(previousFormData.nickname || "");
+        setEmail(previousFormData.email || "");
+        setPhoneNumber(previousFormData.phoneNumber || "");
+        }
+    }, [previousFormData]);
+
+    // "다음 단계로" 버튼 → Join2로 데이터 전달
+    const handleNext = () => {
+        navigate("/join2", {
+        state: {
+            formData: {
+            id,
+            password,
+            confirmPassword,
+            name,
+            nickname,
+            email,
+            phoneNumber,
+            },
+        },
+        });
+    };
+
+    const steps = ["프로필 설정", "관심사 선택", "시간대 선택"];
 
     return (
-<div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-8 px-4">
-  <div className="max-w-3xl mx-auto">
+        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-8 px-4">
+
+            <div className="max-w-3xl mx-auto">
+
+                {/* 진행 단계 */}
+                <div className="mb-8">
+                    <div className="flex items-center justify-between max-w-md mx-auto">
+                        {steps.map((step, idx) => (
+                        <div key={idx} className="flex flex-col items-center">
+                            <div
+                            className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm transition-all duration-300 ${
+                                idx === 0 
+                                ? "bg-indigo-600 text-white shadow-lg" 
+                                : "bg-gray-200 text-gray-500"
+                            }`}
+                            >
+                                {idx === 0 ? <Clock className="w-5 h-5" /> : idx + 1}
+                            </div>
+                            <span className="text-xs mt-2 text-gray-600 text-center max-w-20">{step}</span>
+                        </div>
+                        ))}
+                    </div>
+                </div>
+
                 {/* 메인 카드 */}
                 <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
                     {/* 헤더 */}
@@ -265,9 +355,9 @@ const nextPage = () => {
                                     </div>
                                     <div className="flex items-center gap-2 text-xs">
                                         <div className={`w-2 h-2 rounded-full ${
-                                            validatePassword(password) || password === '' ? 'bg-green-400' : 'bg-gray-300'
+                                            validatePassword(password) && password !== '' ? 'bg-green-400' : 'bg-gray-300'
                                         }`} />
-                                        <span className={validatePassword(password) || password === '' ? 'text-green-600' : 'text-gray-500'}>
+                                        <span className={validatePassword(password) && password !== '' ? 'text-green-600' : 'text-gray-500'}>
                                             영문/숫자/특수문자 중 2가지 이상 포함
                                         </span>
                                     </div>
@@ -381,10 +471,10 @@ const nextPage = () => {
                                 )}
                             </div>
 
-                            {/* 전화번호 */}
+                            {/* 전화번호 - 필수로 변경 */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    전화번호 (선택)
+                                    전화번호 *
                                 </label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -395,21 +485,33 @@ const nextPage = () => {
                                         value={phoneNumber}
                                         onChange={(e) => setPhoneNumber(e.target.value)}
                                         placeholder="010-1234-5678"
-                                        className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:border-transparent transition-all duration-200"
+                                        className={`w-full pl-10 pr-4 py-3 border rounded-xl transition-all duration-200 ${
+                                            phoneNumber && validatePhoneNumber(phoneNumber) ? 
+                                            "border-green-300 focus:ring-green-200" : 
+                                            "border-gray-200 focus:ring-2 focus:border-transparent"
+                                        }`}
                                         onFocus={(e) => (e.target as HTMLInputElement).style.boxShadow = `0 0 0 2px rgba(139, 133, 233, 0.2)`}
                                         onBlur={(e) => (e.target as HTMLInputElement).style.boxShadow = 'none'}
                                     />
+                                    {phoneNumber && validatePhoneNumber(phoneNumber) && (
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                            <Check className="w-5 h-5 text-green-500" />
+                                        </div>
+                                    )}
                                 </div>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    형식: 010-0000-0000
+                                </p>
                             </div>
 
-                            {/* 알림 설정 */}
+                            {/* 알림 설정 - 토글 가능하도록 수정 */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-3">
-                                    알림 받을 방법
+                                    알림 받기 (선택)
                                 </label>
                                 <div className="flex gap-4">
                                     <button
-                                        onClick={() => setNotificationPreference("phone")}
+                                        onClick={() => toggleNotificationPreference("phone")}
                                         className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all duration-200 ${
                                             notificationPreference === "phone"
                                                 ? "border-transparent text-white"
@@ -421,6 +523,9 @@ const nextPage = () => {
                                         SMS
                                     </button>
                                 </div>
+                                <p className="text-xs text-gray-500 mt-2">
+                                    알림을 받지 않으려면 버튼을 다시 클릭하여 해제하세요
+                                </p>
                             </div>
 
                             {/* 버튼 */}
@@ -451,7 +556,7 @@ const nextPage = () => {
                                     
                                     disabled={!isFormValid}
                                 >
-                                    다음 단계로
+                                    다음
                                 </button>
                             </div>
                         </div>
