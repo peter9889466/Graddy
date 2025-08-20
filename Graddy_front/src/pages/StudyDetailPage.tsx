@@ -1,20 +1,24 @@
 import React, { useEffect, useState, useContext } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import PageLayout from "../components/layout/PageLayout";
 import ResponsiveContainer from "../components/layout/ResponsiveContainer";
 import ResponsiveSidebar from "../components/layout/ResponsiveSidebar";
 import ResponsiveMainContent from "../components/layout/ResponsiveMainContent";
 import StudyDetailSideBar from "../components/detail/StudyDetailSideBar";
 import StudyChatting from "../components/detail/StudyChatting";
+import Assignment from "../components/detail/Assignment";
 import { studyList } from "../data/studyData";
 import { AuthContext } from "../contexts/AuthContext";
- 
+import PageLayout from "../components/layout/PageLayout";
+import FeedBack from "@/components/detail/FeedBack";
+import Schedule from "@/components/detail/Schedule";
+import { Tag } from "lucide-react";
 
 const StudyDetailPage = () => {
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
 	const [activeTab, setActiveTab] = useState("스터디 정보");
 	const [isApplied, setIsApplied] = useState(false);
+	const [isRecruiting, setIsRecruiting] = useState(true); // 모집 상태 관리
 	const authContext = useContext(AuthContext);
 	const location = useLocation();
 	const state = location.state as {
@@ -24,7 +28,7 @@ const StudyDetailPage = () => {
 		period: string;
 		tags: string[];
 	} | null;
-	// 스터디 이름이 없을 때 스터디 상세 페이지로 뜨게 근데 그럴 수 있나?
+	
 	const [studyTitle, setStudyTitle] = useState<string>(
 		state?.title || `스터디#${id}`
 	);
@@ -45,7 +49,6 @@ const StudyDetailPage = () => {
 
 	useEffect(() => {
 		if (!state?.title) {
-			// state가 없으면 id 기반 임시 제목 세팅 <- 이럴 수 있냐고
 			setStudyTitle(`스터디#${id}`);
 		}
 		if (!state?.description) {
@@ -55,7 +58,6 @@ const StudyDetailPage = () => {
 			setStudyLeader("스터디장이 지정되지 않았습니다.")
 		}
 
-		// 기간은 state에 없을 수 있으니 id로 조회하여 설정
 		if (!state?.period) {
 			const numericId = id ? parseInt(id, 10) : NaN;
 			const found = studyList.find((s) => s.id === numericId);
@@ -64,7 +66,6 @@ const StudyDetailPage = () => {
 			setStudyPeriod(state.period);
 		}
 
-		// 태그는 state에 없을 수 있으니 id로 조회하여 설정
 		if (!state?.tags || state.tags.length === 0) {
 			const numericId = id ? parseInt(id, 10) : NaN;
 			const found = studyList.find((s) => s.id === numericId);
@@ -74,6 +75,17 @@ const StudyDetailPage = () => {
 		}
 	}, [id, state]);
 
+	// 현재 사용자가 스터디장인지 확인
+	const isStudyLeader = authContext?.user?.nickname === studyLeader;
+	
+	// 임시 테스트용 (실제 사용자 닉네임으로 변경해보세요)
+	// const isStudyLeader = "test" === studyLeader;
+	
+	// 디버깅을 위한 콘솔 로그
+	console.log('현재 사용자 닉네임:', authContext?.user?.nickname);
+	console.log('스터디장:', studyLeader);
+	console.log('스터디장 여부:', isStudyLeader);
+
 	const handleApplyClick = () => {
 		if (!authContext?.isLoggedIn) {
 			alert("로그인 후 이용해주세요!");
@@ -82,72 +94,120 @@ const StudyDetailPage = () => {
 		setIsApplied(true);
 	};
 
-	return (
-	<PageLayout>
-		<ResponsiveContainer variant="sidebar">
-			{/* 사이드바 */}
-			<ResponsiveSidebar>
-			<StudyDetailSideBar
-				activeTab={activeTab}
-				onTabChange={(tab) => console.log("탭 변경:", tab)}
-				onDeleteAccount={() => {}}
-			/>
-		</ResponsiveSidebar>
+	const handleRecruitmentToggle = () => {
+		setIsRecruiting(!isRecruiting);
+		alert(isRecruiting ? "모집이 마감되었습니다." : "모집이 다시 시작되었습니다.");
+	};
 
-		{/* 메인 콘텐츠 */}
-		<ResponsiveMainContent padding="md">
-			<div className="space-y-1">
-				<h3 className="text-2xl font-bold">{studyTitle}</h3>
-				<p className="text-gray-700">
-				스터디 소개: <span className="text-gray-800">{studyDescription}</span>
-				</p>
-				<p className="text-gray-700">
-				스터디장: <span className="text-gray-800">{studyLeader}</span>
-				</p>
-				<p className="text-gray-700">
-				스터디 기간: <span className="text-gray-800">{studyPeriod}</span>
-				</p>
-				<div className="text-gray-700 inline-block border-2 rounded-xl p-3" style={{ borderColor: "#8B85E9" }}>
-					<div className="flex items-center gap-2">
-						<span className="font-medium">태그</span>
-					</div>
-					<div className="mt-2 flex gap-2 flex-wrap">
-						{studyTags.length > 0 ? (
-							studyTags.map((t, index) => (
-								<span key={`${t}-${index}`} className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-xl text-xs border border-gray-300">#{t}</span>
-							))
+	const handleStudyEnd = () => {
+		if (confirm("스터디를 종료하시겠습니까?")) {
+			alert("스터디가 종료되었습니다.");
+			// 여기에 스터디 종료 로직 추가
+		}
+	};
+
+	// 메인 콘텐츠 렌더링 함수
+	const renderMainContent = () => {
+		switch (activeTab) {
+			case "과제 제출":
+				return <Assignment />;
+			case "스터디 정보":
+			default:
+				return (
+					<div className="space-y-2 h-[61.5vh] overflow-y-auto p-4 pr-10">
+						<h3 className="text-2xl font-bold">{studyTitle}</h3>
+						<p className="text-gray-700">
+							• 스터디 소개 <span className="text-gray-800"><br/><span className="pl-4 block">- {studyDescription}</span></span>
+						</p>
+						<p className="text-gray-700">
+							• 스터디장 : <span className="text-gray-800">{studyLeader}</span>
+						</p>
+						<p className="text-gray-700">
+							• 스터디 기간 : <span className="text-gray-800">{studyPeriod}</span>
+						</p>
+						<div className="text-gray-700 inline-block">
+							<div className="flex items-center gap-2">
+								<Tag className="w-4 h-4 text-gray-600" />
+								<span className="font-medium">태그</span>
+							</div>
+							<div className="mt-2 flex gap-2 flex-wrap ">
+								{studyTags.length > 0 ? (
+									studyTags.map((t, index) => (
+										<span key={`${t}-${index}`} className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-xl text-xs border border-gray-300">#{t}</span>
+									))
+								) : (
+									<span className="text-sm text-gray-500">태그 정보가 없습니다.</span>
+								)}
+							</div>
+						</div>
+						<hr className="my-4"/>
+
+						<h4 className="font-semibold mb-2" style={{ color: "#8B85E9" }}>스터디 설명</h4>
+						<div className="bg-white border-2 rounded-xl p-4" style={{ borderColor: "#8B85E9" }}>
+							<p className="text-gray-700 text-sm sm:text-base leading-relaxed">{studyDescription}</p>
+						</div>
+						{/* 버튼 영역 */}
+						{isStudyLeader ? (
+							// 스터디장인 경우
+							<div className="flex gap-2 mt-3">
+								<button
+									type="button"
+									onClick={handleRecruitmentToggle}
+									className="flex-1 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer transition-colors duration-200"
+									style={{ backgroundColor: isRecruiting ? "#EF4444" : "#10B981" }}
+								>
+									{isRecruiting ? "모집 마감" : "모집 재시작"}
+								</button>
+								<button
+									type="button"
+									onClick={handleStudyEnd}
+									className="flex-1 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer transition-colors duration-200"
+									style={{ backgroundColor: "#6B7280" }}
+								>
+									스터디 종료
+								</button>
+							</div>
 						) : (
-							<span className="text-sm text-gray-500">태그 정보가 없습니다.</span>
+							// 일반 사용자인 경우
+							<button
+								type="button"
+								onClick={handleApplyClick}
+								className="w-full mt-3 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer"
+								style={{ backgroundColor: isApplied ? "#6B7280" : "#8B85E9" }}
+							>
+								{isApplied ? "승인 대기" : "스터디 가입 신청"}
+							</button>
 						)}
 					</div>
-				</div>
-				<hr className="my-4"/>
+				);
+			case "AI 피드백":
+				return <FeedBack />;
+			case "과제 / 일정 관리":
+				return <Schedule/>;
+		}
+	};
 
-				<div className="bg-white border-2 rounded-xl p-4" style={{ borderColor: "#8B85E9" }}>
-					<h4 className="font-semibold mb-2" style={{ color: "#8B85E9" }}>스터디 소개</h4>
-					<p className="text-gray-700 text-sm sm:text-base leading-relaxed">{studyDescription}</p>
-				</div>
-				{/* 가입 신청 버튼 */}
-                {/* 토큰 처리: 나중에 AuthContext에서 localStorage.getItem('token')으로 토큰 확인하도록 수정하면 됨
-                    API 호출: handleApplyClick에서 실제 API 호출로 변경하면 됨
-                    코드 수정 최소화: 기존 로직은 그대로 유지하고 인증 부분만 업데이트 */}
-				<button
-					type="button"
-					onClick={handleApplyClick}
-					className="mt-3 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer"
-					style={{ backgroundColor: isApplied ? "#6B7280" : "#8B85E9" }}
-				>
-					{isApplied ? "승인 대기" : "스터디 가입 신청"}
-				</button>
+	return (
+		<PageLayout>
+			<ResponsiveContainer variant="sidebar">
+				{/* 사이드바 */}
+				<ResponsiveSidebar>
+					<StudyDetailSideBar
+						activeTab={activeTab}
+						onTabChange={(tab) => setActiveTab(tab)}
+					/>
+				</ResponsiveSidebar>
 
-			</div>
-		</ResponsiveMainContent>
-		{/* 오른쪽 채팅 패널 */}
-		<ResponsiveSidebar isCollapsible={false}>
-			<StudyChatting />
-		</ResponsiveSidebar>
-		</ResponsiveContainer>
-	</PageLayout>
+				{/* 메인 콘텐츠 */}
+				<ResponsiveMainContent padding="md">
+					{renderMainContent()}
+				</ResponsiveMainContent>
+				{/* 오른쪽 채팅 패널 */}
+				<ResponsiveSidebar isCollapsible={false}>
+					<StudyChatting />
+				</ResponsiveSidebar>
+			</ResponsiveContainer>
+		</PageLayout>
 	);
 };
 

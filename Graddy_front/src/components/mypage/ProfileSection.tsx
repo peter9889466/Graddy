@@ -23,9 +23,9 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
     return (
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
             {/* 왼쪽: 프로필 정보 */}
-            <div className="flex-1 space-y-4 sm:space-y-6">
+            <div className="flex-1 space-y-4 sm:space-y-6 pt-8">
                 {/* 프로필 이미지 */}
-                <div className="flex justify-center lg:justify-start">
+                <div className="flex justify-center lg:justify-start -mt-4">
                     <div className="relative">
                         <div
                             className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border cursor-pointer group"

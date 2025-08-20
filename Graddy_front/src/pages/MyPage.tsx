@@ -8,7 +8,8 @@ import InterestSelection from "../components/modal/InterestModal";
 import ProfileSection from "../components/mypage/ProfileSection";
 import IntroductionSection from "../components/mypage/IntroductionSection";
 import ProfileEditForm from "../components/mypage/ProfileEditForm";
-import MyPageSidebar from "../components/detail/StudyDetailSideBar";
+import MyPageSidebar from "../components/mypage/MyPageSidebar";
+import MyStudyList from "../components/mypage/MyStudyList";
 
 export const MyPage = () => {
     const [activeTab, setActiveTab] = useState("마이페이지");
@@ -36,6 +37,9 @@ export const MyPage = () => {
 
     // 임시 데이터 (나중에 DB에서 받아올 예정)
     const userScore = 1000; // 백엔드에서 받아올 점수
+    
+    // 사용자 닉네임 (AuthContext에서 가져올 예정)
+    const userNickname = nickname;
 
     const handleDeleteAccount = () => {
         setShowDeleteModal(true);
@@ -182,6 +186,10 @@ export const MyPage = () => {
                                     onIntroductionChange={setIntroduction}
                                 />
                             </div>
+                        )}
+
+                        {activeTab === "내 스터디 목록" && (
+                            <MyStudyList userNickname={userNickname} />
                         )}
 
                         {activeTab === "회원정보 수정" && (

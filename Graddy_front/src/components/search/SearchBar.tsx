@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useAutoComplete } from "../../hooks/useAutoComplete";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 
 // 검색 타입 정의
 type SearchType = "title" | "author" | "both";
@@ -70,6 +69,9 @@ const searchItems: SearchItem[] = [
 const SearchBar: React.FC = () => {
     const [searchType, setSearchType] = useState<SearchType>("title");
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [searchValue, setSearchValue] = useState("");
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [activeIndex, setActiveIndex] = useState(-1);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     // 외부 클릭 시 드롭다운 닫기
@@ -108,19 +110,15 @@ const SearchBar: React.FC = () => {
         };
     };
 
-    // 자동완성 훅 사용
-    const {
-        isOpen,
-        filteredItems,
-        activeIndex,
-        getInputProps,
-        getItemProps,
-        getResetButtonProps,
-    } = useAutoComplete({
-        items: searchItems,
-        filterFn: getFilterFunction(searchType),
-        debounceDelay: 200,
-    });
+    // 필터링된 아이템들
+    const filteredItems = useMemo(() => {
+        if (!searchValue.trim()) return [];
+        
+        const filterFn = getFilterFunction(searchType);
+        return searchItems
+            .filter(item => filterFn(item, searchValue))
+            .slice(0, 5); // 최대 5개만 표시
+    }, [searchValue, searchType]);
 
     const currentSearchTypeLabel =
         searchTypeOptions.find((option) => option.value === searchType)
@@ -180,8 +178,14 @@ const SearchBar: React.FC = () => {
             {/* 검색 입력창 */}
             <div className="relative flex-1">
                 <input
-                    {...getInputProps()}
                     type="text"
+                    value={searchValue}
+                    onChange={(e) => {
+                        setSearchValue(e.target.value);
+                        setShowSuggestions(true);
+                        setActiveIndex(-1);
+                    }}
+                    onFocus={() => setShowSuggestions(true)}
                     placeholder={`${currentSearchTypeLabel}으로 검색`}
                     className="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-md"
                 />
@@ -203,11 +207,15 @@ const SearchBar: React.FC = () => {
             </div>
 
             {/* 자동완성 드롭다운 */}
-            {isOpen && (
+            {showSuggestions && filteredItems.length > 0 && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-40 max-h-60 overflow-y-auto">
-                    {filteredItems.map((item, index) => (
+                    {filteredItems.map((item: SearchItem, index: number) => (
                         <div
-                            {...getItemProps(index)}
+                            key={item.id}
+                            onClick={() => {
+                                setSearchValue(item.title);
+                                setShowSuggestions(false);
+                            }}
                             className={`px-4 py-3 cursor-pointer border-b border-gray-100 last:border-b-0 hover:bg-gray-50 ${
                                 activeIndex === index
                                     ? "bg-blue-50 text-blue-600"

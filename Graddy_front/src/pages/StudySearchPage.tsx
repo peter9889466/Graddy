@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import React, { useState, useMemo, useEffect, useRef } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";      
 import { useAutoComplete } from "../hooks/useAutoComplete";
 import { studyList, searchSuggestions, StudyData } from "../data/studyData";
 import { Search } from "lucide-react";
@@ -7,7 +7,11 @@ import { Search } from "lucide-react";
 export const StudySearchPage = () => {
     const location = useLocation();
     const [selectedCategory, setSelectedCategory] = useState("제목");
-    const [selectedStatus, setSelectedStatus] = useState("모집중");
+    const [selectedStatus, setSelectedStatus] = useState("전체");
+    const [isStatusOpen, setIsStatusOpen] = useState(false);
+    const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+    const statusDropdownRef = useRef<HTMLDivElement>(null);
+    const categoryDropdownRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
 
     const {
@@ -38,8 +42,29 @@ export const StudySearchPage = () => {
         }
     }, [location.state, setInputValue]);
 
+    // 드롭다운 외부 클릭 시 닫기
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) {
+                setIsStatusOpen(false);
+            }
+            if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target as Node)) {
+                setIsCategoryOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
+
     const filteredStudies = useMemo(() => {
-        let filtered = studyList;
+        // 로컬 스토리지에서 사용자가 생성한 스터디 가져오기
+        const userStudies: StudyData[] = JSON.parse(localStorage.getItem('userStudies') || '[]');
+        
+        // 기존 스터디 목록과 사용자 스터디 목록 합치기
+        let filtered: StudyData[] = [...studyList, ...userStudies];
 
         // 모집 상태 필터링
         if (selectedStatus === "모집중") {
@@ -62,7 +87,7 @@ export const StudySearchPage = () => {
                             .toLowerCase()
                             .includes(inputValue.toLowerCase());
                     case "태그":
-                        return study.tags.some((tag) =>
+                        return study.tags.some((tag: string) =>
                             tag.toLowerCase().includes(inputValue.toLowerCase())
                         );
                     default:
@@ -81,46 +106,120 @@ export const StudySearchPage = () => {
         return filtered;
     }, [inputValue, selectedCategory, selectedStatus]);
 
-    return (
-        <div className="max-w-6xl mx-auto p-5">
-            <div className="flex gap-5 mb-8 items-center">
-                <div className="flex gap-2.5">
-                    <select
-                        value={selectedStatus}
-                        onChange={(e) => setSelectedStatus(e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded bg-white text-sm"
-                    >
-                        <option value="전체">모집중/모집완료</option>
-                        <option value="모집중">모집중</option>
-                        <option value="모집완료">모집완료</option>
-                    </select>
+    const statusOptions = [
+        { value: "전체", label: "전체" },
+        { value: "모집중", label: "모집중" },
+        { value: "모집완료", label: "모집완료" }
+    ];
 
-                    <select
-                        value={selectedCategory}
-                        onChange={(e) => setSelectedCategory(e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded bg-white text-sm"
-                    >
-                        <option value="제목">제목</option>
-                        <option value="스터디장">스터디장</option>
-                        <option value="태그">태그</option>
-                    </select>
+    const categoryOptions = [
+        { value: "제목", label: "제목" },
+        { value: "스터디장", label: "스터디장" },
+        { value: "태그", label: "태그" }
+    ];
+
+    return (
+        <div className="max-w-6xl mx-auto p-5 h-screen overflow-y-auto">
+            <div className="flex gap-5 mb-8 items-center justify-center">
+                <div className="flex gap-2.5">
+                    {/* 모집 상태 드롭다운 */}
+                    <div className="relative" ref={statusDropdownRef}>
+                        <button
+                            onClick={() => setIsStatusOpen(!isStatusOpen)}
+                            className={`px-4 py-2 rounded-xl bg-white text-gray-700 flex items-center justify-between border ${
+                                isStatusOpen ? "border-2 border-[#8B85E9]" : "border-2 border-gray-300"
+                            } focus:outline-none min-w-[120px]`}
+                        >
+                            <span>{selectedStatus}</span>
+                            <svg 
+                                className={`w-4 h-4 transition-transform ${isStatusOpen ? 'rotate-180' : ''}`}
+                                fill="none" 
+                                stroke="currentColor" 
+                                viewBox="0 0 24 24"
+                            >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        
+                        {isStatusOpen && (
+                            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-xl shadow-lg z-10 overflow-hidden">
+                                {statusOptions.map((option, index) => (
+                                    <div
+                                        key={option.value}
+                                        onClick={() => {
+                                            setSelectedStatus(option.value);
+                                            setIsStatusOpen(false);
+                                        }}
+                                        className={`px-4 py-2 cursor-pointer transition-colors hover:bg-gray-50 ${index !== statusOptions.length - 1 ? 'border-b border-gray-100' : ''}`}
+                                        style={{ 
+                                            backgroundColor: selectedStatus === option.label ? '#E8E6FF' : '#FFFFFF',
+                                            color: selectedStatus === option.label ? '#8B85E9' : '#374151'
+                                        }}
+                                    >
+                                        <div className="font-medium">{option.label}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* 검색 카테고리 드롭다운 */}
+                    <div className="relative" ref={categoryDropdownRef}>
+                        <button
+                            onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                            className={`px-4 py-2 rounded-xl bg-white text-gray-700 flex items-center justify-between border ${
+                                isCategoryOpen ? "border-2 border-[#8B85E9]" : "border-2 border-gray-300"
+                            } focus:outline-none min-w-[100px]`}
+                        >
+                            <span>{selectedCategory}</span>
+                            <svg 
+                                className={`w-4 h-4 transition-transform ${isCategoryOpen ? 'rotate-180' : ''}`}
+                                fill="none" 
+                                stroke="currentColor" 
+                                viewBox="0 0 24 24"
+                            >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        
+                        {isCategoryOpen && (
+                            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-xl shadow-lg z-10 overflow-hidden">
+                                {categoryOptions.map((option, index) => (
+                                    <div
+                                        key={option.value}
+                                        onClick={() => {
+                                            setSelectedCategory(option.value);
+                                            setIsCategoryOpen(false);
+                                        }}
+                                        className={`px-4 py-2 cursor-pointer transition-colors hover:bg-gray-50 ${index !== categoryOptions.length - 1 ? 'border-b border-gray-100' : ''}`}
+                                        style={{ 
+                                            backgroundColor: selectedCategory === option.label ? '#E8E6FF' : '#FFFFFF',
+                                            color: selectedCategory === option.label ? '#8B85E9' : '#374151'
+                                        }}
+                                    >
+                                        <div className="font-medium">{option.label}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
-                <div className="relative flex-1 flex">
+                <div className="relative w-[500px]">
                     <input
                         type="text"
                         value={inputValue}
                         onChange={(e) => handleInputChange(e.target.value)}
                         onKeyDown={handleKeyDown}
                         placeholder="검색어를 입력하세요"
-                        className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-base outline-none"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-base outline-none"
                     />
-                    <button
-                        style={{ color: "#8B85E9" }}
-                        className="absolute right-2.5 top-1/2 transform -translate-y-1/2 bg-transparent border-none text-lg cursor-pointer"
-                    >
-                        <Search size={20} className="text-gray-500" />
-                    </button>
+                                         <button
+                         style={{ color: "#8B85E9" }}
+                         className="absolute right-5 top-1/2 transform -translate-y-1/2 bg-transparent border-none text-lg cursor-pointer"
+                     >
+                         <Search size={20} className="text-gray-500" />
+                     </button>
 
                     {showSuggestions && filteredSuggestions.length > 0 && (
                         <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 border-t-0 rounded-b-lg max-h-48 overflow-y-auto z-50">
@@ -164,7 +263,7 @@ export const StudySearchPage = () => {
                             </div>
 
                             <div className="flex gap-2 flex-wrap">
-                                {study.tags.map((tag, index) => (
+                                {study.tags.map((tag: string, index: number) => (
                                     <span
                                         key={index}
                                         className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-xl text-xs"

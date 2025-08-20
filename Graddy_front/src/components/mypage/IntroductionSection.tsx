@@ -56,7 +56,7 @@ const IntroductionSection: React.FC<IntroductionSectionProps> = ({
                         onChange={(e) => onIntroductionChange(e.target.value)}
                         className="w-full p-3 sm:p-4 border rounded-lg resize-none text-sm sm:text-base"
                         style={{
-                            borderColor: "#777777",
+                            borderColor: "#D1D5DB",
                         }}
                         rows={4}
                         placeholder="자신을 소개해보세요..."

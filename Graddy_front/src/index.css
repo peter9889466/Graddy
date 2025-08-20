@@ -1,6 +1,10 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+body {
+  font-family: 'Gowun Dodum', 'sans-serif';
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -118,3 +122,4 @@
     @apply bg-background text-foreground;
   }
 }
+

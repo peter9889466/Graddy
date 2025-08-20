@@ -9,7 +9,7 @@ body,
 
 /* 스크롤바 스타일링 (선택사항) */
 ::-webkit-scrollbar {
-    width: 8px;
+    width: 5px;
 }
 
 ::-webkit-scrollbar-track {

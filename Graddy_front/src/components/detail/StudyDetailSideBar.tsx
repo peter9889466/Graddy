@@ -7,27 +7,25 @@ interface SideMenuItem {
     onClick?: () => void;
 }
 
-interface MyPageSidebarProps {
+interface StudyDetailSideBarProps {
     activeTab: string;
     onTabChange: (tab: string) => void;
-    onDeleteAccount: () => void;
 }
 
-const MyPageSidebar: React.FC<MyPageSidebarProps> = ({
+const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
     activeTab,
     onTabChange,
-    onDeleteAccount,
 }) => {
     const sideMenuItems: SideMenuItem[] = [
         { name: "스터디 메인"},
         { name: "과제 제출"},
         { name: "AI 피드백"},
-        { name: "일정/과제관리"},
+        { name: "과제 / 일정 관리"},
     ];
 
     return (
         <>
-            {/* 마이페이지 섹션 */}
+            {/* 스터디 상세 메뉴 섹션 */}
             <div
                 className="bg-white rounded-xl shadow-sm border p-3 sm:p-4"
                 style={{ borderColor: "#777777" }}
@@ -37,7 +35,7 @@ const MyPageSidebar: React.FC<MyPageSidebarProps> = ({
                         <button
                             key={item.name}
                             onClick={() => onTabChange(item.name)}
-                            className={`w-full text-left px-2 sm:px-3 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 group hover:font-semibold text-base sm:text-lg ${
+                            className={`w-full text-left px-2 sm:px-3 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 group text-sm sm:text-base ${
                                 activeTab === item.name
                                     ? "font-medium"
                                     : "text-gray-600"
@@ -75,7 +73,7 @@ const MyPageSidebar: React.FC<MyPageSidebarProps> = ({
                 </div>
             </div>
 
-            {/* 내 스터디 목록 */}
+            {/* 스터디 멤버 섹션 */}
             <div
                 className="bg-white rounded-xl shadow-sm border p-3 sm:p-4"
                 style={{ borderColor: "#777777" }}
@@ -88,10 +86,11 @@ const MyPageSidebar: React.FC<MyPageSidebarProps> = ({
                 </h3>
                 <div className="text-gray-500 text-xs sm:text-sm">
                     {/* 가입된 스터디 멤버*/}
+                    스터디 멤버 목록을 불러오는 중...
                 </div>
             </div>
         </>
     );
 };
 
-export default MyPageSidebar;
+export default StudyDetailSideBar;
