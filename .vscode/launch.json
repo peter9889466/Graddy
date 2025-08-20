@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-GraddyApplication<graddy-Graddy_back>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.smhrd.graddy.GraddyApplication",
+            "projectName": "graddy-Graddy_back",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
