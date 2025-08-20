@@ -21,6 +21,7 @@ import { AuthProvider } from "./contexts/AuthContext"; // AuthProvider import
 import MainPage from "./pages/MainPage";
 import StudyDetailPage from "./pages/StudyDetailPage";
 import StudyCreate from "./pages/StudyCreate";
+import Join3 from "./pages/Join3";
 
 function App() {
     return (
