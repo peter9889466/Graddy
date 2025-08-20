@@ -1,47 +1,58 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { Check, AlertCircle, CheckCircle, Clock, Sun, Moon, ChevronDown } from "lucide-react";
+import { Check, AlertCircle, CheckCircle, Clock, Sun, Moon, Sunset, Timer } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-interface TimeSelection {
-    [key: string]: {
-        morning: boolean;
-        afternoon: boolean;
-    };
+interface DaySelection {
+    [key: string]: boolean;
+}
+
+interface CustomTimeSlot {
+    startTime: number | null;
+    endTime: number | null;
+}
+
+interface LocationState {
+    formData?: any;
+    join2Data?: any;
 }
 
 const Join3: React.FC = () => {
-    // State to manage time selections for each day.
-    const [selectedTimes, setSelectedTimes] = useState<TimeSelection>({
-        monday: { morning: false, afternoon: false },
-        tuesday: { morning: false, afternoon: false },
-        wednesday: { morning: false, afternoon: false },
-        thursday: { morning: false, afternoon: false },
-        friday: { morning: false, afternoon: false },
-        saturday: { morning: false, afternoon: false },
-        sunday: { morning: false, afternoon: false }
+    // State to manage day selections
+    const [selectedDays, setSelectedDays] = useState<DaySelection>({
+        monday: false,
+        tuesday: false,
+        wednesday: false,
+        thursday: false,
+        friday: false,
+        saturday: false,
+        sunday: false
     });
     
-    // State to manage which accordion day is open.
-    const [openDay, setOpenDay] = useState<string | null>(null);
+    // State to manage custom time slot selection
+    const [customTimeSlot, setCustomTimeSlot] = useState<CustomTimeSlot>({
+        startTime: null,
+        endTime: null
+    });
 
     // State for managing hint messages displayed to the user.
     const [hintMessage, setHintMessage] = useState<string>("");
     // State to control hint message visibility.
     const [showHint, setShowHint] = useState(false);
     
+    // Navigation function - in a real app, this would use useNavigate from react-router-dom
     const navigate = useNavigate();
-    const location = useLocation();
-    const { formData, join2Data } = location.state || {};
+    
+    const location: { state: LocationState | null } = { state: null };
+    const locationState = location.state || {} as LocationState;
+    const { formData, join2Data } = locationState;
 
-    // Defines Korean names for each day key.
-    const dayNames = {
-        monday: "월요일",
-        tuesday: "화요일", 
-        wednesday: "수요일",
-        thursday: "목요일",
-        friday: "금요일",
-        saturday: "토요일",
-        sunday: "일요일"
+    // Defines time slot options
+    const timeSlots = {
+        morning: { name: "아침", time: "06:00 - 09:00", icon: Sun, color: "bg-orange-100 border-orange-300 text-orange-800" },
+        lunch: { name: "점심", time: "12:00 - 14:00", icon: Sun, color: "bg-yellow-100 border-yellow-300 text-yellow-800" },
+        evening: { name: "저녁", time: "18:00 - 21:00", icon: Sunset, color: "bg-purple-100 border-purple-300 text-purple-800" },
+        night: { name: "야간", time: "22:00 - 01:00", icon: Moon, color: "bg-blue-100 border-blue-300 text-blue-800" },
+        flexible: { name: "자율", time: "시간 협의", icon: Timer, color: "bg-green-100 border-green-300 text-green-800" }
     };
 
     // Hides the hint message automatically after a delay.
@@ -56,68 +67,91 @@ const Join3: React.FC = () => {
         }
     }, [hintMessage]);
 
-    // Toggles the morning or afternoon time slot for a specific day.
-    const toggleTime = (day: string, period: 'morning' | 'afternoon') => {
-        setSelectedTimes(prev => ({
+    // Toggles day selection
+    const toggleDay = (day: string) => {
+        setSelectedDays(prev => ({
             ...prev,
-            [day]: {
-                ...prev[day],
-                [period]: !prev[day][period]
-            }
+            [day]: !prev[day]
         }));
     };
 
-    // Toggles the accordion for a specific day.
-    const toggleAccordion = (day: string) => {
-        setOpenDay(openDay === day ? null : day);
-    };
-
-    // Toggles all time slots for all days.
-    const toggleAllTimes = () => {
-        const hasAnySelection = Object.values(selectedTimes).some(day => 
-            day.morning || day.afternoon
-        );
+    // Toggles all days selection
+    const toggleAllDays = () => {
+        const hasAnyDaySelected = Object.values(selectedDays).some(day => day);
         
-        if (hasAnySelection) {
-            // If any time is selected, deselect all.
-            const resetTimes: TimeSelection = {};
-            Object.keys(selectedTimes).forEach(day => {
-                resetTimes[day] = { morning: false, afternoon: false };
+        if (hasAnyDaySelected) {
+            // If any day is selected, deselect all.
+            const resetDays: DaySelection = {};
+            Object.keys(selectedDays).forEach(day => {
+                resetDays[day] = false;
             });
-            setSelectedTimes(resetTimes);
-            setHintMessage("모든 시간이 해제되었습니다!");
+            setSelectedDays(resetDays);
+            setHintMessage("모든 요일이 해제되었습니다!");
         } else {
             // If nothing is selected, select all.
-            const allTimes: TimeSelection = {};
-            Object.keys(selectedTimes).forEach(day => {
-                allTimes[day] = { morning: true, afternoon: true };
+            const allDays: DaySelection = {};
+            Object.keys(selectedDays).forEach(day => {
+                allDays[day] = true;
             });
-            setSelectedTimes(allTimes);
-            setHintMessage("모든 시간이 선택되었습니다!");
+            setSelectedDays(allDays);
+            setHintMessage("모든 요일이 선택되었습니다!");
         }
     };
 
-    // Calculates the total number of selected time slots.
-    const getSelectedCount = () => {
-        let count = 0;
-        Object.values(selectedTimes).forEach(day => {
-            if (day.morning) count++;
-            if (day.afternoon) count++;
-        });
-        return count;
+    // Sets custom time slot
+    const setTimeSlot = (type: 'start' | 'end', hour: number) => {
+        setCustomTimeSlot(prev => ({
+            ...prev,
+            [type === 'start' ? 'startTime' : 'endTime']: hour
+        }));
+    };
+
+    // Validates time slot selection
+    const isTimeSlotValid = () => {
+        return customTimeSlot.startTime !== null && 
+               customTimeSlot.endTime !== null && 
+               customTimeSlot.startTime < customTimeSlot.endTime;
+    };
+
+    // Checks if start and end times are the same
+    const areTimesSame = () => {
+        return customTimeSlot.startTime !== null && 
+               customTimeSlot.endTime !== null && 
+               customTimeSlot.startTime === customTimeSlot.endTime;
+    };
+
+    // Calculates the total number of selected days.
+    const getSelectedDayCount = () => {
+        return Object.values(selectedDays).filter(day => day).length;
+    };
+
+    // Check if both day selection and time slot are complete
+    const isFormComplete = () => {
+        return getSelectedDayCount() > 0 && isTimeSlotValid();
     };
 
     // Function to handle the "Complete Signup" button click.
     const completeSignup = () => {
-        const selectedCount = getSelectedCount();
+        const selectedDayCount = getSelectedDayCount();
         
-        if (selectedCount === 0) {
-            setHintMessage("최소 하나의 시간대를 선택해주세요!");
+        if (selectedDayCount === 0) {
+            setHintMessage("최소 하나의 요일을 선택해주세요!");
+            return;
+        }
+
+        if (!isTimeSlotValid()) {
+            if (customTimeSlot.startTime === null || customTimeSlot.endTime === null) {
+                setHintMessage("시작 시간과 마침 시간을 모두 입력해주세요!");
+            } else if (areTimesSame()) {
+                setHintMessage("시작 시간과 마침 시간이 같습니다!");
+            } else {
+                setHintMessage("시작 시간은 마침 시간보다 빨라야 합니다!");
+            }
             return;
         }
 
         setHintMessage("회원가입이 완료되었습니다!");
-        // In a real application, this would navigate to a completion page.
+        // Navigate to home page after signup completion
         setTimeout(() => {
             navigate("/");
         }, 1500);
@@ -125,15 +159,10 @@ const Join3: React.FC = () => {
 
     // Function to handle the "Previous" button click.
     const handlePrevious = () => {
-        navigate("/join2", {
-            state: {
-                formData,
-                join2Data, // Passes the selected interest data as is.
-            },
-        });
+        navigate("/join2");
     };
 
-    const selectedCount = getSelectedCount();
+    const selectedDayCount = getSelectedDayCount();
     const steps = ["프로필 설정", "관심사 선택", "시간대 선택"];
 
     return (
@@ -202,138 +231,241 @@ const Join3: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Selection status and 'Select All' button UI */}
-                        <div className="flex items-center justify-between mb-6 p-4 bg-gray-50 rounded-xl">
-                            <div className="flex items-center gap-2">
-                                <Clock className="w-5 h-5 text-indigo-600" />
-                                <span className="text-sm font-medium text-gray-700">
-                                    선택된 시간: <span className="text-indigo-600 font-semibold">{getSelectedCount()}개</span>
-                                </span>
+                        {/* Days Selection Section */}
+                        <div className="mb-10">
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-1 h-6 bg-indigo-600 rounded-full"></div>
+                                    <h3 className="text-xl font-bold text-gray-800">요일 선택</h3>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <div className="px-3 py-1 bg-indigo-100 rounded-full">
+                                        <span className="text-sm" style={{ color: "#8B85E9" }}>
+                                            <span className="font-bold">{selectedDayCount}</span>개 선택됨
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={toggleAllDays}
+                                        className="px-4 py-2 text-sm font-medium rounded-full transition-all duration-200 hover:shadow-lg transform hover:scale-105"
+                                        style={{ backgroundColor: "#8B85E9", color: "white" }}
+                                    >
+                                        {Object.values(selectedDays).some(day => day) ? '전체 해제' : '전체 선택'}
+                                    </button>
+                                </div>
                             </div>
-                            <button
-                                onClick={toggleAllTimes}
-                                className="px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 hover:opacity-90"
-                                style={{ backgroundColor: "#8B85E9", color: "white" }}
-                            >
-                                전체 {Object.values(selectedTimes).some(day => day.morning || day.afternoon) ? '해제' : '선택'}
-                            </button>
+                            
+                            <div className="bg-gray-50 rounded-2xl p-6">
+                                <div className="flex flex-wrap gap-4 justify-center">
+                                    {Object.entries(selectedDays).map(([dayKey]) => {
+                                        const dayNames = ["월", "화", "수", "목", "금", "토", "일"];
+                                        const dayIndex = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].indexOf(dayKey);
+                                        const dayName = dayNames[dayIndex];
+                                        
+                                        return (
+                                            <label key={dayKey} className="cursor-pointer group">
+                                                <div className={`relative w-16 h-16 rounded-2xl border-2 transition-all duration-300 hover:shadow-lg hover:scale-105 ${
+                                                    selectedDays[dayKey] 
+                                                        ? 'border-transparent shadow-lg' 
+                                                        : 'border-gray-300 bg-white hover:border-gray-400'
+                                                }`}
+                                                style={selectedDays[dayKey] ? { backgroundColor: '#8B85E9' } : {}}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedDays[dayKey]}
+                                                        onChange={() => toggleDay(dayKey)}
+                                                        className="absolute opacity-0"
+                                                    />
+                                                    <div className="flex items-center justify-center h-full">
+                                                        {selectedDays[dayKey] ? (
+                                                            <Check className="w-6 h-6 text-white" />
+                                                        ) : (
+                                                            <span className="font-bold text-lg" style={{ color: '#8B85E9' }}>
+                                                                {dayName}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            </div>
                         </div>
 
-                        {/* Day-by-day accordion UI */}
-                        <div className="space-y-4">
-                            {Object.entries(dayNames).map(([dayKey, dayName]) => {
-                                const dayData = selectedTimes[dayKey];
-                                const isDaySelected = dayData.morning || dayData.afternoon;
-                                const isOpen = openDay === dayKey;
+                        {/* Time Slot Selection Section */}
+                        <div className="mb-10">
+                            <div className="flex items-center gap-2 mb-6">
+                                <div className="w-1 h-6 bg-indigo-600 rounded-full"></div>
+                                <h3 className="text-xl font-bold text-gray-800">시간대 선택</h3>
+                            </div>
+                            
+                            <div className="bg-gray-50 rounded-2xl p-6">
+                                <div className="flex items-center justify-center gap-12">
+                                    {/* Start Time Input */}
+                                    <div className="flex flex-col items-center gap-4">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <Sun className="w-5 h-5" style={{ color: '#8B85E9' }} />
+                                            <label className="text-lg font-semibold text-gray-800">시작 시간</label>
+                                        </div>
+                                        <div className="relative">
+                                            <select
+                                                value={customTimeSlot.startTime || ''}
+                                                onChange={(e) => setTimeSlot('start', parseInt(e.target.value))}
+                                                className="w-32 px-4 py-3 text-lg font-semibold text-center border-2 border-gray-300 rounded-xl focus:outline-none focus:border-transparent bg-white shadow-sm transition-all duration-200 hover:shadow-md"
+                                                style={{ 
+                                                    borderColor: customTimeSlot.startTime !== null ? '#8B85E9' : undefined
+                                                }}
+                                            >
+                                                <option value="">--</option>
+                                                {Array.from({ length: 24 }, (_, i) => (
+                                                    <option key={i} value={i}>{i.toString().padStart(2, '0')}시</option>
+                                                ))}
+                                            </select>
+                                            {customTimeSlot.startTime !== null && (
+                                                <div className="absolute -top-2 -right-2">
+                                                    <CheckCircle className="w-6 h-6 text-green-500 bg-white rounded-full" />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Separator with animation */}
+                                    <div className="flex flex-col items-center gap-2">
+                                        <div className="w-12 h-0.5 rounded-full" style={{ background: 'linear-gradient(to right, #8B85E9, #A855F7)' }}></div>
+                                        <span className="text-2xl font-bold" style={{ color: '#8B85E9' }}>~</span>
+                                        <div className="w-12 h-0.5 rounded-full" style={{ background: 'linear-gradient(to right, #8B85E9, #A855F7)' }}></div>
+                                    </div>
+
+                                    {/* End Time Input */}
+                                    <div className="flex flex-col items-center gap-4">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <Moon className="w-5 h-5" style={{ color: '#8B85E9' }} />
+                                            <label className="text-lg font-semibold text-gray-800">마침 시간</label>
+                                        </div>
+                                        <div className="relative">
+                                            <select
+                                                value={customTimeSlot.endTime || ''}
+                                                onChange={(e) => setTimeSlot('end', parseInt(e.target.value))}
+                                                className="w-32 px-4 py-3 text-lg font-semibold text-center border-2 border-gray-300 rounded-xl focus:outline-none focus:border-transparent bg-white shadow-sm transition-all duration-200 hover:shadow-md"
+                                                style={{ 
+                                                    borderColor: customTimeSlot.endTime !== null ? '#8B85E9' : undefined
+                                                }}
+                                            >
+                                                <option value="">--</option>
+                                                {Array.from({ length: 24 }, (_, i) => (
+                                                    <option key={i} value={i}>{i.toString().padStart(2, '0')}시</option>
+                                                ))}
+                                            </select>
+                                            {customTimeSlot.endTime !== null && (
+                                                <div className="absolute -top-2 -right-2">
+                                                    <CheckCircle className="w-6 h-6 text-green-500 bg-white rounded-full" />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
                                 
-                                return (
-                                    <div key={dayKey} className={`rounded-xl border-2 transition-all duration-200 ${
-                                        isDaySelected ? 'border-indigo-200 bg-indigo-50' : 'border-gray-200 bg-white'
-                                    }`}>
-                                        <button
-                                            onClick={() => toggleAccordion(dayKey)}
-                                            className="w-full flex items-center justify-between p-4"
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <h3 className={`text-lg font-semibold transition-colors duration-200 ${
-                                                    isDaySelected ? 'text-indigo-700' : 'text-gray-700'
-                                                }`}>
-                                                    {dayName}
-                                                </h3>
-                                                {isDaySelected && (
-                                                    <CheckCircle className="w-5 h-5 text-indigo-600" />
-                                                )}
+                                {/* Time validation message */}
+                                {customTimeSlot.startTime !== null && customTimeSlot.endTime !== null && (
+                                    <div className="mt-6 text-center">
+                                        {isTimeSlotValid() ? (
+                                            <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 border border-green-300 rounded-full">
+                                                <CheckCircle className="w-4 h-4 text-green-600" />
+                                                <span className="text-sm font-medium text-green-800">
+                                                    {customTimeSlot.endTime! - customTimeSlot.startTime!}시간 활동 시간
+                                                </span>
                                             </div>
-                                            <ChevronDown className={`w-5 h-5 text-gray-500 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
-                                        </button>
-                                        
-                                        {isOpen && (
-                                            <div className="px-4 pb-4 flex gap-3">
-                                                {/* Morning button */}
-                                                <button
-                                                    onClick={() => toggleTime(dayKey, 'morning')}
-                                                    className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all duration-200 ${
-                                                        dayData.morning
-                                                            ? 'border-transparent text-white'
-                                                            : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                                                    }`}
-                                                    style={dayData.morning ? { backgroundColor: '#8B85E9' } : {}}
-                                                >
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <Sun className="w-4 h-4" />
-                                                        <span className="font-medium">오전</span>
-                                                    </div>
-                                                    <div className="text-xs opacity-80 mt-1">
-                                                        09:00 - 12:00
-                                                    </div>
-                                                </button>
-                                                
-                                                {/* Afternoon button */}
-                                                <button
-                                                    onClick={() => toggleTime(dayKey, 'afternoon')}
-                                                    className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all duration-200 ${
-                                                        dayData.afternoon
-                                                            ? 'border-transparent text-white'
-                                                            : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                                                    }`}
-                                                    style={dayData.afternoon ? { backgroundColor: '#8B85E9' } : {}}
-                                                >
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <Moon className="w-4 h-4" />
-                                                        <span className="font-medium">오후</span>
-                                                    </div>
-                                                    <div className="text-xs opacity-80 mt-1">
-                                                        13:00 - 18:00
-                                                    </div>
-                                                </button>
+                                        ) : areTimesSame() ? (
+                                            <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-100 border border-orange-300 rounded-full">
+                                                <AlertCircle className="w-4 h-4 text-orange-600" />
+                                                <span className="text-sm font-medium text-orange-800">
+                                                    시작 시간과 마침 시간이 같습니다
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-100 border border-red-300 rounded-full">
+                                                <AlertCircle className="w-4 h-4 text-red-600" />
+                                                <span className="text-sm font-medium text-red-800">
+                                                    시작 시간이 마침 시간보다 늦습니다
+                                                </span>
                                             </div>
                                         )}
                                     </div>
-                                );
-                            })}
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Selection Summary */}
+                        <div className="mb-8 p-6 bg-white border-2 rounded-2xl shadow-sm" style={{ borderColor: '#8B85E9' }}>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(139, 133, 233, 0.1)' }}>
+                                        <Clock className="w-5 h-5" style={{ color: '#8B85E9' }} />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-semibold text-gray-800">선택 요약</h4>
+                                        <p className="text-sm text-gray-600">최종 확인 후 가입을 완료하세요</p>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-sm text-gray-600 mb-1">
+                                        요일: <span className="font-bold" style={{ color: '#8B85E9' }}>{selectedDayCount}개</span>
+                                    </div>
+                                    <div className="text-sm text-gray-600">
+                                        시간: <span className="font-bold" style={{ color: '#8B85E9' }}>
+                                            {isTimeSlotValid() ? `${customTimeSlot.startTime}시 - ${customTimeSlot.endTime}시` : '미선택'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Information message UI */}
-                        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                            <div className="flex items-start gap-2">
-                                <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                                <div className="text-sm text-blue-800">
-                                    <p className="font-medium mb-1">시간대 선택 안내</p>
-                                    <ul className="text-xs space-y-1 opacity-90">
-                                        <li>• 요일명을 클릭하여 상세 시간대를 펼치거나 접을 수 있습니다</li>
-                                        <li>• 원하는 요일과 시간대를 자유롭게 선택할 수 있습니다</li>
-                                        <li>• 최소 하나의 시간대는 선택해야 합니다</li>
-                                    </ul>
+                        <div className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border rounded-2xl" style={{ borderColor: 'rgba(139, 133, 233, 0.3)' }}>
+                            <div className="flex items-start gap-3">
+                                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'rgba(139, 133, 233, 0.1)' }}>
+                                    <AlertCircle className="w-5 h-5" style={{ color: '#8B85E9' }} />
+                                </div>
+                                <div style={{ color: '#8B85E9' }}>
+                                    <p className="font-semibold mb-2 text-base">💡 선택 가이드</p>
+                                    <div className="space-y-1.5 text-sm opacity-90">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#8B85E9' }}></div>
+                                            <span>원하는 요일을 여러 개 선택할 수 있어요</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#8B85E9' }}></div>
+                                            <span>활동 시간을 시간 단위로 설정해주세요</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#8B85E9' }}></div>
+                                            <span>최소 하나의 요일과 올바른 시간대가 필요해요</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         {/* Button UI */}
-                        <div className="flex gap-4 pt-6">
+                        <div className="flex gap-6 pt-4">
                             <button
                                 onClick={handlePrevious}
-                                className="flex-1 py-4 px-6 rounded-xl font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-200"
+                                className="flex-1 py-4 px-8 rounded-2xl font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-200 hover:shadow-lg transform hover:scale-105"
                             >
-                                이전으로
+                                이전
                             </button>
                             <button
                                 onClick={completeSignup}
-                                className={`flex-1 py-4 px-6 rounded-xl font-semibold transition-all duration-200 ${
-                                    selectedCount > 0
-                                        ? "text-white hover:shadow-xl transform hover:scale-105"
+                                className={`flex-1 py-4 px-8 rounded-2xl font-semibold transition-all duration-300 ${
+                                    isFormComplete()
+                                        ? "text-white hover:shadow-2xl transform hover:scale-105 hover:-translate-y-1"
                                         : "bg-gray-300 text-gray-500 cursor-not-allowed"
                                 }`}
-                                style={selectedCount > 0 ? { 
-                                    backgroundColor: "#8B85E9",
-                                    boxShadow: "0 10px 15px -3px rgba(139, 133, 233, 0.1), 0 4px 6px -2px rgba(139, 133, 233, 0.05)"
+                                style={isFormComplete() ? { 
+                                    background: "linear-gradient(135deg, #8B85E9 0%, #9C92FF 100%)",
+                                    boxShadow: "0 20px 25px -5px rgba(139, 133, 233, 0.3), 0 10px 10px -5px rgba(139, 133, 233, 0.1)"
                                 } : {}}
-                                onMouseEnter={selectedCount > 0 ? (e) => {
-                                    (e.target as HTMLButtonElement).style.backgroundColor = "#7d75e3";
-                                } : undefined}
-                                onMouseLeave={selectedCount > 0 ? (e) => {
-                                    (e.target as HTMLButtonElement).style.backgroundColor = "#8B85E9";
-                                } : undefined}
-                                disabled={selectedCount === 0}
+                                disabled={!isFormComplete()}
                             >
                                 회원가입 완료
                             </button>

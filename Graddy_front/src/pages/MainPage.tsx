@@ -23,7 +23,7 @@ const MainPage = () => {
     const { isLoggedIn } = authContext;
 
     const handleJoinClick = () => {
-        navigate("/join");
+        navigate("/login");
     };
 
     // 캘린더 이벤트 데이터

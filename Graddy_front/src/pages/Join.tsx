@@ -49,7 +49,7 @@ const Join: React.FC = () => {
 
     // 전화번호 유효성 검사
     const validatePhoneNumber = (phone: string) => {
-        const phoneRegex = /^010-\d{4}-\d{4}$/;
+        const phoneRegex = /^010\d{4}\d{4}$/;
         return phoneRegex.test(phone);
     };
 
@@ -484,7 +484,7 @@ const Join: React.FC = () => {
                                         type="tel"
                                         value={phoneNumber}
                                         onChange={(e) => setPhoneNumber(e.target.value)}
-                                        placeholder="010-1234-5678"
+                                        placeholder="전화번호를 입력하세요"
                                         className={`w-full pl-10 pr-4 py-3 border rounded-xl transition-all duration-200 ${
                                             phoneNumber && validatePhoneNumber(phoneNumber) ? 
                                             "border-green-300 focus:ring-green-200" : 
@@ -500,7 +500,7 @@ const Join: React.FC = () => {
                                     )}
                                 </div>
                                 <p className="text-xs text-gray-500 mt-1">
-                                    형식: 010-0000-0000
+                                    형식: 01000000000
                                 </p>
                             </div>
 
