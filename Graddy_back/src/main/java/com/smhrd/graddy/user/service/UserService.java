@@ -31,6 +31,16 @@ public class UserService {
         return !userRepository.findByUserId(userId).isPresent();
     }
 
+    /**
+     * [추가] 사용자 닉네임 중복 확인 메서드
+     * @param nick 확인할 사용자 닉네임
+     * @return 사용 가능하면 true, 중복이면 false
+     */
+    public boolean isNickAvailable(String nick) {
+        // userRepository.findByNick() 결과가 비어있으면(isPresent()가 false) 사용 가능한 닉네임
+        return !userRepository.findByNick(nick).isPresent();
+    }
+
     @Transactional
     public User join(JoinRequest joinRequest) {
         if (userRepository.findByUserId(joinRequest.getUserId()).isPresent()) {

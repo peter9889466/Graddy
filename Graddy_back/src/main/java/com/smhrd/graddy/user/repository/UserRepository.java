@@ -11,4 +11,7 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, String> {
     // 사용자 ID(user_id)로 사용자를 찾는 메소드
     Optional<User> findByUserId(String userId);
+    
+    // 닉네임으로 사용자를 찾는 메소드
+    Optional<User> findByNick(String nick);
 }
