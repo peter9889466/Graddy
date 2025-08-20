@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Search, X, CheckCircle, AlertCircle } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Search, X, CheckCircle, AlertCircle, Clock } from "lucide-react";
 
 interface InterestItem {
     id: number;
@@ -48,45 +48,53 @@ const categories = {
 };
 
 const Join2: React.FC = () => {
-    const [selectedInterests, setSelectedInterests] = useState<SelectedInterestItem[]>([]);
-    const [searchTerm, setSearchTerm] = useState("");
-    const [activeDifficulty, setActiveDifficulty] = useState<string | null>(null);
-    const [activeCategory, setActiveCategory] = useState<string>("all");
+    const navigate = useNavigate();
+    const location = useLocation();
+    
+    // 이전 페이지에서 전달받은 데이터
+    const previousFormData = location.state?.formData;
+    const previousJoin2Data = location.state?.join2Data;
+    
+    // **수정된 부분**: 이전 페이지에서 전달받은 데이터로 상태 초기화
+    const [selectedInterests, setSelectedInterests] = useState<SelectedInterestItem[]>(previousJoin2Data?.selectedInterests || []);
+    const [searchTerm, setSearchTerm] = useState(previousJoin2Data?.searchTerm || "");
+    const [activeDifficulty, setActiveDifficulty] = useState<string | null>(previousJoin2Data?.activeDifficulty || null);
+    const [activeCategory, setActiveCategory] = useState<string>(previousJoin2Data?.activeCategory || "all");
+    
     const [hintMessage, setHintMessage] = useState<string>("");
     const [showHint, setShowHint] = useState(false);
-    const navigate = useNavigate();
 
     const maxSelections = 10;
 
     // 힌트 메시지 자동 숨김
     useEffect(() => {
         if (hintMessage) {
-        setShowHint(true);
-        const timer = setTimeout(() => {
-            setShowHint(false);
-            setTimeout(() => setHintMessage(""), 300);
-        }, 3000);
-        return () => clearTimeout(timer);
+            setShowHint(true);
+            const timer = setTimeout(() => {
+                setShowHint(false);
+                setTimeout(() => setHintMessage(""), 300);
+            }, 3000);
+            return () => clearTimeout(timer);
         }
     }, [hintMessage]);
 
     const handleInterestClick = (item: InterestItem) => {
         if (!activeDifficulty) {
-        setHintMessage("난이도를 먼저 선택해주세요!");
-        return;
+            setHintMessage("난이도를 먼저 선택해주세요!");
+            return;
         }
 
         setSelectedInterests((prev) => {
-        const exists = prev.find((i) => i.id === item.id);
-        if (exists) {
-            return prev.filter((i) => i.id !== item.id);
-        } else {
-            if (prev.length >= maxSelections) {
-            setHintMessage(`최대 ${maxSelections}개까지만 선택할 수 있습니다.`);
-            return prev;
+            const exists = prev.find((i) => i.id === item.id);
+            if (exists) {
+                return prev.filter((i) => i.id !== item.id);
+            } else {
+                if (prev.length >= maxSelections) {
+                    setHintMessage(`최대 ${maxSelections}개까지만 선택할 수 있습니다.`);
+                    return prev;
+                }
+                return [...prev, { ...item, difficulty: activeDifficulty }];
             }
-            return [...prev, { ...item, difficulty: activeDifficulty }];
-        }
         });
     };
 
@@ -98,31 +106,31 @@ const Join2: React.FC = () => {
         switch (difficulty) {
         case "초급":
             return { 
-            bgColor: "bg-emerald-100", 
-            textColor: "text-emerald-800", 
-            borderColor: "border-emerald-300",
-            iconColor: "text-emerald-600"
+                bgColor: "bg-emerald-100", 
+                textColor: "text-emerald-800", 
+                borderColor: "border-emerald-300",
+                iconColor: "text-emerald-600"
             };
         case "중급":
             return { 
-            bgColor: "bg-blue-100", 
-            textColor: "text-blue-800", 
-            borderColor: "border-blue-300",
-            iconColor: "text-blue-600"
+                bgColor: "bg-blue-100", 
+                textColor: "text-blue-800", 
+                borderColor: "border-blue-300",
+                iconColor: "text-blue-600"
             };
         case "고급":
             return { 
-            bgColor: "bg-purple-100", 
-            textColor: "text-purple-800", 
-            borderColor: "border-purple-300",
-            iconColor: "text-purple-600"
+                bgColor: "bg-purple-100", 
+                textColor: "text-purple-800", 
+                borderColor: "border-purple-300",
+                iconColor: "text-purple-600"
             };
         default:
             return { 
-            bgColor: "bg-gray-100", 
-            textColor: "text-gray-800", 
-            borderColor: "border-gray-300",
-            iconColor: "text-gray-600"
+                bgColor: "bg-gray-100", 
+                textColor: "text-gray-800", 
+                borderColor: "border-gray-300",
+                iconColor: "text-gray-600"
             };
         }
     };
@@ -150,6 +158,45 @@ const Join2: React.FC = () => {
         }
     };
 
+    // 이전 버튼 클릭 핸들러
+    const goToPrevious = () => {
+        // 현재 Join2의 상태와 이전에서 받은 formData를 함께 전달
+        const currentJoin2Data = {
+            selectedInterests,
+            searchTerm,
+            activeDifficulty,
+            activeCategory
+        };
+        
+        navigate("/join", { 
+            state: { 
+                formData: previousFormData,
+                join2Data: currentJoin2Data
+            } 
+        });
+    };
+
+    // 다음 버튼 클릭 핸들러  
+    const goToNext = () => {
+        if (selectedInterests.length === 0) {
+            setHintMessage("최소 하나 이상의 관심분야를 선택해주세요!");
+            return;
+        }
+        
+        // Join 데이터와 Join2 데이터를 함께 Join3로 전달
+        const allData = {
+            formData: previousFormData,
+            join2Data: {
+                selectedInterests,
+                searchTerm,
+                activeDifficulty,
+                activeCategory
+            }
+        };
+        
+        navigate("/join3", { state: allData });
+    };
+
     // 필터링 로직
     const filteredInterests = allInterests.filter((item) => {
         const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -157,11 +204,34 @@ const Join2: React.FC = () => {
         return matchesSearch && matchesCategory;
     });
 
+    const steps = ["프로필 설정", "관심사 선택", "시간대 선택"];
     const isProceedEnabled = selectedInterests.length > 0;
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-8 px-4">
             <div className="max-w-4xl mx-auto">
+
+                {/* 진행 단계 */}
+                <div className="mb-8">
+                    <div className="flex items-center justify-between max-w-md mx-auto">
+                        {steps.map((step, idx) => (
+                        <div key={idx} className="flex flex-col items-center">
+                            <div
+                            className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm transition-all duration-300 ${
+                                idx === 1
+                                ? "bg-indigo-600 text-white shadow-lg" 
+                                : idx < 1
+                                ? "bg-green-500 text-white"
+                                : "bg-gray-200 text-gray-500"
+                            }`}
+                            >
+                            {idx < 1 ? <CheckCircle className="w-5 h-5" /> : idx === 1 ? <Clock className="w-5 h-5" /> : idx + 1}
+                            </div>
+                            <span className="text-xs mt-2 text-gray-600 text-center max-w-20">{step}</span>
+                        </div>
+                        ))}
+                    </div>
+                </div>
 
                 {/* 메인 카드 */}
                 <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
@@ -283,7 +353,7 @@ const Join2: React.FC = () => {
                                     검색 결과가 없습니다.
                                     </div>
                                 )}
-                                </div>
+                            </div>
                             </div>
                             </div>
 
@@ -325,13 +395,13 @@ const Join2: React.FC = () => {
                                 </div>
                                 )}
                             </div>
-                        </div>
+                            </div>
 
-                        {/* 하단 버튼 */}
-                        <div className="flex flex-col sm:flex-row gap-4">
+                            {/* 하단 버튼 */}
+                            <div className="flex flex-col sm:flex-row gap-4">
                             <button
                                 className="flex-1 py-4 px-6 rounded-xl font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-200"
-                                onClick={() => navigate("/")}
+                                onClick={goToPrevious}
                             >
                                 이전
                             </button>
@@ -352,13 +422,13 @@ const Join2: React.FC = () => {
                                 onMouseLeave={isProceedEnabled ? (e) => {
                                 (e.target as HTMLButtonElement).style.backgroundColor = "#8B85E9";
                                 } : undefined}
-                                onClick={() => navigate("/login")}
+                                onClick={goToNext}
                                 disabled={!isProceedEnabled}
                             >
                                 다음
                             </button>
 
-                        </div>
+                            </div>
                     </div>
                 </div>
             </div>
