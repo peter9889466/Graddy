@@ -18,7 +18,7 @@ public class LoginController {
     private final JwtUtil jwtUtil;
 
 
-    @PostMapping("/api/login")
+    @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
         // 1. 사용자 인증 시도
         authenticationManager.authenticate(

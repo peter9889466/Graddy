@@ -23,7 +23,7 @@ public class UserController {
      * 아이디 중복 확인 API
      * 아이디 사용 가능 여부에 따라 다른 HTTP 상태 코드를 반환하도록 수정
      */
-    @GetMapping("/api/join/check-userId")
+    @GetMapping("/join/check-userId")
     public ResponseEntity<ApiResponse<Map<String, Boolean>>> checkUserId(@RequestParam("userId") String userId) {
         boolean isAvailable = userService.isUserIdAvailable(userId);
 
@@ -43,7 +43,7 @@ public class UserController {
      * 닉네임 중복 확인 API
      * 닉네임 사용 가능 여부에 따라 다른 HTTP 상태 코드를 반환
      */
-    @GetMapping("/api/join/check-nick")
+    @GetMapping("/join/check-nick")
     public ResponseEntity<ApiResponse<Map<String, Boolean>>> checkNick(@RequestParam("nick") String nick) {
         boolean isAvailable = userService.isNickAvailable(nick);
 
@@ -63,7 +63,7 @@ public class UserController {
      * 아이디 찾기 API
      * 이름과 전화번호로 사용자 아이디를 찾습니다.
      */
-    @PostMapping("/api/find-id")
+    @PostMapping("/find-id")
     public ResponseEntity<ApiResponse<Map<String, String>>> findUserId(@RequestBody FindIdRequest request) {
         String userId = userService.findUserIdByNameAndTel(request.getName(), request.getTel());
         
@@ -85,7 +85,7 @@ public class UserController {
      * @param request 회원가입 요청 정보
      * @return 성공 시 201 Created, 아이디 중복 시 409 Conflict
      */
-    @PostMapping("/api/join")
+    @PostMapping("/join")
     public ResponseEntity<ApiResponse<JoinResponse>> join(@RequestBody JoinRequest request) {
         try {
             // 1. UserService를 통해 회원가입 처리
