@@ -2,7 +2,10 @@ package com.smhrd.graddy.user.service;
 
 
 import com.smhrd.graddy.user.dto.JoinRequest;
+import com.smhrd.graddy.user.dto.UserInterestRequest;
 import com.smhrd.graddy.user.entity.User;
+import com.smhrd.graddy.user.entity.UserInterest;
+import com.smhrd.graddy.user.repository.UserInterestRepository;
 import com.smhrd.graddy.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -15,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final UserInterestRepository userInterestRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
@@ -37,10 +41,23 @@ public class UserService {
         newUser.setAlarmType(joinRequest.isAlarmType());
         newUser.setSoltStart(joinRequest.getSoltStart());
         newUser.setSoltEnd(joinRequest.getSoltEnd());
+        User savedUser = userRepository.save(newUser);
 
         // 역할은 User엔티티의 기본값 사용됨
+        // 3. [변경] 사용자의 관심사 정보를 user_interest 테이블에 저장합니다.
+        if (joinRequest.getInterests() != null && !joinRequest.getInterests().isEmpty()) {
+            // DTO에 포함된 interests 리스트를 하나씩 꺼내서 처리합니다.
+            for (UserInterestRequest userInterestRequest : joinRequest.getInterests()) {
+                UserInterest userInterest = new UserInterest();
+                userInterest.setUser(savedUser); // 위에서 저장된 User 엔티티를 연결
+                userInterest.setInterestId(userInterestRequest.getInterestId());
+                userInterest.setInterstName(userInterestRequest.getInterestName());
+                userInterest.setInterestLevel(userInterestRequest.getInterestLevel());
 
-        // 3. UserRepository를 통해 DB에 저장
-        return userRepository.save(newUser);
+                // user_interest 테이블에 저장
+                userInterestRepository.save(userInterest);
+            }
+        }
+        return savedUser; // 저장된 User 정보를 컨트롤러로 반환
     }
 }
