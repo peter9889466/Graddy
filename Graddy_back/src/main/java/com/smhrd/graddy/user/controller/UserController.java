@@ -38,6 +38,26 @@ public class UserController {
         }
     }
 
+    /**
+     * 닉네임 중복 확인 API
+     * 닉네임 사용 가능 여부에 따라 다른 HTTP 상태 코드를 반환
+     */
+    @GetMapping("/api/join/check-nick")
+    public ResponseEntity<ApiResponse<Map<String, Boolean>>> checkNick(@RequestParam("nick") String nick) {
+        boolean isAvailable = userService.isNickAvailable(nick);
+
+        // 응답 데이터 생성
+        Map<String, Boolean> data = Map.of("isAvailable", isAvailable);
+
+        if (isAvailable) {
+            // 사용 가능한 닉네임인 경우: 200 OK 응답
+            return ApiResponse.success("사용 가능한 닉네임입니다.", data);
+        } else {
+            // 이미 사용 중인 닉네임인 경우: 409 Conflict 응답
+            return ApiResponse.error(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다.", data);
+        }
+    }
+
     // 회원가입 성공 시 응답 DTO
     public record JoinResponse(String userId) {}
 
