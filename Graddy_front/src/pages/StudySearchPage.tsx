@@ -1,10 +1,14 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAutoComplete } from "../hooks/useAutoComplete";
 import { studyList, searchSuggestions, StudyData } from "../data/studyData";
+import { Search } from "lucide-react";
 
 export const StudySearchPage = () => {
+    const location = useLocation();
     const [selectedCategory, setSelectedCategory] = useState("제목");
     const [selectedStatus, setSelectedStatus] = useState("모집중");
+    const navigate = useNavigate();
 
     const {
         inputValue,
@@ -14,7 +18,25 @@ export const StudySearchPage = () => {
         handleInputChange,
         handleSuggestionClick,
         handleKeyDown,
+        setInputValue,
     } = useAutoComplete({ suggestions: searchSuggestions });
+
+    // Header에서 전달된 검색 파라미터 처리
+    useEffect(() => {
+        if (location.state) {
+            const { searchValue, searchCategory } = location.state as {
+                searchValue?: string;
+                searchCategory?: string;
+            };
+
+            if (searchValue) {
+                setInputValue(searchValue);
+            }
+            if (searchCategory) {
+                setSelectedCategory(searchCategory);
+            }
+        }
+    }, [location.state, setInputValue]);
 
     const filteredStudies = useMemo(() => {
         let filtered = studyList;
@@ -25,6 +47,7 @@ export const StudySearchPage = () => {
         } else if (selectedStatus === "모집완료") {
             filtered = filtered.filter((study) => !study.isRecruiting);
         }
+        // "전체"인 경우 필터링하지 않음
 
         // 검색어 필터링
         if (inputValue.trim()) {
@@ -90,10 +113,13 @@ export const StudySearchPage = () => {
                         onChange={(e) => handleInputChange(e.target.value)}
                         onKeyDown={handleKeyDown}
                         placeholder="검색어를 입력하세요"
-                        className="flex-1 px-4 py-2.5 border border-gray-300 rounded-full text-base outline-none focus:border-violet-500"
+                        className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-base outline-none"
                     />
-                    <button className="absolute right-2.5 top-1/2 transform -translate-y-1/2 bg-transparent border-none text-lg cursor-pointer">
-                        🔍
+                    <button
+                        style={{ color: "#8B85E9" }}
+                        className="absolute right-2.5 top-1/2 transform -translate-y-1/2 bg-transparent border-none text-lg cursor-pointer"
+                    >
+                        <Search size={20} className="text-gray-500" />
                     </button>
 
                     {showSuggestions && filteredSuggestions.length > 0 && (
@@ -124,25 +150,17 @@ export const StudySearchPage = () => {
                         key={study.id}
                         className="flex items-center p-5 border border-gray-200 rounded-lg bg-white gap-5"
                     >
-                        <div className="min-w-20">
-                            <span
-                                className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                    study.isRecruiting
-                                        ? "bg-blue-50 text-blue-700"
-                                        : "bg-purple-50 text-purple-700"
-                                }`}
-                            >
-                                {study.recruitmentStatus}
-                            </span>
-                        </div>
-
                         <div className="flex-1">
+                            <div className="text-lg font-bold text-gray-800 mb-2">
+                                {study.title}
+                            </div>
                             <div className="text-base mb-2 text-gray-800">
                                 {study.description}
                             </div>
 
                             <div className="text-sm text-gray-600 mb-2">
-                                스터디 기간: {study.period}
+                                스터디 기간: {study.period} / 스터디장:{" "}
+                                {study.leader}
                             </div>
 
                             <div className="flex gap-2 flex-wrap">
@@ -156,14 +174,16 @@ export const StudySearchPage = () => {
                                 ))}
                             </div>
                         </div>
-
-                        <div className="text-right min-w-36">
-                            <div className="text-lg font-bold text-gray-800 mb-2">
-                                {study.title}
-                            </div>
-                            <div className="text-sm text-gray-600">
-                                스터디장: {study.leader}
-                            </div>
+                        <div className="min-w-20">
+                            <span
+                                className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                    study.isRecruiting
+                                        ? "bg-blue-50 text-blue-700"
+                                        : "bg-purple-50 text-purple-700"
+                                }`}
+                            >
+                                {study.recruitmentStatus}
+                            </span>
                         </div>
                     </div>
                 ))}

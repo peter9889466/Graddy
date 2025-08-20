@@ -8,7 +8,7 @@ import InterestSelection from "../components/modal/InterestModal";
 import ProfileSection from "../components/mypage/ProfileSection";
 import IntroductionSection from "../components/mypage/IntroductionSection";
 import ProfileEditForm from "../components/mypage/ProfileEditForm";
-import MyPageSidebar from "../components/mypage/MyPageSidebar";
+import MyPageSidebar from "../components/detail/StudyDetailSideBar";
 
 export const MyPage = () => {
     const [activeTab, setActiveTab] = useState("마이페이지");

@@ -1,19 +1,23 @@
 import React, { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../contexts/AuthContext"; // AuthContext 가져오기
-import { Menu, X } from "lucide-react";
+import { Menu, X, Search } from "lucide-react";
 
 const Header: React.FC = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [searchCategory, setSearchCategory] = useState("제목");
     const navigate = useNavigate();
     const authContext = useContext(AuthContext); // Context를 가져옴
 
     // authContext가 null인 경우를 대비한 안전 장치
     if (!authContext) {
-        throw new Error('Header 컴포넌트는 AuthProvider 내에서 사용되어야 합니다.');
+        throw new Error(
+            "Header 컴포넌트는 AuthProvider 내에서 사용되어야 합니다."
+        );
     }
     const { isLoggedIn, logout } = authContext;
-
 
     const handleLogin = () => {
         navigate("/login");
@@ -21,7 +25,7 @@ const Header: React.FC = () => {
     };
 
     const handleLogout = () => {
-        logout(); // Context의 logout 함수 호출
+        logout();
         setIsMobileMenuOpen(false);
         navigate("/");
     };
@@ -36,22 +40,26 @@ const Header: React.FC = () => {
         setIsMobileMenuOpen(false);
     };
 
-    const handleSearch = () => {
+    const handleStudySearch = () => {
         navigate("/search");
         setIsMobileMenuOpen(false);
     };
 
-    const toggleMobileMenu = () => {
-        setIsMobileMenuOpen(!isMobileMenuOpen);
+    const handleStudyCreate = () => {
+        // 스터디 생성 페이지로 이동 (나중에 구현)
+        navigate("/");
+        setIsMobileMenuOpen(false);
     };
 
     return (
         <header
-            className="shadow-lg transition-all duration-300 ease-in-out relative"
-            style={{ backgroundColor: "#FFFFFF" }}
+            className="shadow-xl transition-all duration-300 ease-in-out relative backdrop-blur-sm"
+            style={{
+                backgroundColor: "rgba(255, 255, 255, 0.95)",
+            }}
         >
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between items-center h-14 sm:h-16">
+            <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
+                <div className="flex items-center h-20">
                     {/* 로고 */}
                     <div
                         onClick={handleLogoClick}
@@ -60,39 +68,40 @@ const Header: React.FC = () => {
                         <img
                             src="/logo.png"
                             alt="Graddy Logo"
-                            className="h-10 sm:h-12 lg:h-14 w-auto drop-shadow-sm"
+                            className="h-12 sm:h-14 lg:h-16 w-auto drop-shadow-sm"
                         />
                     </div>
 
-                    {/* 데스크톱 메뉴 */}
-                    <div className="hidden md:flex items-center space-x-3 lg:space-x-6 animate-fadeIn">
-                        <button
-                            className="font-medium transition-all duration-200 hover:scale-105 relative group text-sm lg:text-base"
-                            style={{ color: "#8B85E9" }}
-                        >
-                            자유게시판
-                            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-current transition-all duration-300 group-hover:w-full"></span>
-                        </button>
-                        <button
-                            onClick={handleSearch}
-                            className="font-medium transition-all duration-200 hover:scale-105 relative group text-sm lg:text-base"
-                            style={{ color: "#8B85E9" }}
-                        >
-                            스터디
-                            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-current transition-all duration-300 group-hover:w-full"></span>
-                        </button>
+                    <div className="hidden md:flex flex-1 items-center justify-end space-x-2 lg:space-x-4 animate-fadeIn">
+                        {/* 스터디 메뉴 영역 */}
+                        <div className="flex items-center gap-4 mr-4">
+                            <button
+                                onClick={handleStudySearch}
+                                className="text-base font-medium hover:font-semibold transition-all duration-200 cursor-pointer"
+                                style={{ color: "#8B85E9" }}
+                            >
+                                스터디 검색
+                            </button>
+                        </div>
                         {isLoggedIn ? (
                             <>
                                 <button
+                                    onClick={handleStudyCreate}
+                                    className="text-base font-medium hover:font-semibold transition-all duration-200 cursor-pointer"
+                                    style={{ color: "#8B85E9" }}
+                                >
+                                    스터디 생성
+                                </button>
+                                <button
                                     onClick={handleMyPageClick}
-                                    className="px-3 lg:px-6 py-2 text-white rounded-lg font-medium transform hover:scale-105 hover:shadow-lg transition-all duration-200 active:scale-95 text-sm lg:text-base"
+                                    className="px-4 lg:px-6 py-2 text-white rounded-xl font-semibold transform hover:scale-105 hover:shadow-lg transition-all duration-200 active:scale-95 text-sm lg:text-base shadow-md"
                                     style={{ backgroundColor: "#8B85E9" }}
                                 >
                                     마이페이지
                                 </button>
                                 <button
                                     onClick={handleLogout}
-                                    className="px-3 lg:px-6 py-2 text-white rounded-lg font-medium transform hover:scale-105 hover:shadow-lg transition-all duration-200 active:scale-95 text-sm lg:text-base"
+                                    className="px-4 lg:px-6 py-2 text-white rounded-xl font-semibold transform hover:scale-105 hover:shadow-lg transition-all duration-200 active:scale-95 text-sm lg:text-base shadow-md"
                                     style={{ backgroundColor: "#8B85E9" }}
                                 >
                                     로그아웃
@@ -101,7 +110,7 @@ const Header: React.FC = () => {
                         ) : (
                             <button
                                 onClick={handleLogin}
-                                className="px-4 lg:px-8 py-2 text-white rounded-lg font-medium transform hover:scale-105 hover:shadow-lg transition-all duration-200 active:scale-95 relative overflow-hidden group text-sm lg:text-base"
+                                className="px-6 lg:px-8 py-2 text-white rounded-xl font-semibold transform hover:scale-105 hover:shadow-lg transition-all duration-200 active:scale-95 relative overflow-hidden group text-sm lg:text-base shadow-md"
                                 style={{ backgroundColor: "#8B85E9" }}
                             >
                                 <span className="relative z-10">로그인</span>
@@ -109,74 +118,8 @@ const Header: React.FC = () => {
                             </button>
                         )}
                     </div>
-
-                    {/* 모바일 햄버거 버튼 */}
-                    <div className="md:hidden">
-                        <button
-                            onClick={toggleMobileMenu}
-                            className="p-2 rounded-lg transition-all duration-200 hover:bg-white hover:bg-opacity-20"
-                            style={{ color: "#8B85E9" }}
-                        >
-                            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-                        </button>
-                    </div>
                 </div>
-
-                {/* 모바일 메뉴 */}
-                {isMobileMenuOpen && (
-                    <div className="md:hidden absolute top-full left-0 right-0 bg-white shadow-lg border-t border-gray-200 z-50">
-                        <div className="px-4 py-4 space-y-3">
-                            <button
-                                className="block w-full text-left px-4 py-3 rounded-lg transition-all duration-200"
-                                style={{ color: "#8B85E9" }}
-                            >
-                                자유게시판
-                            </button>
-                            <button
-                                onClick={handleSearch}
-                                className="block w-full text-left px-4 py-3 rounded-lg transition-all duration-200"
-                                style={{ color: "#8B85E9" }}
-                            >
-                                스터디
-                            </button>
-                            {isLoggedIn ? (
-                                <>
-                                    <button
-                                        onClick={handleMyPageClick}
-                                        className="block w-full text-left px-4 py-3 text-white rounded-lg font-medium transition-all duration-200"
-                                        style={{ backgroundColor: "#8B85E9" }}
-                                    >
-                                        마이페이지
-                                    </button>
-                                    <button
-                                        onClick={handleLogout}
-                                        className="block w-full text-left px-4 py-3 text-white rounded-lg font-medium transition-all duration-200"
-                                        style={{ backgroundColor: "#8B85E9" }}
-                                    >
-                                        로그아웃
-                                    </button>
-                                </>
-                            ) : (
-                                <button
-                                    onClick={handleLogin}
-                                    className="block w-full text-left px-4 py-3 text-white rounded-lg font-medium transition-all duration-200"
-                                    style={{ backgroundColor: "#8B85E9" }}
-                                >
-                                    로그인
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                )}
             </div>
-
-            <style>{`
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(-10px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-                .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
-            `}</style>
         </header>
     );
 };
