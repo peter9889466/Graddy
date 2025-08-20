@@ -9,7 +9,7 @@ import LoadingOverlay from "./components/shared/LoadingOverlay";
 import DeleteModal from "./components/modal/DeleteModal";
 import { MyPage } from "./pages/MyPage";
 import { TestModal } from "./pages/TestModal";
-import { TestDropdown } from "./pages/TestDropdown,";
+import { TestDropdown } from "./pages/TestDropdown";
 import { TestAutoCompleteSearch } from "./pages/TestAutoComplete";
 import Join from "./pages/Join";
 import Join2 from "./pages/Join2";
@@ -20,6 +20,7 @@ import { StudySearchPage } from "./pages/StudySearchPage";
 import { AuthProvider } from "./contexts/AuthContext"; // AuthProvider import
 import MainPage from "./pages/MainPage";
 import StudyDetailPage from "./pages/StudyDetailPage";
+import StudyCreate from "./pages/StudyCreate";
 import Join3 from "./pages/Join3";
 
 function App() {
@@ -53,6 +54,10 @@ function App() {
                                 <Route
                                     path="/search"
                                     element={<StudySearchPage />}
+                                />
+                                <Route
+                                    path="/study-create"
+                                    element={<StudyCreate />}
                                 />
                                 <Route path="/study/:id"
                                 element={<StudyDetailPage/>}/>

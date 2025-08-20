@@ -14,4 +14,7 @@ public interface UserRepository extends JpaRepository<User, String> {
     
     // 닉네임으로 사용자를 찾는 메소드
     Optional<User> findByNick(String nick);
+    
+    // 이름과 전화번호로 사용자를 찾는 메소드
+    Optional<User> findByNameAndTel(String name, String tel);
 }

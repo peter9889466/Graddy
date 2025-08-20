@@ -53,7 +53,7 @@ const Header: React.FC = () => {
 
     return (
         <header
-            className="shadow-xl transition-all duration-300 ease-in-out relative backdrop-blur-sm"
+            className="shadow-md transition-all duration-200 ease-in-out relative backdrop-blur-sm"
             style={{
                 backgroundColor: "rgba(255, 255, 255, 0.95)",
             }}
@@ -72,26 +72,29 @@ const Header: React.FC = () => {
                         />
                     </div>
 
+                    {/* 스터디 생성 및 검색 링크 */}
+                    <div className="hidden md:flex items-center space-x-8 ml-8">
+                        <button
+                            onClick={() => navigate("/study-create")}
+                            className="relative group text-gray-700 hover:text-[#8B85E9] transition-colors duration-200 font-medium"
+                        >
+                            스터디 생성
+                            <div className="absolute -bottom-1 left-1/2 w-0 h-0.5 bg-[#8B85E9] group-hover:w-full group-hover:left-0 transition-all duration-300 ease-in-out transform -translate-x-1/2 group-hover:translate-x-0"></div>
+                        </button>
+                        <button
+                            onClick={() => navigate("/search")}
+                            className="relative group text-gray-700 hover:text-[#8B85E9] transition-colors duration-200 font-medium"
+                        >
+                            스터디 검색
+                            <div className="absolute -bottom-1 left-1/2 w-0 h-0.5 bg-[#8B85E9] group-hover:w-full group-hover:left-0 transition-all duration-300 ease-in-out transform -translate-x-1/2 group-hover:translate-x-0"></div>
+                        </button>
+                    </div>
+
                     <div className="hidden md:flex flex-1 items-center justify-end space-x-2 lg:space-x-4 animate-fadeIn">
-                        {/* 스터디 메뉴 영역 */}
-                        <div className="flex items-center gap-4 mr-4">
-                            <button
-                                onClick={handleStudySearch}
-                                className="text-base font-medium hover:font-semibold transition-all duration-200 cursor-pointer"
-                                style={{ color: "#8B85E9" }}
-                            >
-                                스터디 검색
-                            </button>
-                        </div>
+                        {/* 스터디 검색 영역 */}
+                        
                         {isLoggedIn ? (
                             <>
-                                <button
-                                    onClick={handleStudyCreate}
-                                    className="text-base font-medium hover:font-semibold transition-all duration-200 cursor-pointer"
-                                    style={{ color: "#8B85E9" }}
-                                >
-                                    스터디 생성
-                                </button>
                                 <button
                                     onClick={handleMyPageClick}
                                     className="px-4 lg:px-6 py-2 text-white rounded-xl font-semibold transform hover:scale-105 hover:shadow-lg transition-all duration-200 active:scale-95 text-sm lg:text-base shadow-md"

@@ -12,6 +12,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -39,6 +41,17 @@ public class UserService {
     public boolean isNickAvailable(String nick) {
         // userRepository.findByNick() 결과가 비어있으면(isPresent()가 false) 사용 가능한 닉네임
         return !userRepository.findByNick(nick).isPresent();
+    }
+
+    /**
+     * [추가] 아이디 찾기 메서드
+     * @param name 사용자 이름
+     * @param tel 사용자 전화번호
+     * @return 찾은 사용자의 아이디, 없으면 null
+     */
+    public String findUserIdByNameAndTel(String name, String tel) {
+        Optional<User> user = userRepository.findByNameAndTel(name, tel);
+        return user.map(User::getUserId).orElse(null);
     }
 
     @Transactional

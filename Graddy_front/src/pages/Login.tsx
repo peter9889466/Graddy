@@ -53,7 +53,16 @@ const Login: React.FC = () => {
         }
 
         try {
-        login();
+            // 실제 로그인 로직 (예: API 호출)은 여기에 구현하세요.
+            // 아래 코드는 로그인에 성공했다고 가정합니다.
+            
+            // 로그인 성공 시 AuthContext의 login 함수를 호출하여 전역 상태를 업데이트합니다.
+            // 임시로 사용자 정보 설정 (실제로는 서버에서 받아온 정보를 사용)
+            const userData = {
+                nickname: id, // 임시로 아이디를 닉네임으로 사용
+                email: `${id}@example.com` // 임시 이메일
+            };
+            login(userData);
 
         if (rememberId) {
             localStorage.setItem("savedId", id);

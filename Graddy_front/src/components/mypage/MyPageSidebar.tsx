@@ -1,5 +1,5 @@
 import React from "react";
-import { User, Settings, Trash2 } from "lucide-react";
+import { User, Settings, Trash2, BookOpen } from "lucide-react";
 
 interface SideMenuItem {
     name: string;
@@ -20,6 +20,7 @@ const MyPageSidebar: React.FC<MyPageSidebarProps> = ({
 }) => {
     const sideMenuItems: SideMenuItem[] = [
         { name: "마이페이지", icon: User },
+        { name: "내 스터디 목록", icon: BookOpen },
         { name: "회원정보 수정", icon: Settings },
         { name: "회원탈퇴", icon: Trash2, onClick: onDeleteAccount },
     ];
@@ -38,7 +39,7 @@ const MyPageSidebar: React.FC<MyPageSidebarProps> = ({
                     마이페이지
                 </h3>
                 <div className="space-y-2">
-                    {sideMenuItems.slice(0, 2).map((item) => (
+                    {sideMenuItems.slice(0, 3).map((item) => (
                         <button
                             key={item.name}
                             onClick={() => onTabChange(item.name)}
@@ -85,22 +86,7 @@ const MyPageSidebar: React.FC<MyPageSidebarProps> = ({
                 </div>
             </div>
 
-            {/* 내 스터디 목록 */}
-            <div
-                className="bg-white rounded-xl shadow-sm border p-3 sm:p-4"
-                style={{ borderColor: "#777777" }}
-            >
-                <h3
-                    className="font-bold mb-3 text-sm sm:text-base"
-                    style={{ color: "#8B85E9" }}
-                >
-                    내 스터디 목록
-                </h3>
-                <div className="text-gray-500 text-xs sm:text-sm">
-                    {/* DB에서 스터디 목록을 받아올 예정 */}
-                    스터디 목록을 불러오는 중...
-                </div>
-            </div>
+
         </>
     );
 };
