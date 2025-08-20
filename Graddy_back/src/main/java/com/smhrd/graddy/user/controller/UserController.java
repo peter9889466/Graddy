@@ -3,6 +3,7 @@ package com.smhrd.graddy.user.controller;
 
 import com.smhrd.graddy.api.dto.ApiResponse;
 import com.smhrd.graddy.user.dto.JoinRequest;
+import com.smhrd.graddy.user.dto.FindIdRequest;
 import com.smhrd.graddy.user.entity.User;
 import com.smhrd.graddy.user.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -55,6 +56,24 @@ public class UserController {
         } else {
             // 이미 사용 중인 닉네임인 경우: 409 Conflict 응답
             return ApiResponse.error(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다.", data);
+        }
+    }
+
+    /**
+     * 아이디 찾기 API
+     * 이름과 전화번호로 사용자 아이디를 찾습니다.
+     */
+    @PostMapping("/api/find-id")
+    public ResponseEntity<ApiResponse<Map<String, String>>> findUserId(@RequestBody FindIdRequest request) {
+        String userId = userService.findUserIdByNameAndTel(request.getName(), request.getTel());
+        
+        if (userId != null) {
+            // 아이디를 찾은 경우: 200 OK 응답
+            Map<String, String> data = Map.of("userId", userId);
+            return ApiResponse.success("아이디 찾기에 성공했습니다.", data);
+        } else {
+            // 아이디를 찾지 못한 경우: 404 Not Found 응답
+            return ApiResponse.error(HttpStatus.NOT_FOUND, "해당 정보로 가입된 사용자를 찾을 수 없습니다.", null);
         }
     }
 
