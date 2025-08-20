@@ -21,6 +21,16 @@ public class UserService {
     private final UserInterestRepository userInterestRepository;
     private final PasswordEncoder passwordEncoder;
 
+    /**
+     * [추가] 사용자 아이디 중복 확인 메서드
+     * @param userId 확인할 사용자 아이디
+     * @return 사용 가능하면 true, 중복이면 false
+     */
+    public boolean isUserIdAvailable(String userId) {
+        // userRepository.findByUserId() 결과가 비어있으면(isPresent()가 false) 사용 가능한 아이디
+        return !userRepository.findByUserId(userId).isPresent();
+    }
+
     @Transactional
     public User join(JoinRequest joinRequest) {
         if (userRepository.findByUserId(joinRequest.getUserId()).isPresent()) {
