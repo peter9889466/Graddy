@@ -211,8 +211,20 @@ const Join: React.FC = () => {
 
     const steps = ["프로필 설정", "관심사 선택", "시간대 선택"];
 
+    // Enter 키 핸들러 추가
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && isFormValid) {
+            e.preventDefault(); // 기본 동작 방지
+            nextPage();
+        }
+    };
+
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-8 px-4">
+        <div 
+            className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-8 px-4"
+            onKeyDown={handleKeyDown} 
+            tabIndex={0} 
+        >
 
             <div className="max-w-3xl mx-auto">
 
@@ -294,6 +306,7 @@ const Join: React.FC = () => {
                                         }`}
                                         onFocus={(e) => !idError && !idChecked && ((e.target as HTMLInputElement).style.boxShadow = `0 0 0 2px rgba(139, 133, 233, 0.2)`)}
                                         onBlur={(e) => !idError && !idChecked && ((e.target as HTMLInputElement).style.boxShadow = 'none')}
+                                        onKeyDown={handleKeyDown}
                                     />
                                     <button
                                         onClick={onCheckId}
@@ -337,6 +350,7 @@ const Join: React.FC = () => {
                                         }`}
                                         onFocus={(e) => !passwordError && ((e.target as HTMLInputElement).style.boxShadow = `0 0 0 2px rgba(139, 133, 233, 0.2)`)}
                                         onBlur={(e) => !passwordError && ((e.target as HTMLInputElement).style.boxShadow = 'none')}
+                                        onKeyDown={handleKeyDown}
                                     />
                                     <button
                                         type="button"
@@ -388,6 +402,7 @@ const Join: React.FC = () => {
                                         }`}
                                         onFocus={(e) => !passwordError && ((e.target as HTMLInputElement).style.boxShadow = `0 0 0 2px rgba(139, 133, 233, 0.2)`)}
                                         onBlur={(e) => !passwordError && ((e.target as HTMLInputElement).style.boxShadow = 'none')}
+                                        onKeyDown={handleKeyDown}
                                     />
                                     <button
                                         type="button"
@@ -428,6 +443,7 @@ const Join: React.FC = () => {
                                         className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:border-transparent transition-all duration-200"
                                         onFocus={(e) => (e.target as HTMLInputElement).style.boxShadow = `0 0 0 2px rgba(139, 133, 233, 0.2)`}
                                         onBlur={(e) => (e.target as HTMLInputElement).style.boxShadow = 'none'}
+                                        onKeyDown={handleKeyDown}
                                     />
                                 </div>
                             </div>
@@ -454,6 +470,7 @@ const Join: React.FC = () => {
                                         }`}
                                         onFocus={(e) => !nicknameError && !nicknameChecked && ((e.target as HTMLInputElement).style.boxShadow = `0 0 0 2px rgba(139, 133, 233, 0.2)`)}
                                         onBlur={(e) => !nicknameError && !nicknameChecked && ((e.target as HTMLInputElement).style.boxShadow = 'none')}
+                                        onKeyDown={handleKeyDown}
                                     />
                                     <button
                                         onClick={onCheckNickname}
@@ -498,6 +515,7 @@ const Join: React.FC = () => {
                                         }`}
                                         onFocus={(e) => (e.target as HTMLInputElement).style.boxShadow = `0 0 0 2px rgba(139, 133, 233, 0.2)`}
                                         onBlur={(e) => (e.target as HTMLInputElement).style.boxShadow = 'none'}
+                                        onKeyDown={handleKeyDown}
                                     />
                                     {phoneNumber && validatePhoneNumber(phoneNumber) && (
                                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -506,7 +524,7 @@ const Join: React.FC = () => {
                                     )}
                                 </div>
                                 <p className="text-sm text-gray-500 mt-1">
-                                    형식: 01000000000
+                                    형식: 01012345678
                                 </p>
                             </div>
 
@@ -530,7 +548,7 @@ const Join: React.FC = () => {
                                         SMS
                                     </button>
                                 </div>
-                                <p className="text-xs text-gray-500 mt-2">
+                                <p className="text-sm text-gray-500 mt-2">
                                     알림을 받지 않으려면 버튼을 다시 클릭하여 해제하세요
                                 </p>
                             </div>

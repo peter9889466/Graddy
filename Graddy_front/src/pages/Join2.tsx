@@ -54,6 +54,8 @@ const Join2: React.FC = () => {
     // 이전 페이지에서 전달받은 데이터
     const previousFormData = location.state?.formData;
     const previousJoin2Data = location.state?.join2Data;
+    // 📌 추가: Join3에서 돌아올 때의 데이터
+    const previousJoin3Data = location.state?.join3Data;
     
     // **수정된 부분**: 이전 페이지에서 전달받은 데이터로 상태 초기화
     const [selectedInterests, setSelectedInterests] = useState<SelectedInterestItem[]>(previousJoin2Data?.selectedInterests || []);
@@ -176,14 +178,14 @@ const Join2: React.FC = () => {
         });
     };
 
-    // 다음 버튼 클릭 핸들러  
+    // 다음 버튼 클릭 핸들러  
     const goToNext = () => {
         if (selectedInterests.length === 0) {
             setHintMessage("최소 하나 이상의 관심분야를 선택해주세요!");
             return;
         }
         
-        // Join 데이터와 Join2 데이터를 함께 Join3로 전달
+        // Join 데이터와 Join2 데이터를 함께 Join3로 전달 (Join3 데이터도 포함)
         const allData = {
             formData: previousFormData,
             join2Data: {
@@ -191,10 +193,20 @@ const Join2: React.FC = () => {
                 searchTerm,
                 activeDifficulty,
                 activeCategory
-            }
+            },
+            // 📌 추가: Join3에서 돌아온 데이터가 있으면 함께 전달
+            ...(previousJoin3Data && { join3Data: previousJoin3Data })
         };
         
         navigate("/join3", { state: allData });
+    };
+
+    // Enter 키 핸들러 추가
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && isProceedEnabled) {
+            e.preventDefault();
+            goToNext();
+        }
     };
 
     // 필터링 로직
@@ -207,8 +219,14 @@ const Join2: React.FC = () => {
     const steps = ["프로필 설정", "관심사 선택", "시간대 선택"];
     const isProceedEnabled = selectedInterests.length > 0;
 
+    
+
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-8 px-4">
+        <div 
+            className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-8 px-4"
+            onKeyDown={handleKeyDown}
+            tabIndex={0}
+        >
             <div className="max-w-4xl mx-auto">
 
                 {/* 진행 단계 */}
@@ -267,6 +285,7 @@ const Join2: React.FC = () => {
                             className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent transition-all duration-200"
                             onFocus={(e) => (e.target as HTMLInputElement).style.boxShadow = `0 0 0 2px rgba(139, 133, 233, 0.2)`}
                             onBlur={(e) => (e.target as HTMLInputElement).style.boxShadow = 'none'}
+                            onKeyDown={handleKeyDown}
                         />
                         {searchTerm && (
                             <button
