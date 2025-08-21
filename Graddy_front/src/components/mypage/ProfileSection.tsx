@@ -1,10 +1,17 @@
 import React from "react";
 import { Edit3, Camera, Star } from "lucide-react";
 
+interface SelectedInterestItem {
+    id: number;
+    name: string;
+    category: string;
+    difficulty: string;
+}
+
 interface ProfileSectionProps {
     profileImage: string;
     userScore: number;
-    userInterests: string[];
+    userInterests: SelectedInterestItem[];
     onProfileImageClick: () => void;
     onImageChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
     onInterestEdit: () => void;
@@ -158,15 +165,15 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                             </div>
                         ) : (
                             <div className="flex flex-wrap gap-2">
-                                {userInterests.map((interest, index) => (
+                                {userInterests.map((interest) => (
                                     <span
-                                        key={index}
+                                        key={interest.id}
                                         className="px-3 py-1 text-white rounded-full text-xs sm:text-sm font-medium"
                                         style={{
                                             backgroundColor: "#8B85E9",
                                         }}
                                     >
-                                        {interest}
+                                        {interest.name}
                                     </span>
                                 ))}
                             </div>
