@@ -5,6 +5,7 @@ import com.smhrd.graddy.api.dto.ApiResponse;
 import com.smhrd.graddy.user.dto.JoinRequest;
 import com.smhrd.graddy.user.dto.FindIdRequest;
 import com.smhrd.graddy.user.dto.UserIdUpdateRequest;
+import com.smhrd.graddy.user.dto.NicknameUpdateRequest;
 import com.smhrd.graddy.user.entity.User;
 import com.smhrd.graddy.user.service.UserService;
 import com.smhrd.graddy.security.jwt.JwtUtil;
@@ -117,6 +118,50 @@ public class UserController {
             // 4. 아이디 중복 등 예외 발생 시 ApiResponse의 error 정적 메서드를 사용하여 409 응답 반환
             // 실패 시에는 data 부분이 null이 됩니다.
             return ApiResponse.error(HttpStatus.CONFLICT, e.getMessage(), null);
+        }
+    }
+
+    /**
+     * 닉네임 수정 API
+     * 현재 로그인한 사용자의 닉네임을 변경합니다.
+     */
+    @PatchMapping("/me/nick")
+    public ResponseEntity<ApiResponse<Map<String, String>>> updateNickname(
+            @RequestBody NicknameUpdateRequest request,
+            @RequestHeader("Authorization") String authorizationHeader) {
+        try {
+            // 디버깅용 로그
+            System.out.println("=== 닉네임 수정 디버깅 정보 ===");
+            System.out.println("Authorization Header: " + authorizationHeader);
+            
+            // JWT 토큰에서 현재 사용자 아이디 추출
+            String token = authorizationHeader.replace("Bearer ", "");
+            System.out.println("Extracted Token: " + token);
+            
+            String currentUserId = jwtUtil.extractUserId(token);
+            System.out.println("Current User ID: " + currentUserId);
+            System.out.println("New Nickname: " + request.getNick());
+            System.out.println("==================");
+            
+            // UserService를 통해 닉네임 수정 처리
+            User updatedUser = userService.updateNickname(
+                    currentUserId, 
+                    request.getNick()
+            );
+            
+            // 성공 응답 데이터 생성
+            Map<String, String> data = Map.of("nick", updatedUser.getNick());
+            return ApiResponse.success("닉네임이 성공적으로 변경되었습니다.", data);
+            
+        } catch (IllegalArgumentException e) {
+            // 예외 발생 시 400 Bad Request 응답
+            System.out.println("IllegalArgumentException: " + e.getMessage());
+            return ApiResponse.error(HttpStatus.BAD_REQUEST, e.getMessage(), null);
+        } catch (Exception e) {
+            // JWT 토큰 관련 오류 등 기타 예외 발생 시 401 Unauthorized 응답
+            System.out.println("Exception: " + e.getMessage());
+            e.printStackTrace();
+            return ApiResponse.error(HttpStatus.UNAUTHORIZED, "인증에 실패했습니다: " + e.getMessage(), null);
         }
     }
 

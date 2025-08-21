@@ -64,6 +64,31 @@ public class UserService {
         return user.map(User::getUserId).orElse(null);
     }
 
+
+    /**
+     * [추가] 닉네임 수정 메서드
+     * @param currentUserId 현재 사용자 아이디
+     * @param newNickname 새로운 닉네임
+     * @return 수정된 사용자 정보
+     */
+    @Transactional
+    public User updateNickname(String currentUserId, String newNickname) {
+        // 기존 사용자 조회
+        User user = userRepository.findByUserId(currentUserId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        
+        // 새 닉네임 중복 확인
+        if (userRepository.findByNick(newNickname).isPresent()) {
+            throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
+        }
+        
+        // 닉네임 수정
+        user.setNick(newNickname);
+        
+        // 수정된 사용자 정보 저장
+        return userRepository.save(user);
+    }
+
     /**
      * [추가] 아이디 수정 메서드
      * @param currentUserId 현재 사용자 아이디
