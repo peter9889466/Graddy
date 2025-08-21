@@ -220,7 +220,7 @@ const FeedBack = () => {
   };
 
   return (
-    <div className="space-y-4 h-[61.5vh] overflow-y-auto p-4 pr-10">
+    		<div className="space-y-4 p-4 pr-10">
 
       {/* AI 피드백 소제목 */}
       <h2 className="text-xl font-bold mb-6 -mt-5 -ml-4"

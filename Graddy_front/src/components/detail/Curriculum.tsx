@@ -142,7 +142,7 @@ const Curriculum: React.FC = () => {
     const selectedCurriculum = curriculumData.find(c => c.week === selectedWeek);
 
     return (
-        <div className="space-y-4 h-[61.5vh] overflow-y-auto p-4 pr-10">
+        		<div className="space-y-4 p-4 pr-10">
             {/* 커리큘럼 제목 */}
             <h2 className="text-xl font-bold mb-6 -mt-4 -ml-4"
                 style={{ color: "#8B85E9" }}>커리큘럼</h2>

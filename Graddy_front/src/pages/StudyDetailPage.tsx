@@ -145,7 +145,7 @@ const StudyDetailPage = () => {
 			case "스터디 정보":
 			default:
 				return (
-					<div className="space-y-2 h-[61.5vh] overflow-y-auto p-4 pr-10">
+					<div className="space-y-2 p-4 pr-10">
 						<h3 className="text-2xl font-bold">{studyTitle}</h3>
 						<p className="text-gray-700">
 							<div className="flex items-center gap-2">
