@@ -1,10 +1,12 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../contexts/AuthContext"; // AuthContext 가져오기
 
 const Header: React.FC = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
     const navigate = useNavigate();
+    const profileMenuRef = useRef<HTMLDivElement>(null);
     const authContext = useContext(AuthContext); // Context를 가져옴
 
     // authContext가 null인 경우를 대비한 안전 장치
@@ -23,13 +25,36 @@ const Header: React.FC = () => {
     const handleLogout = () => {
         logout();
         setIsMobileMenuOpen(false);
+        setIsProfileMenuOpen(false);
         navigate("/");
     };
 
     const handleMyPageClick = () => {
         navigate("/mypage");
         setIsMobileMenuOpen(false);
+        setIsProfileMenuOpen(false);
     };
+
+    const toggleProfileMenu = () => {
+        setIsProfileMenuOpen(!isProfileMenuOpen);
+    };
+
+    // 프로필 메뉴 외부 클릭 시 닫기
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (
+                profileMenuRef.current &&
+                !profileMenuRef.current.contains(event.target as Node)
+            ) {
+                setIsProfileMenuOpen(false);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
 
     const handleLogoClick = () => {
         navigate("/");
@@ -41,9 +66,13 @@ const Header: React.FC = () => {
         setIsMobileMenuOpen(false);
     };
 
-    const handleStudyCreate = () => {
-        // 스터디 생성 페이지로 이동 (나중에 구현)
-        navigate("/study-create");
+    const handleRanking = () => {
+        navigate("/ranking");
+        setIsMobileMenuOpen(false);
+    };
+
+    const handleCommunity = () => {
+        navigate("/community");
         setIsMobileMenuOpen(false);
     };
 
@@ -66,60 +95,90 @@ const Header: React.FC = () => {
                     </div>
 
                     <div className="hidden md:flex items-center space-x-8 ml-8">
-                        {isLoggedIn ? (
-                            <>
-                                <button
-                                    onClick={handleMyPageClick}
-                                    className={`relative group transition-colors duration-200 font-medium`}
-                                >
-                                    마이페이지
-                                    <div className="absolute -bottom-1 left-1/2 w-0 h-0.5 bg-[#8B85E9] group-hover:w-full group-hover:left-0 transition-all duration-300 ease-in-out transform -translate-x-1/2 group-hover:translate-x-0"></div>
-                                </button>
-                                <button
-                                    onClick={handleStudyCreate}
-                                    className={`relative group transition-colors duration-200 font-medium`}
-                                >
-                                    스터디 생성
-                                    <div className="absolute -bottom-1 left-1/2 w-0 h-0.5 bg-[#8B85E9] group-hover:w-full group-hover:left-0 transition-all duration-300 ease-in-out transform -translate-x-1/2 group-hover:translate-x-0"></div>
-                                </button>
-                                <button
-                                    onClick={handleStudySearch}
-                                    className={`relative group transition-colors duration-200 font-medium `}
-                                >
-                                    스터디 검색
-                                    <div className="absolute -bottom-1 left-1/2 w-0 h-0.5 bg-[#8B85E9] group-hover:w-full group-hover:left-0 transition-all duration-300 ease-in-out transform -translate-x-1/2 group-hover:translate-x-0"></div>
-                                </button>
-                            </>
-                        ) : (
-                            <>
-                                <button
-                                    onClick={handleStudyCreate}
-                                    className={`relative group transition-colors duration-200 font-medium`}
-                                >
-                                    스터디 생성
-                                    <div className="absolute -bottom-1 left-1/2 w-0 h-0.5 bg-[#8B85E9] group-hover:w-full group-hover:left-0 transition-all duration-300 ease-in-out transform -translate-x-1/2 group-hover:translate-x-0"></div>
-                                </button>
-                                <button
-                                    onClick={handleStudySearch}
-                                    className={`relative group transition-colors duration-200 font-medium`}
-                                >
-                                    스터디 검색
-                                    <div className="absolute -bottom-1 left-1/2 w-0 h-0.5 bg-[#8B85E9] group-hover:w-full group-hover:left-0 transition-all duration-300 ease-in-out transform -translate-x-1/2 group-hover:translate-x-0"></div>
-                                </button>
-                            </>
-                        )}
+                        <>
+                            <button
+                                onClick={handleStudySearch}
+                                className={`relative group transition-colors duration-200 font-medium `}
+                            >
+                                찾기
+                                <div className="absolute -bottom-1 left-1/2 w-0 h-0.5 bg-[#8B85E9] group-hover:w-full group-hover:left-0 transition-all duration-300 ease-in-out transform -translate-x-1/2 group-hover:translate-x-0"></div>
+                            </button>
+                            <button
+                                onClick={handleRanking}
+                                className={`relative group transition-colors duration-200 font-medium `}
+                            >
+                                랭킹
+                                <div className="absolute -bottom-1 left-1/2 w-0 h-0.5 bg-[#8B85E9] group-hover:w-full group-hover:left-0 transition-all duration-300 ease-in-out transform -translate-x-1/2 group-hover:translate-x-0"></div>
+                            </button>
+
+                            <button
+                                onClick={handleCommunity}
+                                className={`relative group transition-colors duration-200 font-medium`}
+                            >
+                                커뮤니티
+                                <div className="absolute -bottom-1 left-1/2 w-0 h-0.5 bg-[#8B85E9] group-hover:w-full group-hover:left-0 transition-all duration-300 ease-in-out transform -translate-x-1/2 group-hover:translate-x-0"></div>
+                            </button>
+                        </>
                     </div>
                     <div className="hidden md:flex flex-1 items-center justify-end space-x-2 lg:space-x-4 animate-fadeIn">
                         {isLoggedIn ? (
-                            <>
+                            <div className="relative" ref={profileMenuRef}>
                                 <button
-                                    onClick={handleLogout}
-                                    className="px-4 lg:px-6 py-2 text-white rounded-xl font-semibold transform hover:scale-105 hover:shadow-lg transition-all duration-200 active:scale-95 text-sm lg:text-base shadow-md"
-                                    style={{ backgroundColor: "#8B85E9" }}
+                                    onClick={toggleProfileMenu}
+                                    className="w-12 h-12 rounded-full overflow-hidden transform hover:scale-105 transition-all duration-200 shadow-md"
                                 >
-                                    로그아웃
+                                    <img
+                                        src="/android-icon-72x72.png"
+                                        alt="Profile"
+                                        className="w-full h-full object-cover"
+                                    />
                                 </button>
-                            </>
+
+                                {/* 드롭다운 메뉴 */}
+                                {isProfileMenuOpen && (
+                                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                                        <button
+                                            onClick={handleMyPageClick}
+                                            className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors duration-200 flex items-center space-x-2"
+                                        >
+                                            <svg
+                                                className="w-4 h-4"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                                />
+                                            </svg>
+                                            <span>마이페이지</span>
+                                        </button>
+                                        <hr className="my-1 border-gray-200" />
+                                        <button
+                                            onClick={handleLogout}
+                                            className="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 transition-colors duration-200 flex items-center space-x-2"
+                                        >
+                                            <svg
+                                                className="w-4 h-4"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                                                />
+                                            </svg>
+                                            <span>로그아웃</span>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         ) : (
                             <button
                                 onClick={handleLogin}
