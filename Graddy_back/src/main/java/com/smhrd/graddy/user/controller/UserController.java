@@ -88,6 +88,18 @@ public class UserController {
     @PostMapping("/join")
     public ResponseEntity<ApiResponse<JoinResponse>> join(@RequestBody JoinRequest request) {
         try {
+            // 사용자 가능 요일 유효성 검사
+            if (request.getAvailableDays() == null || request.getAvailableDays().isEmpty()) {
+                return ApiResponse.error(HttpStatus.BAD_REQUEST, "가능한 요일을 최소 1개 이상 선택해주세요.", null);
+            }
+            
+            // 요일 값이 1~7 범위인지 검사
+            for (Integer dayId : request.getAvailableDays()) {
+                if (dayId == null || dayId < 1 || dayId > 7) {
+                    return ApiResponse.error(HttpStatus.BAD_REQUEST, "요일은 1(일요일)부터 7(토요일) 사이의 값이어야 합니다.", null);
+                }
+            }
+            
             // 1. UserService를 통해 회원가입 처리
             User savedUser = userService.join(request);
 
