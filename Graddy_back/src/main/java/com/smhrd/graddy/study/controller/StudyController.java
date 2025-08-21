@@ -4,7 +4,9 @@ import com.smhrd.graddy.study.dto.StudyRequest;
 import com.smhrd.graddy.study.dto.StudyResponse;
 import com.smhrd.graddy.study.dto.StudyUpdateRequest;
 import com.smhrd.graddy.study.service.StudyService;
+import com.smhrd.graddy.api.dto.ApiResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -37,16 +39,16 @@ public class StudyController {
     @PostMapping
     @Operation(summary = "스터디 생성", description = "새로운 스터디를 생성하고 태그 정보와 함께 데이터베이스에 저장합니다.")
     @SecurityRequirement(name = "Bearer Authentication")
-    public ResponseEntity<StudyResponse> createStudy(
+    public ResponseEntity<ApiResponse<StudyResponse>> createStudy(
             @RequestBody StudyRequest request,
             @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
             @RequestHeader(name = "Authorization", required = false) String authorization) {
         try {
             StudyResponse response = studyService.createStudy(request);
-            return ResponseEntity.created(URI.create("/api/studies/" + response.getStudyId()))
-                    .body(response);
+            URI location = URI.create("/api/studies/" + response.getStudyId());
+            return ApiResponse.created(location, "스터디가 성공적으로 생성되었습니다.", response);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
+            return ApiResponse.error(HttpStatus.BAD_REQUEST, "스터디 생성에 실패했습니다.", null);
         }
     }
 
@@ -59,12 +61,12 @@ public class StudyController {
      */
     @GetMapping("/{studyId}")
     @Operation(summary = "스터디 조회", description = "특정 스터디ID로 스터디 정보와 태그를 조회합니다.")
-    public ResponseEntity<StudyResponse> getStudy(@PathVariable Long studyId) {
+    public ResponseEntity<ApiResponse<StudyResponse>> getStudy(@PathVariable Long studyId) {
         try {
             StudyResponse response = studyService.getStudy(studyId);
-            return ResponseEntity.ok(response);
+            return ApiResponse.success("스터디 조회가 성공했습니다.", response);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
+            return ApiResponse.error(HttpStatus.NOT_FOUND, "스터디를 찾을 수 없습니다.", null);
         }
     }
 
@@ -76,9 +78,9 @@ public class StudyController {
      */
     @GetMapping
     @Operation(summary = "전체 스터디 목록", description = "전체 스터디 목록을 생성일 기준 내림차순으로 조회합니다.")
-    public ResponseEntity<List<StudyResponse>> getAllStudies() {
+    public ResponseEntity<ApiResponse<List<StudyResponse>>> getAllStudies() {
         List<StudyResponse> studies = studyService.getAllStudies();
-        return ResponseEntity.ok(studies);
+        return ApiResponse.success("전체 스터디 목록 조회가 성공했습니다.", studies);
     }
 
     /**
@@ -89,9 +91,9 @@ public class StudyController {
      */
     @GetMapping("/recruiting")
     @Operation(summary = "모집중인 스터디 목록", description = "현재 모집 중인 스터디만 조회합니다.")
-    public ResponseEntity<List<StudyResponse>> getRecruitingStudies() {
+    public ResponseEntity<ApiResponse<List<StudyResponse>>> getRecruitingStudies() {
         List<StudyResponse> studies = studyService.getRecruitingStudies();
-        return ResponseEntity.ok(studies);
+        return ApiResponse.success("모집중인 스터디 목록 조회가 성공했습니다.", studies);
     }
 
     /**
@@ -103,9 +105,9 @@ public class StudyController {
      */
     @GetMapping("/leader/{userId}")
     @Operation(summary = "리더별 스터디 목록", description = "특정 사용자가 리더인 스터디 목록을 조회합니다.")
-    public ResponseEntity<List<StudyResponse>> getStudiesByLeader(@PathVariable String userId) {
+    public ResponseEntity<ApiResponse<List<StudyResponse>>> getStudiesByLeader(@PathVariable String userId) {
         List<StudyResponse> studies = studyService.getStudiesByLeader(userId);
-        return ResponseEntity.ok(studies);
+        return ApiResponse.success("리더별 스터디 목록 조회가 성공했습니다.", studies);
     }
 
     /**
@@ -117,9 +119,9 @@ public class StudyController {
      */
     @GetMapping("/search")
     @Operation(summary = "스터디 검색", description = "제목, 스터디명, 설명, 작성자, 태그로 검색합니다.")
-    public ResponseEntity<List<StudyResponse>> searchStudies(@RequestParam(required = false) String keyword) {
+    public ResponseEntity<ApiResponse<List<StudyResponse>>> searchStudies(@RequestParam(required = false) String keyword) {
         List<StudyResponse> studies = studyService.searchStudies(keyword);
-        return ResponseEntity.ok(studies);
+        return ApiResponse.success("스터디 검색이 성공했습니다.", studies);
     }
 
     /**
@@ -131,9 +133,9 @@ public class StudyController {
      */
     @GetMapping("/level/{level}")
     @Operation(summary = "레벨별 스터디 목록", description = "특정 레벨의 스터디 목록을 조회합니다.")
-    public ResponseEntity<List<StudyResponse>> getStudiesByLevel(@PathVariable Integer level) {
+    public ResponseEntity<ApiResponse<List<StudyResponse>>> getStudiesByLevel(@PathVariable Integer level) {
         List<StudyResponse> studies = studyService.getStudiesByLevel(level);
-        return ResponseEntity.ok(studies);
+        return ApiResponse.success("레벨별 스터디 목록 조회가 성공했습니다.", studies);
     }
 
     /**
@@ -147,16 +149,16 @@ public class StudyController {
     @PutMapping("/{studyId}")
     @Operation(summary = "스터디 수정", description = "기존 스터디 정보를 수정하고 태그 정보도 함께 업데이트합니다.")
     @SecurityRequirement(name = "Bearer Authentication")
-    public ResponseEntity<StudyResponse> updateStudy(
+    public ResponseEntity<ApiResponse<StudyResponse>> updateStudy(
             @PathVariable Long studyId,
             @RequestBody StudyUpdateRequest request,
             @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
             @RequestHeader(name = "Authorization", required = false) String authorization) {
         try {
             StudyResponse response = studyService.updateStudy(studyId, request);
-            return ResponseEntity.ok(response);
+            return ApiResponse.success("스터디가 성공적으로 수정되었습니다.", response);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
+            return ApiResponse.error(HttpStatus.NOT_FOUND, "스터디를 찾을 수 없습니다.", null);
         }
     }
 
@@ -171,16 +173,16 @@ public class StudyController {
     @PatchMapping("/{studyId}/status")
     @Operation(summary = "스터디 상태 변경", description = "스터디의 모집 상태를 변경합니다 (모집중/모집종료/스터디종료).")
     @SecurityRequirement(name = "Bearer Authentication")
-    public ResponseEntity<StudyResponse> updateStudyStatus(
+    public ResponseEntity<ApiResponse<StudyResponse>> updateStudyStatus(
             @PathVariable Long studyId,
             @RequestParam String status,
             @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
             @RequestHeader(name = "Authorization", required = false) String authorization) {
         try {
             StudyResponse response = studyService.updateStudyStatus(studyId, status);
-            return ResponseEntity.ok(response);
+            return ApiResponse.success("스터디 상태가 성공적으로 변경되었습니다.", response);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
+            return ApiResponse.error(HttpStatus.BAD_REQUEST, "스터디 상태 변경에 실패했습니다.", null);
         }
     }
 
@@ -194,15 +196,15 @@ public class StudyController {
     @DeleteMapping("/{studyId}")
     @Operation(summary = "스터디 삭제", description = "특정 스터디와 관련된 모든 태그 정보를 함께 삭제합니다.")
     @SecurityRequirement(name = "Bearer Authentication")
-    public ResponseEntity<Void> deleteStudy(
+    public ResponseEntity<ApiResponse<String>> deleteStudy(
             @PathVariable Long studyId,
             @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
             @RequestHeader(name = "Authorization", required = false) String authorization) {
         try {
             studyService.deleteStudy(studyId);
-            return ResponseEntity.noContent().build();
+            return ApiResponse.success("스터디가 성공적으로 삭제되었습니다.", "삭제 완료");
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
+            return ApiResponse.error(HttpStatus.NOT_FOUND, "스터디를 찾을 수 없습니다.", null);
         }
     }
 }

@@ -4,7 +4,9 @@ import com.smhrd.graddy.assignment.dto.AssignmentRequest;
 import com.smhrd.graddy.assignment.dto.AssignmentResponse;
 import com.smhrd.graddy.assignment.dto.AssignmentUpdateRequest;
 import com.smhrd.graddy.assignment.service.AssignmentService;
+import com.smhrd.graddy.api.dto.ApiResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -37,16 +39,16 @@ public class AssignmentController {
     @PostMapping
     @Operation(summary = "과제 생성", description = "새로운 과제를 생성하고 데이터베이스에 저장합니다.")
     @SecurityRequirement(name = "Bearer Authentication")
-    public ResponseEntity<AssignmentResponse> createAssignment(
+    public ResponseEntity<ApiResponse<AssignmentResponse>> createAssignment(
             @RequestBody AssignmentRequest request,
             @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
             @RequestHeader(name = "Authorization", required = false) String authorization) {
         try {
             AssignmentResponse response = assignmentService.createAssignment(request);
-            return ResponseEntity.created(URI.create("/api/assignments/" + response.getAssignmentId()))
-                    .body(response);
+            URI location = URI.create("/api/assignments/" + response.getAssignmentId());
+            return ApiResponse.created(location, "과제가 성공적으로 생성되었습니다.", response);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
+            return ApiResponse.error(HttpStatus.BAD_REQUEST, "과제 생성에 실패했습니다.", null);
         }
     }
 
@@ -59,12 +61,12 @@ public class AssignmentController {
      */
     @GetMapping("/{assignmentId}")
     @Operation(summary = "과제 조회", description = "특정 과제ID로 과제 정보를 조회합니다.")
-    public ResponseEntity<AssignmentResponse> getAssignment(@PathVariable Long assignmentId) {
+    public ResponseEntity<ApiResponse<AssignmentResponse>> getAssignment(@PathVariable Long assignmentId) {
         try {
             AssignmentResponse response = assignmentService.getAssignment(assignmentId);
-            return ResponseEntity.ok(response);
+            return ApiResponse.success("과제 조회가 성공했습니다.", response);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
+            return ApiResponse.error(HttpStatus.NOT_FOUND, "과제를 찾을 수 없습니다.", null);
         }
     }
 
@@ -74,9 +76,9 @@ public class AssignmentController {
      */
     @GetMapping("/study/{studyId}")
     @Operation(summary = "스터디별 과제 목록", description = "특정 스터디에 속한 모든 과제 목록을 조회합니다.")
-    public ResponseEntity<List<AssignmentResponse>> getAssignmentsByStudy(@PathVariable Long studyId) {
+    public ResponseEntity<ApiResponse<List<AssignmentResponse>>> getAssignmentsByStudy(@PathVariable Long studyId) {
         List<AssignmentResponse> assignments = assignmentService.getAssignmentsByStudy(studyId);
-        return ResponseEntity.ok(assignments);
+        return ApiResponse.success("스터디별 과제 목록 조회가 성공했습니다.", assignments);
     }
 
     /**
@@ -85,9 +87,9 @@ public class AssignmentController {
      */
     @GetMapping("/user/{userId}")
     @Operation(summary = "사용자별 과제 목록", description = "특정 사용자가 작성한 모든 과제 목록을 조회합니다.")
-    public ResponseEntity<List<AssignmentResponse>> getAssignmentsByUser(@PathVariable String userId) {
+    public ResponseEntity<ApiResponse<List<AssignmentResponse>>> getAssignmentsByUser(@PathVariable String userId) {
         List<AssignmentResponse> assignments = assignmentService.getAssignmentsByUser(userId);
-        return ResponseEntity.ok(assignments);
+        return ApiResponse.success("사용자별 과제 목록 조회가 성공했습니다.", assignments);
     }
 
     /**
@@ -101,16 +103,16 @@ public class AssignmentController {
     @PutMapping("/{assignmentId}")
     @Operation(summary = "과제 수정", description = "기존 과제 정보를 수정합니다.")
     @SecurityRequirement(name = "Bearer Authentication")
-    public ResponseEntity<AssignmentResponse> updateAssignment(
+    public ResponseEntity<ApiResponse<AssignmentResponse>> updateAssignment(
             @PathVariable Long assignmentId,
             @RequestBody AssignmentUpdateRequest request,
             @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
             @RequestHeader(name = "Authorization", required = false) String authorization) {
         try {
             AssignmentResponse response = assignmentService.updateAssignment(assignmentId, request);
-            return ResponseEntity.ok(response);
+            return ApiResponse.success("과제가 성공적으로 수정되었습니다.", response);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
+            return ApiResponse.error(HttpStatus.NOT_FOUND, "과제를 찾을 수 없습니다.", null);
         }
     }
 
@@ -124,15 +126,15 @@ public class AssignmentController {
     @DeleteMapping("/{assignmentId}")
     @Operation(summary = "과제 삭제", description = "특정 과제를 데이터베이스에서 삭제합니다.")
     @SecurityRequirement(name = "Bearer Authentication")
-    public ResponseEntity<Void> deleteAssignment(
+    public ResponseEntity<ApiResponse<String>> deleteAssignment(
             @PathVariable Long assignmentId,
             @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
             @RequestHeader(name = "Authorization", required = false) String authorization) {
         try {
             assignmentService.deleteAssignment(assignmentId);
-            return ResponseEntity.noContent().build();
+            return ApiResponse.success("과제가 성공적으로 삭제되었습니다.", "삭제 완료");
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
+            return ApiResponse.error(HttpStatus.NOT_FOUND, "과제를 찾을 수 없습니다.", null);
         }
     }
 }

@@ -11,16 +11,24 @@ import ProfileEditForm from "../components/mypage/ProfileEditForm";
 import MyPageSidebar from "../components/mypage/MyPageSidebar";
 import MyStudyList from "../components/mypage/MyStudyList";
 
+// InterestModal과 동일한 타입 정의
+interface SelectedInterestItem {
+    id: number;
+    name: string;
+    category: string;
+    difficulty: string;
+}
+
 export const MyPage = () => {
     const [activeTab, setActiveTab] = useState("마이페이지");
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isEditingIntro, setIsEditingIntro] = useState(false);
     const [showInterestModal, setShowInterestModal] = useState(false);
     const [profileImage, setProfileImage] = useState("/android-icon-72x72.png");
-    const [userInterests, setUserInterests] = useState<string[]>([
-        "React",
-        "JavaScript",
-        "Node.js",
+    const [userInterests, setUserInterests] = useState<SelectedInterestItem[]>([
+        { id: 15, name: "React", category: "framework", difficulty: "중급" },
+        { id: 2, name: "JavaScript", category: "language", difficulty: "중급" },
+        { id: 16, name: "Node.js", category: "framework", difficulty: "초급" },
     ]);
     const [introduction, setIntroduction] = useState(
         "안녕하세요! 함께 성장하는 개발자가 되고 싶습니다."
@@ -37,7 +45,7 @@ export const MyPage = () => {
 
     // 임시 데이터 (나중에 DB에서 받아올 예정)
     const userScore = 1000; // 백엔드에서 받아올 점수
-    
+
     // 사용자 닉네임 (AuthContext에서 가져올 예정)
     const userNickname = nickname;
 
@@ -74,8 +82,10 @@ export const MyPage = () => {
         setShowInterestModal(true);
     };
 
-    const handleInterestComplete = (selectedTags: string[]) => {
-        setUserInterests(selectedTags);
+    const handleInterestComplete = (
+        selectedInterests: SelectedInterestItem[]
+    ) => {
+        setUserInterests(selectedInterests);
         setShowInterestModal(false);
         // 여기서 서버에 관심분야 저장 로직 추가
     };

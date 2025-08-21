@@ -18,7 +18,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.ArrayList;
 
 @Service
 @RequiredArgsConstructor
@@ -62,6 +64,140 @@ public class UserService {
         Optional<User> user = userRepository.findByNameAndTel(name, tel);
         return user.map(User::getUserId).orElse(null);
     }
+
+
+    /**
+     * [추가] 닉네임 수정 메서드
+     * @param currentUserId 현재 사용자 아이디
+     * @param newNickname 새로운 닉네임
+     * @return 수정된 사용자 정보
+     */
+    @Transactional
+    public User updateNickname(String currentUserId, String newNickname) {
+        // 기존 사용자 조회
+        User user = userRepository.findByUserId(currentUserId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        
+        // 새 닉네임 중복 확인
+        if (userRepository.findByNick(newNickname).isPresent()) {
+            throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
+        }
+        
+        // 닉네임 수정
+        user.setNick(newNickname);
+        
+        // 수정된 사용자 정보 저장
+        return userRepository.save(user);
+    }
+
+    /**
+     * [추가] 아이디 수정 메서드
+     * @param currentUserId 현재 사용자 아이디
+     * @param currentPassword 현재 비밀번호
+     * @param newUserId 새로운 아이디
+     * @return 수정된 사용자 정보
+     */
+    @Transactional
+    public User updateUserId(String currentUserId, String currentPassword, String newUserId) {
+        // 기존 사용자 조회
+        User user = userRepository.findByUserId(currentUserId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        
+        // 비밀번호 확인
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new IllegalArgumentException("현재 비밀번호가 올바르지 않습니다.");
+        }
+        
+        // 새 아이디 중복 확인
+        if (userRepository.findByUserId(newUserId).isPresent()) {
+            throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
+        }
+        
+        // 새로운 User 엔티티 생성 (기존 데이터 복사)
+        User newUser = new User();
+        newUser.setUserId(newUserId);
+        newUser.setPassword(user.getPassword());
+        newUser.setName(user.getName());
+        newUser.setNick(user.getNick());
+        newUser.setTel(user.getTel());
+        newUser.setGitUrl(user.getGitUrl());
+        newUser.setUserRefer(user.getUserRefer());
+        newUser.setAlarmType(user.isAlarmType());
+        newUser.setSoltStart(user.getSoltStart());
+        newUser.setSoltEnd(user.getSoltEnd());
+        
+        // 기존 사용자 삭제
+        userRepository.delete(user);
+        
+        // 새 사용자 저장
+        User savedNewUser = userRepository.save(newUser);
+        
+        // 연관된 UserInterest 데이터 업데이트
+        List<UserInterest> userInterests = userInterestRepository.findByIdUserId(currentUserId);
+        for (UserInterest userInterest : userInterests) {
+            UserInterest newUserInterest = new UserInterest();
+            UserInterest.UserInterestId newId = new UserInterest.UserInterestId(newUserId, userInterest.getId().getInterestId());
+            newUserInterest.setId(newId);
+            newUserInterest.setUser(savedNewUser);
+            newUserInterest.setInterest(userInterest.getInterest());
+            newUserInterest.setInterestLevel(userInterest.getInterestLevel());
+            userInterestRepository.save(newUserInterest);
+        }
+        
+        // 연관된 UserAvailableDays 데이터 업데이트
+        List<UserAvailableDays> userAvailableDays = userAvailableDaysRepository.findByIdUserId(currentUserId);
+        for (UserAvailableDays userAvailableDay : userAvailableDays) {
+            UserAvailableDays newUserAvailableDay = new UserAvailableDays();
+            UserAvailableDays.UserAvailableDaysId newId = new UserAvailableDays.UserAvailableDaysId(newUserId, userAvailableDay.getId().getDayId());
+            newUserAvailableDay.setId(newId);
+            newUserAvailableDay.setUser(savedNewUser);
+            newUserAvailableDay.setDays(userAvailableDay.getDays());
+            userAvailableDaysRepository.save(newUserAvailableDay);
+        }
+        
+        // 기존 연관 데이터 삭제
+        userInterestRepository.deleteByIdUserId(currentUserId);
+        userAvailableDaysRepository.deleteByIdUserId(currentUserId);
+        
+        return savedNewUser;
+    }
+
+    /**
+     * [추가] 사용자 관심분야 수정 메서드
+     * @param currentUserId 현재 사용자 아이디
+     * @param interests 새로운 관심분야 목록
+     * @return 수정된 관심분야 정보
+     */
+    @Transactional
+    public List<UserInterest> updateUserInterests(String currentUserId, List<UserInterestRequest> interests) {
+        // 기존 사용자 조회
+        User user = userRepository.findByUserId(currentUserId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        
+        // 기존 관심분야 데이터 삭제
+        userInterestRepository.deleteByIdUserId(currentUserId);
+        
+        // 새로운 관심분야 데이터 저장
+        List<UserInterest> savedInterests = new ArrayList<>();
+        if (interests != null && !interests.isEmpty()) {
+            for (UserInterestRequest userInterestRequest : interests) {
+                Optional<Interest> interestOpt = interestRepository.findById(userInterestRequest.getInterestId());
+                if (interestOpt.isPresent()) {
+                    UserInterest userInterest = new UserInterest();
+                    UserInterest.UserInterestId id = new UserInterest.UserInterestId(currentUserId, userInterestRequest.getInterestId());
+                    userInterest.setId(id);
+                    userInterest.setUser(user);
+                    userInterest.setInterest(interestOpt.get());
+                    userInterest.setInterestLevel(userInterestRequest.getInterestLevel());
+                    UserInterest savedInterest = userInterestRepository.save(userInterest);
+                    savedInterests.add(savedInterest);
+                }
+            }
+        }
+        
+        return savedInterests;
+    }
+
 
     @Transactional
     public User join(JoinRequest joinRequest) {

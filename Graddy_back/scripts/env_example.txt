@@ -1,0 +1,3 @@
+# OpenAI API 키 설정
+# 실제 API 키로 교체하여 사용하세요
+OPENAI_API_KEY=your_openai_api_key_here
