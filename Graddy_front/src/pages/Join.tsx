@@ -17,7 +17,7 @@ const Join: React.FC = () => {
     const [nicknameError, setNicknameError] = useState("");
     const [nicknameChecked, setNicknameChecked] = useState(false);
     const [email, setEmail] = useState("");
-    const [phoneNumber, setPhoneNumber] = useState("");
+    const [phoneNumber, setPhoneNumber] = useState("010");
     const [notificationPreference, setNotificationPreference] = useState<"email" | "phone" | "">("");
     const [hintMessage, setHintMessage] = useState<string>("");
     const [showHint, setShowHint] = useState(false);
@@ -217,6 +217,16 @@ const Join: React.FC = () => {
             e.preventDefault(); // 기본 동작 방지
             nextPage();
         }
+    };
+
+    const handlePhoneNumberChange = (value: string) => {
+        // 010으로 시작하지 않으면 010을 앞에 붙임
+        if (!value.startsWith("010")) {
+            value = "010" + value.replace(/^010/, "");
+        }
+        // 숫자만 허용하고 11자리로 제한
+        const numericValue = value.replace(/[^\d]/g, "").slice(0, 11);
+        setPhoneNumber(numericValue);
     };
 
     return (
@@ -493,7 +503,7 @@ const Join: React.FC = () => {
                                 )}
                             </div>
 
-                            {/* 전화번호 - 필수로 변경 */}
+                            {/* 전화번호 */}
                             <div>
                                 <div className="flex items-center gap-2 mb-2">
                                     <div className="w-1 h-6 bg-indigo-600 rounded-full"></div>
@@ -506,8 +516,9 @@ const Join: React.FC = () => {
                                     <input
                                         type="tel"
                                         value={phoneNumber}
-                                        onChange={(e) => setPhoneNumber(e.target.value)}
-                                        placeholder="전화번호를 입력하세요"
+                                        onChange={(e) => handlePhoneNumberChange(e.target.value)} // 수정된 핸들러 사용
+                                        onKeyDown={handleKeyDown}
+                                        placeholder="01012345678"
                                         className={`w-full pl-10 pr-4 py-3 border rounded-xl transition-all duration-200 ${
                                             phoneNumber && validatePhoneNumber(phoneNumber) ? 
                                             "border-green-300 focus:ring-green-200" : 
@@ -515,7 +526,6 @@ const Join: React.FC = () => {
                                         }`}
                                         onFocus={(e) => (e.target as HTMLInputElement).style.boxShadow = `0 0 0 2px rgba(139, 133, 233, 0.2)`}
                                         onBlur={(e) => (e.target as HTMLInputElement).style.boxShadow = 'none'}
-                                        onKeyDown={handleKeyDown}
                                     />
                                     {phoneNumber && validatePhoneNumber(phoneNumber) && (
                                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
