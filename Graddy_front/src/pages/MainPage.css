@@ -5,7 +5,7 @@
 }
 
 @keyframes fadeIn {
-    0% { 
+    0% {
         opacity: 0;
         transform: translateY(20px);
     }
@@ -17,4 +17,79 @@
 
 .opacity-0 {
     opacity: 0;
+}
+
+/* 캘린더 날짜 클릭 효과 */
+.fc-daygrid-day:hover {
+    background-color: #f8f9ff !important;
+}
+
+.fc-daygrid-day.fc-day-selected {
+    background-color: #e8e5ff !important;
+}
+
+/* 스크롤바 스타일링 */
+.schedule-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.schedule-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.schedule-list::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.schedule-list::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* 일정 카드 호버 효과 */
+.schedule-card {
+    transition: all 0.2s ease-in-out;
+}
+
+.schedule-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* 캘린더 이벤트 클릭 비활성화 */
+.fc-event {
+    pointer-events: none !important;
+    cursor: default !important;
+}
+
+/* 날짜 셀만 클릭 가능하도록 설정 */
+.fc-daygrid-day {
+    cursor: pointer !important;
+}
+
+.fc-daygrid-day-frame {
+    cursor: pointer !important;
+}
+
+/* 캘린더 이벤트를 바 형태로 스타일링 */
+.fc-event-title {
+    display: none !important;
+}
+
+.fc-event {
+    height: 8px !important;
+    border-radius: 4px !important;
+    margin: 1px 2px !important;
+    border: none !important;
+}
+
+.fc-daygrid-event {
+    margin-top: 2px !important;
+    margin-bottom: 2px !important;
+}
+
+.fc-daygrid-event-harness {
+    margin-top: 1px !important;
+    margin-bottom: 1px !important;
 }
