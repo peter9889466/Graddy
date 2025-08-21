@@ -1,5 +1,5 @@
 import React from "react";
-import { Edit3, Camera, Star } from "lucide-react";
+import { Edit3, Camera } from "lucide-react";
 
 interface SelectedInterestItem {
     id: number;
@@ -65,9 +65,6 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                     <div>
                         <label
                             className="block text-xs sm:text-sm font-medium mb-2"
-                            style={{
-                                color: "#8B85E9",
-                            }}
                         >
                             닉네임
                         </label>
@@ -78,14 +75,11 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                     <div>
                         <label
                             className="block text-xs sm:text-sm font-medium mb-2"
-                            style={{
-                                color: "#8B85E9",
-                            }}
                         >
-                            GitHub
+                            <img src={"/github_icon.svg"} alt="github" className="w-10 h-10 rounded-full" /> 
                         </label>
                         <div className="px-3 sm:px-4 py-2 sm:py-3 bg-gray-100 rounded-lg text-gray-600 text-sm sm:text-base break-all">
-                            github.com/graddy/myproject {/* 임시 데이터 */}``
+                            <a href="https://www.github.com/peter9889466/graddy" target="_blank" rel="noopener noreferrer">github.com/graddy/myproject</a>
                         </div>
                     </div>
                 </div>
@@ -95,7 +89,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
             <div className="flex-1 space-y-4 sm:space-y-6">
                 {/* 유저 점수 */}
                 <div
-                    className="bg-gradient-to-r from-yellow-100 to-orange-100 rounded-xl p-4 border"
+                    className="rounded-xl p-4 border"
                     style={{ borderColor: "#777777" }}
                 >
                     <div className="flex items-center justify-between">
@@ -113,7 +107,6 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                             </p>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <Star className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500 fill-current" />
                             <span
                                 className="text-xl sm:text-2xl font-bold"
                                 style={{
@@ -165,17 +158,50 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                             </div>
                         ) : (
                             <div className="flex flex-wrap gap-2">
-                                {userInterests.map((interest) => (
-                                    <span
-                                        key={interest.id}
-                                        className="px-3 py-1 text-white rounded-full text-xs sm:text-sm font-medium"
-                                        style={{
-                                            backgroundColor: "#8B85E9",
-                                        }}
-                                    >
-                                        {interest.name}
-                                    </span>
-                                ))}
+                                {userInterests.map((interest) => {
+                                    // InterestModal.tsx와 동일한 난이도별 Tailwind 색상 매핑
+                                    const getDifficultyColors = (difficulty: string) => {
+                                        switch (difficulty) {
+                                            case "초급":
+                                                return {
+                                                    bgColor: "bg-emerald-100",
+                                                    textColor: "text-emerald-800",
+                                                    borderColor: "border-emerald-300",
+                                                };
+                                            case "중급":
+                                                return {
+                                                    bgColor: "bg-blue-100",
+                                                    textColor: "text-blue-800",
+                                                    borderColor: "border-blue-300",
+                                                };
+                                            case "고급":
+                                                return {
+                                                    bgColor: "bg-purple-100",
+                                                    textColor: "text-purple-800",
+                                                    borderColor: "border-purple-300",
+                                                };
+                                            default:
+                                                return {
+                                                    bgColor: "bg-gray-100",
+                                                    textColor: "text-gray-800",
+                                                    borderColor: "border-gray-300",
+                                                };
+                                        }
+                                    };
+
+                                    const { bgColor, textColor, borderColor } = getDifficultyColors(
+                                        interest.difficulty
+                                    );
+
+                                    return (
+                                        <span
+                                            key={interest.id}
+                                            className={`px-3 py-1 rounded-full text-xs sm:text-sm font-medium border ${bgColor} ${textColor} ${borderColor}`}
+                                        >
+                                            {interest.name}
+                                        </span>
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
