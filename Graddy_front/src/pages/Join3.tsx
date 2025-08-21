@@ -46,15 +46,6 @@ const Join3: React.FC = () => {
     const locationState = location.state || {} as LocationState;
     const { formData, join2Data } = locationState;
 
-    // Defines time slot options
-    const timeSlots = {
-        morning: { name: "아침", time: "06:00 - 09:00", icon: Sun, color: "bg-orange-100 border-orange-300 text-orange-800" },
-        lunch: { name: "점심", time: "12:00 - 14:00", icon: Sun, color: "bg-yellow-100 border-yellow-300 text-yellow-800" },
-        evening: { name: "저녁", time: "18:00 - 21:00", icon: Sunset, color: "bg-purple-100 border-purple-300 text-purple-800" },
-        night: { name: "야간", time: "22:00 - 01:00", icon: Moon, color: "bg-blue-100 border-blue-300 text-blue-800" },
-        flexible: { name: "자율", time: "시간 협의", icon: Timer, color: "bg-green-100 border-green-300 text-green-800" }
-    };
-
     // Hides the hint message automatically after a delay.
     useEffect(() => {
         if (hintMessage) {

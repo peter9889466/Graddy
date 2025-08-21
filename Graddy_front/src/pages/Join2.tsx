@@ -299,7 +299,10 @@ const Join2: React.FC = () => {
                         <div className="grid md:grid-cols-4 gap-6 mb-6">
                         {/* 난이도 선택 */}
                         <div className="md:col-span-1">
-                            <h3 className="text-sm font-semibold text-gray-700 mb-3">난이도 선택</h3>
+                            <div className="flex items-center gap-2 mb-4">
+                                <div className="w-1 h-6 bg-indigo-600 rounded-full"></div>
+                                <h3 className="text-xl font-bold text-gray-800">난이도 선택</h3>
+                            </div>
                             <div className="space-y-3">
                             {["초급", "중급", "고급"].map((level) => (
                                 <button
@@ -315,7 +318,10 @@ const Join2: React.FC = () => {
 
                         {/* 관심분야 목록 */}
                         <div className="md:col-span-3">
-                            <h3 className="text-sm font-semibold text-gray-700 mb-3">기술 및 분야</h3>
+                            <div className="flex items-center gap-2 mb-4">
+                                <div className="w-1 h-6 bg-indigo-600 rounded-full"></div>
+                                <h3 className="text-xl font-bold text-gray-800">기술 및 분야</h3>
+                            </div>
                             <div className="border border-gray-200 rounded-xl p-4 h-64 overflow-y-auto bg-gray-50">
                                 <div className="flex flex-wrap gap-2">
                                     {filteredInterests.map((item) => {
@@ -360,7 +366,10 @@ const Join2: React.FC = () => {
                             {/* 선택된 관심분야 */}
                             <div className="mb-6">
                             <div className="flex items-center justify-between mb-3">
-                                <h3 className="text-sm font-semibold text-gray-700">선택한 관심분야</h3>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-1 h-6 bg-indigo-600 rounded-full"></div>
+                                    <h3 className="text-xl font-bold text-gray-800">선택한 관심분야</h3>
+                                </div>
                                 <span className="text-sm text-gray-500">
                                 {selectedInterests.length}/{maxSelections}
                                 </span>

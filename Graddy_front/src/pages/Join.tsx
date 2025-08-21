@@ -274,9 +274,10 @@ const Join: React.FC = () => {
                         <div className="space-y-6">
                             {/* 아이디 */}
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    아이디 *
-                                </label>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-1 h-6 bg-indigo-600 rounded-full"></div>
+                                    <h3 className="text-xl font-bold text-gray-800">아이디 *</h3>
+                                </div>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <User className="h-5 w-5 text-gray-400" />
@@ -296,7 +297,7 @@ const Join: React.FC = () => {
                                     />
                                     <button
                                         onClick={onCheckId}
-                                        className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 text-xs text-white rounded-lg font-medium transition-all duration-200 hover:opacity-90"
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 text-sm text-white rounded-lg font-medium transition-all duration-200 hover:opacity-90"
                                         style={{ backgroundColor: "#8B85E9" }}
                                     >
                                         중복확인
@@ -317,9 +318,10 @@ const Join: React.FC = () => {
 
                             {/* 비밀번호 */}
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    비밀번호 *
-                                </label>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-1 h-6 bg-indigo-600 rounded-full"></div>
+                                    <h3 className="text-xl font-bold text-gray-800">비밀번호 *</h3>
+                                </div>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <Lock className="h-5 w-5 text-gray-400" />
@@ -345,7 +347,7 @@ const Join: React.FC = () => {
                                     </button>
                                 </div>
                                 <div className="mt-2 space-y-1">
-                                    <div className="flex items-center gap-2 text-xs">
+                                    <div className="flex items-center gap-2 text-sm">
                                         <div className={`w-2 h-2 rounded-full ${
                                             password.length >= 8 && password.length <= 32 ? 'bg-green-400' : 'bg-gray-300'
                                         }`} />
@@ -353,7 +355,7 @@ const Join: React.FC = () => {
                                             8자 이상 32자 이하
                                         </span>
                                     </div>
-                                    <div className="flex items-center gap-2 text-xs">
+                                    <div className="flex items-center gap-2 text-sm">
                                         <div className={`w-2 h-2 rounded-full ${
                                             validatePassword(password) && password !== '' ? 'bg-green-400' : 'bg-gray-300'
                                         }`} />
@@ -366,9 +368,10 @@ const Join: React.FC = () => {
 
                             {/* 비밀번호 확인 */}
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    비밀번호 확인 *
-                                </label>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-1 h-6 bg-indigo-600 rounded-full"></div>
+                                    <h3 className="text-xl font-bold text-gray-800">비밀번호 확인 *</h3>
+                                </div>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <Lock className="h-5 w-5 text-gray-400" />
@@ -409,9 +412,10 @@ const Join: React.FC = () => {
 
                             {/* 이름 */}
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    이름 *
-                                </label>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-1 h-6 bg-indigo-600 rounded-full"></div>
+                                    <h3 className="text-xl font-bold text-gray-800">이름 *</h3>
+                                </div>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <User className="h-5 w-5 text-gray-400" />
@@ -430,9 +434,10 @@ const Join: React.FC = () => {
 
                             {/* 닉네임 */}
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    닉네임 *
-                                </label>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-1 h-6 bg-indigo-600 rounded-full"></div>
+                                    <h3 className="text-xl font-bold text-gray-800">닉네임 *</h3>
+                                </div>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <User className="h-5 w-5 text-gray-400" />
@@ -452,7 +457,7 @@ const Join: React.FC = () => {
                                     />
                                     <button
                                         onClick={onCheckNickname}
-                                        className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 text-xs text-white rounded-lg font-medium transition-all duration-200 hover:opacity-90"
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 text-sm text-white rounded-lg font-medium transition-all duration-200 hover:opacity-90"
                                         style={{ backgroundColor: "#8B85E9" }}
                                     >
                                         중복확인
@@ -473,9 +478,10 @@ const Join: React.FC = () => {
 
                             {/* 전화번호 - 필수로 변경 */}
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    전화번호 *
-                                </label>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-1 h-6 bg-indigo-600 rounded-full"></div>
+                                    <h3 className="text-xl font-bold text-gray-800">전화번호 *</h3>
+                                </div>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <Phone className="h-5 w-5 text-gray-400" />
@@ -499,16 +505,17 @@ const Join: React.FC = () => {
                                         </div>
                                     )}
                                 </div>
-                                <p className="text-xs text-gray-500 mt-1">
+                                <p className="text-sm text-gray-500 mt-1">
                                     형식: 01000000000
                                 </p>
                             </div>
 
                             {/* 알림 설정 - 토글 가능하도록 수정 */}
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                                    알림 받기 (선택)
-                                </label>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-1 h-6 bg-indigo-600 rounded-full"></div>
+                                    <h3 className="text-xl font-bold text-gray-800">알림받기 (선택)</h3>
+                                </div>
                                 <div className="flex gap-4">
                                     <button
                                         onClick={() => toggleNotificationPreference("phone")}
