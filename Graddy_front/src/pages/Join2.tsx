@@ -289,7 +289,7 @@ const Join2: React.FC = () => {
                                 ? "text-white shadow-md"
                                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                             }`}
-                            style={activeCategory === key ? { backgroundColor: "#8B85E9" } : {}}
+                                                                    style={activeCategory === key ? { backgroundColor: "#8B85E9" } : {}}
                             >
                             {label}
                             </button>

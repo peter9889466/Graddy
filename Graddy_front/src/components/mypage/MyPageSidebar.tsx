@@ -29,37 +29,29 @@ const MyPageSidebar: React.FC<MyPageSidebarProps> = ({
         <>
             {/* 마이페이지 섹션 */}
             <div
-                className="bg-white rounded-xl shadow-sm border p-3 sm:p-4"
-                style={{ borderColor: "#777777" }}
+                className="bg-white rounded-xl shadow-sm border-2 p-3 sm:p-4"
             >
-                <h3
-                    className="font-bold mb-3 text-sm sm:text-base"
-                    style={{ color: "#8B85E9" }}
-                >
-                    마이페이지
-                </h3>
                 <div className="space-y-2">
                     {sideMenuItems.slice(0, 3).map((item) => (
                         <button
                             key={item.name}
                             onClick={() => onTabChange(item.name)}
-                            className={`w-full text-left px-2 sm:px-3 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 group text-sm sm:text-base ${
-                                activeTab === item.name
+                            className={`w-full text-left px-2 sm:px-3 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 group text-sm sm:text-base ${activeTab === item.name
                                     ? "font-medium"
-                                    : "text-gray-600"
-                            }`}
+                                    : "text-black"
+                                }`}
                             style={
                                 activeTab === item.name
                                     ? {
-                                          backgroundColor: "#E8E6FF",
-                                          color: "#8B85E9",
-                                      }
+                                        backgroundColor: "#E8E6FF",
+                                        color: "#8B85E9",
+                                    }
                                     : {
-                                          color:
-                                              activeTab !== item.name
-                                                  ? "#6B7280"
-                                                  : "#8B85E9",
-                                      }
+                                        color:
+                                            activeTab !== item.name
+                                                ? "#000000"
+                                                : "#8B85E9",
+                                    }
                             }
                             onMouseEnter={(e) => {
                                 if (activeTab !== item.name) {
@@ -68,11 +60,10 @@ const MyPageSidebar: React.FC<MyPageSidebarProps> = ({
                             }}
                             onMouseLeave={(e) => {
                                 if (activeTab !== item.name) {
-                                    e.currentTarget.style.color = "#6B7280";
+                                    e.currentTarget.style.color = "#000000";
                                 }
                             }}
                         >
-                            <item.icon className="w-3 h-3 sm:w-4 sm:h-4 group-hover:scale-110 transition-transform" />
                             <span className="truncate">{item.name}</span>
                         </button>
                     ))}
@@ -80,7 +71,6 @@ const MyPageSidebar: React.FC<MyPageSidebarProps> = ({
                         onClick={onDeleteAccount}
                         className="w-full text-left px-2 sm:px-3 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 group text-red-600 hover:bg-red-50 text-sm sm:text-base"
                     >
-                        <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 group-hover:scale-110 transition-transform" />
                         <span className="truncate">회원탈퇴</span>
                     </button>
                 </div>

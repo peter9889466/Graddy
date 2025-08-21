@@ -1,14 +1,19 @@
 import React, { useRef, useState, useContext } from 'react'
 import ChartComponent from '../detail/chart/LineChart'; // 위에서 만든 Chart 컴포넌트
-import { LineChart, MessageCircle, Reply, Trash2, User } from 'lucide-react';
+import { LineChart, MessageCircle, Reply, Trash2, User, Paperclip } from 'lucide-react';
 import { AuthContext } from '../../contexts/AuthContext';
+import { useAssignmentContext } from '../../contexts/AssignmentContext';
 
 const FeedBack = () => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [selectedOption, setSelectedOption] = useState('과제를 선택하세요');
+    const [isAssignmentOpen, setIsAssignmentOpen] = useState(false);
+    const [isMemberOpen, setIsMemberOpen] = useState(false);
+    const [selectedAssignment, setSelectedAssignment] = useState('과제를 선택하세요');
+    const [selectedMember, setSelectedMember] = useState('스터디원을 선택하세요');
     const [assignmentContent, setAssignmentContent] = useState('');
-    const dropdownRef = useRef<HTMLDivElement>(null);
+    const assignmentDropdownRef = useRef<HTMLDivElement>(null);
+    const memberDropdownRef = useRef<HTMLDivElement>(null);
     const authContext = useContext(AuthContext);
+    const { getSubmissionByAssignment } = useAssignmentContext();
 
     // 댓글 관련 상태
     const [comments, setComments] = useState([
@@ -41,22 +46,64 @@ const FeedBack = () => {
     const [replyingTo, setReplyingTo] = useState<string | null>(null);
     
 
-    const options = [
+    const assignmentOptions = [
         { value: 'algorithm', label: '알고리즘 문제 풀이', period: '2025.08.20 ~ 2025.08.25' },
         { value: 'project', label: '프로젝트 기획서', period: '2025.08.25 ~ 2025.08.30' },
         { value: 'report', label: '스터디 리포트', period: '2025.08.30 ~ 2025.09.05' },
         { value: 'presentation', label: '발표 자료', period: '2025.09.05 ~ 2025.09.10' }
-      ];
-    
-      const handleOptionClick = (option: { value: string; label: string; period: string }) => {
-        setSelectedOption(option.label);
-        setIsOpen(false);
+    ];
+
+    // 과제 제출한 사람들의 목록을 동적으로 생성
+    const getMemberOptions = () => {
+        if (selectedAssignment === '과제를 선택하세요') {
+            return [];
+        }
+        
+        const submission = getSubmissionByAssignment(selectedAssignment);
+        if (submission) {
+            return [
+                { 
+                    value: submission.submittedBy, 
+                    label: submission.submittedBy, 
+                    role: '스터디원' 
+                }
+            ];
+        }
+        return [];
     };
 
-    // 선택된 과제의 기간 찾기
-  const selectedAssignment = options.find(option => option.label === selectedOption);
+    const memberOptions = getMemberOptions();
+    
+    const handleAssignmentClick = (option: { value: string; label: string; period: string }) => {
+        setSelectedAssignment(option.label);
+        setSelectedMember('스터디원을 선택하세요'); // 과제 변경 시 스터디원 선택 초기화
+        setIsAssignmentOpen(false);
+    };
 
-  // 댓글 관련 함수들
+    const handleMemberClick = (option: { value: string; label: string; role: string }) => {
+        setSelectedMember(option.label);
+        setIsMemberOpen(false);
+    };
+
+        // 선택된 과제의 기간 찾기
+    const selectedAssignmentData = assignmentOptions.find(option => option.label === selectedAssignment);
+
+    // 드롭다운 외부 클릭 처리
+    React.useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (assignmentDropdownRef.current && !assignmentDropdownRef.current.contains(event.target as Node)) {
+                setIsAssignmentOpen(false);
+            }
+            if (memberDropdownRef.current && !memberDropdownRef.current.contains(event.target as Node)) {
+                setIsMemberOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // 댓글 관련 함수들
   const handleAddComment = () => {
     if (newComment.trim()) {
         const comment = {
@@ -173,73 +220,194 @@ const FeedBack = () => {
   };
 
   return (
-    <div className="space-y-6 h-[61.5vh] overflow-y-auto p-4 pr-10">
-        {/* 피드백 드롭 다운 */}
-      <div className="mb-4 relative" ref={dropdownRef}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={`w-full px-4 py-2 rounded-xl bg-white text-gray-700 flex items-center justify-between border ${
-          isOpen ? "border-2 border-[#8B85E9]" : "border-2 border-gray-300"
-        } focus:outline-none`}>
-          <span>{selectedOption}</span>
-          <svg 
-            className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-        
-        {isOpen && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-xl shadow-lg z-10 overflow-hidden">
-            {options.map((option, index) => (
-              <div
-                key={option.value}
-                onClick={() => handleOptionClick(option)}
-                className={`px-4 py-2 cursor-pointer transition-colors hover:bg-gray-50 ${index !== options.length - 1 ? 'border-b border-gray-100' : ''}`}
-                style={{ 
-                  backgroundColor: selectedOption === option.label ? '#E8E6FF' : '#FFFFFF',
-                  color: selectedOption === option.label ? '#8B85E9' : '#374151'
-                }}
-              >
-                <div className="font-medium">{option.label}</div>
-                <div className="text-xs text-gray-500 mt-1">{option.period}</div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-        {/* 선택된 과제 제목 및 기간 */}
-      {selectedOption !== '과제를 선택하세요' && (
-        <div>
-          <p className="text-2xl font-semibold text-black">
-            {selectedOption}
-          </p>
-          <p className="text-sm text-gray-500 mt-1">
-            {selectedAssignment?.period}
-          </p>
+    <div className="space-y-4 h-[61.5vh] overflow-y-auto p-4 pr-10">
+
+      {/* AI 피드백 소제목 */}
+      <h2 className="text-xl font-bold mb-6 -mt-5 -ml-4"
+        style={{ color: "#8B85E9" }}>과제 피드백</h2>
+
+                 {/* 드롭다운 선택 영역 */}
+         <div className="flex flex-col gap-4 mb-4">
+            {/* 과제 선택 드롭다운 */}
+            <div className="flex-1 relative" ref={assignmentDropdownRef}>
+                <button
+                    onClick={() => setIsAssignmentOpen(!isAssignmentOpen)}
+                    className={`w-full px-4 py-2 rounded-xl bg-white text-gray-700 flex items-center justify-between border ${
+                        isAssignmentOpen ? "border-2 border-[#8B85E9]" : "border-2 border-gray-300"
+                    } focus:outline-none`}>
+                    <span>{selectedAssignment}</span>
+                    <svg 
+                        className={`w-4 h-4 transition-transform ${isAssignmentOpen ? 'rotate-180' : ''}`}
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                    >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                
+                {isAssignmentOpen && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-xl shadow-lg z-10 overflow-hidden">
+                        {assignmentOptions.map((option, index) => (
+                            <div
+                                key={option.value}
+                                onClick={() => handleAssignmentClick(option)}
+                                className={`px-4 py-2 cursor-pointer transition-colors hover:bg-gray-50 ${index !== assignmentOptions.length - 1 ? 'border-b border-gray-100' : ''}`}
+                                style={{ 
+                                    backgroundColor: selectedAssignment === option.label ? '#E8E6FF' : '#FFFFFF',
+                                    color: selectedAssignment === option.label ? '#8B85E9' : '#374151'
+                                }}
+                            >
+                                <div className="font-medium">{option.label}</div>
+                                <div className="text-xs text-gray-500 mt-1">{option.period}</div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+                         {/* 스터디원 선택 드롭다운 */}
+             <div className="flex-1 relative" ref={memberDropdownRef}>
+                 <button
+                     onClick={() => selectedAssignment !== '과제를 선택하세요' && setIsMemberOpen(!isMemberOpen)}
+                     disabled={selectedAssignment === '과제를 선택하세요'}
+                     className={`w-full px-4 py-2 rounded-xl bg-white text-gray-700 flex items-center justify-between border ${
+                         isMemberOpen ? "border-2 border-[#8B85E9]" : "border-2 border-gray-300"
+                     } focus:outline-none ${
+                         selectedAssignment === '과제를 선택하세요' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                     }`}>
+                     <span>{selectedMember}</span>
+                     <svg 
+                         className={`w-4 h-4 transition-transform ${isMemberOpen ? 'rotate-180' : ''}`}
+                         fill="none" 
+                         stroke="currentColor" 
+                         viewBox="0 0 24 24"
+                     >
+                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                     </svg>
+                 </button>
+                
+                                 {isMemberOpen && (
+                     <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-xl shadow-lg z-10 overflow-hidden">
+                         {memberOptions.length > 0 ? (
+                             memberOptions.map((option, index) => (
+                                 <div
+                                     key={option.value}
+                                     onClick={() => handleMemberClick(option)}
+                                     className={`px-4 py-2 cursor-pointer transition-colors hover:bg-gray-50 ${index !== memberOptions.length - 1 ? 'border-b border-gray-100' : ''}`}
+                                     style={{ 
+                                         backgroundColor: selectedMember === option.label ? '#E8E6FF' : '#FFFFFF',
+                                         color: selectedMember === option.label ? '#8B85E9' : '#374151'
+                                     }}
+                                 >
+                                     <div className="font-medium">{option.label}</div>
+                                     <div className="text-xs text-gray-500 mt-1">{option.role}</div>
+                                 </div>
+                             ))
+                         ) : (
+                             <div className="px-4 py-3 text-gray-500 text-center">
+                                 해당 과제를 제출한 스터디원이 없습니다.
+                             </div>
+                         )}
+                     </div>
+                 )}
+            </div>
         </div>
-      )}
+
+        {/* 선택된 과제 제목 및 기간 */}
+        {selectedAssignment !== '과제를 선택하세요' && (
+            <div>
+                <p className="text-2xl font-semibold text-black">
+                    {selectedAssignment} <span className="text-sm text-gray-500 font-normal">[{selectedAssignmentData?.period}]</span>
+                </p>
+                {selectedMember !== '스터디원을 선택하세요' && (
+                    <p className="text-sm text-gray-600 mt-1">
+                        작성자 : {selectedMember}
+                    </p>
+                )}
+            </div>
+        )}
       <hr className="my-4"/>
 
-      {/* AI 피드백 */}        
-      <div>
-        <p className="text-lg font-bold mb-3 text-gray-500">
-            AI 피드백
-            </p>
-            <textarea
-                value={assignmentContent}
-                readOnly
-                placeholder="피드백을 불러오는 중입니다..."
-                className="w-full h-30 p-3 border-2 border-[#8B85E9] rounded-lg resize-none placeholder:text-sm placeholder:text-gray-400 bg-gray-50"
-                />
+                           {/* 과제 제출 내용 */}
+        <div>
+          <p className="text-lg font-bold mb-2 text-gray-500">
+              과제 내용
+          </p>
+          {selectedAssignment !== '과제를 선택하세요' && selectedMember !== '스터디원을 선택하세요' ? (
+              (() => {
+                  const submission = getSubmissionByAssignment(selectedAssignment);
+                  if (submission && submission.submittedBy === selectedMember) {
+                      return (
+                          <div className="bg-gray-50 border-2 border-[#8B85E9] rounded-lg p-4">
+                              <div className="mb-2 text-sm text-gray-600">
+                                  <strong>제출일:</strong> {submission.submittedAt}
+                              </div>
+                                                             <div className="bg-white rounded p-3 border border-gray-200">
+                                   <p className="whitespace-pre-wrap text-gray-700 text-sm leading-relaxed">{submission.content}</p>
+                               </div>
+                              
+                                                             {/* 첨부파일 표시 */}
+                               <div className="mt-4 bg-white rounded p-3 border border-gray-200">
+                                   {submission.attachment ? (
+                                       <div>
+                                           <div className="flex items-center gap-2">
+                                               <Paperclip className="w-4 h-4 text-gray-400" />
+                                               <div className="flex-1">
+                                                   <button 
+                                                       className="text-sm font-medium text-[#8B85E9] hover:text-[#7A75D8] hover:underline transition-colors text-left"
+                                                       onClick={() => {
+                                                           // 실제 파일 다운로드 기능은 서버 연동 시 구현
+                                                           alert('파일 다운로드 기능은 서버 연동 후 구현됩니다.');
+                                                       }}
+                                                   >
+                                                       {submission.attachment.fileName}
+                                                   </button>
+                                                   <p className="text-xs text-gray-500">
+                                                       {submission.attachment.fileSize} • {submission.attachment.fileType}
+                                                   </p>
+                                               </div>
+                                           </div>
+                                       </div>
+                                   ) : (
+                                       <div className="p-2 bg-gray-50 rounded border border-gray-200">
+                                           <p className="text-sm text-gray-500 text-center">첨부파일이 없습니다.</p>
+                                       </div>
+                                   )}
+                               </div>
+                          </div>
+                      );
+                  } else {
+                      return (
+                          <div className="bg-gray-50 border-2 border-gray-300 rounded-lg p-4">
+                              <p className="text-gray-500 text-center">해당 스터디원의 과제 제출 내용이 없습니다.</p>
+                          </div>
+                      );
+                  }
+              })()
+          ) : (
+              <div className="bg-gray-50 border-2 border-gray-300 rounded-lg p-4">
+                  <p className="text-gray-500 text-center">과제와 스터디원을 선택해주세요.</p>
+              </div>
+          )}
         </div>
+
+       {/* AI 피드백 */}        
+       <div>
+         <p className="text-lg font-bold mb-2 text-gray-500">
+             AI 피드백
+         </p>
+         <textarea
+             value={assignmentContent}
+             readOnly
+             placeholder="피드백을 불러오는 중입니다..."
+             className="w-full h-30 p-3 border-2 border-[#8B85E9] rounded-lg resize-none placeholder:text-sm placeholder:text-gray-400 bg-gray-50"
+         />
+       </div>
     
       {/* 댓글 */}
       <div>
-        <p className="text-lg font-bold mb-3 text-gray-500">
+        <p className="text-lg font-bold mb-2 text-gray-500">
             댓글
         </p>
         <hr/>

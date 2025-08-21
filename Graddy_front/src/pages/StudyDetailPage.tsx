@@ -11,7 +11,9 @@ import { AuthContext } from "../contexts/AuthContext";
 import PageLayout from "../components/layout/PageLayout";
 import FeedBack from "@/components/detail/FeedBack";
 import Schedule from "@/components/detail/Schedule";
-import { Tag } from "lucide-react";
+import Curriculum from "@/components/detail/Curriculum";
+import DraggableChatWidget from "@/components/shared/DraggableChatWidget";
+import { Tag, Info, Crown, Calendar } from "lucide-react";
 
 const StudyDetailPage = () => {
 	const { id } = useParams<{ id: string }>();
@@ -41,6 +43,34 @@ const StudyDetailPage = () => {
 	const [studyPeriod, setStudyPeriod] = useState<string>(
 		state?.period || ""
 	);
+
+	// 기간 포맷팅 함수
+	const formatPeriod = (period: string): string => {
+		if (!period) return "기간 정보가 없습니다.";
+		
+		// "25.08.15~25.09.15" 형식을 "2025.08.15~2025.09.15" 형식으로 변환
+		const parts = period.split('~');
+		if (parts.length === 2) {
+			const startDate = parts[0].trim();
+			const endDate = parts[1].trim();
+			
+			// "25.08.15" -> "2025.08.15" 변환
+			const formatDate = (dateStr: string) => {
+				const dateParts = dateStr.split('.');
+				if (dateParts.length === 3) {
+					const year = dateParts[0].length === 2 ? `20${dateParts[0]}` : dateParts[0];
+					const month = dateParts[1].padStart(2, '0');
+					const day = dateParts[2].padStart(2, '0');
+					return `${year}.${month}.${day}`;
+				}
+				return dateStr;
+			};
+			
+			return `${formatDate(startDate)}~${formatDate(endDate)}`;
+		}
+		
+		return period;
+	};
 	const [studyTags, setStudyTags] = useState<string[]>(
 		state?.tags || []
 	);
@@ -117,13 +147,25 @@ const StudyDetailPage = () => {
 					<div className="space-y-2 h-[61.5vh] overflow-y-auto p-4 pr-10">
 						<h3 className="text-2xl font-bold">{studyTitle}</h3>
 						<p className="text-gray-700">
-							• 스터디 소개 <span className="text-gray-800"><br/><span className="pl-4 block">- {studyDescription}</span></span>
+							<div className="flex items-center gap-2">
+								<Info className="w-4 h-4 text-gray-600" />
+								<span>스터디 소개</span>
+							</div>
+							<span className="text-gray-800 block mt-1">{studyDescription}</span>
 						</p>
 						<p className="text-gray-700">
-							• 스터디장 : <span className="text-gray-800">{studyLeader}</span>
+							<div className="flex items-center gap-2">
+								<Crown className="w-4 h-4 text-gray-600" />
+								<span>스터디장</span>
+							</div>
+							<span className="text-gray-800 block mt-1">{studyLeader}</span>
 						</p>
 						<p className="text-gray-700">
-							• 스터디 기간 : <span className="text-gray-800">{studyPeriod}</span>
+							<div className="flex items-center gap-2">
+								<Calendar className="w-4 h-4 text-gray-600" />
+								<span>스터디 기간</span>
+							</div>
+							<span className="text-gray-800 block mt-1">{formatPeriod(studyPeriod)}</span>
 						</p>
 						<div className="text-gray-700 inline-block">
 							<div className="flex items-center gap-2">
@@ -180,10 +222,12 @@ const StudyDetailPage = () => {
 						)}
 					</div>
 				);
-			case "AI 피드백":
+			case "과제 피드백":
 				return <FeedBack />;
 			case "과제 / 일정 관리":
 				return <Schedule/>;
+			case "커리큘럼":
+				return <Curriculum />;
 		}
 	};
 
@@ -203,10 +247,11 @@ const StudyDetailPage = () => {
 					{renderMainContent()}
 				</ResponsiveMainContent>
 				{/* 오른쪽 채팅 패널 */}
-				<ResponsiveSidebar isCollapsible={false}>
+				{/* <ResponsiveSidebar isCollapsible={false}>
 					<StudyChatting />
-				</ResponsiveSidebar>
+				</ResponsiveSidebar> */}
 			</ResponsiveContainer>
+			<DraggableChatWidget />
 		</PageLayout>
 	);
 };

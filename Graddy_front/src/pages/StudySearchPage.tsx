@@ -250,10 +250,36 @@ export const StudySearchPage = () => {
                         className="flex items-center p-5 border border-gray-200 rounded-lg bg-white gap-5"
                     >
                         <div className="flex-1">
-                            <div className="text-lg font-bold text-gray-800 mb-2">
+                            <div 
+                                className="text-lg font-bold text-gray-800 mb-2 cursor-pointer hover:text-[#8B85E9] transition-colors duration-200"
+                                onClick={() =>
+                                    navigate(`/study/${study.id}`,{
+                                        state:{
+                                            title:study.title,
+                                            description:study.description,
+                                            leader:study.leader,
+                                            period:study.period,
+                                            tags:study.tags
+                                        }
+                                    })
+                                }
+                            >
                                 {study.title}
                             </div>
-                            <div className="text-base mb-2 text-gray-800">
+                            <div 
+                                className="text-base mb-2 text-gray-800 cursor-pointer hover:text-[#8B85E9] transition-colors duration-200"
+                                onClick={() =>
+                                    navigate(`/study/${study.id}`,{
+                                        state:{
+                                            title:study.title,
+                                            description:study.description,
+                                            leader:study.leader,
+                                            period:study.period,
+                                            tags:study.tags
+                                        }
+                                    })
+                                }
+                            >
                                 {study.description}
                             </div>
 

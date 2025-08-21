@@ -197,7 +197,7 @@ const Login: React.FC = () => {
                     id="rememberId"
                     checked={rememberId}
                     onChange={(e) => setRememberId(e.target.checked)}
-                    className="w-5 h-5 rounded-md border border-gray-300 text-[#8B85E9] focus:ring-[#8B85E9]"
+                                            className="w-5 h-5 rounded-md border border-gray-300 text-[#8B85E9] focus:ring-[#8B85E9]"
                 />
                 <label htmlFor="rememberId" className="text-gray-600 text-sm">
                     아이디 저장
@@ -209,7 +209,7 @@ const Login: React.FC = () => {
                 onClick={loginBtn}
                 className="w-full py-4 px-6 rounded-xl font-semibold text-white transition-all duration-200 hover:shadow-xl transform hover:scale-105"
                 style={{
-                    backgroundColor: "#8B85E9",
+                                            backgroundColor: "#8B85E9",
                     boxShadow:
                     "0 10px 15px -3px rgba(139, 133, 233, 0.1), 0 4px 6px -2px rgba(139, 133, 233, 0.05)",
                 }}
@@ -217,7 +217,7 @@ const Login: React.FC = () => {
                     (e.currentTarget.style.backgroundColor = "#7d75e3")
                 }
                 onMouseLeave={(e) =>
-                    (e.currentTarget.style.backgroundColor = "#8B85E9")
+                                            (e.currentTarget.style.backgroundColor = "#8B85E9")
                 }
                 >
                 로그인

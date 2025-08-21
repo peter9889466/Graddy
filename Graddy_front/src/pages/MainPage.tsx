@@ -150,8 +150,8 @@ const MainPage = () => {
                                     right: "",
                                 }}
                                 eventDisplay="block"
-                                eventBackgroundColor="#8B85E9"
-                                eventBorderColor="#8B85E9"
+                                                eventBackgroundColor="#8B85E9"
+eventBorderColor="#8B85E9"
                                 eventTextColor="white"
                                 dayCellClassNames="hover:bg-gray-50 cursor-pointer"
                             />

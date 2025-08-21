@@ -154,47 +154,6 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
                         )}
                     </div>
 
-                    {/* 이름 */}
-                    <div>
-                        <label
-                            className="block text-sm font-medium mb-2"
-                            style={{ color: "#8B85E9" }}
-                        >
-                            이름
-                        </label>
-                        <input
-                            type="text"
-                            value={name}
-                            disabled
-                            className="w-full px-4 py-3 bg-gray-100 border rounded-full text-gray-500 cursor-not-allowed"
-                            style={{
-                                borderColor: "#E5E7EB",
-                            }}
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                            이름은 변경할 수 없습니다.
-                        </p>
-                    </div>
-
-                    {/* 닉네임 */}
-                    <div>
-                        <label
-                            className="block text-sm font-medium mb-2"
-                            style={{ color: "#8B85E9" }}
-                        >
-                            닉네임
-                        </label>
-                        <input
-                            type="text"
-                            value={nickname}
-                            onChange={(e) => onNicknameChange(e.target.value)}
-                            placeholder="변경할 닉네임을 입력해주세요"
-                            className="w-full px-4 py-3 border rounded-full"
-                            style={{
-                                borderColor: "#777777",
-                            }}
-                        />
-                    </div>
 
                     {/* 저장 버튼 */}
                     <div className="pt-4">

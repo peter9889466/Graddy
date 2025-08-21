@@ -548,7 +548,7 @@ const Join: React.FC = () => {
                                         boxShadow: "0 10px 15px -3px rgba(139, 133, 233, 0.1), 0 4px 6px -2px rgba(139, 133, 233, 0.05)"
                                     } : {}}
                                     onMouseEnter={isFormValid ? (e) => {
-                                        (e.target as HTMLButtonElement).style.backgroundColor = "#7d75e3";
+                                        (e.target as HTMLButtonElement).style.backgroundColor = "#3B82F6";
                                     } : undefined}
                                     onMouseLeave={isFormValid ? (e) => {
                                         (e.target as HTMLButtonElement).style.backgroundColor = "#8B85E9";

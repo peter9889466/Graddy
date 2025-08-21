@@ -18,6 +18,7 @@ import Header from "./components/layout/Header";
 import Footer from "./components/layout/Footer";
 import { StudySearchPage } from "./pages/StudySearchPage";
 import { AuthProvider } from "./contexts/AuthContext"; // AuthProvider import
+import { AssignmentProvider } from "./contexts/AssignmentContext"; // AssignmentProvider import
 import MainPage from "./pages/MainPage";
 import StudyDetailPage from "./pages/StudyDetailPage";
 import StudyCreate from "./pages/StudyCreate";
@@ -27,7 +28,8 @@ function App() {
     return (
         <ErrorBoundary FallbackComponent={ErrorFallback}>
             <AuthProvider>
-                <div className="min-h-screen flex flex-col">
+                <AssignmentProvider>
+                    <div className="min-h-screen flex flex-col">
                     <Header />
                     <main className="flex-1">
                         <Suspense fallback={<LoadingOverlay />}>
@@ -66,6 +68,7 @@ function App() {
                     </main>
                     <Footer />
                 </div>
+                </AssignmentProvider>
             </AuthProvider>
         </ErrorBoundary>
     );
