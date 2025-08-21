@@ -10,6 +10,7 @@ const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
     const navigate = useNavigate();
 
     // 로컬 스토리지에서 사용자가 생성한 스터디 가져오기
+    // test
     const userStudies: StudyData[] = JSON.parse(localStorage.getItem('userStudies') || '[]');
 
     const handleStudyClick = (study: StudyData) => {
