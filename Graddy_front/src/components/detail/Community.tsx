@@ -142,6 +142,7 @@ const Community: React.FC = () => {
         : post
     ));
     setNewComment('');
+    //test
   };
 
   const handleEditComment = (postId: string, commentId: string) => {
