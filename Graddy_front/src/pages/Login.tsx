@@ -70,11 +70,17 @@ const Login: React.FC = () => {
             localStorage.removeItem("savedId");
         }
 
-        setHintMessage("로그인 성공! 환영합니다 🎉");
+        setHintMessage("로그인 성공! 환영합니다");
         navigate("/");
         } catch {
         setPasswordError("로그인에 실패했습니다.");
         setHintMessage("아이디 또는 비밀번호가 올바르지 않습니다.");
+        }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter") {
+            loginBtn();
         }
     };
 
@@ -134,60 +140,64 @@ const Login: React.FC = () => {
 
                 {/* 아이디 입력 */}
                 <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    아이디
-                </label>
-                <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <User className="h-5 w-5 text-gray-400" />
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="w-1 h-6 bg-indigo-600 rounded-full"></div>
+                        <h3 className="text-xl font-bold text-gray-800">아이디</h3>
                     </div>
-                    <input
-                    type="text"
-                    value={id}
-                    onChange={(e) => {
-                        setId(e.target.value);
-                        setIdError("");
-                    }}
-                    placeholder="아이디를 입력하세요"
-                    className={`w-full pl-10 pr-4 py-3 border rounded-xl transition-all duration-200 ${
-                        idError
-                        ? "border-red-300 focus:ring-red-200"
-                        : "border-gray-200 focus:ring-2 focus:border-transparent"
-                    }`}
-                    />
-                </div>
-                {idError && (
-                    <p className="text-red-500 text-sm mt-1">{idError}</p>
-                )}
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <User className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <input
+                            type="text"
+                            value={id}
+                            onChange={(e) => {
+                                setId(e.target.value);
+                                setIdError("");
+                            }}
+                            placeholder="아이디를 입력하세요"
+                            className={`w-full pl-10 pr-4 py-3 border rounded-xl transition-all duration-200 ${
+                                idError
+                                ? "border-red-300 focus:ring-red-200"
+                                : "border-gray-200 focus:ring-2 focus:border-transparent"
+                            }`}
+                            onKeyDown={handleKeyDown}
+                        />
+                    </div>
+                    {idError && (
+                        <p className="text-red-500 text-sm mt-1">{idError}</p>
+                    )}
                 </div>
 
                 {/* 비밀번호 입력 */}
                 <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    비밀번호
-                </label>
-                <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-gray-400" />
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="w-1 h-6 bg-indigo-600 rounded-full"></div>
+                        <h3 className="text-xl font-bold text-gray-800">비밀번호</h3>
                     </div>
-                    <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => {
-                        setPassword(e.target.value);
-                        setPasswordError("");
-                    }}
-                    placeholder="비밀번호를 입력하세요"
-                    className={`w-full pl-10 pr-4 py-3 border rounded-xl transition-all duration-200 ${
-                        passwordError
-                        ? "border-red-300 focus:ring-red-200"
-                        : "border-gray-200 focus:ring-2 focus:border-transparent"
-                    }`}
-                    />
-                </div>
-                {passwordError && (
-                    <p className="text-red-500 text-sm mt-1">{passwordError}</p>
-                )}
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Lock className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => {
+                                setPassword(e.target.value);
+                                setPasswordError("");
+                            }}
+                            onKeyDown={handleKeyDown}
+                            placeholder="비밀번호를 입력하세요"
+                            className={`w-full pl-10 pr-4 py-3 border rounded-xl transition-all duration-200 ${
+                                passwordError
+                                ? "border-red-300 focus:ring-red-200"
+                                : "border-gray-200 focus:ring-2 focus:border-transparent"
+                            }`}
+                        />
+                    </div>
+                    {passwordError && (
+                        <p className="text-red-500 text-sm mt-1">{passwordError}</p>
+                    )}
                 </div>
 
                 {/* 아이디 저장 */}
@@ -231,6 +241,14 @@ const Login: React.FC = () => {
                     회원가입
                     </Link>
                 </p>
+                </div>
+
+                <div className="pt-2 text-center space-y-2">
+                    <p className="text-sm text-gray-600">
+                    <Link to="/findAcc" className="text-[#8B85E9] hover:underline">
+                        아이디/비밀번호 찾기
+                    </Link>
+                    </p>
                 </div>
             </div>
             </div>

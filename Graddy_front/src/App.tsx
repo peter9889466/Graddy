@@ -23,6 +23,7 @@ import MainPage from "./pages/MainPage";
 import StudyDetailPage from "./pages/StudyDetailPage";
 import StudyCreate from "./pages/StudyCreate";
 import Join3 from "./pages/Join3";
+import FindAccount from "./pages/FindAccount";
 
 function App() {
     return (
@@ -53,6 +54,7 @@ function App() {
                                 <Route path="/join2" element={<Join2 />} />
                                 <Route path="/join3" element={<Join3 />} />
                                 <Route path="/login" element={<Login />} />
+                                <Route path="/findAcc" element={<FindAccount />} />
                                 <Route
                                     path="/search"
                                     element={<StudySearchPage />}

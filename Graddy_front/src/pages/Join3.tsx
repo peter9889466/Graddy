@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Check, AlertCircle, CheckCircle, Clock, Sun, Moon, Sunset, Timer } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 interface DaySelection {
     [key: string]: boolean;
@@ -39,21 +39,14 @@ const Join3: React.FC = () => {
     // State to control hint message visibility.
     const [showHint, setShowHint] = useState(false);
     
-    // Navigation function - in a real app, this would use useNavigate from react-router-dom
+    // Navigation function
     const navigate = useNavigate();
+    const location = useLocation();
     
-    const location: { state: LocationState | null } = { state: null };
-    const locationState = location.state || {} as LocationState;
-    const { formData, join2Data } = locationState;
-
-    // Defines time slot options
-    const timeSlots = {
-        morning: { name: "아침", time: "06:00 - 09:00", icon: Sun, color: "bg-orange-100 border-orange-300 text-orange-800" },
-        lunch: { name: "점심", time: "12:00 - 14:00", icon: Sun, color: "bg-yellow-100 border-yellow-300 text-yellow-800" },
-        evening: { name: "저녁", time: "18:00 - 21:00", icon: Sunset, color: "bg-purple-100 border-purple-300 text-purple-800" },
-        night: { name: "야간", time: "22:00 - 01:00", icon: Moon, color: "bg-blue-100 border-blue-300 text-blue-800" },
-        flexible: { name: "자율", time: "시간 협의", icon: Timer, color: "bg-green-100 border-green-300 text-green-800" }
-    };
+    // 📌 수정: useLocation으로 전달받은 데이터 가져오기
+    const locationState = location.state as LocationState | null;
+    const formData = locationState?.formData;
+    const join2Data = locationState?.join2Data;
 
     // Hides the hint message automatically after a delay.
     useEffect(() => {
@@ -157,16 +150,41 @@ const Join3: React.FC = () => {
         }, 1500);
     };
 
-    // Function to handle the "Previous" button click.
+    // Enter 키 핸들러 추가
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && isFormComplete()) {
+            e.preventDefault();
+            completeSignup();
+        }
+    };
+
+    // 이전 버튼 클릭 시 현재 Join3 데이터와 함께 Join2로 이동
     const handlePrevious = () => {
-        navigate("/join2");
+        // 현재 Join3의 상태 데이터 준비
+        const currentJoin3Data = {
+            selectedDays,
+            customTimeSlot
+        };
+
+        // Join2로 이동하면서 모든 데이터 전달
+        navigate("/join2", {
+            state: {
+                formData: formData,           // Join에서 받은 프로필 데이터
+                join2Data: join2Data,         // Join2의 관심사 데이터 (복원용)
+                join3Data: currentJoin3Data   // Join3의 시간대 데이터 (복원용)
+            }
+        });
     };
 
     const selectedDayCount = getSelectedDayCount();
     const steps = ["프로필 설정", "관심사 선택", "시간대 선택"];
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-8 px-4">
+        <div 
+            className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-8 px-4"
+            onKeyDown={handleKeyDown}
+            tabIndex={0}
+        >
             <div className="max-w-4xl mx-auto">
                 {/* Step indicator UI */}
                 <div className="mb-8">
@@ -315,6 +333,7 @@ const Join3: React.FC = () => {
                                                 style={{ 
                                                     borderColor: customTimeSlot.startTime !== null ? '#8B85E9' : undefined
                                                 }}
+                                                onKeyDown={handleKeyDown}
                                             >
                                                 <option value="">--</option>
                                                 {Array.from({ length: 24 }, (_, i) => (
@@ -350,6 +369,7 @@ const Join3: React.FC = () => {
                                                 style={{ 
                                                     borderColor: customTimeSlot.endTime !== null ? '#8B85E9' : undefined
                                                 }}
+                                                onKeyDown={handleKeyDown}
                                             >
                                                 <option value="">--</option>
                                                 {Array.from({ length: 24 }, (_, i) => (
@@ -427,7 +447,7 @@ const Join3: React.FC = () => {
                                     <AlertCircle className="w-5 h-5" style={{ color: '#8B85E9' }} />
                                 </div>
                                 <div style={{ color: '#8B85E9' }}>
-                                    <p className="font-semibold mb-2 text-base">💡 선택 가이드</p>
+                                    <p className="font-semibold mb-2 text-base">선택 가이드</p>
                                     <div className="space-y-1.5 text-sm opacity-90">
                                         <div className="flex items-center gap-2">
                                             <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#8B85E9' }}></div>

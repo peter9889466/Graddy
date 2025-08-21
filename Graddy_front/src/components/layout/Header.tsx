@@ -43,7 +43,7 @@ const Header: React.FC = () => {
 
     const handleStudyCreate = () => {
         // 스터디 생성 페이지로 이동 (나중에 구현)
-        navigate("/");
+        navigate("/study-create");
         setIsMobileMenuOpen(false);
     };
 
@@ -93,14 +93,14 @@ const Header: React.FC = () => {
                         ) : (
                             <>
                                 <button
-                                    onClick={() => navigate("/study-create")}
+                                    onClick={handleStudyCreate}
                                     className={`relative group transition-colors duration-200 font-medium`}
                                 >
                                     스터디 생성
                                     <div className="absolute -bottom-1 left-1/2 w-0 h-0.5 bg-[#8B85E9] group-hover:w-full group-hover:left-0 transition-all duration-300 ease-in-out transform -translate-x-1/2 group-hover:translate-x-0"></div>
                                 </button>
                                 <button
-                                    onClick={() => navigate("/search")}
+                                    onClick={handleStudySearch}
                                     className={`relative group transition-colors duration-200 font-medium`}
                                 >
                                     스터디 검색
