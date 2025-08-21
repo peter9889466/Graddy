@@ -11,6 +11,7 @@ public class GraddyApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(GraddyApplication.class, args);
 		// test
+		// test
 	}
 
 }
