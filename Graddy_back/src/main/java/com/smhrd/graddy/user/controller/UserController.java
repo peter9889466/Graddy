@@ -6,6 +6,7 @@ import com.smhrd.graddy.user.dto.JoinRequest;
 import com.smhrd.graddy.user.dto.FindIdRequest;
 import com.smhrd.graddy.user.dto.UserIdUpdateRequest;
 import com.smhrd.graddy.user.dto.NicknameUpdateRequest;
+import com.smhrd.graddy.user.dto.UserInterestsUpdateRequest;
 import com.smhrd.graddy.user.entity.User;
 import com.smhrd.graddy.user.service.UserService;
 import com.smhrd.graddy.security.jwt.JwtUtil;
@@ -16,6 +17,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 import java.util.Map;
+import com.smhrd.graddy.user.entity.UserInterest;
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -208,4 +211,58 @@ public class UserController {
             return ApiResponse.error(HttpStatus.UNAUTHORIZED, "인증에 실패했습니다: " + e.getMessage(), null);
         }
     }
+
+    /**
+     * 사용자 관심분야 수정 API
+     * 현재 로그인한 사용자의 관심분야를 수정합니다.
+     */
+    @PutMapping("/me/interests")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> updateUserInterests(
+            @RequestBody UserInterestsUpdateRequest request,
+            @RequestHeader("Authorization") String authorizationHeader) {
+        try {
+            // 디버깅용 로그
+            System.out.println("=== 관심분야 수정 디버깅 정보 ===");
+            System.out.println("Authorization Header: " + authorizationHeader);
+            
+            // JWT 토큰에서 현재 사용자 아이디 추출
+            String token = authorizationHeader.replace("Bearer ", "");
+            System.out.println("Extracted Token: " + token);
+            
+            String currentUserId = jwtUtil.extractUserId(token);
+            System.out.println("Current User ID: " + currentUserId);
+            System.out.println("New Interests Count: " + (request.getInterests() != null ? request.getInterests().size() : 0));
+            System.out.println("==================");
+            
+            // UserService를 통해 관심분야 수정 처리
+            List<UserInterest> updatedInterests = userService.updateUserInterests(
+                    currentUserId, 
+                    request.getInterests()
+            );
+            
+            // 성공 응답 데이터 생성 - 수정된 관심분야 정보 포함
+            Map<String, Object> data = Map.of(
+                "interests", updatedInterests.stream()
+                    .map(interest -> Map.of(
+                        "interestId", interest.getId().getInterestId(),
+                        "interestName", interest.getInterest().getInterestName(),
+                        "interestLevel", interest.getInterestLevel()
+                    ))
+                    .toList()
+            );
+            return ApiResponse.success("관심분야가 성공적으로 수정되었습니다.", data);
+            
+        } catch (IllegalArgumentException e) {
+            // 예외 발생 시 400 Bad Request 응답
+            System.out.println("IllegalArgumentException: " + e.getMessage());
+            return ApiResponse.error(HttpStatus.BAD_REQUEST, e.getMessage(), null);
+        } catch (Exception e) {
+            // JWT 토큰 관련 오류 등 기타 예외 발생 시 401 Unauthorized 응답
+            System.out.println("Exception: " + e.getMessage());
+            e.printStackTrace();
+            return ApiResponse.error(HttpStatus.UNAUTHORIZED, "인증에 실패했습니다: " + e.getMessage(), null);
+        }
+    }
+
+
 }

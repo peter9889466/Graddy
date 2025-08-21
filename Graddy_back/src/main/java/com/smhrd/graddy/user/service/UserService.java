@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.ArrayList;
 
 @Service
 @RequiredArgsConstructor
@@ -160,6 +161,43 @@ public class UserService {
         
         return savedNewUser;
     }
+
+    /**
+     * [추가] 사용자 관심분야 수정 메서드
+     * @param currentUserId 현재 사용자 아이디
+     * @param interests 새로운 관심분야 목록
+     * @return 수정된 관심분야 정보
+     */
+    @Transactional
+    public List<UserInterest> updateUserInterests(String currentUserId, List<UserInterestRequest> interests) {
+        // 기존 사용자 조회
+        User user = userRepository.findByUserId(currentUserId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        
+        // 기존 관심분야 데이터 삭제
+        userInterestRepository.deleteByIdUserId(currentUserId);
+        
+        // 새로운 관심분야 데이터 저장
+        List<UserInterest> savedInterests = new ArrayList<>();
+        if (interests != null && !interests.isEmpty()) {
+            for (UserInterestRequest userInterestRequest : interests) {
+                Optional<Interest> interestOpt = interestRepository.findById(userInterestRequest.getInterestId());
+                if (interestOpt.isPresent()) {
+                    UserInterest userInterest = new UserInterest();
+                    UserInterest.UserInterestId id = new UserInterest.UserInterestId(currentUserId, userInterestRequest.getInterestId());
+                    userInterest.setId(id);
+                    userInterest.setUser(user);
+                    userInterest.setInterest(interestOpt.get());
+                    userInterest.setInterestLevel(userInterestRequest.getInterestLevel());
+                    UserInterest savedInterest = userInterestRepository.save(userInterest);
+                    savedInterests.add(savedInterest);
+                }
+            }
+        }
+        
+        return savedInterests;
+    }
+
 
     @Transactional
     public User join(JoinRequest joinRequest) {
