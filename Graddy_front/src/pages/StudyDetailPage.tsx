@@ -12,6 +12,7 @@ import PageLayout from "../components/layout/PageLayout";
 import FeedBack from "@/components/detail/FeedBack";
 import Schedule from "@/components/detail/Schedule";
 import Curriculum from "@/components/detail/Curriculum";
+import Community from "@/components/detail/Community";
 import DraggableChatWidget from "@/components/shared/DraggableChatWidget";
 import { Tag, Info, Crown, Calendar } from "lucide-react";
 
@@ -228,6 +229,8 @@ const StudyDetailPage = () => {
 				return <Schedule/>;
 			case "커리큘럼":
 				return <Curriculum />;
+			case "커뮤니티":
+				return <Community />;
 		}
 	};
 

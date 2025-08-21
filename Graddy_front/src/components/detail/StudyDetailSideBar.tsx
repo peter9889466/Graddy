@@ -19,6 +19,7 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
     const sideMenuItems: SideMenuItem[] = [
         { name: "스터디 메인" },
         { name: "커리큘럼" },
+        { name: "커뮤니티" },
         { name: "과제 제출" },
         { name: "과제 피드백" },
         { name: "과제 / 일정 관리" },
@@ -31,13 +32,13 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
                 className="bg-white rounded-xl shadow-sm border-2 p-3 sm:p-4"
             >
                 <div className="space-y-2">
-                    {sideMenuItems.slice(0, 5).map((item) => (
+                    {sideMenuItems.slice(0, 6).map((item) => (
                         <button
                             key={item.name}
                             onClick={() => onTabChange(item.name)}
                             className={`w-full text-left px-2 sm:px-3 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 group text-sm sm:text-base ${activeTab === item.name
-                                    ? "font-medium"
-                                    : "text-black"
+                                ? "font-medium"
+                                : "text-black"
                                 }`}
                             style={
                                 activeTab === item.name
