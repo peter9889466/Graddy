@@ -9,12 +9,15 @@ import java.util.List;
 @Repository
 public interface TagRepository extends JpaRepository<Tag, Long> {
     
-    // 스터디별 태그 목록 조회
-    List<Tag> findByStudyIdOrderByTagName(String studyId);
+    // 스터디별 태그 목록 조회 (새로운 구조)
+    List<Tag> findByStudyId(Long studyId);
     
-    // 태그명으로 검색
-    List<Tag> findByTagNameContainingIgnoreCaseOrderByTagName(String tagName);
+    // 관심 항목별 태그 목록 조회
+    List<Tag> findByInterestId(Long interestId);
     
     // 스터디 ID로 태그 삭제
-    void deleteByStudyId(String studyId);
+    void deleteByStudyId(Long studyId);
+    
+    // 관심 항목 ID로 태그 삭제
+    void deleteByInterestId(Long interestId);
 }

@@ -38,6 +38,7 @@ public class StudyService {
         study.setStudyDesc(request.getStudyDesc());
         study.setStudyLevel(request.getStudyLevel());
         study.setUserId(request.getUserId());
+        study.setIsRecruiting(Study.StudyStatus.RECRUITMENT);
         study.setStudyStart(request.getStudyStart());
         study.setStudyEnd(request.getStudyEnd());
         study.setStudyTotal(request.getStudyTotal());
@@ -46,13 +47,12 @@ public class StudyService {
 
         Study savedStudy = studyRepository.save(study);
         
-        // 태그 정보 저장
+        // 관심 항목 태그 저장
         if (request.getInterestIds() != null && !request.getInterestIds().isEmpty()) {
-            List<Interest> interests = interestRepository.findByInterestIdIn(request.getInterestIds());
-            for (Interest interest : interests) {
+            for (Long interestId : request.getInterestIds()) {
                 Tag tag = new Tag();
-                tag.setStudyId(savedStudy.getStudyId().toString());
-                tag.setTagName(interest.getInterestName());
+                tag.setStudyId(savedStudy.getStudyId());
+                tag.setInterestId(interestId);
                 tagRepository.save(tag);
             }
         }
@@ -104,18 +104,16 @@ public class StudyService {
         // 작성자로 검색
         List<Study> studiesByUser = studyRepository.findByUserIdContainingIgnoreCaseOrderByCreatedAtDesc(keyword);
         
-        // 태그로 검색
-        List<Tag> tags = tagRepository.findByTagNameContainingIgnoreCaseOrderByTagName(keyword);
-        List<Study> studiesByTag = new ArrayList<>();
-        for (Tag tag : tags) {
-            try {
-                Long studyId = Long.parseLong(tag.getStudyId());
-                Study study = studyRepository.findById(studyId).orElse(null);
+        // 관심 항목명으로 검색
+        List<Interest> interests = interestRepository.findByInterestNameContainingIgnoreCaseOrderByInterestName(keyword);
+        List<Study> studiesByInterest = new ArrayList<>();
+        for (Interest interest : interests) {
+            List<Tag> tags = tagRepository.findByInterestId(interest.getInterestId());
+            for (Tag tag : tags) {
+                Study study = studyRepository.findById(tag.getStudyId()).orElse(null);
                 if (study != null) {
-                    studiesByTag.add(study);
+                    studiesByInterest.add(study);
                 }
-            } catch (NumberFormatException e) {
-                // studyId가 숫자가 아닌 경우 무시
             }
         }
         
@@ -123,7 +121,7 @@ public class StudyService {
         Set<Study> allStudies = new LinkedHashSet<>();
         allStudies.addAll(studiesByContent);
         allStudies.addAll(studiesByUser);
-        allStudies.addAll(studiesByTag);
+        allStudies.addAll(studiesByInterest);
         
         // 생성일 기준 내림차순 정렬
         return allStudies.stream()
@@ -160,10 +158,17 @@ public class StudyService {
         Study updatedStudy = studyRepository.save(study);
         
         // 기존 태그 삭제 후 새로운 태그 저장
-        tagRepository.deleteByStudyId(studyId.toString());
+        tagRepository.deleteByStudyId(studyId);
         
         // 새로운 태그 정보 저장 (StudyUpdateRequest에 interestIds가 있다면)
-        // 여기서는 StudyUpdateRequest에 태그 정보를 추가해야 함
+        if (request.getInterestIds() != null && !request.getInterestIds().isEmpty()) {
+            for (Long interestId : request.getInterestIds()) {
+                Tag tag = new Tag();
+                tag.setStudyId(studyId);
+                tag.setInterestId(interestId);
+                tagRepository.save(tag);
+            }
+        }
         
         return convertToResponse(updatedStudy);
     }
@@ -187,7 +192,7 @@ public class StudyService {
         }
         
         // 스터디 관련 태그 먼저 삭제
-        tagRepository.deleteByStudyId(studyId.toString());
+        tagRepository.deleteByStudyId(studyId);
         
         // 스터디 삭제
         studyRepository.deleteById(studyId);
@@ -195,11 +200,15 @@ public class StudyService {
 
     // Entity를 Response DTO로 변환
     private StudyResponse convertToResponse(Study study) {
-        // 스터디의 태그 정보 조회
-        List<String> tagNames = tagRepository.findByStudyIdOrderByTagName(study.getStudyId().toString())
-                .stream()
-                .map(Tag::getTagName)
-                .collect(Collectors.toList());
+        // 스터디의 태그 정보 조회 (관심 항목명으로)
+        List<String> tagNames = new ArrayList<>();
+        List<Tag> tags = tagRepository.findByStudyId(study.getStudyId());
+        for (Tag tag : tags) {
+            Interest interest = interestRepository.findById(tag.getInterestId()).orElse(null);
+            if (interest != null) {
+                tagNames.add(interest.getInterestName());
+            }
+        }
         
         return new StudyResponse(
                 study.getStudyId(),

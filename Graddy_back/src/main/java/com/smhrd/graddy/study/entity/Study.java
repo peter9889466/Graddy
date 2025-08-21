@@ -60,6 +60,9 @@ public class Study {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Timestamp createdAt;
 
+    @Column(name = "cur_text", columnDefinition = "TEXT")
+    private String curText;
+
     // 스터디 상태 enum
     public enum StudyStatus {
         RECRUITMENT("recruitment"),    // 모집중
