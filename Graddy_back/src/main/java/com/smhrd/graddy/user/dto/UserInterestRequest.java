@@ -7,9 +7,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class UserInterestRequest {
     // 관심 항목 ID
-    private final int interestId;
-    // 관심 항목 이름
-    private final String interestName;
+    private final Long interestId;
     // 관심 항목 숙련도
     private final int interestLevel;
 }

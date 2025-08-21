@@ -5,8 +5,14 @@ import com.smhrd.graddy.user.dto.JoinRequest;
 import com.smhrd.graddy.user.dto.UserInterestRequest;
 import com.smhrd.graddy.user.entity.User;
 import com.smhrd.graddy.user.entity.UserInterest;
+import com.smhrd.graddy.user.entity.UserAvailableDays;
+import com.smhrd.graddy.user.entity.Days;
+import com.smhrd.graddy.interest.entity.Interest;
 import com.smhrd.graddy.user.repository.UserInterestRepository;
 import com.smhrd.graddy.user.repository.UserRepository;
+import com.smhrd.graddy.user.repository.UserAvailableDaysRepository;
+import com.smhrd.graddy.user.repository.DaysRepository;
+import com.smhrd.graddy.interest.repository.InterestRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,7 +27,10 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final UserInterestRepository userInterestRepository;
+    private final UserAvailableDaysRepository userAvailableDaysRepository;
+    private final InterestRepository interestRepository;
     private final PasswordEncoder passwordEncoder;
+    private final DaysRepository daysRepository;
 
     /**
      * [추가] 사용자 아이디 중복 확인 메서드
@@ -81,16 +90,40 @@ public class UserService {
         if (joinRequest.getInterests() != null && !joinRequest.getInterests().isEmpty()) {
             // DTO에 포함된 interests 리스트를 하나씩 꺼내서 처리합니다.
             for (UserInterestRequest userInterestRequest : joinRequest.getInterests()) {
-                UserInterest userInterest = new UserInterest();
-                userInterest.setUser(savedUser); // 위에서 저장된 User 엔티티를 연결
-                userInterest.setInterestId(userInterestRequest.getInterestId());
-                userInterest.setInterstName(userInterestRequest.getInterestName());
-                userInterest.setInterestLevel(userInterestRequest.getInterestLevel());
+                // Interest 엔티티 조회
+                Optional<Interest> interestOpt = interestRepository.findById(userInterestRequest.getInterestId());
+                if (interestOpt.isPresent()) {
+                    UserInterest userInterest = new UserInterest();
+                    UserInterest.UserInterestId id = new UserInterest.UserInterestId(savedUser.getUserId(), userInterestRequest.getInterestId());
+                    userInterest.setId(id);
+                    userInterest.setUser(savedUser);
+                    userInterest.setInterest(interestOpt.get());
+                    userInterest.setInterestLevel(userInterestRequest.getInterestLevel());
 
-                // user_interest 테이블에 저장
-                userInterestRepository.save(userInterest);
+                    // user_interest 테이블에 저장
+                    userInterestRepository.save(userInterest);
+                }
             }
         }
+        
+        // 4. 사용자의 가능한 요일 정보를 user_available_days 테이블에 저장합니다.
+        if (joinRequest.getAvailableDays() != null && !joinRequest.getAvailableDays().isEmpty()) {
+            for (Integer dayId : joinRequest.getAvailableDays()) {
+                // Days 엔티티 조회
+                Optional<Days> daysOpt = daysRepository.findById(dayId);
+                if (daysOpt.isPresent()) {
+                    UserAvailableDays userAvailableDays = new UserAvailableDays();
+                    UserAvailableDays.UserAvailableDaysId id = new UserAvailableDays.UserAvailableDaysId(savedUser.getUserId(), dayId);
+                    userAvailableDays.setId(id);
+                    userAvailableDays.setUser(savedUser);
+                    userAvailableDays.setDays(daysOpt.get());
+                    
+                    // user_available_days 테이블에 저장
+                    userAvailableDaysRepository.save(userAvailableDays);
+                }
+            }
+        }
+        
         return savedUser; // 저장된 User 정보를 컨트롤러로 반환
     }
 }
