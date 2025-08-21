@@ -72,7 +72,7 @@ export default function DeleteModal({ onClose }: DeleteModalProps) {
                         <Button
                             // onClick={handleDelete}
                             // disabled={!isPhraseValid || isDeleting}
-                            className="bg-red-600 hover:bg-red-700 text-white font-semibold flex-1 py-3 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                            className="bg-rose-400 hover:bg-rose-500 text-white font-semibold flex-1 py-3 disabled:bg-gray-300 disabled:cursor-not-allowed"
                         >
                             계정 영구 삭제
                             {/* {isDeleting ? "삭제 중..." : "계정 영구 삭제"} */}
