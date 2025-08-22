@@ -104,8 +104,21 @@ export const StudySearchPage = () => {
             updatedAt: new Date().toISOString()
         }));
         
+        // 백엔드 스터디 데이터의 태그를 올바른 형식으로 변환
+        const convertedBackendStudies = backendStudies.map(study => ({
+            ...study,
+            tags: Array.isArray(study.tags) ? study.tags.map(tag => {
+                // 백엔드에서 온 태그가 문자열인 경우 그대로 사용
+                if (typeof tag === 'string') {
+                    return tag;
+                }
+                // 객체인 경우 name 속성 사용
+                return tag.name || tag;
+            }) : []
+        }));
+        
         // 기존 스터디 목록과 백엔드 스터디 목록 합치기
-        let filtered: StudyData[] = [...convertedStudyList, ...backendStudies];
+        let filtered: StudyData[] = [...convertedStudyList, ...convertedBackendStudies];
 
         // 모집 상태 필터링
         if (selectedStatus === "모집중") {
@@ -136,9 +149,10 @@ export const StudySearchPage = () => {
                             .toLowerCase()
                             .includes(inputValue.toLowerCase());
                     case "태그":
-                        return study.tags.some((tag: string) =>
-                            tag.toLowerCase().includes(inputValue.toLowerCase())
-                        );
+                        return study.tags.some((tag: any) => {
+                            const tagName = typeof tag === 'string' ? tag : (tag.name || tag);
+                            return tagName.toLowerCase().includes(inputValue.toLowerCase());
+                        });
                     default:
                         return (
                             study.studyTitle
@@ -394,14 +408,40 @@ export const StudySearchPage = () => {
                             </div>
 
                             <div className="flex gap-2 flex-wrap">
-                                {study.tags.map((tag: string, index: number) => (
-                                    <span
-                                        key={index}
-                                        className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-xl text-xs"
-                                    >
-                                        #{tag}
-                                    </span>
-                                ))}
+                                {study.tags.map((tag: any, index: number) => {
+                                    // 태그가 객체인지 문자열인지 확인
+                                    const tagName = typeof tag === 'string' ? tag : (tag.name || tag);
+                                    const tagDifficulty = typeof tag === 'object' && tag.difficulty ? tag.difficulty : null;
+                                    
+                                    // 난이도별 색상 적용
+                                    let tagClasses = "px-2 py-0.5 rounded-xl text-xs";
+                                    if (tagDifficulty) {
+                                        switch (tagDifficulty) {
+                                            case "초급":
+                                                tagClasses += " bg-emerald-100 text-emerald-800 border border-emerald-300";
+                                                break;
+                                            case "중급":
+                                                tagClasses += " bg-blue-100 text-blue-800 border border-blue-300";
+                                                break;
+                                            case "고급":
+                                                tagClasses += " bg-purple-100 text-purple-800 border border-purple-300";
+                                                break;
+                                            default:
+                                                tagClasses += " bg-gray-100 text-gray-600";
+                                        }
+                                    } else {
+                                        tagClasses += " bg-gray-100 text-gray-600";
+                                    }
+                                    
+                                    return (
+                                        <span key={index} className={tagClasses}>
+                                            #{tagName}
+                                            {tagDifficulty && (
+                                                <span className="ml-1 opacity-75">({tagDifficulty})</span>
+                                            )}
+                                        </span>
+                                    );
+                                })}
                             </div>
                         </div>
                         <div className="min-w-20">

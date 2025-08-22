@@ -1,5 +1,6 @@
 import React from "react";
 import { User, Settings, Trash2, BookOpen } from "lucide-react";
+import { colorPalette } from "../detail/chart/ChartOption";
 
 interface SideMenuItem {
     name: string;
@@ -21,7 +22,6 @@ const MyPageSidebar: React.FC<MyPageSidebarProps> = ({
         { name: "마이페이지" },
         { name: "내 스터디 목록" },
         { name: "회원정보 수정" },
-        { name: "회원탈퇴", onClick: onDeleteAccount },
     ];
 
     return (
@@ -43,18 +43,21 @@ const MyPageSidebar: React.FC<MyPageSidebarProps> = ({
                             >
                                 <span className="truncate">{item.name}</span>
                             </button>
-                            <hr className="mb-3 border-gray-500" />
+                            <hr className="mb-3"
+                                style={{ color: "gray" }} />
                         </>
                     ))}
                     <button
                         onClick={onDeleteAccount}
-                        className={`w-full text-left px-2 sm:px-3 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 group text-sm sm:text-base hover:scale-105 text-red-400  hover:text-rose-500 hover:font-bold ${activeTab === "회원탈퇴"
-                                ? "font-bold text-rose-500"
-                                : "text-red-400"
+                        className={`w-full text-left px-2 sm:px-3 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 group text-sm sm:text-base hover:scale-105 text-red-400  hover:text-rose-400 hover:font-bold ${activeTab === "회원탈퇴"
+                            ? "font-bold text-rose-400"
+                            : "text-red-400"
                             }`}
                     >
                         <span className="truncate">회원탈퇴</span>
                     </button>
+                    <hr className="mb-3"
+                        style={{ color: "gray" }} />
                 </div>
             </div>
 

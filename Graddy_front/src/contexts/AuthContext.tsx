@@ -18,14 +18,15 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 export const AuthProvider: React.FC<PropsWithChildren> = ({ children }) => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [user, setUser] = useState<User | null>(null);
-    const [token, setToken] = useState<string | null>(null); // 💡 토큰 상태 초기화
 
     useEffect(() => {
         const storedToken = localStorage.getItem('userToken'); // 💡 토큰 가져오기
         const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
         const userData = localStorage.getItem('userData');
+        const userToken = localStorage.getItem('token');
         
         setIsLoggedIn(loggedIn);
+        setToken(userToken);
         if (userData) {
             setUser(JSON.parse(userData));
         }
@@ -42,11 +43,6 @@ export const AuthProvider: React.FC<PropsWithChildren> = ({ children }) => {
             localStorage.setItem('userData', JSON.stringify(userData));
             setUser(userData);
         }
-        
-        if (token) { // 💡 토큰이 전달되면 로컬 스토리지에 저장
-            localStorage.setItem('userToken', token);
-            setToken(token); // 💡 상태에도 저장
-        }
     };
 
     const logout = () => {
@@ -58,7 +54,7 @@ export const AuthProvider: React.FC<PropsWithChildren> = ({ children }) => {
         setToken(null); // 💡 상태 초기화
     };
 
-    const value = { isLoggedIn, user, token, login, logout }; // 💡 토큰을 값에 포함
+    const value = { isLoggedIn, user, login, logout };
 
     return (
         <AuthContext.Provider value={value}>

@@ -91,7 +91,7 @@ const StudyCreate: React.FC = () => {
         introduction: '',
         description: '',
         maxMembers: 0,
-        tags: [] as string[],
+        tags: [] as Array<{name: string, difficulty?: string}>, // 태그에 난이도 정보 추가
         selectedDays: {
             monday: false,
             tuesday: false,
@@ -110,11 +110,41 @@ const StudyCreate: React.FC = () => {
     const [selectedDifficulty, setSelectedDifficulty] = useState<'초급' | '중급' | '고급' | null>(null);
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-    const handleRemoveTag = (tagToRemove: string) => {
+    const handleRemoveTag = (tagToRemove: {name: string, difficulty?: string}) => {
         setStudyData({
             ...studyData,
-            tags: studyData.tags.filter(tag => tag !== tagToRemove)
+            tags: studyData.tags.filter(tag => tag.name !== tagToRemove.name)
         });
+    };
+
+    // 난이도별 색상 함수
+    const getDifficultyColors = (difficulty: string) => {
+        switch (difficulty) {
+            case "초급":
+                return {
+                    bgColor: "bg-emerald-100",
+                    textColor: "text-emerald-800",
+                    borderColor: "border-emerald-300",
+                };
+            case "중급":
+                return {
+                    bgColor: "bg-blue-100",
+                    textColor: "text-blue-800",
+                    borderColor: "border-blue-300",
+                };
+            case "고급":
+                return {
+                    bgColor: "bg-purple-100",
+                    textColor: "text-purple-800",
+                    borderColor: "border-purple-300",
+                };
+            default:
+                return {
+                    bgColor: "bg-[#8B85E9]/10",
+                    textColor: "text-[#8B85E9]",
+                    borderColor: "border-[#8B85E9]/30",
+                };
+        }
     };
 
     // 요일 선택 토글 함수
@@ -246,21 +276,44 @@ const StudyCreate: React.FC = () => {
 
         try {
             // 백엔드 API로 스터디 생성 요청
+            // 백엔드에서 요구하는 형식으로 데이터 변환
+            const now = new Date();
+            const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+            
+            // 시간 형식을 백엔드에서 요구하는 형식으로 변환
+            const formatTimeForBackend = (hour: number | null, defaultHour: number) => {
+                if (hour !== null) {
+                    const date = new Date();
+                    date.setHours(hour, 0, 0, 0);
+                    return date.toISOString();
+                } else {
+                    const date = new Date();
+                    date.setHours(defaultHour, 0, 0, 0);
+                    return date.toISOString();
+                }
+            };
+            
+            // 태그 데이터를 백엔드 형식으로 변환
+            const tagNames = studyData.tags.map(tag => tag.name);
+            
+            // 더 간단한 테스트용 데이터로 시도
             const createStudyRequest: CreateStudyRequest = {
                 studyName: studyData.title,
                 studyTitle: studyData.title,
                 studyDesc: studyData.description,
                 studyLevel: selectedDifficulty === '초급' ? 1 : selectedDifficulty === '중급' ? 2 : 3,
-                userId: user?.nickname || '',
-                studyStart: new Date().toISOString(), // 현재 날짜를 시작일로 설정
-                studyEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30일 후를 종료일로 설정
+                userId: user?.nickname || 'testuser', // nickname을 userId로 사용, 로그인하지 않은 경우 testuser
+                studyStart: now.toISOString(), // 현재 날짜를 시작일로 설정
+                studyEnd: endDate.toISOString(), // 30일 후를 종료일로 설정
                 studyTotal: studyData.maxMembers,
-                soltStart: studyData.startTime !== null ? `${studyData.startTime.toString().padStart(2, '0')}:00` : '09:00',
-                soltEnd: studyData.endTime !== null ? `${studyData.endTime.toString().padStart(2, '0')}:00` : '18:00',
-                interestIds: studyData.tags.map((tag, index) => index + 1) // 임시로 태그 인덱스를 interest ID로 매핑
+                soltStart: formatTimeForBackend(studyData.startTime, 9), // 시작 시간을 ISO 형식으로
+                soltEnd: formatTimeForBackend(studyData.endTime, 18), // 종료 시간을 ISO 형식으로
+                interestIds: [1] // 최소한 하나의 interest ID는 필요
             };
 
             console.log('백엔드로 전송할 데이터:', createStudyRequest);
+            console.log('현재 사용자 정보:', user);
+            console.log('API_BASE_URL:', import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api');
 
             const createdStudy = await StudyApiService.createStudy(createStudyRequest);
             console.log('생성된 스터디:', createdStudy);
@@ -269,7 +322,19 @@ const StudyCreate: React.FC = () => {
             navigate('/search');
         } catch (error) {
             console.error('스터디 생성 실패:', error);
-            alert('스터디 생성에 실패했습니다. 다시 시도해주세요.');
+            console.error('에러 상세 정보:', {
+                name: error instanceof Error ? error.name : 'Unknown',
+                message: error instanceof Error ? error.message : String(error),
+                stack: error instanceof Error ? error.stack : undefined
+            });
+            
+            // 더 자세한 에러 메시지 표시
+            let errorMessage = '스터디 생성에 실패했습니다. 다시 시도해주세요.';
+            if (error instanceof Error) {
+                errorMessage = `스터디 생성 실패: ${error.message}`;
+            }
+            
+            alert(errorMessage);
         }
     };
 
@@ -334,23 +399,26 @@ const StudyCreate: React.FC = () => {
         .filter(category => category.tags.length > 0);
 
         const handleTagSelect = (tag: string) => {
-        if (studyData.tags.includes(tag)) {
-            // 이미 선택된 태그라면 제거 (난이도 선택 없이도 가능)
+        if (studyData.tags.some(t => t.name === tag)) {
+            // 이미 선택된 태그라면 제거
             setStudyData({
                 ...studyData,
-                tags: studyData.tags.filter(t => t !== tag)
+                tags: studyData.tags.filter(t => t.name !== tag)
             });
         } else {
-            // 새로운 태그라면 추가 (스터디일 때만 난이도 선택 필요)
+            // 새로운 태그라면 추가
             if (studyType === 'study' && !selectedDifficulty) {
                 alert('먼저 난이도를 선택해주세요!');
                 return;
             }
             
             if (studyData.tags.length < 5) {
+                const newTag = studyType === 'study' 
+                    ? { name: tag, difficulty: selectedDifficulty! }
+                    : { name: tag };
                 setStudyData({
                     ...studyData,
-                    tags: [...studyData.tags, tag]
+                    tags: [...studyData.tags, newTag]
                 });
             } else {
                 alert('태그는 5개까지만 선택할 수 있습니다!');
@@ -428,14 +496,28 @@ const StudyCreate: React.FC = () => {
 
                             {/* 버튼들 */}
                             <button
-                                onClick={() => setStudyType("study")}
+                                onClick={() => {
+                                    setStudyType("study");
+                                    // 스터디로 변경할 때 태그 초기화
+                                    setStudyData(prev => ({
+                                        ...prev,
+                                        tags: []
+                                    }));
+                                }}
                                 className={`flex-1 z-10 text-sm font-medium transition-colors duration-300 ${studyType === "study" ? "text-[#8B85E9]" : "text-white"
                                     }`}
                             >
                                 스터디 생성
                             </button>
                             <button
-                                onClick={() => setStudyType("project")}
+                                onClick={() => {
+                                    setStudyType("project");
+                                    // 프로젝트로 변경할 때 태그 초기화
+                                    setStudyData(prev => ({
+                                        ...prev,
+                                        tags: []
+                                    }));
+                                }}
                                 className={`flex-1 z-10 text-sm font-medium transition-colors duration-300 ${studyType === "project" ? "text-[#8B85E9]" : "text-white"
                                     }`}
                             >
@@ -516,21 +598,27 @@ const StudyCreate: React.FC = () => {
                         <div className="bg-gray-50 rounded-xl p-4">
                             <div className="flex flex-wrap gap-2 items-center">
                                 {/* 선택된 태그들 */}
-                                {studyData.tags.map((tag, index) => (
-                                    <div
-                                        key={index}
-                                        className="flex items-center space-x-1 bg-[#8B85E9] text-white px-3 py-2 rounded-lg text-sm border-2 border-[#8B85E9]"
-                                    >
-                                        <span>#{tag}</span>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleRemoveTag(tag)}
-                                            className="ml-1 hover:text-red-200 transition-colors duration-200"
+                                {studyData.tags.map((tag, index) => {
+                                    const colors = tag.difficulty ? getDifficultyColors(tag.difficulty) : getDifficultyColors('');
+                                    return (
+                                        <div
+                                            key={index}
+                                            className={`flex items-center space-x-1 px-3 py-2 rounded-lg text-sm border-2 ${colors.bgColor} ${colors.textColor} ${colors.borderColor}`}
                                         >
-                                            <X className="w-3 h-3" />
-                                        </button>
-                                    </div>
-                                ))}
+                                            <span>#{tag.name}</span>
+                                            {tag.difficulty && (
+                                                <span className="ml-1 text-xs opacity-75">({tag.difficulty})</span>
+                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveTag(tag)}
+                                                className="ml-1 hover:opacity-70 transition-opacity duration-200"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                    );
+                                })}
 
                                 {/* 태그 찾기 버튼 */}
                                 <button
@@ -964,21 +1052,30 @@ const StudyCreate: React.FC = () => {
                                         <div key={category.id} className="border-b border-gray-200 pb-3 last:border-b-0">
                                             <h4 className="font-semibold text-gray-800 mb-2 text-sm">{category.name}</h4>
                                             <div className="grid grid-cols-3 gap-2">
-                                                {category.tags.map((tag) => (
-                                                                                                 <button
-                                                 key={tag}
-                                                 onClick={() => handleTagSelect(tag)}
-                                                 className={`p-2 text-center rounded-lg border transition-colors duration-200 text-xs select-none ${
-                                                     studyData.tags.includes(tag)
-                                                         ? 'bg-[#8B85E9] text-white border-[#8B85E9] cursor-pointer hover:bg-[#7A74D8]'
-                                                         : studyData.tags.length >= 5
-                                                             ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                                                             : 'bg-white text-gray-700 border-gray-300 hover:bg-[#8B85E9] hover:text-white hover:border-[#8B85E9] cursor-pointer'
-                                                 }`}
-                                             >
-                                                 #{tag}
-                                             </button>
-                                                ))}
+                                                {category.tags.map((tag) => {
+                                                    const isSelected = studyData.tags.some(t => t.name === tag);
+                                                    const selectedTag = studyData.tags.find(t => t.name === tag);
+                                                    const colors = selectedTag?.difficulty ? getDifficultyColors(selectedTag.difficulty) : null;
+                                                    
+                                                    return (
+                                                        <button
+                                                            key={tag}
+                                                            onClick={() => handleTagSelect(tag)}
+                                                            className={`p-2 text-center rounded-lg border transition-colors duration-200 text-xs select-none ${
+                                                                isSelected
+                                                                    ? `${colors?.bgColor || 'bg-[#8B85E9]'} ${colors?.textColor || 'text-white'} ${colors?.borderColor || 'border-[#8B85E9]'} cursor-pointer hover:opacity-80`
+                                                                    : studyData.tags.length >= 5
+                                                                        ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                                                                        : 'bg-white text-gray-700 border-gray-300 hover:bg-[#8B85E9] hover:text-white hover:border-[#8B85E9] cursor-pointer'
+                                                            }`}
+                                                        >
+                                                            #{tag}
+                                                            {selectedTag?.difficulty && (
+                                                                <div className="text-xs opacity-75">({selectedTag.difficulty})</div>
+                                                            )}
+                                                        </button>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     ))}

@@ -3,12 +3,14 @@ package com.smhrd.graddy.study.service;
 import com.smhrd.graddy.study.dto.StudyRequest;
 import com.smhrd.graddy.study.dto.StudyResponse;
 import com.smhrd.graddy.study.dto.StudyUpdateRequest;
-import com.smhrd.graddy.study.entity.Study;
-import com.smhrd.graddy.study.repository.StudyRepository;
+import com.smhrd.graddy.study.entity.StudyProject;
+import com.smhrd.graddy.study.repository.StudyProjectRepository;
 import com.smhrd.graddy.interest.entity.Interest;
 import com.smhrd.graddy.interest.repository.InterestRepository;
 import com.smhrd.graddy.tag.entity.Tag;
 import com.smhrd.graddy.tag.repository.TagRepository;
+import com.smhrd.graddy.study.entity.StudyProjectAvailableDay;
+import com.smhrd.graddy.study.repository.StudyProjectAvailableDayRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,75 +20,86 @@ import java.util.stream.Collectors;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.LinkedHashSet;
-import java.util.HashSet;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class StudyService {
 
-    private final StudyRepository studyRepository;
+    private final StudyProjectRepository studyProjectRepository;
     private final InterestRepository interestRepository;
     private final TagRepository tagRepository;
+    private final StudyProjectAvailableDayRepository availableDayRepository;
 
-    // 스터디 생성
+    // 스터디/프로젝트 생성
     @Transactional
     public StudyResponse createStudy(StudyRequest request) {
-        Study study = new Study();
-        study.setStudyName(request.getStudyName());
-        study.setStudyTitle(request.getStudyTitle());
-        study.setStudyDesc(request.getStudyDesc());
-        study.setStudyLevel(request.getStudyLevel());
-        study.setUserId(request.getUserId());
-        study.setIsRecruiting(Study.StudyStatus.RECRUITMENT);
-        study.setStudyStart(request.getStudyStart());
-        study.setStudyEnd(request.getStudyEnd());
-        study.setStudyTotal(request.getStudyTotal());
-        study.setSoltStart(request.getSoltStart());
-        study.setSoltEnd(request.getSoltEnd());
+        StudyProject studyProject = new StudyProject();
+        studyProject.setStudyProjectName(request.getStudyProjectName());
+        studyProject.setStudyProjectTitle(request.getStudyProjectTitle());
+        studyProject.setStudyProjectDesc(request.getStudyProjectDesc());
+        studyProject.setStudyLevel(request.getStudyLevel());
+        studyProject.setTypeCheck(StudyProject.TypeCheck.valueOf(request.getTypeCheck()));
+        studyProject.setUserId(request.getUserId());
+        studyProject.setIsRecruiting(StudyProject.RecruitingStatus.recruitment);
+        studyProject.setStudyProjectStart(request.getStudyProjectStart());
+        studyProject.setStudyProjectEnd(request.getStudyProjectEnd());
+        studyProject.setStudyProjectTotal(request.getStudyProjectTotal());
+        studyProject.setSoltStart(request.getSoltStart());
+        studyProject.setSoltEnd(request.getSoltEnd());
 
-        Study savedStudy = studyRepository.save(study);
+        StudyProject savedStudyProject = studyProjectRepository.save(studyProject);
         
         // 관심 항목 태그 저장
         if (request.getInterestIds() != null && !request.getInterestIds().isEmpty()) {
             for (Long interestId : request.getInterestIds()) {
                 Tag tag = new Tag();
-                tag.setStudyId(savedStudy.getStudyId());
+                tag.setStudyProjectId(savedStudyProject.getStudyProjectId());
                 tag.setInterestId(interestId);
                 tagRepository.save(tag);
             }
         }
         
-        return convertToResponse(savedStudy);
+        // 선호 요일 저장
+        if (request.getDayIds() != null && !request.getDayIds().isEmpty()) {
+            for (Byte dayId : request.getDayIds()) {
+                StudyProjectAvailableDay availableDay = new StudyProjectAvailableDay();
+                availableDay.setStudyProjectId(savedStudyProject.getStudyProjectId());
+                availableDay.setDayId(dayId);
+                availableDayRepository.save(availableDay);
+            }
+        }
+        
+        return convertToResponse(savedStudyProject);
     }
 
-    // 스터디 조회
-    public StudyResponse getStudy(Long studyId) {
-        Study study = studyRepository.findById(studyId)
-                .orElseThrow(() -> new IllegalArgumentException("스터디를 찾을 수 없습니다: " + studyId));
-        return convertToResponse(study);
+    // 스터디/프로젝트 조회
+    public StudyResponse getStudy(Long studyProjectId) {
+        StudyProject studyProject = studyProjectRepository.findById(studyProjectId)
+                .orElseThrow(() -> new IllegalArgumentException("스터디/프로젝트를 찾을 수 없습니다: " + studyProjectId));
+        return convertToResponse(studyProject);
     }
 
-    // 모든 스터디 목록 조회
+    // 모든 스터디/프로젝트 목록 조회
     public List<StudyResponse> getAllStudies() {
-        List<Study> studies = studyRepository.findAllByOrderByCreatedAtDesc();
-        return studies.stream()
+        List<StudyProject> studyProjects = studyProjectRepository.findAllOrderByCreatedAtDesc();
+        return studyProjects.stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
     }
 
-    // 모집중인 스터디 목록 조회
+    // 모집중인 스터디/프로젝트 목록 조회
     public List<StudyResponse> getRecruitingStudies() {
-        List<Study> studies = studyRepository.findByIsRecruitingOrderByCreatedAtDesc("recruitment");
-        return studies.stream()
+        List<StudyProject> studyProjects = studyProjectRepository.findByIsRecruiting(StudyProject.RecruitingStatus.recruitment);
+        return studyProjects.stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
     }
 
-    // 사용자가 리더인 스터디 목록 조회
+    // 사용자가 리더인 스터디/프로젝트 목록 조회
     public List<StudyResponse> getStudiesByLeader(String userId) {
-        List<Study> studies = studyRepository.findByUserIdOrderByCreatedAtDesc(userId);
-        return studies.stream()
+        List<StudyProject> studyProjects = studyProjectRepository.findByUserId(userId);
+        return studyProjects.stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
     }
@@ -98,27 +111,27 @@ public class StudyService {
         }
         
         // 제목, 스터디명, 설명으로 검색
-        List<Study> studiesByContent = studyRepository.findByStudyTitleContainingIgnoreCaseOrStudyNameContainingIgnoreCaseOrStudyDescContainingIgnoreCaseOrderByCreatedAtDesc(
+        List<StudyProject> studiesByContent = studyProjectRepository.findByStudyProjectTitleContainingIgnoreCaseOrStudyProjectNameContainingIgnoreCaseOrStudyProjectDescContainingIgnoreCaseOrderByCreatedAtDesc(
                 keyword, keyword, keyword);
         
         // 작성자로 검색
-        List<Study> studiesByUser = studyRepository.findByUserIdContainingIgnoreCaseOrderByCreatedAtDesc(keyword);
+        List<StudyProject> studiesByUser = studyProjectRepository.findByUserIdContainingIgnoreCaseOrderByCreatedAtDesc(keyword);
         
         // 관심 항목명으로 검색
         List<Interest> interests = interestRepository.findByInterestNameContainingIgnoreCaseOrderByInterestName(keyword);
-        List<Study> studiesByInterest = new ArrayList<>();
+        List<StudyProject> studiesByInterest = new ArrayList<>();
         for (Interest interest : interests) {
             List<Tag> tags = tagRepository.findByInterestId(interest.getInterestId());
             for (Tag tag : tags) {
-                Study study = studyRepository.findById(tag.getStudyId()).orElse(null);
-                if (study != null) {
-                    studiesByInterest.add(study);
+                StudyProject studyProject = studyProjectRepository.findById(tag.getStudyProjectId()).orElse(null);
+                if (studyProject != null) {
+                    studiesByInterest.add(studyProject);
                 }
             }
         }
         
         // 모든 결과를 합치고 중복 제거
-        Set<Study> allStudies = new LinkedHashSet<>();
+        Set<StudyProject> allStudies = new LinkedHashSet<>();
         allStudies.addAll(studiesByContent);
         allStudies.addAll(studiesByUser);
         allStudies.addAll(studiesByInterest);
@@ -130,79 +143,94 @@ public class StudyService {
                 .collect(Collectors.toList());
     }
 
-    // 레벨별 스터디 목록 조회
+    // 레벨별 스터디/프로젝트 목록 조회
     public List<StudyResponse> getStudiesByLevel(Integer level) {
-        List<Study> studies = studyRepository.findByStudyLevelOrderByCreatedAtDesc(level);
-        return studies.stream()
+        List<StudyProject> studyProjects = studyProjectRepository.findByStudyLevel(level);
+        return studyProjects.stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
     }
 
-    // 스터디 수정
+    // 스터디/프로젝트 수정
     @Transactional
-    public StudyResponse updateStudy(Long studyId, StudyUpdateRequest request) {
-        Study study = studyRepository.findById(studyId)
-                .orElseThrow(() -> new IllegalArgumentException("스터디를 찾을 수 없습니다: " + studyId));
+    public StudyResponse updateStudy(Long studyProjectId, StudyUpdateRequest request) {
+        StudyProject studyProject = studyProjectRepository.findById(studyProjectId)
+                .orElseThrow(() -> new IllegalArgumentException("스터디/프로젝트를 찾을 수 없습니다: " + studyProjectId));
 
-        study.setStudyName(request.getStudyName());
-        study.setStudyTitle(request.getStudyTitle());
-        study.setStudyDesc(request.getStudyDesc());
-        study.setStudyLevel(request.getStudyLevel());
-        study.setIsRecruiting(Study.StudyStatus.valueOf(request.getIsRecruiting().toUpperCase()));
-        study.setStudyStart(request.getStudyStart());
-        study.setStudyEnd(request.getStudyEnd());
-        study.setStudyTotal(request.getStudyTotal());
-        study.setSoltStart(request.getSoltStart());
-        study.setSoltEnd(request.getSoltEnd());
+        studyProject.setStudyProjectName(request.getStudyProjectName());
+        studyProject.setStudyProjectTitle(request.getStudyProjectTitle());
+        studyProject.setStudyProjectDesc(request.getStudyProjectDesc());
+        studyProject.setStudyLevel(request.getStudyLevel());
+        studyProject.setTypeCheck(StudyProject.TypeCheck.valueOf(request.getTypeCheck()));
+        studyProject.setIsRecruiting(StudyProject.RecruitingStatus.valueOf(request.getIsRecruiting().toUpperCase()));
+        studyProject.setStudyProjectStart(request.getStudyProjectStart());
+        studyProject.setStudyProjectEnd(request.getStudyProjectEnd());
+        studyProject.setStudyProjectTotal(request.getStudyProjectTotal());
+        studyProject.setSoltStart(request.getSoltStart());
+        studyProject.setSoltEnd(request.getSoltEnd());
 
-        Study updatedStudy = studyRepository.save(study);
+        StudyProject updatedStudyProject = studyProjectRepository.save(studyProject);
         
         // 기존 태그 삭제 후 새로운 태그 저장
-        tagRepository.deleteByStudyId(studyId);
+        tagRepository.deleteByStudyProjectId(studyProjectId);
         
-        // 새로운 태그 정보 저장 (StudyUpdateRequest에 interestIds가 있다면)
+        // 새로운 태그 정보 저장
         if (request.getInterestIds() != null && !request.getInterestIds().isEmpty()) {
             for (Long interestId : request.getInterestIds()) {
                 Tag tag = new Tag();
-                tag.setStudyId(studyId);
+                tag.setStudyProjectId(studyProjectId);
                 tag.setInterestId(interestId);
                 tagRepository.save(tag);
             }
         }
         
-        return convertToResponse(updatedStudy);
-    }
-
-    // 스터디 상태 변경
-    @Transactional
-    public StudyResponse updateStudyStatus(Long studyId, String status) {
-        Study study = studyRepository.findById(studyId)
-                .orElseThrow(() -> new IllegalArgumentException("스터디를 찾을 수 없습니다: " + studyId));
-
-        study.setIsRecruiting(Study.StudyStatus.valueOf(status.toUpperCase()));
-        Study updatedStudy = studyRepository.save(study);
-        return convertToResponse(updatedStudy);
-    }
-
-    // 스터디 삭제
-    @Transactional
-    public void deleteStudy(Long studyId) {
-        if (!studyRepository.existsById(studyId)) {
-            throw new IllegalArgumentException("스터디를 찾을 수 없습니다: " + studyId);
+        // 기존 선호 요일 삭제 후 새로운 선호 요일 저장
+        availableDayRepository.deleteByStudyProjectId(studyProjectId);
+        
+        // 새로운 선호 요일 정보 저장
+        if (request.getDayIds() != null && !request.getDayIds().isEmpty()) {
+            for (Byte dayId : request.getDayIds()) {
+                StudyProjectAvailableDay availableDay = new StudyProjectAvailableDay();
+                availableDay.setStudyProjectId(studyProjectId);
+                availableDay.setDayId(dayId);
+                availableDayRepository.save(availableDay);
+            }
         }
         
-        // 스터디 관련 태그 먼저 삭제
-        tagRepository.deleteByStudyId(studyId);
+        return convertToResponse(updatedStudyProject);
+    }
+
+    // 스터디/프로젝트 상태 변경
+    @Transactional
+    public StudyResponse updateStudyStatus(Long studyProjectId, String status) {
+        StudyProject studyProject = studyProjectRepository.findById(studyProjectId)
+                .orElseThrow(() -> new IllegalArgumentException("스터디/프로젝트를 찾을 수 없습니다: " + studyProjectId));
+
+        studyProject.setIsRecruiting(StudyProject.RecruitingStatus.valueOf(status.toUpperCase()));
+        StudyProject updatedStudyProject = studyProjectRepository.save(studyProject);
+        return convertToResponse(updatedStudyProject);
+    }
+
+    // 스터디/프로젝트 삭제
+    @Transactional
+    public void deleteStudy(Long studyProjectId) {
+        if (!studyProjectRepository.existsById(studyProjectId)) {
+            throw new IllegalArgumentException("스터디/프로젝트를 찾을 수 없습니다: " + studyProjectId);
+        }
         
-        // 스터디 삭제
-        studyRepository.deleteById(studyId);
+        // 스터디/프로젝트 관련 데이터 먼저 삭제
+        tagRepository.deleteByStudyProjectId(studyProjectId);
+        availableDayRepository.deleteByStudyProjectId(studyProjectId);
+        
+        // 스터디/프로젝트 삭제
+        studyProjectRepository.deleteById(studyProjectId);
     }
 
     // Entity를 Response DTO로 변환
-    private StudyResponse convertToResponse(Study study) {
-        // 스터디의 태그 정보 조회 (관심 항목명으로)
+    private StudyResponse convertToResponse(StudyProject studyProject) {
+        // 스터디/프로젝트의 태그 정보 조회 (관심 항목명으로)
         List<String> tagNames = new ArrayList<>();
-        List<Tag> tags = tagRepository.findByStudyId(study.getStudyId());
+        List<Tag> tags = tagRepository.findByStudyProjectId(studyProject.getStudyProjectId());
         for (Tag tag : tags) {
             Interest interest = interestRepository.findById(tag.getInterestId()).orElse(null);
             if (interest != null) {
@@ -210,21 +238,31 @@ public class StudyService {
             }
         }
         
+        // 스터디/프로젝트의 선호 요일 정보 조회
+        List<Byte> availableDays = new ArrayList<>();
+        List<StudyProjectAvailableDay> availableDayList = availableDayRepository.findByStudyProjectId(studyProject.getStudyProjectId());
+        for (StudyProjectAvailableDay availableDay : availableDayList) {
+            availableDays.add(availableDay.getDayId());
+        }
+        
         return new StudyResponse(
-                study.getStudyId(),
-                study.getStudyName(),
-                study.getStudyTitle(),
-                study.getStudyDesc(),
-                study.getStudyLevel(),
-                study.getUserId(),
-                study.getIsRecruiting().getValue(),
-                study.getStudyStart(),
-                study.getStudyEnd(),
-                study.getStudyTotal(),
-                study.getSoltStart(),
-                study.getSoltEnd(),
-                study.getCreatedAt(),
-                tagNames
+                studyProject.getStudyProjectId(),
+                studyProject.getStudyProjectName(),
+                studyProject.getStudyProjectTitle(),
+                studyProject.getStudyProjectDesc(),
+                studyProject.getStudyLevel(),
+                studyProject.getTypeCheck().toString(),
+                studyProject.getUserId(),
+                studyProject.getIsRecruiting().toString(),
+                studyProject.getStudyProjectStart(),
+                studyProject.getStudyProjectEnd(),
+                studyProject.getStudyProjectTotal(),
+                studyProject.getSoltStart(),
+                studyProject.getSoltEnd(),
+                studyProject.getCreatedAt(),
+                studyProject.getCurText(),
+                tagNames,
+                availableDays
         );
     }
 }
