@@ -4,7 +4,6 @@ import ResponsiveContainer from "../components/layout/ResponsiveContainer";
 import ResponsiveSidebar from "../components/layout/ResponsiveSidebar";
 import ResponsiveMainContent from "../components/layout/ResponsiveMainContent";
 import StudyDetailSideBar from "../components/detail/StudyDetailSideBar";
-import StudyChatting from "../components/detail/StudyChatting";
 import Assignment from "../components/detail/Assignment";
 import { studyList } from "../data/studyData";
 import { AuthContext } from "../contexts/AuthContext";
@@ -249,10 +248,6 @@ const StudyDetailPage = () => {
 				<ResponsiveMainContent padding="md">
 					{renderMainContent()}
 				</ResponsiveMainContent>
-				{/* 오른쪽 채팅 패널 */}
-				{/* <ResponsiveSidebar isCollapsible={false}>
-					<StudyChatting />
-				</ResponsiveSidebar> */}
 			</ResponsiveContainer>
 			<DraggableChatWidget />
 		</PageLayout>
