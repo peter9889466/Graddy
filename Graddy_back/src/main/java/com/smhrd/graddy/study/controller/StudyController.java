@@ -23,7 +23,7 @@ import java.util.List;
  * 스터디와 프로젝트의 생성, 조회, 수정, 삭제 및 태그 관리 기능을 제공합니다.
  */
 @RestController
-@RequestMapping("/api/studies-projects")
+@RequestMapping("/studies-projects")
 @RequiredArgsConstructor
 @Tag(name = "스터디/프로젝트 관리", description = "스터디와 프로젝트 생성, 조회, 수정, 삭제 및 태그 관리 API")
 public class StudyController {
