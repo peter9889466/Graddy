@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Eye, EyeOff, Check, X, AlertCircle, User, Lock, Mail, Phone, CheckCircle, Clock } from "lucide-react";
+import axios from "axios";
 
 const Join: React.FC = () => {
     // 상태 관리
@@ -17,12 +18,17 @@ const Join: React.FC = () => {
     const [nicknameError, setNicknameError] = useState("");
     const [nicknameChecked, setNicknameChecked] = useState(false);
     const [email, setEmail] = useState("");
-    const [phoneNumber, setPhoneNumber] = useState("010");
+    const [phonePrefix, setPhonePrefix] = useState("010");
+    const [phoneBody, setPhoneBody] = useState("");
     const [notificationPreference, setNotificationPreference] = useState<"email" | "phone" | "">("");
     const [hintMessage, setHintMessage] = useState<string>("");
     const [showHint, setShowHint] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
+    const [showVerificationInput, setShowVerificationInput] = useState(false);
+    const [verificationCode, setVerificationCode] = useState("");
+    const [isVerified, setIsVerified] = useState(false);
+    const [verificationTimer, setVerificationTimer] = useState(0);
 
     // 힌트 메시지 자동 숨김
     useEffect(() => {
@@ -36,6 +42,17 @@ const Join: React.FC = () => {
         }
     }, [hintMessage]);
 
+    // 인증 타이머용 useEffect 추가
+    useEffect(() => {
+        let interval: ReturnType<typeof setInterval>;
+        if (verificationTimer > 0) {
+            interval = setInterval(() => {
+                setVerificationTimer((prev) => prev - 1);
+            }, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [verificationTimer]);
+
     // 비밀번호 유효성 검사
     const validatePassword = (pwd: string) => {
         const hasLetter = /[a-zA-Z]/.test(pwd);
@@ -48,9 +65,9 @@ const Join: React.FC = () => {
     };
 
     // 전화번호 유효성 검사
-    const validatePhoneNumber = (phone: string) => {
-        const phoneRegex = /^010\d{4}\d{4}$/;
-        return phoneRegex.test(phone);
+    const validatePhoneNumber = (prefix: string, body: string) => {
+        const phoneRegex = /^\d{8}$/;
+        return phoneRegex.test(body) && ["010", "011", "012", "017"].includes(prefix);
     };
 
     // 아이디 중복 확인
@@ -112,6 +129,44 @@ const Join: React.FC = () => {
         if (passwordError) setPasswordError("");
     };
 
+    // 전화번호 핸들러
+    const handlePhoneBodyChange = (value: string) => {
+        const numericValue = value.replace(/[^\d]/g, "").slice(0, 8);
+        setPhoneBody(numericValue);
+    };
+
+    const handleSendVerification = () => {
+    if (!validatePhoneNumber(phonePrefix, phoneBody)) {
+        setHintMessage("올바른 전화번호를 입력해주세요!");
+        return;
+    }
+    
+    setShowVerificationInput(true);
+    setVerificationTimer(180); // 3분
+    setHintMessage("인증번호가 발송되었습니다!");
+};
+
+    const handleVerifyCode = () => {
+        if (verificationCode.trim() === "") {
+            setHintMessage("인증번호를 입력해주세요!");
+            return;
+        }
+        
+        // 실제로는 서버에서 확인해야 함
+        if (verificationCode === "123456") {
+            setIsVerified(true);
+            setHintMessage("전화번호 인증이 완료되었습니다!");
+        } else {
+            setHintMessage("인증번호가 올바르지 않습니다!");
+        }
+    };
+
+    const formatTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
     // 알림 방법 토글
     const toggleNotificationPreference = (type: "email" | "phone") => {
         setNotificationPreference(notificationPreference === type ? "" : type);
@@ -120,7 +175,7 @@ const Join: React.FC = () => {
     // 회원가입 다음 단계
     const nextPage = () => {
         // 유효성 검사
-        if (!id || !password || !confirmPassword || !name || !nickname || !phoneNumber) {
+        if (!id || !password || !confirmPassword || !name || !nickname || !phoneBody) {
             setHintMessage("모든 필수 정보를 입력해주세요!");
             return;
         }
@@ -147,8 +202,13 @@ const Join: React.FC = () => {
             return;
         }
 
-        if (!validatePhoneNumber(phoneNumber)) {
-            setHintMessage("전화번호 형식이 올바르지 않습니다! (010-0000-0000)");
+        if (!validatePhoneNumber(phonePrefix, phoneBody)) {
+            setHintMessage("전화번호 형식이 올바르지 않습니다!");
+            return;
+        }
+
+        if (!isVerified) {
+            setHintMessage("전화번호 인증을 완료해주세요!");
             return;
         }
 
@@ -158,23 +218,19 @@ const Join: React.FC = () => {
         
         // 현재 폼 데이터를 state로 전달
         const formData = {
-            id,
-            idChecked,
-            password,
-            confirmPassword,
-            name,
-            nickname,
-            nicknameChecked,
-            email,
-            phoneNumber,
-            notificationPreference
+            userId: id,
+            password: password,
+            name: name,
+            nick: nickname,
+            tel: phonePrefix + phoneBody,
+            alarmType: notificationPreference === "phone" ? true : false
         };
         
         navigate("/join2", { state: { formData } });
     };
 
-    const isFormValid = id && password && confirmPassword && name && nickname && phoneNumber && 
-                        idChecked && nicknameChecked && validatePhoneNumber(phoneNumber);
+    const isFormValid = id && password && confirmPassword && name && nickname && phoneBody && 
+                    idChecked && nicknameChecked && validatePhoneNumber(phonePrefix, phoneBody) && isVerified;
 
     // Join2에서 돌아올 때 전달된 formData 가져오기
     const previousFormData = location.state?.formData;
@@ -182,30 +238,38 @@ const Join: React.FC = () => {
     // 📌 Join2 → Join 으로 돌아올 때 값 복원
     useEffect(() => {
         if (previousFormData) {
-        setId(previousFormData.id || "");
-        setPassword(previousFormData.password || "");
-        setConfirmPassword(previousFormData.confirmPassword || "");
-        setName(previousFormData.name || "");
-        setNickname(previousFormData.nickname || "");
-        setEmail(previousFormData.email || "");
-        setPhoneNumber(previousFormData.phoneNumber || "");
+            setId(previousFormData.id || "");
+            setPassword(previousFormData.password || "");
+            setConfirmPassword(previousFormData.confirmPassword || "");
+            setName(previousFormData.name || "");
+            setNickname(previousFormData.nickname || "");
+            setEmail(previousFormData.email || "");
+            
+            // 전화번호 분리해서 복원
+            const fullPhoneNumber = previousFormData.phoneNumber || "";
+            if (fullPhoneNumber.length >= 3) {
+                const prefix = fullPhoneNumber.substring(0, 3);
+                const body = fullPhoneNumber.substring(3);
+                setPhonePrefix(prefix);
+                setPhoneBody(body);
+            }
         }
     }, [previousFormData]);
 
     // "다음 단계로" 버튼 → Join2로 데이터 전달
     const handleNext = () => {
         navigate("/join2", {
-        state: {
-            formData: {
-            id,
-            password,
-            confirmPassword,
-            name,
-            nickname,
-            email,
-            phoneNumber,
+            state: {
+                formData: {
+                    id,
+                    password,
+                    confirmPassword,
+                    name,
+                    nickname,
+                    email,
+                    phoneNumber: phonePrefix + phoneBody,
+                },
             },
-        },
         });
     };
 
@@ -217,16 +281,6 @@ const Join: React.FC = () => {
             e.preventDefault(); // 기본 동작 방지
             nextPage();
         }
-    };
-
-    const handlePhoneNumberChange = (value: string) => {
-        // 010으로 시작하지 않으면 010을 앞에 붙임
-        if (!value.startsWith("010")) {
-            value = "010" + value.replace(/^010/, "");
-        }
-        // 숫자만 허용하고 11자리로 제한
-        const numericValue = value.replace(/[^\d]/g, "").slice(0, 11);
-        setPhoneNumber(numericValue);
     };
 
     return (
@@ -509,33 +563,143 @@ const Join: React.FC = () => {
                                     <div className="w-1 h-6 bg-indigo-600 rounded-full"></div>
                                     <h3 className="text-xl font-bold text-gray-800">전화번호 *</h3>
                                 </div>
-                                <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <Phone className="h-5 w-5 text-gray-400" />
-                                    </div>
-                                    <input
-                                        type="tel"
-                                        value={phoneNumber}
-                                        onChange={(e) => handlePhoneNumberChange(e.target.value)} // 수정된 핸들러 사용
-                                        onKeyDown={handleKeyDown}
-                                        placeholder="01012345678"
-                                        className={`w-full pl-10 pr-4 py-3 border rounded-xl transition-all duration-200 ${
-                                            phoneNumber && validatePhoneNumber(phoneNumber) ? 
-                                            "border-green-300 focus:ring-green-200" : 
-                                            "border-gray-200 focus:ring-2 focus:border-transparent"
-                                        }`}
-                                        onFocus={(e) => (e.target as HTMLInputElement).style.boxShadow = `0 0 0 2px rgba(139, 133, 233, 0.2)`}
-                                        onBlur={(e) => (e.target as HTMLInputElement).style.boxShadow = 'none'}
-                                    />
-                                    {phoneNumber && validatePhoneNumber(phoneNumber) && (
-                                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                            <Check className="w-5 h-5 text-green-500" />
+                                <div className="flex gap-2">
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <Phone className="h-5 w-5 text-gray-400" />
                                         </div>
-                                    )}
+                                        <select
+                                            value={phonePrefix}
+                                            onChange={(e) => setPhonePrefix(e.target.value)}
+                                            className="w-26 pl-10 pr-8 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:border-transparent transition-all duration-200 appearance-none bg-white"
+                                            onFocus={(e) => (e.target as HTMLSelectElement).style.boxShadow = `0 0 0 2px rgba(139, 133, 233, 0.2)`}
+                                            onBlur={(e) => (e.target as HTMLSelectElement).style.boxShadow = 'none'}
+                                            disabled={isVerified}
+                                        >
+                                            <option value="010">010</option>
+                                            <option value="011">011</option>
+                                            <option value="012">012</option>
+                                            <option value="017">017</option>
+                                        </select>
+                                    </div>
+                                    <div className="relative flex-1">
+                                        <input
+                                            type="tel"
+                                            value={phoneBody}
+                                            onChange={(e) => handlePhoneBodyChange(e.target.value)}
+                                            onKeyDown={handleKeyDown}
+                                            placeholder="1234"
+                                            className={`w-full px-4 py-3 border rounded-xl transition-all duration-200 ${
+                                                phoneBody && validatePhoneNumber(phonePrefix, phoneBody) ? 
+                                                "border-green-300 focus:ring-green-200" : 
+                                                "border-gray-200 focus:ring-2 focus:border-transparent"
+                                            }`}
+                                            onFocus={(e) => (e.target as HTMLInputElement).style.boxShadow = `0 0 0 2px rgba(139, 133, 233, 0.2)`}
+                                            onBlur={(e) => (e.target as HTMLInputElement).style.boxShadow = 'none'}
+                                            disabled={isVerified}
+                                        />
+                                        {phoneBody && validatePhoneNumber(phonePrefix, phoneBody) && !showVerificationInput && (
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                <Check className="w-5 h-5 text-green-500" />
+                                            </div>
+                                        )}
+                                        {isVerified && (
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                <CheckCircle className="w-5 h-5 text-green-500" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="relative flex-1">
+                                        <input
+                                            type="tel"
+                                            value={phoneBody}
+                                            onChange={(e) => handlePhoneBodyChange(e.target.value)}
+                                            onKeyDown={handleKeyDown}
+                                            placeholder="5678"
+                                            className={`w-full px-4 py-3 border rounded-xl transition-all duration-200 ${
+                                                phoneBody && validatePhoneNumber(phonePrefix, phoneBody) ? 
+                                                "border-green-300 focus:ring-green-200" : 
+                                                "border-gray-200 focus:ring-2 focus:border-transparent"
+                                            }`}
+                                            onFocus={(e) => (e.target as HTMLInputElement).style.boxShadow = `0 0 0 2px rgba(139, 133, 233, 0.2)`}
+                                            onBlur={(e) => (e.target as HTMLInputElement).style.boxShadow = 'none'}
+                                            disabled={isVerified}
+                                        />
+                                        {phoneBody && validatePhoneNumber(phonePrefix, phoneBody) && !showVerificationInput && (
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                <Check className="w-5 h-5 text-green-500" />
+                                            </div>
+                                        )}
+                                        {isVerified && (
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                <CheckCircle className="w-5 h-5 text-green-500" />
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                                 <p className="text-sm text-gray-500 mt-1">
-                                    형식: 01012345678
+                                    형식: 010-12345678
                                 </p>
+                                
+                                {/* 인증 버튼 */}
+                                <div className="mt-3">
+                                    <button 
+                                        onClick={handleSendVerification}
+                                        disabled={!validatePhoneNumber(phonePrefix, phoneBody) || isVerified}
+                                        className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-200 ${
+                                            isVerified 
+                                                ? "bg-green-100 text-green-600 cursor-default"
+                                                : validatePhoneNumber(phonePrefix, phoneBody)
+                                                    ? "text-white hover:shadow-lg transform hover:scale-[1.02]"
+                                                    : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                                        }`}
+                                        style={validatePhoneNumber(phonePrefix, phoneBody) && !isVerified ? { 
+                                            backgroundColor: "#8B85E9",
+                                            boxShadow: "0 4px 6px -1px rgba(139, 133, 233, 0.1)"
+                                        } : {}}
+                                    >
+                                        {isVerified ? "인증 완료" : showVerificationInput ? "인증번호 재발송" : "인증번호 발송"}
+                                    </button>
+                                </div>
+
+                                {/* 인증번호 입력 필드 */}
+                                {showVerificationInput && !isVerified && (
+                                    <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <AlertCircle className="w-4 h-4 text-indigo-600" />
+                                            <span className="text-sm font-medium text-gray-700">인증번호를 입력해주세요</span>
+                                            {verificationTimer > 0 && (
+                                                <span className="text-sm text-red-500 ml-auto font-mono">
+                                                    {formatTime(verificationTimer)}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={verificationCode}
+                                                onChange={(e) => setVerificationCode(e.target.value.replace(/[^\d]/g, "").slice(0, 6))}
+                                                placeholder="6자리 인증번호"
+                                                className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:border-transparent transition-all duration-200"
+                                                onFocus={(e) => (e.target as HTMLInputElement).style.boxShadow = `0 0 0 2px rgba(139, 133, 233, 0.2)`}
+                                                onBlur={(e) => (e.target as HTMLInputElement).style.boxShadow = 'none'}
+                                                maxLength={6}
+                                            />
+                                            <button
+                                                onClick={handleVerifyCode}
+                                                disabled={verificationCode.length !== 6}
+                                                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-200 ${
+                                                    verificationCode.length === 6
+                                                        ? "text-white hover:opacity-90"
+                                                        : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                                                }`}
+                                                style={verificationCode.length === 6 ? { backgroundColor: "#8B85E9" } : {}}
+                                            >
+                                                확인
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* 알림 설정 - 토글 가능하도록 수정 */}

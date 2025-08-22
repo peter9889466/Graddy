@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Search, X, CheckCircle, AlertCircle, Clock } from "lucide-react";
+import { Search, X, CheckCircle, AlertCircle, Clock, Loader } from "lucide-react";
+import axios from "axios";
 
+// API 응답 데이터 구조
+interface ApiInterestItem {
+    interestId: number;
+    interestDivision: number;
+    interestName: string;
+}
+
+// 컴포넌트에서 사용할 데이터 구조
 interface InterestItem {
     id: number;
     name: string;
@@ -12,52 +21,41 @@ interface SelectedInterestItem extends InterestItem {
     difficulty: string;
 }
 
-const allInterests: InterestItem[] = [
-    { id: 1, name: "Python", category: "language" }, 
-    { id: 2, name: "JavaScript", category: "language" }, 
-    { id: 3, name: "Java", category: "language" },
-    { id: 4, name: "C++", category: "language" }, 
-    { id: 5, name: "C", category: "language" }, 
-    { id: 6, name: "TypeScript", category: "language" },
-    { id: 7, name: "Kotlin", category: "language" }, 
-    { id: 8, name: "Swift", category: "language" }, 
-    { id: 9, name: "Go", category: "language" },
-    { id: 10, name: "PHP", category: "language" }, 
-    { id: 11, name: "Dart", category: "language" }, 
-    { id: 12, name: "Rust", category: "language" },
-    { id: 13, name: "Ruby", category: "language" }, 
-    { id: 14, name: "Assembly", category: "language" }, 
-    { id: 15, name: "React", category: "framework" },
-    { id: 16, name: "Node.js", category: "framework" }, 
-    { id: 17, name: "Spring", category: "framework" }, 
-    { id: 18, name: "Spring Boot", category: "framework" },
-    { id: 19, name: "Django", category: "framework" }, 
-    { id: 20, name: "Flask", category: "framework" }, 
-    { id: 21, name: "Vue", category: "framework" },
-    { id: 22, name: "Pandas", category: "tool" }, 
-    { id: 23, name: "Unity", category: "tool" }, 
-    { id: 24, name: "Linux", category: "platform" },
-];
+// interestDivision(숫자)를 category(문자열)로 매핑하는 객체
+const categoryMapping: { [key: number]: string } = {
+    1: "language",
+    2: "framework",
+    3: "database",
+    4: "platform",
+    5: "ai-ml",
+    6: "common"
+};
 
+// UI에 표시될 카테고리 이름
 const categories = {
     all: "전체",
-    language: "프로그래밍 언어", 
-    framework: "프레임워크/라이브러리",
-    tool: "도구/라이브러리",
-    platform: "플랫폼/OS"
+    language: "프로그래밍 언어",
+    framework: "라이브러리 & 프레임워크",
+    database: "데이터베이스",
+    platform: "플랫폼/환경",
+    "ai-ml": "AI/데이터",
+    common: "기타"
 };
 
 const Join2: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    
-    // 이전 페이지에서 전달받은 데이터
+
     const previousFormData = location.state?.formData;
     const previousJoin2Data = location.state?.join2Data;
-    // 📌 추가: Join3에서 돌아올 때의 데이터
     const previousJoin3Data = location.state?.join3Data;
+
+    // API에서 가져온 모든 관심사 목록
+    const [allInterests, setAllInterests] = useState<InterestItem[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     
-    // **수정된 부분**: 이전 페이지에서 전달받은 데이터로 상태 초기화
+    // 컴포넌트 상태
     const [selectedInterests, setSelectedInterests] = useState<SelectedInterestItem[]>(previousJoin2Data?.selectedInterests || []);
     const [searchTerm, setSearchTerm] = useState(previousJoin2Data?.searchTerm || "");
     const [activeDifficulty, setActiveDifficulty] = useState<string | null>(previousJoin2Data?.activeDifficulty || null);
@@ -67,6 +65,38 @@ const Join2: React.FC = () => {
     const [showHint, setShowHint] = useState(false);
 
     const maxSelections = 10;
+    const apiEndpoint = "http://localhost:8080/api/api/interests";
+
+    // 컴포넌트 마운트 시 API 데이터 가져오기
+    useEffect(() => {
+        const fetchInterests = async () => {
+            setIsLoading(true);
+            setError(null);
+            try {
+                const response = await fetch(apiEndpoint);
+                if (!response.ok) {
+                    throw new Error("네트워크 응답이 올바르지 않습니다.");
+                }
+                const result = await response.json();
+                
+                // API 응답 데이터를 UI에 맞게 변환
+                const mappedInterests: InterestItem[] = result.data.map((item: ApiInterestItem) => ({
+                    id: item.interestId,
+                    name: item.interestName,
+                    category: categoryMapping[item.interestDivision] || "other" // 매핑되지 않으면 'other'로 설정
+                }));
+
+                setAllInterests(mappedInterests);
+            } catch (err) {
+                console.error("Failed to fetch interests:", err);
+                setError("관심사 목록을 불러오는 데 실패했습니다. 서버가 실행 중인지 확인해주세요.");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchInterests();
+    }, []);
 
     // 힌트 메시지 자동 숨김
     useEffect(() => {
@@ -160,9 +190,13 @@ const Join2: React.FC = () => {
         }
     };
 
-    // 이전 버튼 클릭 핸들러
+    const difficultyMapping: { [key: string]: number } = {
+        "초급": 1,
+        "중급": 2,
+        "고급": 3
+    };
+
     const goToPrevious = () => {
-        // 현재 Join2의 상태와 이전에서 받은 formData를 함께 전달
         const currentJoin2Data = {
             selectedInterests,
             searchTerm,
@@ -177,31 +211,29 @@ const Join2: React.FC = () => {
             } 
         });
     };
+    
+const goToNext = () => {
+    if (selectedInterests.length === 0) {
+        setHintMessage("최소 하나 이상의 관심분야를 선택해주세요!");
+        return;
+    }
 
-    // 다음 버튼 클릭 핸들러  
-    const goToNext = () => {
-        if (selectedInterests.length === 0) {
-            setHintMessage("최소 하나 이상의 관심분야를 선택해주세요!");
-            return;
-        }
-        
-        // Join 데이터와 Join2 데이터를 함께 Join3로 전달 (Join3 데이터도 포함)
-        const allData = {
-            formData: previousFormData,
-            join2Data: {
-                selectedInterests,
-                searchTerm,
-                activeDifficulty,
-                activeCategory
-            },
-            // 📌 추가: Join3에서 돌아온 데이터가 있으면 함께 전달
-            ...(previousJoin3Data && { join3Data: previousJoin3Data })
-        };
-        
-        navigate("/join3", { state: allData });
+    const currentJoin2Data = {
+        selectedInterests,
+        searchTerm,
+        activeDifficulty,
+        activeCategory
     };
 
-    // Enter 키 핸들러 추가
+    // Join3로 모든 데이터 전달 (API 호출 제거)
+    navigate("/join3", {
+        state: {
+            formData: previousFormData,
+            join2Data: currentJoin2Data
+        }
+    });
+};
+
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && isProceedEnabled) {
             e.preventDefault();
@@ -209,7 +241,6 @@ const Join2: React.FC = () => {
         }
     };
 
-    // 필터링 로직
     const filteredInterests = allInterests.filter((item) => {
         const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = activeCategory === "all" || item.category === activeCategory;
@@ -218,12 +249,10 @@ const Join2: React.FC = () => {
 
     const steps = ["프로필 설정", "관심사 선택", "시간대 선택"];
     const isProceedEnabled = selectedInterests.length > 0;
-
     
-
     return (
         <div 
-            className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-8 px-4"
+            className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-8 px-4 font-sans"
             onKeyDown={handleKeyDown}
             tabIndex={0}
         >
@@ -274,27 +303,27 @@ const Join2: React.FC = () => {
 
                         {/* 검색창 */}
                         <div className="relative mb-6">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <Search className="h-5 w-5 text-gray-400" />
-                        </div>
-                        <input
-                            type="text"
-                            placeholder="기술이나 분야를 검색해보세요..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent transition-all duration-200"
-                            onFocus={(e) => (e.target as HTMLInputElement).style.boxShadow = `0 0 0 2px rgba(139, 133, 233, 0.2)`}
-                            onBlur={(e) => (e.target as HTMLInputElement).style.boxShadow = 'none'}
-                            onKeyDown={handleKeyDown}
-                        />
-                        {searchTerm && (
-                            <button
-                            onClick={() => setSearchTerm("")}
-                            className="absolute inset-y-0 right-0 pr-4 flex items-center"
-                            >
-                            <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
-                            </button>
-                        )}
+                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <Search className="h-5 w-5 text-gray-400" />
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="기술이나 분야를 검색해보세요..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent transition-all duration-200"
+                                onFocus={(e) => (e.target as HTMLInputElement).style.boxShadow = `0 0 0 2px rgba(139, 133, 233, 0.2)`}
+                                onBlur={(e) => (e.target as HTMLInputElement).style.boxShadow = 'none'}
+                                onKeyDown={handleKeyDown}
+                            />
+                            {searchTerm && (
+                                <button
+                                onClick={() => setSearchTerm("")}
+                                className="absolute inset-y-0 right-0 pr-4 flex items-center"
+                                >
+                                <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                                </button>
+                            )}
                         </div>
 
                         {/* 카테고리 필터 */}
@@ -308,7 +337,7 @@ const Join2: React.FC = () => {
                                 ? "text-white shadow-md"
                                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                             }`}
-                                                                    style={activeCategory === key ? { backgroundColor: "#8B85E9" } : {}}
+                                                        style={activeCategory === key ? { backgroundColor: "#8B85E9" } : {}}
                             >
                             {label}
                             </button>
@@ -342,48 +371,61 @@ const Join2: React.FC = () => {
                                 <h3 className="text-xl font-bold text-gray-800">기술 및 분야</h3>
                             </div>
                             <div className="border border-gray-200 rounded-xl p-4 h-64 overflow-y-auto bg-gray-50">
-                                <div className="flex flex-wrap gap-2">
-                                    {filteredInterests.map((item) => {
-                                    const isSelected = selectedInterests.some((i) => i.id === item.id);
-                                    return (
-                                        <button
-                                        key={item.id}
-                                        onClick={() => handleInterestClick(item)}
-                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105 ${
-                                            isSelected
-                                            ? "bg-white text-white shadow-md"
-                                            : "bg-white text-gray-700 hover:text-indigo-600 border border-gray-200 hover:border-indigo-200"
-                                        }`}
-                                        style={isSelected ? { 
-                                            backgroundColor: "#8B85E9",
-                                            color: "white",
-                                            boxShadow: "0 0 0 2px rgba(139, 133, 233, 0.2)"
-                                        } : {}}
-                                        onMouseEnter={!isSelected ? (e) => {
-                                            (e.target as HTMLButtonElement).style.backgroundColor = "rgba(139, 133, 233, 0.05)";
-                                            (e.target as HTMLButtonElement).style.color = "#8B85E9";
-                                        } : undefined}
-                                        onMouseLeave={!isSelected ? (e) => {
-                                            (e.target as HTMLButtonElement).style.backgroundColor = "white";
-                                            (e.target as HTMLButtonElement).style.color = "rgb(55, 65, 81)";
-                                        } : undefined}
-                                        >
-                                        {item.name}
-                                        </button>
-                                    );
-                                    })}
-                                </div>
-                                {filteredInterests.length === 0 && (
-                                    <div className="text-center text-gray-500 py-8">
-                                    검색 결과가 없습니다.
+                                {isLoading ? (
+                                    <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                                        <Loader className="w-8 h-8 animate-spin text-indigo-600 mb-2" />
+                                        <p>관심사 목록을 불러오는 중...</p>
+                                    </div>
+                                ) : error ? (
+                                    <div className="flex flex-col items-center justify-center h-full text-red-500">
+                                        <AlertCircle className="w-8 h-8 mb-2" />
+                                        <p>{error}</p>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-wrap gap-2">
+                                        {filteredInterests.length === 0 ? (
+                                            <div className="text-center w-full text-gray-500 py-8">
+                                                검색 결과가 없습니다.
+                                            </div>
+                                        ) : (
+                                            filteredInterests.map((item) => {
+                                                const isSelected = selectedInterests.some((i) => i.id === item.id);
+                                                return (
+                                                    <button
+                                                    key={item.id}
+                                                    onClick={() => handleInterestClick(item)}
+                                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105 ${
+                                                        isSelected
+                                                        ? "bg-white text-white shadow-md"
+                                                        : "bg-white text-gray-700 hover:text-indigo-600 border border-gray-200 hover:border-indigo-200"
+                                                    }`}
+                                                    style={isSelected ? { 
+                                                        backgroundColor: "#8B85E9",
+                                                        color: "white",
+                                                        boxShadow: "0 0 0 2px rgba(139, 133, 233, 0.2)"
+                                                    } : {}}
+                                                    onMouseEnter={!isSelected ? (e) => {
+                                                        (e.target as HTMLButtonElement).style.backgroundColor = "rgba(139, 133, 233, 0.05)";
+                                                        (e.target as HTMLButtonElement).style.color = "#8B85E9";
+                                                    } : undefined}
+                                                    onMouseLeave={!isSelected ? (e) => {
+                                                        (e.target as HTMLButtonElement).style.backgroundColor = "white";
+                                                        (e.target as HTMLButtonElement).style.color = "rgb(55, 65, 81)";
+                                                    } : undefined}
+                                                    >
+                                                    {item.name}
+                                                    </button>
+                                                );
+                                            })
+                                        )}
                                     </div>
                                 )}
                             </div>
-                            </div>
-                            </div>
+                        </div>
+                        </div>
 
-                            {/* 선택된 관심분야 */}
-                            <div className="mb-6">
+                        {/* 선택된 관심분야 */}
+                        <div className="mb-6">
                             <div className="flex items-center justify-between mb-3">
                                 <div className="flex items-center gap-2 mb-2">
                                     <div className="w-1 h-6 bg-indigo-600 rounded-full"></div>
@@ -423,10 +465,10 @@ const Join2: React.FC = () => {
                                 </div>
                                 )}
                             </div>
-                            </div>
+                        </div>
 
-                            {/* 하단 버튼 */}
-                            <div className="flex flex-col sm:flex-row gap-4">
+                        {/* 하단 버튼 */}
+                        <div className="flex flex-col sm:flex-row gap-4">
                             <button
                                 className="flex-1 py-4 px-6 rounded-xl font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-200"
                                 onClick={goToPrevious}
@@ -456,7 +498,7 @@ const Join2: React.FC = () => {
                                 다음
                             </button>
 
-                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
