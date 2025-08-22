@@ -1,9 +1,16 @@
 import React, { useState } from "react";
-import { CheckCircle, Circle, Clock, BookOpen, Code, Users, Target } from "lucide-react";
+import { CheckCircle, Circle, Clock, BookOpen, Code, Users, Target, Edit } from "lucide-react";
+
+interface CurriculumItem {
+    week: number;
+    title: string;
+    status: string;
+    topics: string[];
+    materials: string[];
+    assignments: string[];
+}
 
 const Curriculum: React.FC = () => {
-    const [selectedWeek, setSelectedWeek] = useState<number>(1);
-
     // 커리큘럼 데이터
     const curriculumData = [
         {
@@ -112,6 +119,18 @@ const Curriculum: React.FC = () => {
         }
     ];
 
+    const [selectedWeek, setSelectedWeek] = useState<number>(1);
+    const [isEditing, setIsEditing] = useState<boolean>(false);
+    
+    // localStorage에서 저장된 데이터를 가져오거나 초기 데이터 사용
+    const getSavedCurriculumData = (): CurriculumItem[] => {
+        const saved = localStorage.getItem('curriculumData');
+        return saved ? JSON.parse(saved) : curriculumData;
+    };
+    
+    const [curriculumDataState, setCurriculumDataState] = useState<CurriculumItem[]>(getSavedCurriculumData);
+    const [editingData, setEditingData] = useState(curriculumData[0]);
+
     const getStatusIcon = (status: string) => {
         switch (status) {
             case "completed":
@@ -124,7 +143,6 @@ const Curriculum: React.FC = () => {
                 return <Circle className="w-5 h-5 text-gray-400" />;
         }
     };
-
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -139,104 +157,74 @@ const Curriculum: React.FC = () => {
         }
     };
 
-    const selectedCurriculum = curriculumData.find(c => c.week === selectedWeek);
+    const selectedCurriculum = curriculumDataState.find(c => c.week === selectedWeek);
+
+    const handleEditToggle = () => {
+        if (isEditing) {
+            // 수정 완료 시 데이터 저장
+            const updatedData = curriculumDataState.map((c: CurriculumItem) => c.week === selectedWeek ? editingData : c);
+            setCurriculumDataState(updatedData);
+            // localStorage에 저장
+            localStorage.setItem('curriculumData', JSON.stringify(updatedData));
+            setIsEditing(false);
+        } else {
+            // 수정 시작 시 현재 데이터를 편집 데이터로 복사
+            setEditingData({ ...selectedCurriculum! });
+            setIsEditing(true);
+        }
+    };
+
+    const handleInputChange = (value: string) => {
+        if (isEditing) {
+            setEditingData(prev => {
+                const newData = { ...prev };
+                // 입력된 텍스트를 그대로 저장
+                newData.topics = [value];
+                newData.materials = [];
+                newData.assignments = [];
+                return newData;
+            });
+        }
+    };
+
+    const displayData = isEditing ? editingData : selectedCurriculum;
 
     return (
-        <div className="space-y-4 h-[61.5vh] overflow-y-auto p-4 pr-10">
-            {/* 커리큘럼 제목 */}
-            <h2 className="text-xl font-bold mb-6 -mt-4 -ml-4"
-                style={{ color: "#8B85E9" }}>커리큘럼</h2>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-                {/* 선택된 주차 상세 정보 */}
-                <div className="lg:col-span-2">
-                    {selectedCurriculum && (
-                        <div className="bg-white rounded-xl shadow-sm border-2 p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <div>
-                                    <h3 className="text-xl font-bold text-gray-800">
-                                        {selectedCurriculum.week}주차: {selectedCurriculum.title}
-                                    </h3>
-                                    <div className="flex items-center gap-2 mt-2">
-                                        {getStatusIcon(selectedCurriculum.status)}
-                                        <span className={`text-sm px-3 py-1 rounded-full ${getStatusColor(selectedCurriculum.status)}`}>
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* 학습 주제 */}
-                            <div className="mb-6">
-                                <div className="flex items-center gap-2 mb-3">
-                                    <Target className="w-5 h-5 text-blue-500" />
-                                    <h4 className="font-semibold text-gray-800">학습 주제</h4>
-                                </div>
-                                <ul className="space-y-2">
-                                    {selectedCurriculum.topics.map((topic, index) => (
-                                        <li key={index} className="flex items-start gap-2">
-                                            <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                                            <span className="text-gray-700">{topic}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-
-                            {/* 학습 자료 */}
-                            <div className="mb-6">
-                                <div className="flex items-center gap-2 mb-3">
-                                    <BookOpen className="w-5 h-5 text-green-500" />
-                                    <h4 className="font-semibold text-gray-800">학습 자료</h4>
-                                </div>
-                                <ul className="space-y-2">
-                                    {selectedCurriculum.materials.map((material, index) => (
-                                        <li key={index} className="flex items-start gap-2">
-                                            <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                                            <span className="text-gray-700">{material}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-
-                            {/* 과제 */}
-                            <div>
-                                <div className="flex items-center gap-2 mb-3">
-                                    <Code className="w-5 h-5 text-purple-500" />
-                                    <h4 className="font-semibold text-gray-800">과제</h4>
-                                </div>
-                                <ul className="space-y-2">
-                                    {selectedCurriculum.assignments.map((assignment, index) => (
-                                        <li key={index} className="flex items-start gap-2">
-                                            <div className="w-2 h-2 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
-                                            <span className="text-gray-700">{assignment}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        </div>
-                    )}
-                </div>
+        <div className="space-y-4 p-4 pr-10">
+            {/* 커리큘럼 제목과 수정 버튼 */}
+            <div className="flex items-center justify-between mb-6 -mt-4 -ml-4">
+                <h2 className="text-xl font-bold"
+                    style={{ color: "#8B85E9" }}>커리큘럼</h2>
+                <button
+                    onClick={handleEditToggle}
+                    className="flex items-center gap-2 px-4 py-2 bg-[#8B85E9] text-white rounded-lg hover:bg-[#7A75D8] transition-colors duration-200"
+                >
+                    <Edit className="w-4 h-4" />
+                    <span className="text-sm font-medium">
+                        {isEditing ? "수정 완료" : "수정"}
+                    </span>
+                </button>
             </div>
 
-            {/* 전체 진행률 */}
-            <div className="bg-white rounded-xl shadow-sm border-2 p-4">
-                <div className="flex items-center gap-2 mb-3">
-                    <Users className="w-5 h-5 text-orange-500" />
-                    <h3 className="font-semibold text-gray-800">전체 진행률</h3>
-                </div>
-                <div className="flex items-center gap-4">
-                    <div className="flex-1">
-                        <div className="w-full bg-gray-200 rounded-full h-3">
-                            <div 
-                                className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-500"
-                                style={{ width: `${(curriculumData.filter(c => c.status === "completed").length / curriculumData.length) * 100}%` }}
-                            ></div>
-                        </div>
-                    </div>
-                    <span className="text-sm font-medium text-gray-600">
-                        {curriculumData.filter(c => c.status === "completed").length} / {curriculumData.length} 완료
-                    </span>
-                </div>
+            {/* 커리큘럼 내용 */}
+            <div className="bg-white rounded-xl shadow-sm border-2 p-6">
+                {displayData && (
+                    <>
+
+
+                        {isEditing ? (
+                            <textarea
+                                value={displayData.topics[0] || ''}
+                                onChange={(e) => handleInputChange(e.target.value)}
+                                className="w-full text-gray-700 bg-gray-50 border border-gray-300 rounded px-3 py-2 min-h-[400px] resize-y"
+                            />
+                        ) : (
+                            <div className="whitespace-pre-wrap text-gray-700">
+                                {displayData.topics[0] || ''}
+                            </div>
+                        )}
+                    </>
+                )}
             </div>
         </div>
     );

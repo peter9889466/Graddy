@@ -96,7 +96,7 @@ const Assignment: React.FC = () => {
   }, [selectedOption, getSubmissionByAssignment]);
 
   return (
-    <div className="space-y-4 h-[61.5vh] overflow-y-auto p-4 pr-10">
+    		<div className="space-y-4 p-4 pr-10">
       {/* 과제 제출 소제목 */}
       <h2 className="text-xl font-bold mb-6 -mt-5 -ml-4"
         style={{ color: "#8B85E9" }}>과제 제출</h2>

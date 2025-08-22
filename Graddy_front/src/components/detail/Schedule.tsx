@@ -61,7 +61,7 @@ const Schedule = () => {
     const filteredItems = scheduleItems.filter(item => item.type === activeTab);
 
     return (
-        <div className="space-y-6 h-[61.5vh] overflow-y-auto p-4 pr-10">
+        		<div className="space-y-6 p-4 pr-10">
             <div className="relative w-[420px] mx-auto">
               {/* 보라색 바 */}
               <div className="bg-[#8B85E9] rounded-full h-12 shadow-md relative flex items-center px-1">
