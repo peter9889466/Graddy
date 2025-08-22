@@ -4,6 +4,7 @@ package com.smhrd.graddy.user.service;
 import com.smhrd.graddy.user.dto.JoinRequest;
 import com.smhrd.graddy.user.dto.UserInterestRequest;
 import com.smhrd.graddy.user.dto.UserProfileUpdateRequest;
+import com.smhrd.graddy.user.dto.UserWithdrawalRequest;
 import com.smhrd.graddy.user.entity.User;
 import com.smhrd.graddy.user.entity.UserInterest;
 import com.smhrd.graddy.user.entity.UserAvailableDays;
@@ -210,5 +211,41 @@ public class UserService {
         
         // 수정된 사용자 정보 저장
         return userRepository.save(user);
+    }
+
+    /**
+     * [추가] 회원탈퇴 메서드
+     * @param currentUserId 현재 사용자 아이디
+     * @return 삭제된 사용자 정보
+     */
+    @Transactional
+    public User withdrawUser(String currentUserId) {
+        // 기존 사용자 조회
+        User user = userRepository.findByUserId(currentUserId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        
+        // 1. CASCADE로 자동 삭제되는 테이블들:
+        // - user_interest (사용자 관심분야)
+        // - user_available_days (사용자 가능 요일)
+        // - scores (사용자 점수)
+        // - schedule (사용자 일정)
+        // - study_project_status (스터디 신청 상태)
+        
+        // 2. CASCADE가 설정되지 않은 테이블들 (수동 삭제 필요):
+        // - study_project_member (스터디 멤버)
+        // - assignments (과제)
+        // - submissions (과제 제출)
+        // - feedbacks (피드백)
+        // - chat_messages (채팅 메시지)
+        // - free_posts (자유게시판)
+        // - study_posts (스터디 커뮤니티)
+        
+        // 3. 댓글(comments)은 남겨둠 (회원탈퇴해도 댓글은 유지)
+        
+        // 4. 최종적으로 users 테이블에서 사용자 삭제
+        // CASCADE 설정된 테이블들은 자동으로 삭제됨
+        userRepository.delete(user);
+        
+        return user;
     }
 }

@@ -9,6 +9,7 @@ import com.smhrd.graddy.user.dto.FindIdRequest;
 import com.smhrd.graddy.user.dto.UserInterestsUpdateRequest;
 import com.smhrd.graddy.user.dto.UserProfileUpdateRequest;
 import com.smhrd.graddy.user.dto.UserProfileUpdateResponse;
+import com.smhrd.graddy.user.dto.UserWithdrawalRequest;
 import com.smhrd.graddy.user.entity.User;
 import com.smhrd.graddy.user.service.UserService;
 import com.smhrd.graddy.security.jwt.JwtUtil;
@@ -323,6 +324,57 @@ public class UserController {
             );
             
             return ApiResponse.success("회원 정보 수정이 완료되었습니다.", data);
+            
+        } catch (IllegalArgumentException e) {
+            // 예외 발생 시 400 Bad Request 응답
+            return ApiResponse.error(HttpStatus.BAD_REQUEST, e.getMessage(), null);
+        } catch (Exception e) {
+            // JWT 토큰 관련 오류 등 기타 예외 발생 시 401 Unauthorized 응답
+            return ApiResponse.error(HttpStatus.UNAUTHORIZED, "인증에 실패했습니다: " + e.getMessage(), null);
+        }
+    }
+
+    @Operation(
+        summary = "회원탈퇴",
+        description = "현재 로그인한 사용자의 계정을 삭제합니다. 프론트엔드에서 확인 처리를 하므로 즉시 삭제됩니다."
+    )
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200", 
+            description = "회원탈퇴 성공",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "400", 
+            description = "잘못된 요청 (확인 메시지 불일치 등)",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "401", 
+            description = "인증 실패",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        )
+    })
+    @DeleteMapping("/me/withdraw")
+    public ResponseEntity<ApiResponse<Map<String, String>>> withdrawUser(
+        @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiJ9...") 
+        @RequestHeader("Authorization") String authorizationHeader) {
+        try {
+            // JWT 토큰에서 현재 사용자 아이디 추출
+            String token = authorizationHeader.replace("Bearer ", "");
+            String currentUserId = jwtUtil.extractUserId(token);
+            
+            // UserService를 통해 회원탈퇴 처리
+            User deletedUser = userService.withdrawUser(currentUserId);
+            
+            // 성공 응답 데이터 생성
+            Map<String, String> data = Map.of(
+                "message", "회원탈퇴가 완료되었습니다.",
+                "deletedUserId", deletedUser.getUserId(),
+                "note", "관련 데이터는 CASCADE 설정에 따라 자동 삭제되었으며, 댓글은 남겨집니다."
+            );
+            
+            return ApiResponse.success("회원탈퇴가 성공적으로 처리되었습니다.", data);
             
         } catch (IllegalArgumentException e) {
             // 예외 발생 시 400 Bad Request 응답
