@@ -3,7 +3,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080
 
 // 공통 헤더 설정
 const getHeaders = (): HeadersInit => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('userToken');
     const headers: HeadersInit = {
         'Content-Type': 'application/json'
     };
@@ -46,6 +46,13 @@ export const apiRequest = async <T>(
         headers: getHeaders(),
         ...options,
     };
+
+    console.log('API 요청 정보:', {
+        url,
+        method: options.method || 'GET',
+        headers: config.headers,
+        body: options.body
+    });
 
     try {
         const response = await fetch(url, config);

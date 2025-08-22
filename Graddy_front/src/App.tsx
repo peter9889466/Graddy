@@ -26,6 +26,7 @@ import Join3 from "./pages/Join3";
 import FindAccount from "./pages/FindAccount";
 import { Ranking } from "./pages/Ranking";
 import { CommunityPage } from "./pages/CommunityPage";
+import ApiTestComponent from "./components/examples/ApiTestComponent";
 
 function App() {
     return (
@@ -63,6 +64,7 @@ function App() {
                                     path="/search"
                                     element={<StudySearchPage />}
                                 />
+                                <Route path="/api-test" element={<ApiTestComponent />} />
                                 <Route
                                     path="/study/create"
                                     element={<StudyCreate />}

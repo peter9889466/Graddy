@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, X, Search, Check, Sun, Moon, CheckCircle, AlertCircle } from 'lucide-react';
 import PageLayout from '../components/layout/PageLayout';
 import { AuthContext } from '../contexts/AuthContext';
-import { StudyApiService, CreateStudyRequest } from '../services/studyApi';
+import { StudyApiService, CreateStudyRequest, CreateStudyProjectRequest } from '../services/studyApi';
 
 // 슬라이더 스타일을 위한 CSS
 const sliderStyles = `
@@ -275,7 +275,7 @@ const StudyCreate: React.FC = () => {
         }
 
         try {
-            // 백엔드 API로 스터디 생성 요청
+            // 백엔드 API로 스터디 프로젝트 생성 요청
             // 백엔드에서 요구하는 형식으로 데이터 변환
             const now = new Date();
             const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
@@ -293,30 +293,47 @@ const StudyCreate: React.FC = () => {
                 }
             };
             
-            // 태그 데이터를 백엔드 형식으로 변환
-            const tagNames = studyData.tags.map(tag => tag.name);
+            // 선택된 요일을 dayIds로 변환
+            const dayMapping = {
+                monday: '1',
+                tuesday: '2', 
+                wednesday: '3',
+                thursday: '4',
+                friday: '5',
+                saturday: '6',
+                sunday: '7'
+            };
             
-            // 더 간단한 테스트용 데이터로 시도
-            const createStudyRequest: CreateStudyRequest = {
-                studyName: studyData.title,
-                studyTitle: studyData.title,
-                studyDesc: studyData.description,
+            const selectedDayIds = Object.entries(studyData.selectedDays)
+                .filter(([_, isSelected]) => isSelected)
+                .map(([dayKey, _]) => dayMapping[dayKey as keyof typeof dayMapping]);
+            
+            // 태그에서 interestIds 추출 (임시로 1, 2, 3 사용)
+            const interestIds = studyData.tags.length > 0 ? [1, 2, 3] : [1];
+            
+            // 새로운 스터디 프로젝트 생성 요청 데이터
+            const createStudyProjectRequest: CreateStudyProjectRequest = {
+                studyProjectName: studyData.title,
+                studyProjectTitle: studyData.title,
+                studyProjectDesc: studyData.description,
                 studyLevel: selectedDifficulty === '초급' ? 1 : selectedDifficulty === '중급' ? 2 : 3,
-                userId: user?.nickname || 'testuser', // nickname을 userId로 사용, 로그인하지 않은 경우 testuser
-                studyStart: now.toISOString(), // 현재 날짜를 시작일로 설정
-                studyEnd: endDate.toISOString(), // 30일 후를 종료일로 설정
-                studyTotal: studyData.maxMembers,
+                typeCheck: studyType, // "study" 또는 "project"
+                userId: user?.nickname || 'testuser', // JWT 토큰에서 자동 추출되므로 선택적
+                studyProjectStart: now.toISOString(), // 현재 날짜를 시작일로 설정
+                studyProjectEnd: endDate.toISOString(), // 30일 후를 종료일로 설정
+                studyProjectTotal: studyData.maxMembers,
                 soltStart: formatTimeForBackend(studyData.startTime, 9), // 시작 시간을 ISO 형식으로
                 soltEnd: formatTimeForBackend(studyData.endTime, 18), // 종료 시간을 ISO 형식으로
-                interestIds: [1] // 최소한 하나의 interest ID는 필요
+                interestIds: interestIds,
+                dayIds: selectedDayIds
             };
 
-            console.log('백엔드로 전송할 데이터:', createStudyRequest);
+            console.log('백엔드로 전송할 데이터:', createStudyProjectRequest);
             console.log('현재 사용자 정보:', user);
             console.log('API_BASE_URL:', import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api');
 
-            const createdStudy = await StudyApiService.createStudy(createStudyRequest);
-            console.log('생성된 스터디:', createdStudy);
+            const createdStudyProject = await StudyApiService.createStudyProject(createStudyProjectRequest);
+            console.log('생성된 스터디 프로젝트:', createdStudyProject);
 
             // 성공 시 검색 페이지로 이동
             navigate('/search');
