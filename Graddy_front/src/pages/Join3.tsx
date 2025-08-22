@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Check, AlertCircle, CheckCircle, Clock, Sun, Moon, Sunset, Timer } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import axios from "axios";
 
 interface DaySelection {
     [key: string]: boolean;
@@ -123,32 +124,124 @@ const Join3: React.FC = () => {
         return getSelectedDayCount() > 0 && isTimeSlotValid();
     };
 
-    // Function to handle the "Complete Signup" button click.
-    const completeSignup = () => {
-        const selectedDayCount = getSelectedDayCount();
+    // 회원가입 완료
+    const completeSignup = async () => {
+    const selectedDayCount = getSelectedDayCount();
+    
+    if (selectedDayCount === 0) {
+        setHintMessage("최소 하나의 요일을 선택해주세요!");
+        return;
+    }
+
+    if (!isTimeSlotValid()) {
+        if (customTimeSlot.startTime === null || customTimeSlot.endTime === null) {
+            setHintMessage("시작 시간과 마침 시간을 모두 입력해주세요!");
+        } else if (areTimesSame()) {
+            setHintMessage("시작 시간과 마침 시간이 같습니다!");
+        } else {
+            setHintMessage("시작 시간은 마침 시간보다 빨라야 합니다!");
+        }
+        return;
+    }
+
+    try {
+        // 요일 매핑 (백엔드에서 1: 일요일, 2: 월요일, ..., 7: 토요일로 기대)
+        const dayMap: Record<string, number> = {
+            sunday: 1,
+            monday: 2,
+            tuesday: 3,
+            wednesday: 4,
+            thursday: 5,
+            friday: 6,
+            saturday: 7,
+        };
+
+        const availableDays = Object.entries(selectedDays)
+            .filter(([_, selected]) => selected)
+            .map(([day]) => dayMap[day]);
+
+        // 📌 수정: 시간대 변환 로직 개선 (백엔드에서 Timestamp 형식 기대)
+        const today = new Date();
+        const toISOTime = (hour: number | null) => {
+            if (hour === null) return null;
+            const date = new Date(today);
+            date.setHours(hour, 0, 0, 0);
+            // 백엔드에서 기대하는 형식: "yyyy-MM-dd'T'HH:mm:ss"
+            return date.toISOString().slice(0, 19); // "2024-01-01T10:00:00" 형식
+        };
+
+        const soltStart = toISOTime(customTimeSlot.startTime);
+        const soltEnd = toISOTime(customTimeSlot.endTime);
+
+        // 📌 수정: Join2에서 전달받은 관심사 데이터 올바르게 처리
+        const interestsFromJoin2 = join2Data?.selectedInterests || [];
         
-        if (selectedDayCount === 0) {
-            setHintMessage("최소 하나의 요일을 선택해주세요!");
-            return;
-        }
+        // 난이도 매핑
+        const difficultyMapping: { [key: string]: number } = {
+            "초급": 1,
+            "중급": 2,
+            "고급": 3
+        };
 
-        if (!isTimeSlotValid()) {
-            if (customTimeSlot.startTime === null || customTimeSlot.endTime === null) {
-                setHintMessage("시작 시간과 마침 시간을 모두 입력해주세요!");
-            } else if (areTimesSame()) {
-                setHintMessage("시작 시간과 마침 시간이 같습니다!");
-            } else {
-                setHintMessage("시작 시간은 마침 시간보다 빨라야 합니다!");
-            }
-            return;
-        }
+        const mappedInterests = interestsFromJoin2.map((item: any) => ({
+            interestId: item.id, // Long 타입으로 변환 필요
+            interestLevel: difficultyMapping[item.difficulty] || 1
+        }));
 
-        setHintMessage("회원가입이 완료되었습니다!");
-        // Navigate to home page after signup completion
-        setTimeout(() => {
-            navigate("/");
-        }, 1500);
-    };
+        // 📌 수정: 최종 Request Body 구조 정리 (백엔드 DTO에 맞게 수정)
+        const requestBody = {
+            // Join 단계 기본 정보
+            userId: formData?.userId || formData?.id,
+            password: formData?.password,
+            name: formData?.name,
+            nick: formData?.nickname || formData?.nick,
+            tel: formData?.phoneNumber || formData?.tel,
+            gitUrl: "", // 백엔드 DTO에 필수 필드로 있음
+            userRefer: "", // 백엔드 DTO에 필수 필드로 있음
+            alarmType: formData?.alarmType || false,
+            
+            // Join2 단계 관심사 정보
+            interests: mappedInterests,
+            
+            // Join3 단계 시간대 정보
+            availableDays,
+            soltStart,
+            soltEnd,
+        };
+
+        console.log("📤 회원가입 요청 데이터:", requestBody);
+
+        // API 호출
+        const response = await axios.post("http://localhost:8080/api/join", requestBody, {
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+
+        if (response.status === 201) {
+            console.log("✅ 회원가입 성공:", response.data);
+            setHintMessage("회원가입이 완료되었습니다!");
+            setTimeout(() => {
+                navigate("/login");
+            }, 1500);
+        }
+    } catch (error: any) {
+        console.error("❌ 회원가입 실패:", error);
+        
+        // 에러 메시지 상세화
+        if (error.response) {
+            console.error("서버 응답 에러:", error.response.data);
+            const errorMessage = error.response.data.message || error.response.data.error || '서버 오류가 발생했습니다';
+            setHintMessage(`회원가입 실패: ${errorMessage}`);
+        } else if (error.request) {
+            console.error("네트워크 에러:", error.request);
+            setHintMessage("네트워크 연결을 확인해주세요.");
+        } else {
+            console.error("기타 에러:", error.message);
+            setHintMessage("회원가입 요청에 실패했습니다. 다시 시도해주세요.");
+        }
+    }
+};
 
     // Enter 키 핸들러 추가
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -275,7 +368,7 @@ const Join3: React.FC = () => {
                             <div className="bg-gray-50 rounded-2xl p-6">
                                 <div className="flex flex-wrap gap-4 justify-center">
                                     {Object.entries(selectedDays).map(([dayKey]) => {
-                                        const dayNames = ["월", "화", "수", "목", "금", "토", "일"];
+                                        const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
                                         const dayIndex = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].indexOf(dayKey);
                                         const dayName = dayNames[dayIndex];
                                         

@@ -10,7 +10,11 @@ interface ScheduleItem {
     description?: string;
 }
 
-const Schedule = () => {
+interface ScheduleProps {
+    isStudyLeader?: boolean;
+}
+
+const Schedule: React.FC<ScheduleProps> = ({ isStudyLeader = false }) => {
     const [activeTab, setActiveTab] = useState<'assignment' | 'schedule'>('assignment');
     const [isAdding, setIsAdding] = useState(false);
     const [newItem, setNewItem] = useState({
@@ -40,6 +44,18 @@ const Schedule = () => {
 
         const handleAddItem = () => {
         if (newItem.title && newItem.date) {
+            // 과제 마감일 유효성 검사
+            if (activeTab === 'assignment') {
+                const selectedDate = new Date(newItem.date);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0); // 오늘 날짜의 시작 시간으로 설정
+                
+                if (selectedDate < today) {
+                    alert('과제 마감일은 오늘 이후로 설정해주세요.');
+                    return;
+                }
+            }
+            
             const item: ScheduleItem = {
                 id: Date.now().toString(),
                 title: newItem.title,
@@ -62,54 +78,115 @@ const Schedule = () => {
 
     return (
         		<div className="space-y-6 p-4 pr-10">
-            <div className="relative w-[420px] mx-auto">
-              {/* 보라색 바 */}
-              <div className="bg-[#8B85E9] rounded-full h-12 shadow-md relative flex items-center px-1">
-                {/* 슬라이더 (하얀 버튼) */}
-                <div
-                  className={`absolute top-1 left-1 h-10 w-[calc(50%-4px)] bg-white rounded-full shadow transition-transform duration-300 ${
-                    activeTab === "schedule" ? "translate-x-full" : "translate-x-0"
-                  }`}
-                />
-
-                {/* 버튼들 */}
-                                 <button
-                   onClick={() => {
-                     if (activeTab === "assignment" && isAdding) {
-                       setIsAdding(false);
-                     } else {
-                       setActiveTab("assignment");
-                       setIsAdding(true);
-                     }
-                   }}
-                   className={`flex-1 z-10 text-sm font-medium transition-colors duration-300 ${
-                     activeTab === "assignment" ? "text-[#8B85E9]" : "text-white"
-                   }`}
-                 >
-                   + 과제 추가
-                 </button>
-                 <button
-                   onClick={() => {
-                     if (activeTab === "schedule" && isAdding) {
-                       setIsAdding(false);
-                     } else {
-                       setActiveTab("schedule");
-                       setIsAdding(true);
-                     }
-                   }}
-                   className={`flex-1 z-10 text-sm font-medium transition-colors duration-300 ${
-                     activeTab === "schedule" ? "text-[#8B85E9]" : "text-white"
-                   }`}
-                 >
-                   + 스터디 일정 추가
-                 </button>
-              </div>
+            {/* 일정 목록 */}
+            <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-800">
+                    {activeTab === 'assignment' ? '과제 목록' : '일정 목록'}
+                </h3>
+                {filteredItems.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                        {activeTab === 'assignment' ? '등록된 과제가 없습니다.' : '등록된 일정이 없습니다.'}
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {filteredItems.map((item) => {
+                            // 과제 마감일이 지났는지 확인
+                            const isOverdue = item.type === 'assignment' && new Date(item.date) < new Date();
+                            
+                            return (
+                                <div
+                                    key={item.id}
+                                    className={`bg-white border rounded-lg p-4 hover:shadow-md transition-shadow duration-200 ${
+                                        isOverdue 
+                                            ? 'border-red-300 bg-red-50' 
+                                            : 'border-gray-200'
+                                    }`}
+                                >
+                                <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            {item.type === 'assignment' ? (
+                                                <BookOpen className="w-4 h-4 text-purple-600" />
+                                            ) : (
+                                                <Calendar className="w-4 h-4 text-blue-600" />
+                                            )}
+                                            <h4 className="font-medium text-gray-800">{item.title}</h4>
+                                        </div>
+                                        {item.description && (
+                                            <p className="text-gray-600 text-sm mb-2">{item.description}</p>
+                                        )}
+                                        <p className={`text-sm ${isOverdue ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
+                                            {item.type === 'assignment' ? '마감일: ' : ''}{item.date}
+                                            {item.time && ` ${item.time}`}
+                                            {isOverdue && ' (마감됨)'}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => handleDeleteItem(item.id)}
+                                        className="text-red-500 hover:text-red-700 transition-colors duration-200"
+                                    >
+                                        삭제
+                                    </button>
+                                </div>
+                            </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
 
-                {/* 추가 폼 (슬라이드 애니메이션) */}
-                <div className={`overflow-hidden transition-all duration-500 ease-in-out ${
-                    isAdding ? 'max-h-[500px] opacity-100 mt-4' : 'max-h-0 opacity-0'
-                }`}>
+            {/* 추가 버튼들 - 스터디장만 표시 */}
+            {isStudyLeader && (
+                <div className="relative w-[420px] mx-auto">
+                  {/* 보라색 바 */}
+                  <div className="bg-[#8B85E9] rounded-full h-12 shadow-md relative flex items-center px-1">
+                    {/* 슬라이더 (하얀 버튼) */}
+                    <div
+                      className={`absolute top-1 left-1 h-10 w-[calc(50%-4px)] bg-white rounded-full shadow transition-transform duration-300 ${
+                        activeTab === "schedule" ? "translate-x-full" : "translate-x-0"
+                      }`}
+                    />
+
+                    {/* 버튼들 */}
+                                     <button
+                       onClick={() => {
+                         if (activeTab === "assignment" && isAdding) {
+                           setIsAdding(false);
+                         } else {
+                           setActiveTab("assignment");
+                           setIsAdding(true);
+                         }
+                       }}
+                       className={`flex-1 z-10 text-sm font-medium transition-colors duration-300 ${
+                         activeTab === "assignment" ? "text-[#8B85E9]" : "text-white"
+                       }`}
+                     >
+                       + 과제 추가
+                     </button>
+                     <button
+                       onClick={() => {
+                         if (activeTab === "schedule" && isAdding) {
+                           setIsAdding(false);
+                         } else {
+                           setActiveTab("schedule");
+                           setIsAdding(true);
+                         }
+                       }}
+                       className={`flex-1 z-10 text-sm font-medium transition-colors duration-300 ${
+                         activeTab === "schedule" ? "text-[#8B85E9]" : "text-white"
+                       }`}
+                     >
+                       + 스터디 일정 추가
+                     </button>
+                  </div>
+                </div>
+            )}
+
+                {/* 추가 폼 (슬라이드 애니메이션) - 스터디장만 표시 */}
+                {isStudyLeader && (
+                    <div className={`overflow-hidden transition-all duration-500 ease-in-out ${
+                        isAdding ? 'max-h-[500px] opacity-100 mt-4' : 'max-h-0 opacity-0'
+                    }`}>
                     <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
                         <h3 className="text-lg font-semibold text-gray-800">
                             {activeTab === 'assignment' ? '과제 내용' : '일정 내용'}
@@ -123,19 +200,21 @@ const Schedule = () => {
                                     type="text"
                                     value={newItem.title}
                                     onChange={(e) => setNewItem({...newItem, title: e.target.value})}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
                                     placeholder={activeTab === 'assignment' ? '과제 제목을 입력하세요' : '일정 제목을 입력하세요'}
                                 />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    날짜
+                                    {activeTab === 'assignment' ? '과제 마감일' : '날짜'}
                                 </label>
                                 <input
                                     type="date"
                                     value={newItem.date}
                                     onChange={(e) => setNewItem({...newItem, date: e.target.value})}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
+                                    placeholder={activeTab === 'assignment' ? '과제 마감일을 선택하세요' : '날짜를 선택하세요'}
+                                    min={activeTab === 'assignment' ? new Date().toISOString().split('T')[0] : undefined}
                                 />
                             </div>
                         </div>
@@ -159,7 +238,7 @@ const Schedule = () => {
                             <textarea
                                 value={newItem.description}
                                 onChange={(e) => setNewItem({...newItem, description: e.target.value})}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
                                 rows={3}
                                 placeholder="상세 설명을 입력하세요"
                             />
@@ -193,53 +272,7 @@ const Schedule = () => {
                         </div>
                     </div>
                 </div>
-
-            {/* 일정 목록 */}
-            <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-800">
-                    {activeTab === 'assignment' ? '과제 목록' : '일정 목록'}
-                </h3>
-                {filteredItems.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                        {activeTab === 'assignment' ? '등록된 과제가 없습니다.' : '등록된 일정이 없습니다.'}
-                    </div>
-                ) : (
-                    <div className="space-y-3">
-                        {filteredItems.map((item) => (
-                            <div
-                                key={item.id}
-                                className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow duration-200"
-                            >
-                                <div className="flex items-start justify-between">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            {item.type === 'assignment' ? (
-                                                <BookOpen className="w-4 h-4 text-purple-600" />
-                                            ) : (
-                                                <Calendar className="w-4 h-4 text-blue-600" />
-                                            )}
-                                            <h4 className="font-medium text-gray-800">{item.title}</h4>
-                                        </div>
-                                        {item.description && (
-                                            <p className="text-gray-600 text-sm mb-2">{item.description}</p>
-                                        )}
-                                                                                 <p className="text-gray-500 text-sm">
-                                             {item.date}
-                                             {item.time && ` ${item.time}`}
-                                         </p>
-                                    </div>
-                                    <button
-                                        onClick={() => handleDeleteItem(item.id)}
-                                        className="text-red-500 hover:text-red-700 transition-colors duration-200"
-                                    >
-                                        삭제
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
+            )}
         </div>
     );
 };

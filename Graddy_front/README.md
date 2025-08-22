@@ -43,25 +43,22 @@ graddy_front/
 │   │   └── utils.ts
 │   ├── pages/             # 페이지 컴포넌트
 │   │   ├── CommunityPage.tsx     # 커뮤니티 페이지
-│   │   ├── mainPage.tsx          # 메인 페이지
-│   │   ├── ProfilePage.tsx       # 프로필 페이지
+│   │   ├── Login.tsx             # 로그인 페이지
+│   │   ├── MainPage.tsx          # 메인 페이지
+│   │   ├── MyPage.tsx            # 마이페이지
+│   │   ├── StudyCreate.tsx       # 스터디 생성 페이지
 │   │   ├── StudyDetailPage.tsx   # 스터디 상세 페이지
-│   │   ├── StudySearchPage.tsx   # 스터디 검색 페이지
-│   │   ├── TestAutoComplete.tsx  # 자동완성 테스트 페이지
-│   │   ├── TestDropdown.tsx      # 드롭다운 테스트 페이지
-│   │   └── TestModal.tsx         # 모달 테스트 페이지
-│   ├── utils/             # 유틸리티 함수
-│   │   ├── eventLimiter.ts       # 이벤트 제한 (디바운스/스로틀링)
-│   │   └── keyPress.ts           # 키보드 이벤트 처리
-│   ├── App.tsx            # 메인 앱 컴포넌트
-│   ├── App.css            # 앱 스타일
-│   ├── index.tsx          # 앱 진입점
-│   └── index.css          # 글로벌 스타일
-├── components.json        # shadcn/ui 설정
-├── package.json
-├── tsconfig.json
-├── vite.config.ts
-└── README.md
+│   │   └── StudySearchPage.tsx   # 스터디 검색 페이지
+│   ├── services/          # API 서비스
+│   │   ├── api.ts         # 기본 API 설정
+│   │   └── studyApi.ts    # 스터디 관련 API
+│   ├── contexts/          # React Context
+│   │   ├── AuthContext.tsx       # 인증 컨텍스트
+│   │   ├── AssignmentContext.tsx # 과제 컨텍스트
+│   │   └── CommunityContext.tsx  # 커뮤니티 컨텍스트
+│   └── utils/             # 유틸리티 함수
+│       ├── eventLimiter.ts
+│       └── keyPress.ts
 ```
 
 ## 🎯 주요 기능
@@ -148,6 +145,86 @@ npm run test:ui
 -   `tailwindcss`: 유틸리티 기반 CSS 프레임워크
 -   `react-error-boundary`: 에러 경계 처리
 -   `lucide-react`: 아이콘 라이브러리
+
+## 🔌 API 사용법
+
+### 스터디 프로젝트 생성 API
+
+로그인한 사용자의 JWT 토큰을 헤더에 포함하여 스터디/프로젝트를 생성할 수 있습니다.
+
+#### 기본 사용법
+
+```typescript
+import { StudyApiService, CreateStudyProjectRequest } from '../services/studyApi';
+
+// 스터디 프로젝트 생성 요청 데이터
+const studyProjectData: CreateStudyProjectRequest = {
+    studyProjectName: "React 스터디",
+    studyProjectTitle: "React와 TypeScript 기초 스터디",
+    studyProjectDesc: "React와 TypeScript를 함께 배우는 기초 스터디입니다.",
+    studyLevel: 2, // 1: 초급, 2: 중급, 3: 고급
+    typeCheck: "study", // "study" 또는 "project"
+    studyProjectStart: "2025-01-22T10:00:00.000Z", // ISO 8601 형식
+    studyProjectEnd: "2025-02-21T10:00:00.000Z", // ISO 8601 형식
+    studyProjectTotal: 8, // 최대 인원
+    soltStart: "2025-01-22T19:00:00.000Z", // 시작 시간 (ISO 8601)
+    soltEnd: "2025-01-22T21:00:00.000Z", // 종료 시간 (ISO 8601)
+    interestIds: [1, 2, 3], // 관심사 ID 배열
+    dayIds: ["2", "4", "6"] // 요일 ID 배열 (1: 월요일 ~ 7: 일요일)
+};
+
+// API 호출
+try {
+    const response = await StudyApiService.createStudyProject(studyProjectData);
+    console.log('생성된 스터디 프로젝트:', response);
+} catch (error) {
+    console.error('스터디 프로젝트 생성 실패:', error);
+}
+```
+
+#### 요청 데이터 타입
+
+```typescript
+interface CreateStudyProjectRequest {
+    studyProjectName: string;        // 스터디/프로젝트 이름
+    studyProjectTitle: string;       // 스터디/프로젝트 제목
+    studyProjectDesc: string;        // 스터디/프로젝트 설명
+    studyLevel: number;              // 난이도 (1: 초급, 2: 중급, 3: 고급)
+    typeCheck: string;               // 타입 ("study" 또는 "project")
+    userId?: string;                 // 사용자 ID (JWT 토큰에서 자동 추출)
+    studyProjectStart: string;       // 시작 날짜 (ISO 8601)
+    studyProjectEnd: string;         // 종료 날짜 (ISO 8601)
+    studyProjectTotal: number;       // 최대 인원
+    soltStart: string;               // 시작 시간 (ISO 8601)
+    soltEnd: string;                 // 종료 시간 (ISO 8601)
+    interestIds: number[];           // 관심사 ID 배열
+    dayIds: string[];                // 요일 ID 배열
+}
+```
+
+#### 인증
+
+- JWT 토큰은 자동으로 `Authorization: Bearer {token}` 헤더에 포함됩니다.
+- `userId`는 JWT 토큰에서 자동으로 추출되므로 선택적으로 전송할 수 있습니다.
+- 토큰은 `localStorage`에서 `userToken` 키로 저장됩니다.
+
+#### 에러 처리
+
+```typescript
+try {
+    const response = await StudyApiService.createStudyProject(studyProjectData);
+    // 성공 처리
+} catch (error) {
+    if (error instanceof Error) {
+        console.error('API 오류:', error.message);
+        // 사용자에게 오류 메시지 표시
+    }
+}
+```
+
+#### 사용 예시 컴포넌트
+
+`src/components/examples/StudyCreationExample.tsx` 파일에서 실제 사용 예시를 확인할 수 있습니다.
 
 ## 📄 라이선스
 
