@@ -60,7 +60,7 @@ const Join: React.FC = () => {
         const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(pwd);
         const validLength = pwd.length >= 8 && pwd.length <= 32;
         const validCombo = [hasLetter, hasNumber, hasSpecial].filter(Boolean).length >= 2;
-        
+
         return validLength && validCombo;
     };
 
@@ -82,13 +82,14 @@ const Join: React.FC = () => {
             setHintMessage("아이디는 최소 4자 이상 입력해주세요!");
             return;
         }
-        
+
         try {
             const response = await axios.get(`http://localhost:8080/api/join/check-userId?userId=${id}`);
-            if (response.data.success && response.data.data.isAvailable) {
+            if (response.data.data.isAvailable) {
                 setIdError("");
                 setIdChecked(true);
                 setHintMessage("사용 가능한 아이디입니다!");
+
             } else {
                 setIdError("이미 사용 중인 아이디입니다.");
                 setIdChecked(false);
@@ -120,10 +121,10 @@ const Join: React.FC = () => {
             setHintMessage("닉네임은 최소 2자 이상 입력해주세요!");
             return;
         }
-        
+
         try {
             const response = await axios.get(`http://localhost:8080/api/join/check-nick?nick=${nickname}`);
-            if (response.data.success && response.data.data.isAvailable) {
+            if (response.data.data.isAvailable) {
                 setNicknameError("");
                 setNicknameChecked(true);
                 setHintMessage("사용 가능한 닉네임입니다!");
@@ -180,13 +181,13 @@ const Join: React.FC = () => {
             setHintMessage("올바른 전화번호를 입력해주세요!");
             return;
         }
-        
+
         try {
             const phoneNumber = phonePrefix + phoneBody;
             const response = await axios.post("http://localhost:8080/api/auth/send-code", {
                 phoneNumber: phoneNumber
             });
-            
+
             if (response.data.success) {
                 setShowVerificationInput(true);
                 setVerificationTimer(180); // 3분
@@ -205,14 +206,14 @@ const Join: React.FC = () => {
             setHintMessage("인증번호를 입력해주세요!");
             return;
         }
-        
+
         try {
             const phoneNumber = phonePrefix + phoneBody;
             const response = await axios.post("http://localhost:8080/api/auth/verify-code", {
                 phoneNumber: phoneNumber,
                 code: verificationCode
             });
-            
+
             if (response.data.success) {
                 setIsVerified(true);
                 setHintMessage("전화번호 인증이 완료되었습니다!");
@@ -279,7 +280,7 @@ const Join: React.FC = () => {
         // 모든 조건 통과 → Join2 페이지로 이동 (상태 전달)
         setPasswordError("");
         setHintMessage("회원가입이 완료되었습니다!");
-        
+
         // 현재 폼 데이터를 state로 전달
         const formData = {
             userId: id,
@@ -289,12 +290,12 @@ const Join: React.FC = () => {
             tel: phonePrefix + phoneBody,
             alarmType: notificationPreference === "phone" ? true : false
         };
-        
+
         navigate("/join2", { state: { formData } });
     };
 
-    const isFormValid = id && password && confirmPassword && name && nickname && phoneBody && 
-                    idChecked && nicknameChecked && validatePhoneNumber(phonePrefix, phoneBody) && isVerified;
+    const isFormValid = id && password && confirmPassword && name && nickname && phoneBody &&
+        idChecked && nicknameChecked && validatePhoneNumber(phonePrefix, phoneBody) && isVerified;
 
     // Join2에서 돌아올 때 전달된 formData 가져오기
     const previousFormData = location.state?.formData;
@@ -308,7 +309,7 @@ const Join: React.FC = () => {
             setName(previousFormData.name || "");
             setNickname(previousFormData.nickname || "");
             setEmail(previousFormData.email || "");
-            
+
             // 전화번호 분리해서 복원
             const fullPhoneNumber = previousFormData.phoneNumber || "";
             if (fullPhoneNumber.length >= 3) {
@@ -348,10 +349,10 @@ const Join: React.FC = () => {
     };
 
     return (
-        <div 
+        <div
             className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-8 px-4"
-            onKeyDown={handleKeyDown} 
-            tabIndex={0} 
+            onKeyDown={handleKeyDown}
+            tabIndex={0}
         >
 
             <div className="max-w-3xl mx-auto">
@@ -360,18 +361,17 @@ const Join: React.FC = () => {
                 <div className="mb-8">
                     <div className="flex items-center justify-between max-w-md mx-auto">
                         {steps.map((step, idx) => (
-                        <div key={idx} className="flex flex-col items-center">
-                            <div
-                            className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm transition-all duration-300 ${
-                                idx === 0 
-                                ? "bg-indigo-600 text-white shadow-lg" 
-                                : "bg-gray-200 text-gray-500"
-                            }`}
-                            >
-                                {idx === 0 ? <Clock className="w-5 h-5" /> : idx + 1}
+                            <div key={idx} className="flex flex-col items-center">
+                                <div
+                                    className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm transition-all duration-300 ${idx === 0
+                                        ? "bg-indigo-600 text-white shadow-lg"
+                                        : "bg-gray-200 text-gray-500"
+                                        }`}
+                                >
+                                    {idx === 0 ? <Clock className="w-5 h-5" /> : idx + 1}
+                                </div>
+                                <span className="text-xs mt-2 text-gray-600 text-center max-w-20">{step}</span>
                             </div>
-                            <span className="text-xs mt-2 text-gray-600 text-center max-w-20">{step}</span>
-                        </div>
                         ))}
                     </div>
                 </div>
@@ -390,21 +390,19 @@ const Join: React.FC = () => {
                         {/* 힌트 메시지 */}
                         {hintMessage && (
                             <div className={`mb-6 transition-all duration-300 ${showHint ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'}`}>
-                                <div className={`flex items-center gap-2 p-4 rounded-xl border ${
-                                    hintMessage.includes('가능') || hintMessage.includes('완료') 
-                                        ? 'bg-emerald-50 border-emerald-200' 
-                                        : 'bg-amber-50 border-amber-200'
-                                }`}>
+                                <div className={`flex items-center gap-2 p-4 rounded-xl border ${hintMessage.includes('가능') || hintMessage.includes('완료')
+                                    ? 'bg-emerald-50 border-emerald-200'
+                                    : 'bg-amber-50 border-amber-200'
+                                    }`}>
                                     {hintMessage.includes('가능') || hintMessage.includes('완료') ? (
                                         <Check className="w-5 h-5 text-emerald-600 flex-shrink-0" />
                                     ) : (
                                         <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
                                     )}
-                                    <span className={`text-sm font-medium ${
-                                        hintMessage.includes('가능') || hintMessage.includes('완료') 
-                                            ? 'text-emerald-800' 
-                                            : 'text-amber-800'
-                                    }`}>
+                                    <span className={`text-sm font-medium ${hintMessage.includes('가능') || hintMessage.includes('완료')
+                                        ? 'text-emerald-800'
+                                        : 'text-amber-800'
+                                        }`}>
                                         {hintMessage}
                                     </span>
                                 </div>
@@ -427,11 +425,10 @@ const Join: React.FC = () => {
                                         value={id}
                                         onChange={(e) => handleIdChange(e.target.value)}
                                         placeholder="아이디를 입력하세요"
-                                        className={`w-full pl-10 pr-24 py-3 border rounded-xl transition-all duration-200 ${
-                                            idError ? "border-red-300 focus:ring-red-200" : 
-                                            idChecked ? "border-green-300 focus:ring-green-200" : 
-                                            "border-gray-200 focus:ring-2 focus:border-transparent"
-                                        }`}
+                                        className={`w-full pl-10 pr-24 py-3 border rounded-xl transition-all duration-200 ${idError ? "border-red-300 focus:ring-red-200" :
+                                            idChecked ? "border-green-300 focus:ring-green-200" :
+                                                "border-gray-200 focus:ring-2 focus:border-transparent"
+                                            }`}
                                         onFocus={(e) => !idError && !idChecked && ((e.target as HTMLInputElement).style.boxShadow = `0 0 0 2px rgba(139, 133, 233, 0.2)`)}
                                         onBlur={(e) => !idError && !idChecked && ((e.target as HTMLInputElement).style.boxShadow = 'none')}
                                         onKeyDown={handleKeyDown}
@@ -472,10 +469,9 @@ const Join: React.FC = () => {
                                         value={password}
                                         onChange={(e) => handlePasswordChange(e.target.value)}
                                         placeholder="비밀번호를 입력하세요"
-                                        className={`w-full pl-10 pr-10 py-3 border rounded-xl transition-all duration-200 ${
-                                            passwordError ? "border-red-300 focus:ring-red-200" : 
+                                        className={`w-full pl-10 pr-10 py-3 border rounded-xl transition-all duration-200 ${passwordError ? "border-red-300 focus:ring-red-200" :
                                             "border-gray-200 focus:ring-2 focus:border-transparent"
-                                        }`}
+                                            }`}
                                         onFocus={(e) => !passwordError && ((e.target as HTMLInputElement).style.boxShadow = `0 0 0 2px rgba(139, 133, 233, 0.2)`)}
                                         onBlur={(e) => !passwordError && ((e.target as HTMLInputElement).style.boxShadow = 'none')}
                                         onKeyDown={handleKeyDown}
@@ -490,17 +486,15 @@ const Join: React.FC = () => {
                                 </div>
                                 <div className="mt-2 space-y-1">
                                     <div className="flex items-center gap-2 text-sm">
-                                        <div className={`w-2 h-2 rounded-full ${
-                                            password.length >= 8 && password.length <= 32 ? 'bg-green-400' : 'bg-gray-300'
-                                        }`} />
+                                        <div className={`w-2 h-2 rounded-full ${password.length >= 8 && password.length <= 32 ? 'bg-green-400' : 'bg-gray-300'
+                                            }`} />
                                         <span className={password.length >= 8 && password.length <= 32 ? 'text-green-600' : 'text-gray-500'}>
                                             8자 이상 32자 이하
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2 text-sm">
-                                        <div className={`w-2 h-2 rounded-full ${
-                                            validatePassword(password) && password !== '' ? 'bg-green-400' : 'bg-gray-300'
-                                        }`} />
+                                        <div className={`w-2 h-2 rounded-full ${validatePassword(password) && password !== '' ? 'bg-green-400' : 'bg-gray-300'
+                                            }`} />
                                         <span className={validatePassword(password) && password !== '' ? 'text-green-600' : 'text-gray-500'}>
                                             영문/숫자/특수문자 중 2가지 이상 포함
                                         </span>
@@ -523,11 +517,10 @@ const Join: React.FC = () => {
                                         value={confirmPassword}
                                         onChange={(e) => handleConfirmPasswordChange(e.target.value)}
                                         placeholder="비밀번호를 다시 입력하세요"
-                                        className={`w-full pl-10 pr-10 py-3 border rounded-xl transition-all duration-200 ${
-                                            passwordError ? "border-red-300 focus:ring-red-200" : 
+                                        className={`w-full pl-10 pr-10 py-3 border rounded-xl transition-all duration-200 ${passwordError ? "border-red-300 focus:ring-red-200" :
                                             password && confirmPassword && password === confirmPassword ? "border-green-300 focus:ring-green-200" :
-                                            "border-gray-200 focus:ring-2 focus:border-transparent"
-                                        }`}
+                                                "border-gray-200 focus:ring-2 focus:border-transparent"
+                                            }`}
                                         onFocus={(e) => !passwordError && ((e.target as HTMLInputElement).style.boxShadow = `0 0 0 2px rgba(139, 133, 233, 0.2)`)}
                                         onBlur={(e) => !passwordError && ((e.target as HTMLInputElement).style.boxShadow = 'none')}
                                         onKeyDown={handleKeyDown}
@@ -591,11 +584,10 @@ const Join: React.FC = () => {
                                         value={nickname}
                                         onChange={(e) => handleNicknameChange(e.target.value)}
                                         placeholder="사용할 닉네임을 입력하세요"
-                                        className={`w-full pl-10 pr-24 py-3 border rounded-xl transition-all duration-200 ${
-                                            nicknameError ? "border-red-300 focus:ring-red-200" : 
-                                            nicknameChecked ? "border-green-300 focus:ring-green-200" : 
-                                            "border-gray-200 focus:ring-2 focus:border-transparent"
-                                        }`}
+                                        className={`w-full pl-10 pr-24 py-3 border rounded-xl transition-all duration-200 ${nicknameError ? "border-red-300 focus:ring-red-200" :
+                                            nicknameChecked ? "border-green-300 focus:ring-green-200" :
+                                                "border-gray-200 focus:ring-2 focus:border-transparent"
+                                            }`}
                                         onFocus={(e) => !nicknameError && !nicknameChecked && ((e.target as HTMLInputElement).style.boxShadow = `0 0 0 2px rgba(139, 133, 233, 0.2)`)}
                                         onBlur={(e) => !nicknameError && !nicknameChecked && ((e.target as HTMLInputElement).style.boxShadow = 'none')}
                                         onKeyDown={handleKeyDown}
@@ -653,11 +645,10 @@ const Join: React.FC = () => {
                                             onChange={(e) => handlePhoneBodyChange(e.target.value)}
                                             onKeyDown={handleKeyDown}
                                             placeholder="1234"
-                                            className={`w-full px-4 py-3 border rounded-xl transition-all duration-200 ${
-                                                phoneBody && validatePhoneNumber(phonePrefix, phoneBody) ? 
-                                                "border-green-300 focus:ring-green-200" : 
+                                            className={`w-full px-4 py-3 border rounded-xl transition-all duration-200 ${phoneBody && validatePhoneNumber(phonePrefix, phoneBody) ?
+                                                "border-green-300 focus:ring-green-200" :
                                                 "border-gray-200 focus:ring-2 focus:border-transparent"
-                                            }`}
+                                                }`}
                                             onFocus={(e) => (e.target as HTMLInputElement).style.boxShadow = `0 0 0 2px rgba(139, 133, 233, 0.2)`}
                                             onBlur={(e) => (e.target as HTMLInputElement).style.boxShadow = 'none'}
                                             disabled={isVerified}
@@ -680,11 +671,10 @@ const Join: React.FC = () => {
                                             onChange={(e) => handlePhoneBodyChange(e.target.value)}
                                             onKeyDown={handleKeyDown}
                                             placeholder="5678"
-                                            className={`w-full px-4 py-3 border rounded-xl transition-all duration-200 ${
-                                                phoneBody && validatePhoneNumber(phonePrefix, phoneBody) ? 
-                                                "border-green-300 focus:ring-green-200" : 
+                                            className={`w-full px-4 py-3 border rounded-xl transition-all duration-200 ${phoneBody && validatePhoneNumber(phonePrefix, phoneBody) ?
+                                                "border-green-300 focus:ring-green-200" :
                                                 "border-gray-200 focus:ring-2 focus:border-transparent"
-                                            }`}
+                                                }`}
                                             onFocus={(e) => (e.target as HTMLInputElement).style.boxShadow = `0 0 0 2px rgba(139, 133, 233, 0.2)`}
                                             onBlur={(e) => (e.target as HTMLInputElement).style.boxShadow = 'none'}
                                             disabled={isVerified}
@@ -701,23 +691,19 @@ const Join: React.FC = () => {
                                         )}
                                     </div>
                                 </div>
-                                <p className="text-sm text-gray-500 mt-1">
-                                    형식: 010-12345678
-                                </p>
-                                
+
                                 {/* 인증 버튼 */}
                                 <div className="mt-3">
-                                    <button 
+                                    <button
                                         onClick={handleSendVerification}
                                         disabled={!validatePhoneNumber(phonePrefix, phoneBody) || isVerified}
-                                        className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-200 ${
-                                            isVerified 
-                                                ? "bg-green-100 text-green-600 cursor-default"
-                                                : validatePhoneNumber(phonePrefix, phoneBody)
-                                                    ? "text-white hover:shadow-lg transform hover:scale-[1.02]"
-                                                    : "bg-gray-200 text-gray-500 cursor-not-allowed"
-                                        }`}
-                                        style={validatePhoneNumber(phonePrefix, phoneBody) && !isVerified ? { 
+                                        className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-200 ${isVerified
+                                            ? "bg-green-100 text-green-600 cursor-default"
+                                            : validatePhoneNumber(phonePrefix, phoneBody)
+                                                ? "text-white hover:shadow-lg transform hover:scale-[1.02]"
+                                                : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                                            }`}
+                                        style={validatePhoneNumber(phonePrefix, phoneBody) && !isVerified ? {
                                             backgroundColor: "#8B85E9",
                                             boxShadow: "0 4px 6px -1px rgba(139, 133, 233, 0.1)"
                                         } : {}}
@@ -752,11 +738,10 @@ const Join: React.FC = () => {
                                             <button
                                                 onClick={handleVerifyCode}
                                                 disabled={verificationCode.length !== 6}
-                                                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-200 ${
-                                                    verificationCode.length === 6
-                                                        ? "text-white hover:opacity-90"
-                                                        : "bg-gray-200 text-gray-500 cursor-not-allowed"
-                                                }`}
+                                                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-200 ${verificationCode.length === 6
+                                                    ? "text-white hover:opacity-90"
+                                                    : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                                                    }`}
                                                 style={verificationCode.length === 6 ? { backgroundColor: "#8B85E9" } : {}}
                                             >
                                                 확인
@@ -775,11 +760,10 @@ const Join: React.FC = () => {
                                 <div className="flex gap-4">
                                     <button
                                         onClick={() => toggleNotificationPreference("phone")}
-                                        className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all duration-200 ${
-                                            notificationPreference === "phone"
-                                                ? "border-transparent text-white"
-                                                : "border-gray-200 text-gray-600 hover:border-gray-300"
-                                        }`}
+                                        className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all duration-200 ${notificationPreference === "phone"
+                                            ? "border-transparent text-white"
+                                            : "border-gray-200 text-gray-600 hover:border-gray-300"
+                                            }`}
                                         style={notificationPreference === "phone" ? { backgroundColor: "#8B85E9" } : {}}
                                     >
                                         <Phone className="w-5 h-5 mx-auto mb-1" />
@@ -801,12 +785,11 @@ const Join: React.FC = () => {
                                 </button>
                                 <button
                                     onClick={nextPage}
-                                    className={`flex-1 py-4 px-6 rounded-xl font-semibold transition-all duration-200 ${
-                                        isFormValid
-                                            ? "text-white hover:shadow-xl transform hover:scale-105"
-                                            : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                                    }`}
-                                    style={isFormValid ? { 
+                                    className={`flex-1 py-4 px-6 rounded-xl font-semibold transition-all duration-200 ${isFormValid
+                                        ? "text-white hover:shadow-xl transform hover:scale-105"
+                                        : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                        }`}
+                                    style={isFormValid ? {
                                         backgroundColor: "#8B85E9",
                                         boxShadow: "0 10px 15px -3px rgba(139, 133, 233, 0.1), 0 4px 6px -2px rgba(139, 133, 233, 0.05)"
                                     } : {}}
@@ -816,7 +799,7 @@ const Join: React.FC = () => {
                                     onMouseLeave={isFormValid ? (e) => {
                                         (e.target as HTMLButtonElement).style.backgroundColor = "#8B85E9";
                                     } : undefined}
-                                    
+
                                     disabled={!isFormValid}
                                 >
                                     다음
@@ -827,6 +810,7 @@ const Join: React.FC = () => {
                 </div>
             </div>
         </div>
-)};
+    )
+};
 
 export default Join;
