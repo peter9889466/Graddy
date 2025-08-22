@@ -71,7 +71,7 @@ const Join: React.FC = () => {
     };
 
     // 아이디 중복 확인
-    const onCheckId = () => {
+    const onCheckId = async () => {
         if (id.trim() === "") {
             setIdError("아이디를 입력하세요.");
             setHintMessage("아이디를 먼저 입력해주세요!");
@@ -83,13 +83,33 @@ const Join: React.FC = () => {
             return;
         }
         
-        setIdError("");
-        setIdChecked(true);
-        setHintMessage("사용 가능한 아이디입니다!");
+        try {
+            const response = await axios.get(`http://localhost:8080/api/join/check-userId?userId=${id}`);
+            if (response.data.success && response.data.data.isAvailable) {
+                setIdError("");
+                setIdChecked(true);
+                setHintMessage("사용 가능한 아이디입니다!");
+            } else {
+                setIdError("이미 사용 중인 아이디입니다.");
+                setIdChecked(false);
+                setHintMessage("이미 사용 중인 아이디입니다!");
+            }
+        } catch (error: any) {
+            console.error("아이디 중복 확인 실패:", error);
+            if (error.response?.status === 409) {
+                setIdError("이미 사용 중인 아이디입니다.");
+                setIdChecked(false);
+                setHintMessage("이미 사용 중인 아이디입니다!");
+            } else {
+                setIdError("서버 오류가 발생했습니다.");
+                setIdChecked(false);
+                setHintMessage("서버 오류가 발생했습니다. 다시 시도해주세요!");
+            }
+        }
     };
 
     // 닉네임 중복 확인
-    const onCheckNickname = () => {
+    const onCheckNickname = async () => {
         if (nickname.trim() === "") {
             setNicknameError("닉네임을 입력하세요.");
             setHintMessage("닉네임을 먼저 입력해주세요!");
@@ -101,9 +121,29 @@ const Join: React.FC = () => {
             return;
         }
         
-        setNicknameError("");
-        setNicknameChecked(true);
-        setHintMessage("사용 가능한 닉네임입니다!");
+        try {
+            const response = await axios.get(`http://localhost:8080/api/join/check-nick?nick=${nickname}`);
+            if (response.data.success && response.data.data.isAvailable) {
+                setNicknameError("");
+                setNicknameChecked(true);
+                setHintMessage("사용 가능한 닉네임입니다!");
+            } else {
+                setNicknameError("이미 사용 중인 닉네임입니다.");
+                setNicknameChecked(false);
+                setHintMessage("이미 사용 중인 닉네임입니다!");
+            }
+        } catch (error: any) {
+            console.error("닉네임 중복 확인 실패:", error);
+            if (error.response?.status === 409) {
+                setNicknameError("이미 사용 중인 닉네임입니다.");
+                setNicknameChecked(false);
+                setHintMessage("이미 사용 중인 닉네임입니다!");
+            } else {
+                setNicknameError("서버 오류가 발생했습니다.");
+                setNicknameChecked(false);
+                setHintMessage("서버 오류가 발생했습니다. 다시 시도해주세요!");
+            }
+        }
     };
 
     // 입력값 변경 시 검증 상태 초기화
@@ -135,28 +175,52 @@ const Join: React.FC = () => {
         setPhoneBody(numericValue);
     };
 
-    const handleSendVerification = () => {
-    if (!validatePhoneNumber(phonePrefix, phoneBody)) {
-        setHintMessage("올바른 전화번호를 입력해주세요!");
-        return;
-    }
-    
-    setShowVerificationInput(true);
-    setVerificationTimer(180); // 3분
-    setHintMessage("인증번호가 발송되었습니다!");
-};
+    const handleSendVerification = async () => {
+        if (!validatePhoneNumber(phonePrefix, phoneBody)) {
+            setHintMessage("올바른 전화번호를 입력해주세요!");
+            return;
+        }
+        
+        try {
+            const phoneNumber = phonePrefix + phoneBody;
+            const response = await axios.post("http://localhost:8080/api/auth/send-code", {
+                phoneNumber: phoneNumber
+            });
+            
+            if (response.data.success) {
+                setShowVerificationInput(true);
+                setVerificationTimer(180); // 3분
+                setHintMessage("인증번호가 발송되었습니다!");
+            } else {
+                setHintMessage("인증번호 발송에 실패했습니다. 다시 시도해주세요!");
+            }
+        } catch (error: any) {
+            console.error("인증번호 발송 실패:", error);
+            setHintMessage("인증번호 발송에 실패했습니다. 다시 시도해주세요!");
+        }
+    };
 
-    const handleVerifyCode = () => {
+    const handleVerifyCode = async () => {
         if (verificationCode.trim() === "") {
             setHintMessage("인증번호를 입력해주세요!");
             return;
         }
         
-        // 실제로는 서버에서 확인해야 함
-        if (verificationCode === "123456") {
-            setIsVerified(true);
-            setHintMessage("전화번호 인증이 완료되었습니다!");
-        } else {
+        try {
+            const phoneNumber = phonePrefix + phoneBody;
+            const response = await axios.post("http://localhost:8080/api/auth/verify-code", {
+                phoneNumber: phoneNumber,
+                code: verificationCode
+            });
+            
+            if (response.data.success) {
+                setIsVerified(true);
+                setHintMessage("전화번호 인증이 완료되었습니다!");
+            } else {
+                setHintMessage("인증번호가 올바르지 않습니다!");
+            }
+        } catch (error: any) {
+            console.error("인증번호 확인 실패:", error);
             setHintMessage("인증번호가 올바르지 않습니다!");
         }
     };

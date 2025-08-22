@@ -8,8 +8,8 @@ interface User {
 interface AuthContextType {
     isLoggedIn: boolean;
     user: User | null;
-    token: string | null; // 💡 토큰 상태 추가
-    login: (userData?: User, token?: string) => void; // 💡 토큰 매개변수 추가
+    token: string | null;
+    login: (userData?: User, token?: string) => void;
     logout: () => void;
 }
 
@@ -18,19 +18,18 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 export const AuthProvider: React.FC<PropsWithChildren> = ({ children }) => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [user, setUser] = useState<User | null>(null);
+    const [token, setToken] = useState<string | null>(null);
 
     useEffect(() => {
-        const storedToken = localStorage.getItem('userToken'); // 💡 토큰 가져오기
+        const storedToken = localStorage.getItem('userToken');
         const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
         const userData = localStorage.getItem('userData');
-        const userToken = localStorage.getItem('token');
         
         setIsLoggedIn(loggedIn);
-        setToken(userToken);
         if (userData) {
             setUser(JSON.parse(userData));
         }
-        if (storedToken) { // 💡 토큰이 있으면 상태에 저장
+        if (storedToken) {
             setToken(storedToken);
         }
     }, []);
@@ -43,18 +42,23 @@ export const AuthProvider: React.FC<PropsWithChildren> = ({ children }) => {
             localStorage.setItem('userData', JSON.stringify(userData));
             setUser(userData);
         }
+        
+        if (token) {
+            localStorage.setItem('userToken', token);
+            setToken(token);
+        }
     };
 
     const logout = () => {
         localStorage.removeItem('isLoggedIn');
         localStorage.removeItem('userData');
-        localStorage.removeItem('userToken'); // 💡 토큰 삭제
+        localStorage.removeItem('userToken');
         setIsLoggedIn(false);
         setUser(null);
-        setToken(null); // 💡 상태 초기화
+        setToken(null);
     };
 
-    const value = { isLoggedIn, user, login, logout };
+    const value = { isLoggedIn, user, token, login, logout };
 
     return (
         <AuthContext.Provider value={value}>
