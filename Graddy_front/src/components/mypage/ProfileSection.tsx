@@ -1,5 +1,5 @@
 import React from "react";
-import { Edit3, Camera } from "lucide-react";
+import { Edit3, Camera, ExternalLink } from "lucide-react";
 
 interface SelectedInterestItem {
     id: number;
@@ -17,6 +17,10 @@ interface ProfileSectionProps {
     onInterestEdit: () => void;
     fileInputRef: React.RefObject<HTMLInputElement | null>;
 }
+/////////////// githuburl 함수 추가 /////////////////////
+// const handleOpenGitHub = useThrottle(() => {
+//     window.open(`https://${memberData.githubUrl}`, '_blank', 'noopener,noreferrer');
+// }, 1000);
 
 const ProfileSection: React.FC<ProfileSectionProps> = ({
     profileImage,
@@ -76,10 +80,20 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                         <label
                             className="block text-xs sm:text-sm font-medium mb-2"
                         >
-                            <img src={"/github_icon.svg"} alt="github" className="w-10 h-10 rounded-full" /> 
+                            <img src={"/github_icon.svg"} alt="github" className="w-10 h-10 rounded-full" />
                         </label>
-                        <div className="px-3 sm:px-4 py-2 sm:py-3 bg-gray-100 rounded-lg text-gray-600 text-sm sm:text-base break-all">
-                            <a href="https://www.github.com/peter9889466/graddy" target="_blank" rel="noopener noreferrer">github.com/graddy/myproject</a>
+                        <div className="flex flex-row">
+                            <div className="px-3 sm:px-4 py-2 sm:py-3 bg-gray-100 rounded-lg text-gray-600 text-sm sm:text-base break-all">
+                                <a>github.com/graddy/myproject</a>
+                            </div>
+                            <button
+                                // onClick={handleOpenGitHub}
+                                className="p-2 hover:bg-gray-100 rounded-lg transition-colors justify-items-end"
+                                title="GitHub 열기"
+                            >
+                                <ExternalLink className="w-4 h-4 text-gray-600" />
+                            </button>
+
                         </div>
                     </div>
                 </div>
@@ -90,7 +104,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                 {/* 유저 점수 */}
                 <div
                     className="rounded-xl p-4 border"
-                    style={{ borderColor: "#777777" }}
+                    style={{ borderColor: "#d9d9d9" }}
                 >
                     <div className="flex items-center justify-between">
                         <div>
@@ -148,7 +162,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                     <div
                         className="border rounded-lg p-4 min-h-32 sm:min-h-40"
                         style={{
-                            borderColor: "#777777",
+                            borderColor: "#d9d9d9",
                             backgroundColor: "#F9F9FF",
                         }}
                     >
