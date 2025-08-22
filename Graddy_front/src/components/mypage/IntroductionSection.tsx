@@ -19,17 +19,18 @@ const IntroductionSection: React.FC<IntroductionSectionProps> = ({
     onIntroductionChange,
 }) => {
     return (
+        // <h4
+        //         className="text-lg sm:text-xl font-semibold"
+        //         style={{ color: "#8B85E9" }}
+        //     >
+        //         내 소개
+        //     </h4>
         <div
             className="rounded-xl p-4 sm:p-6 lg:p-8"
             style={{ backgroundColor: "#F3F2FF" }}
         >
+            
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-0">
-                <h4
-                    className="text-lg sm:text-xl font-semibold"
-                    style={{ color: "#8B85E9" }}
-                >
-                    내 소개
-                </h4>
                 {!isEditingIntro && (
                     <button
                         onClick={onEditIntro}

@@ -24,6 +24,8 @@ import StudyDetailPage from "./pages/StudyDetailPage";
 import StudyCreate from "./pages/StudyCreate";
 import Join3 from "./pages/Join3";
 import FindAccount from "./pages/FindAccount";
+import { Ranking } from "./pages/Ranking";
+import { CommunityPage } from "./pages/CommunityPage";
 
 function App() {
     return (
@@ -55,12 +57,14 @@ function App() {
                                 <Route path="/join3" element={<Join3 />} />
                                 <Route path="/login" element={<Login />} />
                                 <Route path="/findAcc" element={<FindAccount />} />
+                                <Route path="/ranking" element={<Ranking />} />
+                                <Route path="/community" element={<CommunityPage />} />
                                 <Route
                                     path="/search"
                                     element={<StudySearchPage />}
                                 />
                                 <Route
-                                    path="/study-create"
+                                    path="/study/create"
                                     element={<StudyCreate />}
                                 />
                                 <Route path="/study/:id"

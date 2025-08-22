@@ -7,6 +7,7 @@ export interface StudyData {
     leader: string;
     isRecruiting: boolean;
     recruitmentStatus: '모집중' | '모집완료';
+    type: '스터디' | '프로젝트';
 }
 
 export const studyList: StudyData[] = [
@@ -18,7 +19,8 @@ export const studyList: StudyData[] = [
         tags: ["JAVA", "SQL", "Spring", "JavaScript"],
         leader: "김승혁",
         isRecruiting: true,
-        recruitmentStatus: "모집중"
+        recruitmentStatus: "모집중",
+        type: "스터디"
     },
     {
         id: 2,
@@ -28,7 +30,8 @@ export const studyList: StudyData[] = [
         tags: ["React", "TypeScript", "JavaScript", "CSS"],
         leader: "이민수",
         isRecruiting: true,
-        recruitmentStatus: "모집중"
+        recruitmentStatus: "모집중",
+        type: "스터디"
     },
     {
         id: 3,
@@ -38,7 +41,30 @@ export const studyList: StudyData[] = [
         tags: ["Algorithm", "Python", "Java", "C++"],
         leader: "박지영",
         isRecruiting: false,
-        recruitmentStatus: "모집완료"
+        recruitmentStatus: "모집완료",
+        type: "스터디"
+    },
+    {
+        id: 4,
+        title: "웹 포트폴리오 프로젝트",
+        description: "개인 포트폴리오 웹사이트 제작 프로젝트입니다.",
+        period: "25.08.25~25.10.25",
+        tags: ["React", "Node.js", "MongoDB", "AWS"],
+        leader: "최영희",
+        isRecruiting: true,
+        recruitmentStatus: "모집중",
+        type: "프로젝트"
+    },
+    {
+        id: 5,
+        title: "모바일 앱 프로젝트",
+        description: "React Native를 활용한 모바일 애플리케이션 개발 프로젝트입니다.",
+        period: "25.09.01~25.11.01",
+        tags: ["React Native", "Firebase", "TypeScript"],
+        leader: "정민호",
+        isRecruiting: true,
+        recruitmentStatus: "모집중",
+        type: "프로젝트"
     }
 ];
 

@@ -4,7 +4,6 @@ import ResponsiveContainer from "../components/layout/ResponsiveContainer";
 import ResponsiveSidebar from "../components/layout/ResponsiveSidebar";
 import ResponsiveMainContent from "../components/layout/ResponsiveMainContent";
 import StudyDetailSideBar from "../components/detail/StudyDetailSideBar";
-import StudyChatting from "../components/detail/StudyChatting";
 import Assignment from "../components/detail/Assignment";
 import { studyList } from "../data/studyData";
 import { AuthContext } from "../contexts/AuthContext";
@@ -12,6 +11,7 @@ import PageLayout from "../components/layout/PageLayout";
 import FeedBack from "@/components/detail/FeedBack";
 import Schedule from "@/components/detail/Schedule";
 import Curriculum from "@/components/detail/Curriculum";
+import Community from "@/components/detail/Community";
 import DraggableChatWidget from "@/components/shared/DraggableChatWidget";
 import { Tag, Info, Crown, Calendar } from "lucide-react";
 
@@ -144,7 +144,7 @@ const StudyDetailPage = () => {
 			case "스터디 정보":
 			default:
 				return (
-					<div className="space-y-2 h-[61.5vh] overflow-y-auto p-4 pr-10">
+					<div className="space-y-2 p-4 pr-10">
 						<h3 className="text-2xl font-bold">{studyTitle}</h3>
 						<p className="text-gray-700">
 							<div className="flex items-center gap-2">
@@ -228,6 +228,8 @@ const StudyDetailPage = () => {
 				return <Schedule/>;
 			case "커리큘럼":
 				return <Curriculum />;
+			case "커뮤니티":
+				return <Community />;
 		}
 	};
 
@@ -246,10 +248,6 @@ const StudyDetailPage = () => {
 				<ResponsiveMainContent padding="md">
 					{renderMainContent()}
 				</ResponsiveMainContent>
-				{/* 오른쪽 채팅 패널 */}
-				{/* <ResponsiveSidebar isCollapsible={false}>
-					<StudyChatting />
-				</ResponsiveSidebar> */}
 			</ResponsiveContainer>
 			<DraggableChatWidget />
 		</PageLayout>
