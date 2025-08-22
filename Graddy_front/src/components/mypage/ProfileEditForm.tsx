@@ -7,10 +7,12 @@ interface ProfileEditFormProps {
     name: string;
     nickname: string;
     email: string;
+    phone: string;
     onPasswordChange: (value: string) => void;
     onConfirmPasswordChange: (value: string) => void;
     onNicknameChange: (value: string) => void;
     onEmailChange: (value: string) => void;
+    onPhoneChange: (value: string) => void;
     onUpdateProfile: () => void;
 }
 
@@ -20,11 +22,11 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
     passwordError,
     name,
     nickname,
-    email,
+    phone,
     onPasswordChange,
     onConfirmPasswordChange,
     onNicknameChange,
-    onEmailChange,
+    onPhoneChange,
     onUpdateProfile,
 }) => {
     return (
@@ -152,6 +154,26 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
                                 {passwordError}
                             </p>
                         )}
+                    </div>
+
+                    {/* 전화번호 */}
+                    <div>
+                        <label
+                            className="block text-sm font-medium mb-2"
+                            style={{ color: "#8B85E9" }}
+                        >
+                            전화번호
+                        </label>
+                        <input
+                            type="tel"
+                            value={phone}
+                            onChange={(e) => onPhoneChange(e.target.value)}
+                            placeholder="전화번호를 입력해주세요 (예: 010-1234-5678)"
+                            className="w-full px-4 py-3 border rounded-full"
+                            style={{
+                                borderColor: "#777777",
+                            }}
+                        />
                     </div>
 
 

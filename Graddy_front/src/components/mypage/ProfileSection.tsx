@@ -83,7 +83,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                             <img src={"/github_icon.svg"} alt="github" className="w-10 h-10 rounded-full" />
                         </label>
                         <div className="flex flex-row">
-                            <div className="px-3 sm:px-4 py-2 sm:py-3 bg-gray-100 rounded-lg text-gray-600 text-sm sm:text-base break-all">
+                            <div className="w-full px-5 sm:px-4 py-2 sm:py-3 bg-gray-100 rounded-lg text-gray-600 text-sm sm:text-base break-all">
                                 <a>github.com/graddy/myproject</a>
                             </div>
                             <button
@@ -210,9 +210,14 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                                     return (
                                         <span
                                             key={interest.id}
-                                            className={`px-3 py-1 rounded-full text-xs sm:text-sm font-medium border ${bgColor} ${textColor} ${borderColor}`}
+                                            className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs sm:text-sm font-medium border ${bgColor} ${textColor} ${borderColor}`}
                                         >
-                                            {interest.name}
+                                            <span>{interest.name}</span>
+                                            <span
+                                                className={`text-xs px-1.5 py-0.5 rounded ${textColor} bg-white bg-opacity-50`}
+                                            >
+                                                {interest.difficulty}
+                                            </span>
                                         </span>
                                     );
                                 })}
