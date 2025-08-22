@@ -15,15 +15,46 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @RestController
 @RequiredArgsConstructor
+@Tag(name = "사용자 인증 관리", description = "사용자 인증 API")
 public class LoginController {
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
 
+    @Operation(
+        summary = "사용자 로그인",
+        description = "아이디와 비밀번호를 입력하여 사용자 인증을 수행하고 JWT 토큰을 발급합니다."
+    )
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200", 
+            description = "로그인 성공",
+            content = @Content(schema = @Schema(implementation = LoginResponse.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "401", 
+            description = "아이디 또는 비밀번호 불일치",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "500", 
+            description = "서버 내부 오류",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        )
+    })
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<LoginResponse>> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<ApiResponse<LoginResponse>> login(
+        @Parameter(description = "로그인 요청 정보") 
+        @RequestBody LoginRequest request) {
         try {
             // 1. 사용자 인증 시도
             authenticationManager.authenticate(

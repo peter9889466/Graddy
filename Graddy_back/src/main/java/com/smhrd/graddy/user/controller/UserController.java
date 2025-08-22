@@ -19,19 +19,40 @@ import java.net.URI;
 import java.util.Map;
 import com.smhrd.graddy.user.entity.UserInterest;
 import java.util.List;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @RestController
 @RequiredArgsConstructor
+@Tag(name = "유저 관리", description = "사용자 관리 API")
 public class UserController {
     private final UserService userService;
     private final JwtUtil jwtUtil;
 
-    /**
-     * 아이디 중복 확인 API
-     * 아이디 사용 가능 여부에 따라 다른 HTTP 상태 코드를 반환하도록 수정
-     */
+    @Operation(
+        summary = "아이디 중복 확인",
+        description = "사용자가 입력한 아이디의 사용 가능 여부를 확인합니다."
+    )
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200", 
+            description = "사용 가능한 아이디",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "409", 
+            description = "이미 사용 중인 아이디",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        )
+    })
     @GetMapping("/join/check-userId")
-    public ResponseEntity<ApiResponse<Map<String, Boolean>>> checkUserId(@RequestParam("userId") String userId) {
+    public ResponseEntity<ApiResponse<Map<String, Boolean>>> checkUserId(
+        @Parameter(description = "확인할 아이디", example = "user123") 
+        @RequestParam("userId") String userId) {
         boolean isAvailable = userService.isUserIdAvailable(userId);
 
         // 응답 데이터 생성
@@ -46,12 +67,26 @@ public class UserController {
         }
     }
 
-    /**
-     * 닉네임 중복 확인 API
-     * 닉네임 사용 가능 여부에 따라 다른 HTTP 상태 코드를 반환
-     */
+    @Operation(
+        summary = "닉네임 중복 확인",
+        description = "사용자가 입력한 닉네임의 사용 가능 여부를 확인합니다."
+    )
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200", 
+            description = "사용 가능한 닉네임",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "409", 
+            description = "이미 사용 중인 닉네임",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        )
+    })
     @GetMapping("/join/check-nick")
-    public ResponseEntity<ApiResponse<Map<String, Boolean>>> checkNick(@RequestParam("nick") String nick) {
+    public ResponseEntity<ApiResponse<Map<String, Boolean>>> checkNick(
+        @Parameter(description = "확인할 닉네임", example = "닉네임") 
+        @RequestParam("nick") String nick) {
         boolean isAvailable = userService.isNickAvailable(nick);
 
         // 응답 데이터 생성
@@ -66,12 +101,26 @@ public class UserController {
         }
     }
 
-    /**
-     * 아이디 찾기 API
-     * 이름과 전화번호로 사용자 아이디를 찾습니다.
-     */
+    @Operation(
+        summary = "아이디 찾기",
+        description = "이름과 전화번호를 입력하여 사용자 아이디를 찾습니다."
+    )
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200", 
+            description = "아이디 찾기 성공",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "404", 
+            description = "사용자를 찾을 수 없음",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        )
+    })
     @PostMapping("/find-id")
-    public ResponseEntity<ApiResponse<Map<String, String>>> findUserId(@RequestBody FindIdRequest request) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> findUserId(
+        @Parameter(description = "아이디 찾기 요청 정보") 
+        @RequestBody FindIdRequest request) {
         String userId = userService.findUserIdByNameAndTel(request.getName(), request.getTel());
         
         if (userId != null) {
@@ -87,13 +136,31 @@ public class UserController {
     // 회원가입 성공 시 응답 DTO
     public record JoinResponse(String userId) {}
 
-    /**
-     * 회원가입 API 엔드포인트
-     * @param request 회원가입 요청 정보
-     * @return 성공 시 201 Created, 아이디 중복 시 409 Conflict
-     */
+    @Operation(
+        summary = "회원가입",
+        description = "새로운 사용자를 등록합니다. 아이디, 닉네임 중복 시 409 Conflict를 반환합니다."
+    )
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "201", 
+            description = "회원가입 성공",
+            content = @Content(schema = @Schema(implementation = JoinResponse.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "400", 
+            description = "잘못된 요청 (가능한 요일 미선택 등)",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "409", 
+            description = "아이디 또는 닉네임 중복",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        )
+    })
     @PostMapping("/join")
-    public ResponseEntity<ApiResponse<JoinResponse>> join(@RequestBody JoinRequest request) {
+    public ResponseEntity<ApiResponse<JoinResponse>> join(
+        @Parameter(description = "회원가입 요청 정보") 
+        @RequestBody JoinRequest request) {
         try {
             // 사용자 가능 요일 유효성 검사
             if (request.getAvailableDays() == null || request.getAvailableDays().isEmpty()) {
@@ -124,14 +191,33 @@ public class UserController {
         }
     }
 
-    /**
-     * 닉네임 수정 API
-     * 현재 로그인한 사용자의 닉네임을 변경합니다.
-     */
+    @Operation(
+        summary = "닉네임 수정",
+        description = "현재 로그인한 사용자의 닉네임을 변경합니다. JWT 토큰이 필요합니다."
+    )
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200", 
+            description = "닉네임 수정 성공",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "400", 
+            description = "잘못된 요청",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "401", 
+            description = "인증 실패",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        )
+    })
     @PatchMapping("/me/nick")
     public ResponseEntity<ApiResponse<Map<String, String>>> updateNickname(
-            @RequestBody NicknameUpdateRequest request,
-            @RequestHeader("Authorization") String authorizationHeader) {
+        @Parameter(description = "닉네임 수정 요청 정보") 
+        @RequestBody NicknameUpdateRequest request,
+        @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiJ9...") 
+        @RequestHeader("Authorization") String authorizationHeader) {
         try {
             // 디버깅용 로그
             System.out.println("=== 닉네임 수정 디버깅 정보 ===");
@@ -168,14 +254,33 @@ public class UserController {
         }
     }
 
-    /**
-     * 아이디 수정 API
-     * 현재 비밀번호 확인 후 아이디를 변경합니다.
-     */
+    @Operation(
+        summary = "아이디 수정",
+        description = "현재 비밀번호 확인 후 아이디를 변경합니다. JWT 토큰이 필요합니다."
+    )
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200", 
+            description = "아이디 수정 성공",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "400", 
+            description = "잘못된 요청 (비밀번호 불일치 등)",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "401", 
+            description = "인증 실패",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        )
+    })
     @PutMapping("/me/user-id")
     public ResponseEntity<ApiResponse<Map<String, String>>> updateUserId(
-            @RequestBody UserIdUpdateRequest request,
-            @RequestHeader("Authorization") String authorizationHeader) {
+        @Parameter(description = "아이디 수정 요청 정보") 
+        @RequestBody UserIdUpdateRequest request,
+        @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiJ9...") 
+        @RequestHeader("Authorization") String authorizationHeader) {
         try {
             // 디버깅용 로그
             System.out.println("=== 디버깅 정보 ===");
@@ -212,14 +317,33 @@ public class UserController {
         }
     }
 
-    /**
-     * 사용자 관심분야 수정 API
-     * 현재 로그인한 사용자의 관심분야를 수정합니다.
-     */
+    @Operation(
+        summary = "사용자 관심분야 수정",
+        description = "현재 로그인한 사용자의 관심분야를 수정합니다. JWT 토큰이 필요합니다."
+    )
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200", 
+            description = "관심분야 수정 성공",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "400", 
+            description = "잘못된 요청",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "401", 
+            description = "인증 실패",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        )
+    })
     @PutMapping("/me/interests")
     public ResponseEntity<ApiResponse<Map<String, Object>>> updateUserInterests(
-            @RequestBody UserInterestsUpdateRequest request,
-            @RequestHeader("Authorization") String authorizationHeader) {
+        @Parameter(description = "관심분야 수정 요청 정보") 
+        @RequestBody UserInterestsUpdateRequest request,
+        @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiJ9...") 
+        @RequestHeader("Authorization") String authorizationHeader) {
         try {
             // 디버깅용 로그
             System.out.println("=== 관심분야 수정 디버깅 정보 ===");

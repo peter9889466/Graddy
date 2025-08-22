@@ -5,7 +5,7 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -14,20 +14,21 @@ import java.util.List;
 @AllArgsConstructor
 public class StudyResponse {
 
-    private Long studyId;
-    private String studyName;
-    private String studyTitle;
-    private String studyDesc;
+    private Long studyProjectId;
+    private String studyProjectName;
+    private String studyProjectTitle;
+    private String studyProjectDesc;
     private Integer studyLevel;
+    private String typeCheck;
     private String userId;
     private String isRecruiting;
-    private Timestamp studyStart;
-    private Timestamp studyEnd;
-    private Integer studyTotal;
-    private Timestamp soltStart;
-    private Timestamp soltEnd;
-    private Timestamp createdAt;
-    
-    // 태그 정보
+    private LocalDateTime studyProjectStart;
+    private LocalDateTime studyProjectEnd;
+    private Integer studyProjectTotal;
+    private LocalDateTime soltStart;
+    private LocalDateTime soltEnd;
+    private LocalDateTime createdAt;
+    private String curText;
     private List<String> tagNames;
+    private List<Byte> availableDays;
 }
