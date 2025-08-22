@@ -111,12 +111,16 @@
     background-color: rgba(139, 133, 233, 0.1) !important;
     border: 1px solid #8B85E9 !important;
     border-radius: 4px !important;
-    padding: 2px 4px !important;
+    padding: 2px 6px !important;
     font-size: 10px !important;
+    margin-top: 2px !important;
+    display: inline-block !important;
+    min-width: 20px !important;
 }
 
 .fc-more-link:hover {
     background-color: rgba(139, 133, 233, 0.2) !important;
+    color: #7C73E6 !important;
 }
 
 /* 캘린더 셀 높이 고정 */
@@ -128,4 +132,63 @@
     min-height: 0 !important;
     max-height: 60px !important;
     overflow: hidden !important;
+}
+
+/* 캘린더 헤더 스타일링 */
+.fc-toolbar-title {
+    color: #8B85E9 !important;
+    font-weight: bold !important;
+    font-size: 1.5rem !important;
+}
+
+/* 요일 헤더 스타일링 */
+.fc-col-header-cell {
+    background-color: #F8F9FF !important;
+    border-bottom: 2px solid #8B85E9 !important;
+}
+
+.fc-col-header-cell-cushion {
+    color: #8B85E9 !important;
+    font-weight: 600 !important;
+    font-size: 0.9rem !important;
+}
+
+/* prev/next 버튼 스타일링 */
+.fc-button {
+    height: 40px !important;
+    background-color: #8B85E9 !important;
+    border-color: #8B85E9 !important;
+    color: white !important;
+    font-weight: 500 !important;
+    padding: 4px 8px 12px 8px !important;
+    border-radius: 6px !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+.fc-button:hover {
+    background-color: #7C73E6 !important;
+    border-color: #7C73E6 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 8px rgba(139, 133, 233, 0.3) !important;
+}
+
+.fc-button:active {
+    background-color: #6B63D9 !important;
+    border-color: #6B63D9 !important;
+    transform: translateY(0) !important;
+}
+
+.fc-button:focus {
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(139, 133, 233, 0.3) !important;
+}
+
+/* 버튼 비활성화 상태 */
+.fc-button:disabled {
+    background-color: #E5E7EB !important;
+    border-color: #E5E7EB !important;
+    color: #9CA3AF !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    box-shadow: none !important;
 }
