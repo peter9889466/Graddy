@@ -74,7 +74,7 @@ const Join2: React.FC = () => {
             setError(null);
             try {
                 const response = await axios.get(apiEndpoint);
-                if (response.data.success) {
+                if (response.data.data!==null) {
                     const result = response.data.data;
                     
                     // API 응답 데이터를 UI에 맞게 변환
