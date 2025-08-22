@@ -64,7 +64,7 @@ function App() {
                                     element={<StudySearchPage />}
                                 />
                                 <Route
-                                    path="/study-create"
+                                    path="/study/create"
                                     element={<StudyCreate />}
                                 />
                                 <Route path="/study/:id"

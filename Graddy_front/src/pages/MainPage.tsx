@@ -23,7 +23,7 @@ const MainPage = () => {
     const { isLoggedIn } = authContext;
 
     const handleJoinClick = () => {
-        navigate("/login");
+        navigate("/search");
     };
 
     // 선택된 날짜 상태
