@@ -4,6 +4,7 @@ import ResponsiveContainer from "../components/layout/ResponsiveContainer";
 import ResponsiveSidebar from "../components/layout/ResponsiveSidebar";
 import ResponsiveMainContent from "../components/layout/ResponsiveMainContent";
 import StudyDetailSideBar from "../components/detail/StudyDetailSideBar";
+import ProjectDetailSideBar from "../components/detail/ProjectDetailSideBar";
 import StudyChatting from "../components/detail/StudyChatting";
 import Assignment from "../components/detail/Assignment";
 import { studyList } from "../data/studyData";
@@ -22,6 +23,7 @@ const StudyDetailPage = () => {
 	const [activeTab, setActiveTab] = useState("스터디 정보");
 	const [isApplied, setIsApplied] = useState(false);
 	const [isRecruiting, setIsRecruiting] = useState(true); // 모집 상태 관리
+	const [isProject, setIsProject] = useState(false); // 프로젝트/스터디 구분
 	const authContext = useContext(AuthContext);
 	const location = useLocation();
 	const state = location.state as {
@@ -30,6 +32,7 @@ const StudyDetailPage = () => {
 		leader:string;
 		period: string;
 		tags: string[];
+		type?: 'study' | 'project';
 	} | null;
 	
 	const [studyTitle, setStudyTitle] = useState<string>(
@@ -44,6 +47,17 @@ const StudyDetailPage = () => {
 	const [studyPeriod, setStudyPeriod] = useState<string>(
 		state?.period || ""
 	);
+	
+	// 프로젝트/스터디 구분 설정
+	useEffect(() => {
+		if (state?.type === 'project') {
+			setIsProject(true);
+			setActiveTab("프로젝트 메인");
+		} else {
+			setIsProject(false);
+			setActiveTab("스터디 정보");
+		}
+	}, [state?.type]);
 
 	// 기간 포맷팅 함수
 	const formatPeriod = (period: string): string => {
@@ -72,7 +86,7 @@ const StudyDetailPage = () => {
 		
 		return period;
 	};
-	const [studyTags, setStudyTags] = useState<string[]>(
+	const [studyTags, setStudyTags] = useState<any[]>(
 		state?.tags || []
 	);
 
@@ -112,10 +126,16 @@ const StudyDetailPage = () => {
 	// 임시 테스트용 (실제 사용자 닉네임으로 변경해보세요)
 	// const isStudyLeader = "test" === studyLeader;
 	
+	// 사용자 권한 확인
+	const isLoggedIn = authContext?.isLoggedIn || false;
+	const isStudyMember = isStudyLeader || isApplied; // 스터디장이거나 가입 신청한 사용자
+	
 	// 디버깅을 위한 콘솔 로그
 	console.log('현재 사용자 닉네임:', authContext?.user?.nickname);
 	console.log('스터디장:', studyLeader);
 	console.log('스터디장 여부:', isStudyLeader);
+	console.log('로그인 여부:', isLoggedIn);
+	console.log('스터디 멤버 여부:', isStudyMember);
 
 	const handleApplyClick = () => {
 		if (!authContext?.isLoggedIn) {
@@ -140,8 +160,7 @@ const StudyDetailPage = () => {
 	// 메인 콘텐츠 렌더링 함수
 	const renderMainContent = () => {
 		switch (activeTab) {
-			case "과제 제출":
-				return <Assignment />;
+			case "프로젝트 메인":
 			case "스터디 정보":
 			default:
 				return (
@@ -150,21 +169,21 @@ const StudyDetailPage = () => {
 						<p className="text-gray-700">
 							<div className="flex items-center gap-2">
 								<Info className="w-4 h-4 text-gray-600" />
-								<span>스터디 소개</span>
+								<span>{isProject ? '프로젝트' : '스터디'} 소개</span>
 							</div>
 							<span className="text-gray-800 block mt-1">{studyDescription}</span>
 						</p>
 						<p className="text-gray-700">
 							<div className="flex items-center gap-2">
 								<Crown className="w-4 h-4 text-gray-600" />
-								<span>스터디장</span>
+								<span>{isProject ? '프로젝트' : '스터디'}장</span>
 							</div>
 							<span className="text-gray-800 block mt-1">{studyLeader}</span>
 						</p>
 						<p className="text-gray-700">
 							<div className="flex items-center gap-2">
 								<Calendar className="w-4 h-4 text-gray-600" />
-								<span>스터디 기간</span>
+								<span>{isProject ? '프로젝트' : '스터디'} 기간</span>
 							</div>
 							<span className="text-gray-800 block mt-1">{formatPeriod(studyPeriod)}</span>
 						</p>
@@ -175,9 +194,40 @@ const StudyDetailPage = () => {
 							</div>
 							<div className="mt-2 flex gap-2 flex-wrap ">
 								{studyTags.length > 0 ? (
-									studyTags.map((t, index) => (
-										<span key={`${t}-${index}`} className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-xl text-xs border border-gray-300">#{t}</span>
-									))
+									studyTags.map((t: any, index) => {
+										// 태그가 객체인지 문자열인지 확인
+										const tagName = typeof t === 'string' ? t : t.name;
+										const tagDifficulty = typeof t === 'object' ? t.difficulty : null;
+										
+										// 난이도별 색상 적용
+										let tagClasses = "px-2 py-0.5 rounded-xl text-xs border";
+										if (tagDifficulty) {
+											switch (tagDifficulty) {
+												case "초급":
+													tagClasses += " bg-emerald-100 text-emerald-800 border-emerald-300";
+													break;
+												case "중급":
+													tagClasses += " bg-blue-100 text-blue-800 border-blue-300";
+													break;
+												case "고급":
+													tagClasses += " bg-purple-100 text-purple-800 border-purple-300";
+													break;
+												default:
+													tagClasses += " bg-gray-100 text-gray-600 border-gray-300";
+											}
+										} else {
+											tagClasses += " bg-gray-100 text-gray-600 border-gray-300";
+										}
+										
+										return (
+											<span key={`${tagName}-${index}`} className={tagClasses}>
+												#{tagName}
+												{tagDifficulty && (
+													<span className="ml-1 opacity-75">({tagDifficulty})</span>
+												)}
+											</span>
+										);
+									})
 								) : (
 									<span className="text-sm text-gray-500">태그 정보가 없습니다.</span>
 								)}
@@ -185,7 +235,7 @@ const StudyDetailPage = () => {
 						</div>
 						<hr className="my-4"/>
 
-						<h4 className="font-semibold mb-2" style={{ color: "#8B85E9" }}>스터디 설명</h4>
+						<h4 className="font-semibold mb-2" style={{ color: "#8B85E9" }}>{isProject ? '프로젝트' : '스터디'} 설명</h4>
 						<div className="bg-white border-2 rounded-xl p-4" style={{ borderColor: "#8B85E9" }}>
 							<p className="text-gray-700 text-sm sm:text-base leading-relaxed">{studyDescription}</p>
 						</div>
@@ -207,7 +257,7 @@ const StudyDetailPage = () => {
 									className="flex-1 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer transition-colors duration-200"
 									style={{ backgroundColor: "#6B7280" }}
 								>
-									스터디 종료
+									{isProject ? '프로젝트' : '스터디'} 종료
 								</button>
 							</div>
 						) : (
@@ -218,18 +268,88 @@ const StudyDetailPage = () => {
 								className="w-full mt-3 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer"
 								style={{ backgroundColor: isApplied ? "#6B7280" : "#8B85E9" }}
 							>
-								{isApplied ? "승인 대기" : "스터디 가입 신청"}
+								{isApplied ? "승인 대기" : `${isProject ? '프로젝트' : '스터디'} 가입 신청`}
 							</button>
 						)}
 					</div>
 				);
+			case "과제 제출":
+				if (isProject) {
+					return (
+						<div className="flex items-center justify-center h-64">
+							<div className="text-center">
+								<p className="text-gray-500 mb-2">프로젝트에서는 과제 제출 기능을 사용할 수 없습니다.</p>
+							</div>
+						</div>
+					);
+				}
+				if (!isLoggedIn || !isStudyMember) {
+					return (
+						<div className="flex items-center justify-center h-64">
+							<div className="text-center">
+								<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
+								<p className="text-sm text-gray-400">스터디에 가입한 멤버만 접근할 수 있습니다.</p>
+							</div>
+						</div>
+					);
+				}
+				return <Assignment />;
+
 			case "과제 피드백":
+				if (isProject) {
+					return (
+						<div className="flex items-center justify-center h-64">
+							<div className="text-center">
+								<p className="text-gray-500 mb-2">프로젝트에서는 과제 피드백 기능을 사용할 수 없습니다.</p>
+							</div>
+						</div>
+					);
+				}
+				if (!isLoggedIn || !isStudyMember) {
+					return (
+						<div className="flex items-center justify-center h-64">
+							<div className="text-center">
+								<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
+								<p className="text-sm text-gray-400">스터디에 가입한 멤버만 접근할 수 있습니다.</p>
+							</div>
+						</div>
+					);
+				}
 				return <FeedBack />;
 			case "과제 / 일정 관리":
-				return <Schedule/>;
+				if (isProject) {
+					return (
+						<div className="flex items-center justify-center h-64">
+							<div className="text-center">
+								<p className="text-gray-500 mb-2">프로젝트에서는 과제/일정 관리 기능을 사용할 수 없습니다.</p>
+							</div>
+						</div>
+					);
+				}
+				if (!isLoggedIn || !isStudyMember) {
+					return (
+						<div className="flex items-center justify-center h-64">
+							<div className="text-center">
+								<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
+								<p className="text-sm text-gray-400">스터디에 가입한 멤버만 접근할 수 있습니다.</p>
+							</div>
+						</div>
+					);
+				}
+				return <Schedule isStudyLeader={isStudyLeader} />;
 			case "커리큘럼":
 				return <Curriculum />;
 			case "커뮤니티":
+				if (!isLoggedIn || !isStudyMember) {
+					return (
+						<div className="flex items-center justify-center h-64">
+							<div className="text-center">
+								<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
+								<p className="text-sm text-gray-400">스터디에 가입한 멤버만 접근할 수 있습니다.</p>
+							</div>
+						</div>
+					);
+				}
 				return <Community />;
 		}
 	};
@@ -239,10 +359,21 @@ const StudyDetailPage = () => {
 			<ResponsiveContainer variant="sidebar">
 				{/* 사이드바 */}
 				<ResponsiveSidebar>
-					<StudyDetailSideBar
-						activeTab={activeTab}
-						onTabChange={(tab) => setActiveTab(tab)}
-					/>
+					{isProject ? (
+						<ProjectDetailSideBar
+							activeTab={activeTab}
+							onTabChange={(tab) => setActiveTab(tab)}
+							isLoggedIn={isLoggedIn}
+							isStudyMember={isStudyMember}
+						/>
+					) : (
+						<StudyDetailSideBar
+							activeTab={activeTab}
+							onTabChange={(tab) => setActiveTab(tab)}
+							isLoggedIn={isLoggedIn}
+							isStudyMember={isStudyMember}
+						/>
+					)}
 				</ResponsiveSidebar>
 
 				{/* 메인 콘텐츠 */}

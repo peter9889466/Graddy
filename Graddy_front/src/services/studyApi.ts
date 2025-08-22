@@ -16,7 +16,7 @@ export interface StudyData {
     isRecruiting: boolean;
     recruitmentStatus: '모집중' | '모집완료';
     type: '스터디' | '프로젝트';
-    tags: string[];
+    tags: Array<string | {name: string, difficulty?: string}>;
     leader: string;
     createdAt?: string;
     updatedAt?: string;

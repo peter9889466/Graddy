@@ -11,7 +11,8 @@ interface User {
 interface AuthContextType {
     isLoggedIn: boolean;
     user: User | null;
-    login: (userData?: User) => void;
+    token: string | null;
+    login: (userData?: User, userToken?: string) => void;
     logout: () => void;
 }
 
@@ -22,18 +23,21 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 export const AuthProvider: React.FC<PropsWithChildren> = ({ children }) => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [user, setUser] = useState<User | null>(null);
+    const [token, setToken] = useState<string | null>(null);
 
     useEffect(() => {
         const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
         const userData = localStorage.getItem('userData');
+        const userToken = localStorage.getItem('token');
         
         setIsLoggedIn(loggedIn);
+        setToken(userToken);
         if (userData) {
             setUser(JSON.parse(userData));
         }
     }, []);
 
-    const login = (userData?: User) => {
+    const login = (userData?: User, userToken?: string) => {
         localStorage.setItem('isLoggedIn', 'true');
         setIsLoggedIn(true);
         
@@ -41,16 +45,23 @@ export const AuthProvider: React.FC<PropsWithChildren> = ({ children }) => {
             localStorage.setItem('userData', JSON.stringify(userData));
             setUser(userData);
         }
+        
+        if (userToken) {
+            localStorage.setItem('token', userToken);
+            setToken(userToken);
+        }
     };
 
     const logout = () => {
         localStorage.removeItem('isLoggedIn');
         localStorage.removeItem('userData');
+        localStorage.removeItem('token');
         setIsLoggedIn(false);
         setUser(null);
+        setToken(null);
     };
 
-    const value = { isLoggedIn, user, login, logout };
+    const value = { isLoggedIn, user, token, login, logout };
 
     return (
         <AuthContext.Provider value={value}>

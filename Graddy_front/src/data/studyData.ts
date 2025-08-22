@@ -3,7 +3,7 @@ export interface StudyData {
     title: string;
     description: string;
     period: string;
-    tags: string[];
+    tags: Array<string | {name: string, difficulty?: string}>;
     leader: string;
     isRecruiting: boolean;
     recruitmentStatus: '모집중' | '모집완료';
@@ -16,7 +16,12 @@ export const studyList: StudyData[] = [
         title: "Java 스터디",
         description: "프로젝트 스터디! 프로젝트 개발 스터디 인원 front / back 인원 구합니다.",
         period: "25.08.15~25.09.15",
-        tags: ["JAVA", "SQL", "Spring", "JavaScript"],
+        tags: [
+            {name: "JAVA", difficulty: "중급"},
+            {name: "SQL", difficulty: "초급"},
+            {name: "Spring", difficulty: "고급"},
+            {name: "JavaScript", difficulty: "중급"}
+        ],
         leader: "김승혁",
         isRecruiting: true,
         recruitmentStatus: "모집중",
@@ -27,7 +32,12 @@ export const studyList: StudyData[] = [
         title: "React 스터디",
         description: "React와 TypeScript를 활용한 프론트엔드 개발 스터디입니다.",
         period: "25.08.20~25.10.20",
-        tags: ["React", "TypeScript", "JavaScript", "CSS"],
+        tags: [
+            {name: "React", difficulty: "중급"},
+            {name: "TypeScript", difficulty: "고급"},
+            {name: "JavaScript", difficulty: "중급"},
+            {name: "CSS", difficulty: "초급"}
+        ],
         leader: "이민수",
         isRecruiting: true,
         recruitmentStatus: "모집중",
@@ -38,7 +48,12 @@ export const studyList: StudyData[] = [
         title: "알고리즘 스터디",
         description: "코딩테스트 대비 알고리즘 문제 해결 스터디입니다.",
         period: "25.08.10~25.12.10",
-        tags: ["Algorithm", "Python", "Java", "C++"],
+        tags: [
+            {name: "Algorithm", difficulty: "고급"},
+            {name: "Python", difficulty: "중급"},
+            {name: "Java", difficulty: "중급"},
+            {name: "C++", difficulty: "고급"}
+        ],
         leader: "박지영",
         isRecruiting: false,
         recruitmentStatus: "모집완료",
