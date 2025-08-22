@@ -64,6 +64,36 @@ const MainPage = () => {
             startTime: "19:00",
             date: "2025-08-22",
         },
+        {
+            id: "5",
+            type: "assignment",
+            studyName: "Java 스터디",
+            assignmentName: "Spring Boot 과제",
+            dueTime: "17:00",
+            date: "2025-08-21",
+        },
+        {
+            id: "6",
+            type: "study",
+            studyName: "Python 스터디",
+            startTime: "14:00",
+            date: "2025-08-21",
+        },
+        {
+            id: "7",
+            type: "assignment",
+            studyName: "데이터베이스 스터디",
+            assignmentName: "SQL 쿼리 과제",
+            dueTime: "16:00",
+            date: "2025-08-22",
+        },
+        {
+            id: "8",
+            type: "study",
+            studyName: "웹 개발 스터디",
+            startTime: "15:00",
+            date: "2025-08-22",
+        },
     ];
 
     // 개인 일정 데이터
@@ -80,26 +110,58 @@ const MainPage = () => {
             startTime: "07:00",
             date: "2025-08-22",
         },
+        {
+            id: "p3",
+            title: "독서",
+            startTime: "20:00",
+            date: "2025-08-21",
+        },
+        {
+            id: "p4",
+            title: "영화 감상",
+            startTime: "21:00",
+            date: "2025-08-21",
+        },
+        {
+            id: "p5",
+            title: "쇼핑",
+            startTime: "10:00",
+            date: "2025-08-22",
+        },
     ]);
 
     // 캘린더 이벤트 데이터 (표시용)
     const events = [
         ...studySchedules.map((schedule) => ({
             id: schedule.id,
-            title: "", // 텍스트 제거
+            title: "",
             date: schedule.date,
             backgroundColor:
                 schedule.type === "assignment" ? "#3B82F6" : "#EF4444", // 과제: 파란색, 스터디: 빨간색
             borderColor: schedule.type === "assignment" ? "#3B82F6" : "#EF4444",
+            extendedProps: {
+                type: schedule.type,
+                studyName: schedule.studyName,
+                assignmentName: schedule.assignmentName,
+                dueTime: schedule.dueTime,
+                startTime: schedule.startTime,
+            },
         })),
         ...personalSchedules.map((schedule) => ({
             id: schedule.id,
-            title: "", // 텍스트 제거
+            title: "",
             date: schedule.date,
             backgroundColor: "#8B5CF6", // 개인일정: 보라색
             borderColor: "#8B5CF6",
+            extendedProps: {
+                type: "personal",
+                title: schedule.title,
+                startTime: schedule.startTime,
+            },
         })),
     ];
+
+
 
     // 추천 스터디 데이터
     const recommendedStudies = [
@@ -181,6 +243,8 @@ const MainPage = () => {
                                     right: "prev next",
                                 }}
                                 eventDisplay="block"
+                                dayMaxEvents={3}
+                                moreLinkText={(count) => `+${count}`}
                                 eventTextColor="white"
                                 dayCellClassNames="hover:bg-gray-50 cursor-pointer"
                                 eventClassNames="pointer-events-none"
@@ -199,7 +263,7 @@ const MainPage = () => {
                             </div>
 
                             {selectedDate ? (
-                                <div className="space-y-4 max-h-96 overflow-y-auto schedule-list">
+                                <div className="space-y-4 max-h-146 overflow-y-auto schedule-list">
                                     {(() => {
                                         const { studyItems, personalItems } =
                                             getSchedulesForDate(selectedDate);
