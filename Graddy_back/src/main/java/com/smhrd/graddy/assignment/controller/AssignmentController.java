@@ -22,7 +22,7 @@ import java.util.List;
  * 과제의 생성, 조회, 수정, 삭제 기능을 제공합니다.
  */
 @RestController
-@RequestMapping("/api/assignments")
+@RequestMapping("/assignments")
 @RequiredArgsConstructor
 @Tag(name = "과제 관리", description = "과제 생성, 조회, 수정, 삭제 API")
 public class AssignmentController {

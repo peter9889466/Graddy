@@ -380,10 +380,6 @@ const StudyDetailPage = () => {
 				<ResponsiveMainContent padding="md">
 					{renderMainContent()}
 				</ResponsiveMainContent>
-				{/* 오른쪽 채팅 패널 */}
-				{/* <ResponsiveSidebar isCollapsible={false}>
-					<StudyChatting />
-				</ResponsiveSidebar> */}
 			</ResponsiveContainer>
 			<DraggableChatWidget />
 		</PageLayout>

@@ -49,6 +49,9 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
 
+    // [추가] 솔라피 SMS SDK
+    implementation 'net.nurigo:sdk:4.2.7'
+
 
 }
 
