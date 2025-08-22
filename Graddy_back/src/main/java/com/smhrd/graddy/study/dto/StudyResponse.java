@@ -5,6 +5,7 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -25,8 +26,8 @@ public class StudyResponse {
     private LocalDateTime studyProjectStart;
     private LocalDateTime studyProjectEnd;
     private Integer studyProjectTotal;
-    private LocalDateTime soltStart;
-    private LocalDateTime soltEnd;
+    private Timestamp soltStart;
+    private Timestamp soltEnd;
     private LocalDateTime createdAt;
     private String curText;
     private List<String> tagNames;

@@ -5,6 +5,7 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -17,14 +18,14 @@ public class StudyUpdateRequest {
     private String studyProjectName;
     private String studyProjectTitle;
     private String studyProjectDesc;
-    private Integer studyLevel;
+    private Integer studyLevel; // null 체크를 위해 Integer로 변경
     private String typeCheck; // "study" 또는 "project"
     private String isRecruiting; // "recruitment", "complete", "end"
     private LocalDateTime studyProjectStart;
     private LocalDateTime studyProjectEnd;
-    private Integer studyProjectTotal;
-    private LocalDateTime soltStart;
-    private LocalDateTime soltEnd;
+    private Integer studyProjectTotal; // null 체크를 위해 Integer로 변경
+    private Timestamp soltStart;
+    private Timestamp soltEnd;
     
     // 태그 정보 (interest_id 리스트)
     private List<Long> interestIds;

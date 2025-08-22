@@ -102,12 +102,12 @@ public class StudyController {
      * 
      * @return 모집중인 스터디/프로젝트 목록 (태그, 선호 요일 포함)
      */
-    @GetMapping("/recruiting")
-    @Operation(summary = "모집중인 스터디/프로젝트 목록", description = "현재 모집 중인 스터디/프로젝트만 조회합니다.")
-    public ResponseEntity<ApiResponse<List<StudyResponse>>> getRecruitingStudyProjects() {
-        List<StudyResponse> studyProjects = studyService.getRecruitingStudies();
-        return ApiResponse.success("모집중인 스터디/프로젝트 목록 조회가 성공했습니다.", studyProjects);
-    }
+//    @GetMapping("/recruiting")
+//    @Operation(summary = "모집중인 스터디/프로젝트 목록", description = "현재 모집 중인 스터디/프로젝트만 조회합니다.")
+//    public ResponseEntity<ApiResponse<List<StudyResponse>>> getRecruitingStudyProjects() {
+//        List<StudyResponse> studyProjects = studyService.getRecruitingStudies();
+//        return ApiResponse.success("모집중인 스터디/프로젝트 목록 조회가 성공했습니다.", studyProjects);
+//    }
 
     /**
      * 사용자가 리더인 스터디/프로젝트 목록 조회
@@ -116,12 +116,12 @@ public class StudyController {
      * @param userId 리더 ID
      * @return 해당 사용자가 리더인 스터디/프로젝트 목록 (태그, 선호 요일 포함)
      */
-    @GetMapping("/leader/{userId}")
-    @Operation(summary = "리더별 스터디/프로젝트 목록", description = "특정 사용자가 리더인 스터디/프로젝트 목록을 조회합니다.")
-    public ResponseEntity<ApiResponse<List<StudyResponse>>> getStudyProjectsByLeader(@PathVariable String userId) {
-        List<StudyResponse> studyProjects = studyService.getStudiesByLeader(userId);
-        return ApiResponse.success("리더별 스터디/프로젝트 목록 조회가 성공했습니다.", studyProjects);
-    }
+//    @GetMapping("/leader/{userId}")
+//    @Operation(summary = "리더별 스터디/프로젝트 목록", description = "특정 사용자가 리더인 스터디/프로젝트 목록을 조회합니다.")
+//    public ResponseEntity<ApiResponse<List<StudyResponse>>> getStudyProjectsByLeader(@PathVariable String userId) {
+//        List<StudyResponse> studyProjects = studyService.getStudiesByLeader(userId);
+//        return ApiResponse.success("리더별 스터디/프로젝트 목록 조회가 성공했습니다.", studyProjects);
+//    }
 
     /**
      * 스터디/프로젝트 검색
@@ -130,12 +130,12 @@ public class StudyController {
      * @param keyword 검색할 키워드
      * @return 검색된 스터디/프로젝트 목록 (태그, 선호 요일 포함)
      */
-    @GetMapping("/search")
-    @Operation(summary = "스터디/프로젝트 검색", description = "제목, 스터디/프로젝트명, 설명, 작성자, 태그로 검색합니다.")
-    public ResponseEntity<ApiResponse<List<StudyResponse>>> searchStudyProjects(@RequestParam(required = false) String keyword) {
-        List<StudyResponse> studyProjects = studyService.searchStudies(keyword);
-        return ApiResponse.success("스터디/프로젝트 검색이 성공했습니다.", studyProjects);
-    }
+//    @GetMapping("/search")
+//    @Operation(summary = "스터디/프로젝트 검색", description = "제목, 스터디/프로젝트명, 설명, 작성자, 태그로 검색합니다.")
+//    public ResponseEntity<ApiResponse<List<StudyResponse>>> searchStudyProjects(@RequestParam(required = false) String keyword) {
+//        List<StudyResponse> studyProjects = studyService.searchStudies(keyword);
+//        return ApiResponse.success("스터디/프로젝트 검색이 성공했습니다.", studyProjects);
+//    }
 
     /**
      * 레벨별 스터디/프로젝트 목록 조회
@@ -144,12 +144,12 @@ public class StudyController {
      * @param level 조회할 스터디/프로젝트 레벨
      * @return 해당 레벨의 스터디/프로젝트 목록 (태그, 선호 요일 포함)
      */
-    @GetMapping("/level/{level}")
-    @Operation(summary = "레벨별 스터디/프로젝트 목록", description = "특정 레벨의 스터디/프로젝트 목록을 조회합니다.")
-    public ResponseEntity<ApiResponse<List<StudyResponse>>> getStudyProjectsByLevel(@PathVariable Integer level) {
-        List<StudyResponse> studyProjects = studyService.getStudiesByLevel(level);
-        return ApiResponse.success("레벨별 스터디/프로젝트 목록 조회가 성공했습니다.", studyProjects);
-    }
+//    @GetMapping("/level/{level}")
+//    @Operation(summary = "레벨별 스터디/프로젝트 목록", description = "특정 레벨의 스터디/프로젝트 목록을 조회합니다.")
+//    public ResponseEntity<ApiResponse<List<StudyResponse>>> getStudyProjectsByLevel(@PathVariable Integer level) {
+//        List<StudyResponse> studyProjects = studyService.getStudiesByLevel(level);
+//        return ApiResponse.success("레벨별 스터디/프로젝트 목록 조회가 성공했습니다.", studyProjects);
+//    }
 
     /**
      * 스터디/프로젝트 수정
