@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";      
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAutoComplete } from "../hooks/useAutoComplete";
 import { studyList, searchSuggestions } from "../data/studyData";
 import { StudyApiService, StudyData } from "../services/studyApi";
@@ -67,7 +67,7 @@ export const StudySearchPage = () => {
     }, []);
 
     const [backendStudies, setBackendStudies] = useState<StudyData[]>([]);
-    
+
     // 백엔드에서 스터디 목록 가져오기
     useEffect(() => {
         const fetchStudies = async () => {
@@ -103,9 +103,22 @@ export const StudySearchPage = () => {
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         }));
-        
+
+        // 백엔드 스터디 데이터의 태그를 올바른 형식으로 변환
+        const convertedBackendStudies = backendStudies.map(study => ({
+            ...study,
+            tags: Array.isArray(study.tags) ? study.tags.map(tag => {
+                // 백엔드에서 온 태그가 문자열인 경우 그대로 사용
+                if (typeof tag === 'string') {
+                    return tag;
+                }
+                // 객체인 경우 name 속성 사용
+                return tag.name || tag;
+            }) : []
+        }));
+
         // 기존 스터디 목록과 백엔드 스터디 목록 합치기
-        let filtered: StudyData[] = [...convertedStudyList, ...backendStudies];
+        let filtered: StudyData[] = [...convertedStudyList, ...convertedBackendStudies];
 
         // 모집 상태 필터링
         if (selectedStatus === "모집중") {
@@ -136,9 +149,10 @@ export const StudySearchPage = () => {
                             .toLowerCase()
                             .includes(inputValue.toLowerCase());
                     case "태그":
-                        return study.tags.some((tag: string) =>
-                            tag.toLowerCase().includes(inputValue.toLowerCase())
-                        );
+                        return study.tags.some((tag: any) => {
+                            const tagName = typeof tag === 'string' ? tag : (tag.name || tag);
+                            return tagName.toLowerCase().includes(inputValue.toLowerCase());
+                        });
                     default:
                         return (
                             study.studyTitle
@@ -181,21 +195,20 @@ export const StudySearchPage = () => {
                     <div className="relative" ref={statusDropdownRef}>
                         <button
                             onClick={() => setIsStatusOpen(!isStatusOpen)}
-                            className={`px-4 py-2 rounded-xl bg-white text-gray-700 flex items-center justify-between border ${
-                                isStatusOpen ? "border-2 border-[#8B85E9]" : "border-2 border-gray-300"
-                            } focus:outline-none min-w-[120px]`}
+                            className={`px-4 py-2 rounded-xl bg-white text-gray-700 flex items-center justify-between border ${isStatusOpen ? "border-2 border-[#8B85E9]" : "border-2 border-gray-300"
+                                } focus:outline-none min-w-[120px]`}
                         >
                             <span>{selectedStatus}</span>
-                            <svg 
+                            <svg
                                 className={`w-4 h-4 transition-transform ${isStatusOpen ? 'rotate-180' : ''}`}
-                                fill="none" 
-                                stroke="currentColor" 
+                                fill="none"
+                                stroke="currentColor"
                                 viewBox="0 0 24 24"
                             >
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                             </svg>
                         </button>
-                        
+
                         {isStatusOpen && (
                             <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-xl shadow-lg z-10 overflow-hidden">
                                 {statusOptions.map((option, index) => (
@@ -206,7 +219,7 @@ export const StudySearchPage = () => {
                                             setIsStatusOpen(false);
                                         }}
                                         className={`px-4 py-2 cursor-pointer transition-colors hover:bg-gray-50 ${index !== statusOptions.length - 1 ? 'border-b border-gray-100' : ''}`}
-                                        style={{ 
+                                        style={{
                                             backgroundColor: selectedStatus === option.label ? '#E8E6FF' : '#FFFFFF',
                                             color: selectedStatus === option.label ? '#8B85E9' : '#374151'
                                         }}
@@ -222,21 +235,20 @@ export const StudySearchPage = () => {
                     <div className="relative" ref={typeDropdownRef}>
                         <button
                             onClick={() => setIsTypeOpen(!isTypeOpen)}
-                            className={`px-4 py-2 rounded-xl bg-white text-gray-700 flex items-center justify-between border ${
-                                isTypeOpen ? "border-2 border-[#8B85E9]" : "border-2 border-gray-300"
-                            } focus:outline-none min-w-[100px]`}
+                            className={`px-4 py-2 rounded-xl bg-white text-gray-700 flex items-center justify-between border ${isTypeOpen ? "border-2 border-[#8B85E9]" : "border-2 border-gray-300"
+                                } focus:outline-none min-w-[100px]`}
                         >
                             <span>{selectedType}</span>
-                            <svg 
+                            <svg
                                 className={`w-4 h-4 transition-transform ${isTypeOpen ? 'rotate-180' : ''}`}
-                                fill="none" 
-                                stroke="currentColor" 
+                                fill="none"
+                                stroke="currentColor"
                                 viewBox="0 0 24 24"
                             >
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                             </svg>
                         </button>
-                        
+
                         {isTypeOpen && (
                             <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-xl shadow-lg z-10 overflow-hidden">
                                 {typeOptions.map((option, index) => (
@@ -247,7 +259,7 @@ export const StudySearchPage = () => {
                                             setIsTypeOpen(false);
                                         }}
                                         className={`px-4 py-2 cursor-pointer transition-colors hover:bg-gray-50 ${index !== typeOptions.length - 1 ? 'border-b border-gray-100' : ''}`}
-                                        style={{ 
+                                        style={{
                                             backgroundColor: selectedType === option.label ? '#E8E6FF' : '#FFFFFF',
                                             color: selectedType === option.label ? '#8B85E9' : '#374151'
                                         }}
@@ -263,21 +275,20 @@ export const StudySearchPage = () => {
                     <div className="relative" ref={categoryDropdownRef}>
                         <button
                             onClick={() => setIsCategoryOpen(!isCategoryOpen)}
-                            className={`px-4 py-2 rounded-xl bg-white text-gray-700 flex items-center justify-between border ${
-                                isCategoryOpen ? "border-2 border-[#8B85E9]" : "border-2 border-gray-300"
-                            } focus:outline-none min-w-[100px]`}
+                            className={`px-4 py-2 rounded-xl bg-white text-gray-700 flex items-center justify-between border ${isCategoryOpen ? "border-2 border-[#8B85E9]" : "border-2 border-gray-300"
+                                } focus:outline-none min-w-[100px]`}
                         >
                             <span>{selectedCategory}</span>
-                            <svg 
+                            <svg
                                 className={`w-4 h-4 transition-transform ${isCategoryOpen ? 'rotate-180' : ''}`}
-                                fill="none" 
-                                stroke="currentColor" 
+                                fill="none"
+                                stroke="currentColor"
                                 viewBox="0 0 24 24"
                             >
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                             </svg>
                         </button>
-                        
+
                         {isCategoryOpen && (
                             <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-xl shadow-lg z-10 overflow-hidden">
                                 {categoryOptions.map((option, index) => (
@@ -288,7 +299,7 @@ export const StudySearchPage = () => {
                                             setIsCategoryOpen(false);
                                         }}
                                         className={`px-4 py-2 cursor-pointer transition-colors hover:bg-gray-50 ${index !== categoryOptions.length - 1 ? 'border-b border-gray-100' : ''}`}
-                                        style={{ 
+                                        style={{
                                             backgroundColor: selectedCategory === option.label ? '#E8E6FF' : '#FFFFFF',
                                             color: selectedCategory === option.label ? '#8B85E9' : '#374151'
                                         }}
@@ -322,11 +333,10 @@ export const StudySearchPage = () => {
                             {filteredSuggestions.map((suggestion, index) => (
                                 <div
                                     key={suggestion}
-                                    className={`px-4 py-2.5 cursor-pointer border-b border-gray-100 hover:bg-gray-50 ${
-                                        index === activeSuggestionIndex
-                                            ? "bg-gray-50"
-                                            : ""
-                                    }`}
+                                    className={`px-4 py-2.5 cursor-pointer border-b border-gray-100 hover:bg-gray-50 ${index === activeSuggestionIndex
+                                        ? "bg-gray-50"
+                                        : ""
+                                        }`}
                                     onClick={() =>
                                         handleSuggestionClick(suggestion)
                                     }
@@ -343,7 +353,6 @@ export const StudySearchPage = () => {
                     onClick={() => navigate('/study/create')}
                     className="px-6 py-2.5 bg-[#8B85E9] text-white rounded-lg font-medium hover:bg-[#7A74D8] transition-colors duration-200 flex items-center gap-2"
                 >
-                    <Plus size={20} />
                     생성하기
                 </button>
             </div>
@@ -352,14 +361,14 @@ export const StudySearchPage = () => {
                 {filteredStudies.map((study) => (
                     <div
                         key={study.studyId}
-                        className="flex items-center p-5 border border-gray-200 rounded-lg bg-white gap-5"
+                        className="flex items-center p-5 border border-gray-200 rounded-lg bg-white gap-5 cursor-pointer"
                     >
                         <div className="flex-1">
-                            <div 
-                                className="text-lg font-bold text-gray-800 mb-2 cursor-pointer hover:text-[#8B85E9] transition-colors duration-200"
+                            <div
+                                className="text-lg font-bold text-gray-800 mb-2  duration-200"
                                 onClick={() =>
-                                    navigate(`/study/${study.studyId}`,{
-                                        state:{
+                                    navigate(`/study/${study.studyId}`, {
+                                        state: {
                                             title: study.studyTitle,
                                             description: study.studyDesc,
                                             leader: study.leader,
@@ -371,11 +380,11 @@ export const StudySearchPage = () => {
                             >
                                 {study.studyTitle}
                             </div>
-                            <div 
-                                className="text-base mb-2 text-gray-800 cursor-pointer hover:text-[#8B85E9] transition-colors duration-200"
+                            <div
+                                className="text-base mb-2 text-gray-800 duration-200"
                                 onClick={() =>
-                                    navigate(`/study/${study.studyId}`,{
-                                        state:{
+                                    navigate(`/study/${study.studyId}`, {
+                                        state: {
                                             title: study.studyTitle,
                                             description: study.studyDesc,
                                             leader: study.leader,
@@ -394,23 +403,48 @@ export const StudySearchPage = () => {
                             </div>
 
                             <div className="flex gap-2 flex-wrap">
-                                {study.tags.map((tag: string, index: number) => (
-                                    <span
-                                        key={index}
-                                        className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-xl text-xs"
-                                    >
-                                        #{tag}
-                                    </span>
-                                ))}
+                                {study.tags.map((tag: any, index: number) => {
+                                    // 태그가 객체인지 문자열인지 확인
+                                    const tagName = typeof tag === 'string' ? tag : (tag.name || tag);
+                                    const tagDifficulty = typeof tag === 'object' && tag.difficulty ? tag.difficulty : null;
+
+                                    // 난이도별 색상 적용
+                                    let tagClasses = "px-2 py-0.5 rounded-xl text-xs";
+                                    if (tagDifficulty) {
+                                        switch (tagDifficulty) {
+                                            case "초급":
+                                                tagClasses += " bg-emerald-100 text-emerald-800 border border-emerald-300";
+                                                break;
+                                            case "중급":
+                                                tagClasses += " bg-blue-100 text-blue-800 border border-blue-300";
+                                                break;
+                                            case "고급":
+                                                tagClasses += " bg-purple-100 text-purple-800 border border-purple-300";
+                                                break;
+                                            default:
+                                                tagClasses += " bg-gray-100 text-gray-600";
+                                        }
+                                    } else {
+                                        tagClasses += " bg-gray-100 text-gray-600";
+                                    }
+
+                                    return (
+                                        <span key={index} className={tagClasses}>
+                                            #{tagName}
+                                            {tagDifficulty && (
+                                                <span className="ml-1 opacity-75">({tagDifficulty})</span>
+                                            )}
+                                        </span>
+                                    );
+                                })}
                             </div>
                         </div>
                         <div className="min-w-20">
                             <span
-                                className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                    study.isRecruiting
-                                        ? "bg-blue-50 text-blue-700"
-                                        : "bg-purple-50 text-purple-700"
-                                }`}
+                                className={`px-3 py-1 rounded-full text-xs font-bold ${study.isRecruiting
+                                    ? "bg-blue-50 text-blue-700"
+                                    : "bg-purple-50 text-purple-700"
+                                    }`}
                             >
                                 {study.recruitmentStatus}
                             </span>

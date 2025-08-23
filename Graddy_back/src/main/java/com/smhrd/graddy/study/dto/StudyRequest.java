@@ -5,6 +5,7 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -27,8 +28,8 @@ public class StudyRequest {
     private LocalDateTime studyProjectStart;
     private LocalDateTime studyProjectEnd;
     private Integer studyProjectTotal;
-    private LocalDateTime soltStart;
-    private LocalDateTime soltEnd;
+    private Timestamp soltStart;
+    private Timestamp soltEnd;
     
     // 태그 정보 (interest_id 리스트)
     private List<Long> interestIds;

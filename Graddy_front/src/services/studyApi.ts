@@ -16,13 +16,13 @@ export interface StudyData {
     isRecruiting: boolean;
     recruitmentStatus: '모집중' | '모집완료';
     type: '스터디' | '프로젝트';
-    tags: string[];
+    tags: Array<string | {name: string, difficulty?: string}>;
     leader: string;
     createdAt?: string;
     updatedAt?: string;
 }
 
-// 스터디 생성 요청 타입
+// 스터디 생성 요청 타입 (기존)
 export interface CreateStudyRequest {
     studyName: string;
     studyTitle: string;
@@ -35,6 +35,23 @@ export interface CreateStudyRequest {
     soltStart: string;
     soltEnd: string;
     interestIds: number[];
+}
+
+// 새로운 스터디 프로젝트 생성 요청 타입 (백엔드 DTO와 일치)
+export interface CreateStudyProjectRequest {
+    studyProjectName: string;
+    studyProjectTitle: string;
+    studyProjectDesc: string;
+    studyLevel: number;
+    typeCheck: string; // "study" 또는 "project"
+    userId?: string; // JWT 토큰에서 자동 추출되므로 선택적
+    studyProjectStart: string; // ISO 8601 형식: "2025-08-22T11:27:56.603Z"
+    studyProjectEnd: string; // ISO 8601 형식: "2025-08-22T11:27:56.603Z"
+    studyProjectTotal: number;
+    soltStart: string; // ISO 8601 형식: "2025-08-22T11:27:56.603Z"
+    soltEnd: string; // ISO 8601 형식: "2025-08-22T11:27:56.603Z"
+    interestIds: number[];
+    dayIds: string[]; // 백엔드에서는 Byte[]이지만 프론트엔드에서는 string[]로 처리
 }
 
 // 스터디 수정 요청 타입
@@ -90,9 +107,15 @@ export class StudyApiService {
         return response.data;
     }
 
-    // 스터디 생성
+    // 스터디 생성 (기존)
     static async createStudy(studyData: CreateStudyRequest): Promise<StudyData> {
         const response = await apiPost<StudyData>('/studies', studyData);
+        return response.data;
+    }
+
+    // 새로운 스터디 프로젝트 생성 (JWT 토큰 인증 포함)
+    static async createStudyProject(studyProjectData: CreateStudyProjectRequest): Promise<any> {
+        const response = await apiPost<any>('/studies-projects', studyProjectData);
         return response.data;
     }
 
