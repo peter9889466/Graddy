@@ -58,7 +58,7 @@ public class AICurriculumService {
                 studyProject.getStudyProjectName(),
                 studyProject.getStudyProjectTitle(),
                 studyProject.getStudyProjectDesc(),
-                studyProject.getStudyLevel().toString(),
+                String.valueOf(studyProject.getStudyLevel()),
                 String.join(",", interestNames),
                 studyProject.getStudyProjectStart().toString(),
                 studyProject.getStudyProjectEnd().toString()
