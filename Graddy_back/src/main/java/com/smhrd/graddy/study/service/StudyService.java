@@ -153,9 +153,14 @@ public class StudyService {
 
     // 스터디/프로젝트 수정
     @Transactional
-    public StudyResponse updateStudy(Long studyProjectId, StudyUpdateRequest request) {
+    public StudyResponse updateStudy(Long studyProjectId, StudyUpdateRequest request, String currentUserId) {
         StudyProject studyProject = studyProjectRepository.findById(studyProjectId)
                 .orElseThrow(() -> new IllegalArgumentException("스터디/프로젝트를 찾을 수 없습니다: " + studyProjectId));
+
+        // 권한 체크: 현재 로그인한 사용자가 해당 스터디/프로젝트의 리더인지 확인
+        if (!studyProject.getUserId().equals(currentUserId)) {
+            throw new IllegalArgumentException("스터디/프로젝트를 수정할 권한이 없습니다. 리더만 수정할 수 있습니다.");
+        }
 
         // null 체크 후 업데이트
         if (request.getStudyProjectName() != null) {
@@ -174,7 +179,7 @@ public class StudyService {
             studyProject.setTypeCheck(StudyProject.TypeCheck.valueOf(request.getTypeCheck()));
         }
         if (request.getIsRecruiting() != null) {
-            studyProject.setIsRecruiting(StudyProject.RecruitingStatus.valueOf(request.getIsRecruiting().toUpperCase()));
+            studyProject.setIsRecruiting(StudyProject.RecruitingStatus.valueOf(request.getIsRecruiting()));
         }
         if (request.getStudyProjectStart() != null) {
             studyProject.setStudyProjectStart(request.getStudyProjectStart());
@@ -225,20 +230,29 @@ public class StudyService {
 
     // 스터디/프로젝트 상태 변경
     @Transactional
-    public StudyResponse updateStudyStatus(Long studyProjectId, String status) {
+    public StudyResponse updateStudyStatus(Long studyProjectId, String status, String currentUserId) {
         StudyProject studyProject = studyProjectRepository.findById(studyProjectId)
                 .orElseThrow(() -> new IllegalArgumentException("스터디/프로젝트를 찾을 수 없습니다: " + studyProjectId));
 
-        studyProject.setIsRecruiting(StudyProject.RecruitingStatus.valueOf(status.toUpperCase()));
+        // 권한 체크: 현재 로그인한 사용자가 해당 스터디/프로젝트의 리더인지 확인
+        if (!studyProject.getUserId().equals(currentUserId)) {
+            throw new IllegalArgumentException("스터디/프로젝트 상태를 변경할 권한이 없습니다. 리더만 변경할 수 있습니다.");
+        }
+
+        studyProject.setIsRecruiting(StudyProject.RecruitingStatus.valueOf(status));
         StudyProject updatedStudyProject = studyProjectRepository.save(studyProject);
         return convertToResponse(updatedStudyProject);
     }
 
     // 스터디/프로젝트 삭제
     @Transactional
-    public void deleteStudy(Long studyProjectId) {
-        if (!studyProjectRepository.existsById(studyProjectId)) {
-            throw new IllegalArgumentException("스터디/프로젝트를 찾을 수 없습니다: " + studyProjectId);
+    public void deleteStudy(Long studyProjectId, String currentUserId) {
+        StudyProject studyProject = studyProjectRepository.findById(studyProjectId)
+                .orElseThrow(() -> new IllegalArgumentException("스터디/프로젝트를 찾을 수 없습니다: " + studyProjectId));
+
+        // 권한 체크: 현재 로그인한 사용자가 해당 스터디/프로젝트의 리더인지 확인
+        if (!studyProject.getUserId().equals(currentUserId)) {
+            throw new IllegalArgumentException("스터디/프로젝트를 삭제할 권한이 없습니다. 리더만 삭제할 수 있습니다.");
         }
         
         // 스터디/프로젝트 관련 데이터 먼저 삭제

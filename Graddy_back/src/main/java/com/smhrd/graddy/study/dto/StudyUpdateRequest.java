@@ -20,7 +20,7 @@ public class StudyUpdateRequest {
     private String studyProjectDesc;
     private Integer studyLevel; // null 체크를 위해 Integer로 변경
     private String typeCheck; // "study" 또는 "project"
-    private String isRecruiting; // "recruitment", "complete", "end"
+    private String isRecruiting; // "recruitment", "complete", "end" (소문자로 전송)
     private LocalDateTime studyProjectStart;
     private LocalDateTime studyProjectEnd;
     private Integer studyProjectTotal; // null 체크를 위해 Integer로 변경

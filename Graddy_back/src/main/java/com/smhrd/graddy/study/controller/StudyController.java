@@ -41,11 +41,18 @@ public class StudyController {
      * @return 생성된 스터디/프로젝트 정보 (태그, 선호 요일 포함)
      */
     @PostMapping
-    @Operation(summary = "스터디/프로젝트 생성", description = "새로운 스터디 또는 프로젝트를 생성하고 태그 정보와 선호 요일과 함께 데이터베이스에 저장합니다. JWT 토큰에서 user_id를 자동으로 추출합니다.")
+    @Operation(summary = "스터디/프로젝트 생성", 
+              description = "새로운 스터디 또는 프로젝트를 생성하고 태그 정보와 선호 요일과 함께 데이터베이스에 저장합니다. JWT 토큰에서 user_id를 자동으로 추출합니다.\n\n" +
+                           "**사용법:**\n" +
+                           "1. Authorization 헤더에 JWT 토큰 입력 (Bearer 형식)\n" +
+                           "2. Request Body에 생성할 정보 입력\n" +
+                           "3. user_id는 자동으로 JWT 토큰에서 추출됨")
     @SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<ApiResponse<StudyResponse>> createStudyProject(
             @RequestBody StudyRequest request,
-            @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+            @Parameter(description = "JWT 토큰 (Bearer 형식)", 
+                      example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                      required = true)
             @RequestHeader(name = "Authorization", required = true) String authorization) {
         try {
             // JWT 토큰에서 user_id 추출
@@ -162,24 +169,29 @@ public class StudyController {
      * @return 수정된 스터디/프로젝트 정보 (태그, 선호 요일 포함)
      */
     @PutMapping("/{studyProjectId}")
-    @Operation(summary = "스터디/프로젝트 수정", description = "기존 스터디/프로젝트 정보를 수정하고 태그 정보와 선호 요일도 함께 업데이트합니다. JWT 토큰으로 권한을 확인합니다.")
+    @Operation(summary = "스터디/프로젝트 수정", 
+              description = "기존 스터디/프로젝트 정보를 수정하고 태그 정보와 선호 요일도 함께 업데이트합니다. **권한: 해당 스터디/프로젝트의 리더만 수정 가능**\n\n" +
+                           "**사용법:**\n" +
+                           "1. Authorization 헤더에 JWT 토큰 입력 (Bearer 형식)\n" +
+                           "2. Request Body에 수정할 정보 입력\n" +
+                           "3. 리더만 수정 가능")
     @SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<ApiResponse<StudyResponse>> updateStudyProject(
             @PathVariable Long studyProjectId,
             @RequestBody StudyUpdateRequest request,
-            @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+            @Parameter(description = "JWT 토큰 (Bearer 형식)", 
+                      example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                      required = true)
             @RequestHeader(name = "Authorization", required = true) String authorization) {
         try {
             // JWT 토큰에서 user_id 추출하여 권한 확인
             String token = authorization.replace("Bearer ", "");
             String userId = jwtUtil.extractUserId(token);
             
-            // TODO: 해당 스터디/프로젝트의 리더인지 확인하는 로직 추가 필요
-            
-            StudyResponse response = studyService.updateStudy(studyProjectId, request);
+            StudyResponse response = studyService.updateStudy(studyProjectId, request, userId);
             return ApiResponse.success("스터디/프로젝트가 성공적으로 수정되었습니다.", response);
         } catch (IllegalArgumentException e) {
-            return ApiResponse.error(HttpStatus.NOT_FOUND, "스터디/프로젝트를 찾을 수 없습니다.", null);
+            return ApiResponse.error(HttpStatus.FORBIDDEN, e.getMessage(), null);
         } catch (Exception e) {
             return ApiResponse.error(HttpStatus.UNAUTHORIZED, "JWT 토큰이 유효하지 않습니다.", null);
         }
@@ -191,29 +203,40 @@ public class StudyController {
      * JWT 토큰에서 user_id를 추출하여 권한을 확인합니다.
      * 
      * @param studyProjectId 상태를 변경할 스터디/프로젝트의 ID
-     * @param status 변경할 상태 (recruitment, complete, end)
+     * @param status 변경할 상태 (recruitment: 모집중, complete: 모집종료, end: 종료) - 소문자로 전송
      * @param authorization JWT 토큰 (Bearer 형식)
      * @return 상태가 변경된 스터디/프로젝트 정보 (태그, 선호 요일 포함)
      */
     @PatchMapping("/{studyProjectId}/status")
-    @Operation(summary = "스터디/프로젝트 상태 변경", description = "스터디/프로젝트의 모집 상태를 변경합니다 (모집중/모집종료/종료). JWT 토큰으로 권한을 확인합니다.")
+    @Operation(summary = "스터디/프로젝트 상태 변경", 
+              description = "스터디/프로젝트의 모집 상태를 변경합니다. **권한: 해당 스터디/프로젝트의 리더만 변경 가능**\n\n" +
+                           "**사용법:**\n" +
+                           "1. Authorization 헤더에 JWT 토큰 입력 (Bearer 형식)\n" +
+                           "2. status 파라미터에 변경할 상태 입력\n" +
+                           "3. 변경 가능한 상태: recruitment(모집중), complete(모집종료), end(종료)")
     @SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<ApiResponse<StudyResponse>> updateStudyProjectStatus(
             @PathVariable Long studyProjectId,
+            @Parameter(description = "변경할 상태 값", 
+                      example = "complete", 
+                      schema = @io.swagger.v3.oas.annotations.media.Schema(
+                          type = "string", 
+                          allowableValues = {"recruitment", "complete", "end"},
+                          description = "recruitment: 모집중, complete: 모집종료, end: 종료"))
             @RequestParam String status,
-            @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+            @Parameter(description = "JWT 토큰 (Bearer 형식)", 
+                      example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                      required = true)
             @RequestHeader(name = "Authorization", required = true) String authorization) {
         try {
             // JWT 토큰에서 user_id 추출하여 권한 확인
             String token = authorization.replace("Bearer ", "");
             String userId = jwtUtil.extractUserId(token);
             
-            // TODO: 해당 스터디/프로젝트의 리더인지 확인하는 로직 추가 필요
-            
-            StudyResponse response = studyService.updateStudyStatus(studyProjectId, status);
+            StudyResponse response = studyService.updateStudyStatus(studyProjectId, status, userId);
             return ApiResponse.success("스터디/프로젝트 상태가 성공적으로 변경되었습니다.", response);
         } catch (IllegalArgumentException e) {
-            return ApiResponse.error(HttpStatus.BAD_REQUEST, "스터디/프로젝트 상태 변경에 실패했습니다.", null);
+            return ApiResponse.error(HttpStatus.FORBIDDEN, e.getMessage(), null);
         } catch (Exception e) {
             return ApiResponse.error(HttpStatus.UNAUTHORIZED, "JWT 토큰이 유효하지 않습니다.", null);
         }
@@ -229,23 +252,27 @@ public class StudyController {
      * @return 삭제 성공 메시지
      */
     @DeleteMapping("/{studyProjectId}")
-    @Operation(summary = "스터디/프로젝트 삭제", description = "특정 스터디/프로젝트와 관련된 모든 태그 정보와 선호 요일을 함께 삭제합니다. JWT 토큰으로 권한을 확인합니다.")
+    @Operation(summary = "스터디/프로젝트 삭제", 
+              description = "특정 스터디/프로젝트와 관련된 모든 태그 정보와 선호 요일을 함께 삭제합니다. **권한: 해당 스터디/프로젝트의 리더만 삭제 가능**\n\n" +
+                           "**사용법:**\n" +
+                           "1. Authorization 헤더에 JWT 토큰 입력 (Bearer 형식)\n" +
+                           "2. 리더만 삭제 가능")
     @SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<ApiResponse<String>> deleteStudyProject(
             @PathVariable Long studyProjectId,
-            @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+            @Parameter(description = "JWT 토큰 (Bearer 형식)", 
+                      example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                      required = true)
             @RequestHeader(name = "Authorization", required = true) String authorization) {
         try {
             // JWT 토큰에서 user_id 추출하여 권한 확인
             String token = authorization.replace("Bearer ", "");
             String userId = jwtUtil.extractUserId(token);
             
-            // TODO: 해당 스터디/프로젝트의 리더인지 확인하는 로직 추가 필요
-            
-            studyService.deleteStudy(studyProjectId);
+            studyService.deleteStudy(studyProjectId, userId);
             return ApiResponse.success("스터디/프로젝트가 성공적으로 삭제되었습니다.", "삭제 완료");
         } catch (IllegalArgumentException e) {
-            return ApiResponse.error(HttpStatus.NOT_FOUND, "스터디/프로젝트를 찾을 수 없습니다.", null);
+            return ApiResponse.error(HttpStatus.FORBIDDEN, e.getMessage(), null);
         } catch (Exception e) {
             return ApiResponse.error(HttpStatus.UNAUTHORIZED, "JWT 토큰이 유효하지 않습니다.", null);
         }
