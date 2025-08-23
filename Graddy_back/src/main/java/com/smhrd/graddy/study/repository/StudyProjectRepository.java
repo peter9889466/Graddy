@@ -50,4 +50,18 @@ public interface StudyProjectRepository extends JpaRepository<StudyProject, Long
     // 사용자 ID로 검색
     @Query("SELECT sp FROM StudyProject sp WHERE LOWER(sp.userId) LIKE LOWER(CONCAT('%', :keyword, '%')) ORDER BY sp.createdAt DESC")
     List<StudyProject> findByUserIdContainingIgnoreCaseOrderByCreatedAtDesc(@Param("keyword") String keyword);
+    
+    /**
+     * 사용자에게 추천할 수 있는 스터디/프로젝트 조회
+     * 모집 중이고, 해당 사용자가 참여하지 않은 스터디/프로젝트를 반환
+     * @param userId 사용자 ID
+     * @return 추천 가능한 스터디/프로젝트 목록
+     */
+    @Query("SELECT sp FROM StudyProject sp " +
+           "WHERE sp.isRecruiting = 'recruitment' " +
+           "AND sp.userId != :userId " +
+           "AND sp.studyProjectId NOT IN " +
+           "(SELECT spm.studyProjectId FROM StudyProjectMember spm WHERE spm.userId = :userId) " +
+           "ORDER BY sp.createdAt DESC")
+    List<StudyProject> findAvailableStudiesForUser(@Param("userId") String userId);
 }

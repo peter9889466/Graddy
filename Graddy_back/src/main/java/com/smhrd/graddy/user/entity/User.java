@@ -1,9 +1,6 @@
 package com.smhrd.graddy.user.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -11,13 +8,15 @@ import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
 @Getter
 @Setter
 @NoArgsConstructor
-@ToString
+@ToString(exclude = {"userInterests"})
 public class User {
 
     @Id
@@ -58,4 +57,8 @@ public class User {
     @CreationTimestamp // JPA가 엔티티를 저장할 때 현재 시간을 자동으로 기록
     @Column(name = "created_at", nullable = false, updatable = false) // updatable = false : 나중에 User의 다른 정보가 변경되어 수정이 발생해도 이 필드는 업데이트 쿼리에서 제외
     private Timestamp createdAt;
+
+    // UserInterest와의 OneToMany 관계
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<UserInterest> userInterests = new ArrayList<>();
 }
