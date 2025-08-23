@@ -295,7 +295,8 @@ const Join: React.FC = () => {
     };
 
     const isFormValid = id && password && confirmPassword && name && nickname && phoneBody &&
-        idChecked && nicknameChecked && validatePhoneNumber(phonePrefix, phoneBody) && isVerified;
+        idChecked && nicknameChecked && validatePhoneNumber(phonePrefix, phoneBody);
+        // idChecked && nicknameChecked && validatePhoneNumber(phonePrefix, phoneBody) && isVerified;
 
     // Join2에서 돌아올 때 전달된 formData 가져오기
     const previousFormData = location.state?.formData;

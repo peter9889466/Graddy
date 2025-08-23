@@ -42,6 +42,7 @@ export const MyPage = () => {
     const [name, setName] = useState("김개발");
     const [nickname, setNickname] = useState("사용자");
     const [email, setEmail] = useState("graddy@gmail.com");
+    const [phone, setPhone] = useState("010-1234-5678");
 
     // 임시 데이터 (나중에 DB에서 받아올 예정)
     const userScore = 1000; // 백엔드에서 받아올 점수
@@ -198,7 +199,7 @@ export const MyPage = () => {
                             </div>
                         )}
 
-                        {activeTab === "내 스터디 목록" && (
+                        {activeTab === "스터디/프로젝트" && (
                             <MyStudyList userNickname={userNickname} />
                         )}
 
@@ -210,12 +211,14 @@ export const MyPage = () => {
                                 name={name}
                                 nickname={nickname}
                                 email={email}
+                                phone={phone}
                                 onPasswordChange={handlePasswordChange}
                                 onConfirmPasswordChange={
                                     handleConfirmPasswordChange
                                 }
                                 onNicknameChange={setNickname}
                                 onEmailChange={setEmail}
+                                onPhoneChange={setPhone}
                                 onUpdateProfile={handleUpdateProfile}
                             />
                         )}
