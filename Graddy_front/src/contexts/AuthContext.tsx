@@ -10,8 +10,8 @@ interface User {
 interface AuthContextType {
     isLoggedIn: boolean;
     user: User | null;
-    token: string | null; // 💡 토큰 상태 추가
-    login: (userData?: User, token?: string) => void; // 💡 토큰 매개변수 추가
+    token: string | null;
+    login: (userData?: User, token?: string) => void;
     logout: () => void;
 }
 
@@ -23,7 +23,7 @@ export const AuthProvider: React.FC<PropsWithChildren> = ({ children }) => {
     const [token, setToken] = useState<string | null>(null); // 💡 토큰 상태 초기화
 
     useEffect(() => {
-        const storedToken = localStorage.getItem('userToken'); // 💡 토큰 가져오기
+        const storedToken = localStorage.getItem('userToken');
         const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
         const userData = localStorage.getItem('userData');
         
@@ -31,7 +31,7 @@ export const AuthProvider: React.FC<PropsWithChildren> = ({ children }) => {
         if (userData) {
             setUser(JSON.parse(userData));
         }
-        if (storedToken) { // 💡 토큰이 있으면 상태에 저장
+        if (storedToken) {
             setToken(storedToken);
         }
     }, []);
@@ -54,10 +54,10 @@ export const AuthProvider: React.FC<PropsWithChildren> = ({ children }) => {
     const logout = () => {
         localStorage.removeItem('isLoggedIn');
         localStorage.removeItem('userData');
-        localStorage.removeItem('userToken'); // 💡 토큰 삭제
+        localStorage.removeItem('userToken');
         setIsLoggedIn(false);
         setUser(null);
-        setToken(null); // 💡 상태 초기화
+        setToken(null);
     };
 
     const value = { isLoggedIn, user, token, login, logout }; // 💡 토큰을 값에 포함

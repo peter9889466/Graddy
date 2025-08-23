@@ -20,7 +20,7 @@ const MyPageSidebar: React.FC<MyPageSidebarProps> = ({
 }) => {
     const sideMenuItems: SideMenuItem[] = [
         { name: "마이페이지" },
-        { name: "내 스터디 목록" },
+        { name: "스터디/프로젝트" },
         { name: "회원정보 수정" },
     ];
 

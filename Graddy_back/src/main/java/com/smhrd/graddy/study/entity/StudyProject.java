@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
 @Entity
@@ -68,11 +69,11 @@ public class StudyProject {
 
     @Column(name = "solt_start")
     @Schema(description = "선호 시작 시간")
-    private LocalDateTime soltStart;
+    private Timestamp soltStart;
 
     @Column(name = "solt_end")
     @Schema(description = "선호 끝 시간")
-    private LocalDateTime soltEnd;
+    private Timestamp soltEnd;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     @Schema(description = "개설 일자")

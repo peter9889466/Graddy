@@ -5,7 +5,7 @@ import ResponsiveSidebar from "../components/layout/ResponsiveSidebar";
 import ResponsiveMainContent from "../components/layout/ResponsiveMainContent";
 import StudyDetailSideBar from "../components/detail/StudyDetailSideBar";
 import ProjectDetailSideBar from "../components/detail/ProjectDetailSideBar";
-import StudyChatting from "../components/detail/StudyChatting";
+// import StudyChatting from "../components/detail/StudyChatting";
 import Assignment from "../components/detail/Assignment";
 import { studyList } from "../data/studyData";
 import { AuthContext } from "../contexts/AuthContext";

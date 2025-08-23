@@ -65,7 +65,7 @@ const Join2: React.FC = () => {
     const [showHint, setShowHint] = useState(false);
 
     const maxSelections = 10;
-    const apiEndpoint = "http://localhost:8080/api/api/interests";
+    const apiEndpoint = "http://localhost:8080/api/interests";
 
     // 컴포넌트 마운트 시 API 데이터 가져오기
     useEffect(() => {
@@ -73,21 +73,22 @@ const Join2: React.FC = () => {
             setIsLoading(true);
             setError(null);
             try {
-                const response = await fetch(apiEndpoint);
-                if (!response.ok) {
+                const response = await axios.get(apiEndpoint);
+                if (response.data.data!==null) {
+                    const result = response.data.data;
+                    
+                    // API 응답 데이터를 UI에 맞게 변환
+                    const mappedInterests: InterestItem[] = result.map((item: ApiInterestItem) => ({
+                        id: item.interestId,
+                        name: item.interestName,
+                        category: categoryMapping[item.interestDivision] || "other" // 매핑되지 않으면 'other'로 설정
+                    }));
+
+                    setAllInterests(mappedInterests);
+                } else {
                     throw new Error("네트워크 응답이 올바르지 않습니다.");
                 }
-                const result = await response.json();
-                
-                // API 응답 데이터를 UI에 맞게 변환
-                const mappedInterests: InterestItem[] = result.data.map((item: ApiInterestItem) => ({
-                    id: item.interestId,
-                    name: item.interestName,
-                    category: categoryMapping[item.interestDivision] || "other" // 매핑되지 않으면 'other'로 설정
-                }));
-
-                setAllInterests(mappedInterests);
-            } catch (err) {
+            } catch (err: any) {
                 console.error("Failed to fetch interests:", err);
                 setError("관심사 목록을 불러오는 데 실패했습니다. 서버가 실행 중인지 확인해주세요.");
             } finally {

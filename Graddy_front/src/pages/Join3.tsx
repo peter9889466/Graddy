@@ -145,28 +145,29 @@ const Join3: React.FC = () => {
     }
 
     try {
-        // 요일 매핑
+        // 요일 매핑 (백엔드에서 1: 일요일, 2: 월요일, ..., 7: 토요일로 기대)
         const dayMap: Record<string, number> = {
-            sunday: 0,
-            monday: 1,
-            tuesday: 2,
-            wednesday: 3,
-            thursday: 4,
-            friday: 5,
-            saturday: 6,
+            sunday: 1,
+            monday: 2,
+            tuesday: 3,
+            wednesday: 4,
+            thursday: 5,
+            friday: 6,
+            saturday: 7,
         };
 
         const availableDays = Object.entries(selectedDays)
             .filter(([_, selected]) => selected)
             .map(([day]) => dayMap[day]);
 
-        // 📌 수정: 시간대 변환 로직 개선
+        // 📌 수정: 시간대 변환 로직 개선 (백엔드에서 Timestamp 형식 기대)
         const today = new Date();
         const toISOTime = (hour: number | null) => {
             if (hour === null) return null;
             const date = new Date(today);
             date.setHours(hour, 0, 0, 0);
-            return date.toISOString();
+            // 백엔드에서 기대하는 형식: "yyyy-MM-dd'T'HH:mm:ss"
+            return date.toISOString().slice(0, 19); // "2024-01-01T10:00:00" 형식
         };
 
         const soltStart = toISOTime(customTimeSlot.startTime);
@@ -183,11 +184,11 @@ const Join3: React.FC = () => {
         };
 
         const mappedInterests = interestsFromJoin2.map((item: any) => ({
-            interestId: item.id,
+            interestId: item.id, // Long 타입으로 변환 필요
             interestLevel: difficultyMapping[item.difficulty] || 1
         }));
 
-        // 📌 수정: 최종 Request Body 구조 정리
+        // 📌 수정: 최종 Request Body 구조 정리 (백엔드 DTO에 맞게 수정)
         const requestBody = {
             // Join 단계 기본 정보
             userId: formData?.userId || formData?.id,
@@ -195,7 +196,9 @@ const Join3: React.FC = () => {
             name: formData?.name,
             nick: formData?.nickname || formData?.nick,
             tel: formData?.phoneNumber || formData?.tel,
-            alarmType: formData?.alarmType || false, // boolean으로 변경
+            gitUrl: "", // 백엔드 DTO에 필수 필드로 있음
+            userRefer: "", // 백엔드 DTO에 필수 필드로 있음
+            alarmType: formData?.alarmType || false,
             
             // Join2 단계 관심사 정보
             interests: mappedInterests,
@@ -215,7 +218,7 @@ const Join3: React.FC = () => {
             },
         });
 
-        if (response.status === 200) {
+        if (response.status === 201) {
             console.log("✅ 회원가입 성공:", response.data);
             setHintMessage("회원가입이 완료되었습니다!");
             setTimeout(() => {
@@ -228,7 +231,8 @@ const Join3: React.FC = () => {
         // 에러 메시지 상세화
         if (error.response) {
             console.error("서버 응답 에러:", error.response.data);
-            setHintMessage(`회원가입 실패: ${error.response.data.message || '서버 오류가 발생했습니다'}`);
+            const errorMessage = error.response.data.message || error.response.data.error || '서버 오류가 발생했습니다';
+            setHintMessage(`회원가입 실패: ${errorMessage}`);
         } else if (error.request) {
             console.error("네트워크 에러:", error.request);
             setHintMessage("네트워크 연결을 확인해주세요.");

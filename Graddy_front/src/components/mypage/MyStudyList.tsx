@@ -28,7 +28,7 @@ const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
     if (userStudies.length === 0) {
         return (
             <div className="space-y-6 sm:space-y-8">
-                <h2 className="text-xl sm:text-2xl font-bold">내 스터디 목록</h2>
+                <h2 className="text-xl sm:text-2xl font-bold">스터디/프로젝트</h2>
                 <div className="bg-white rounded-xl p-6 sm:p-8 shadow-sm">
                     <div className="text-center py-12">
                         <div className="text-gray-400 mb-4">
@@ -39,7 +39,7 @@ const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
                         <h3 className="text-lg font-medium text-gray-900 mb-2">아직 생성한 스터디가 없습니다</h3>
                         <p className="text-gray-500 mb-6">첫 번째 스터디를 생성해보세요!</p>
                         <button
-                            onClick={() => navigate('/study-create')}
+                            onClick={() => navigate('/study/create')}
                             className="px-6 py-3 bg-[#8B85E9] text-white rounded-lg hover:bg-[#7A74D8] transition-colors duration-200 font-medium"
                         >
                             스터디 생성하기
@@ -52,7 +52,7 @@ const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
 
     return (
         <div className="space-y-6 sm:space-y-8">
-            <h2 className="text-xl sm:text-2xl font-bold">내 스터디 목록</h2>
+            <h2 className="text-xl sm:text-2xl font-bold">스터디/프로젝트</h2>
             
             <div className="space-y-4">
                 {userStudies.map((study) => (
@@ -84,12 +84,12 @@ const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
                                 </div>
                                 
                                 <div className="flex gap-2 flex-wrap">
-                                    {study.tags.map((tag: string, index: number) => (
+                                    {study.tags.map((tag: string | {name: string, difficulty?: string}, index: number) => (
                                         <span
                                             key={index}
                                             className="bg-gray-100 text-gray-600 px-2 py-1 rounded-lg text-xs"
                                         >
-                                            #{tag}
+                                            #{typeof tag === 'string' ? tag : tag.name}
                                         </span>
                                     ))}
                                 </div>

@@ -157,25 +157,48 @@ public class StudyService {
         StudyProject studyProject = studyProjectRepository.findById(studyProjectId)
                 .orElseThrow(() -> new IllegalArgumentException("스터디/프로젝트를 찾을 수 없습니다: " + studyProjectId));
 
-        studyProject.setStudyProjectName(request.getStudyProjectName());
-        studyProject.setStudyProjectTitle(request.getStudyProjectTitle());
-        studyProject.setStudyProjectDesc(request.getStudyProjectDesc());
-        studyProject.setStudyLevel(request.getStudyLevel());
-        studyProject.setTypeCheck(StudyProject.TypeCheck.valueOf(request.getTypeCheck()));
-        studyProject.setIsRecruiting(StudyProject.RecruitingStatus.valueOf(request.getIsRecruiting().toUpperCase()));
-        studyProject.setStudyProjectStart(request.getStudyProjectStart());
-        studyProject.setStudyProjectEnd(request.getStudyProjectEnd());
-        studyProject.setStudyProjectTotal(request.getStudyProjectTotal());
-        studyProject.setSoltStart(request.getSoltStart());
-        studyProject.setSoltEnd(request.getSoltEnd());
+        // null 체크 후 업데이트
+        if (request.getStudyProjectName() != null) {
+            studyProject.setStudyProjectName(request.getStudyProjectName());
+        }
+        if (request.getStudyProjectTitle() != null) {
+            studyProject.setStudyProjectTitle(request.getStudyProjectTitle());
+        }
+        if (request.getStudyProjectDesc() != null) {
+            studyProject.setStudyProjectDesc(request.getStudyProjectDesc());
+        }
+        if (request.getStudyLevel() != null) {
+            studyProject.setStudyLevel(request.getStudyLevel());
+        }
+        if (request.getTypeCheck() != null) {
+            studyProject.setTypeCheck(StudyProject.TypeCheck.valueOf(request.getTypeCheck()));
+        }
+        if (request.getIsRecruiting() != null) {
+            studyProject.setIsRecruiting(StudyProject.RecruitingStatus.valueOf(request.getIsRecruiting().toUpperCase()));
+        }
+        if (request.getStudyProjectStart() != null) {
+            studyProject.setStudyProjectStart(request.getStudyProjectStart());
+        }
+        if (request.getStudyProjectEnd() != null) {
+            studyProject.setStudyProjectEnd(request.getStudyProjectEnd());
+        }
+        if (request.getStudyProjectTotal() != null) {
+            studyProject.setStudyProjectTotal(request.getStudyProjectTotal());
+        }
+        if (request.getSoltStart() != null) {
+            studyProject.setSoltStart(request.getSoltStart());
+        }
+        if (request.getSoltEnd() != null) {
+            studyProject.setSoltEnd(request.getSoltEnd());
+        }
 
         StudyProject updatedStudyProject = studyProjectRepository.save(studyProject);
         
         // 기존 태그 삭제 후 새로운 태그 저장
-        tagRepository.deleteByStudyProjectId(studyProjectId);
-        
-        // 새로운 태그 정보 저장
-        if (request.getInterestIds() != null && !request.getInterestIds().isEmpty()) {
+        if (request.getInterestIds() != null) {
+            tagRepository.deleteByStudyProjectId(studyProjectId);
+            
+            // 새로운 태그 정보 저장
             for (Long interestId : request.getInterestIds()) {
                 Tag tag = new Tag();
                 tag.setStudyProjectId(studyProjectId);
@@ -185,10 +208,10 @@ public class StudyService {
         }
         
         // 기존 선호 요일 삭제 후 새로운 선호 요일 저장
-        availableDayRepository.deleteByStudyProjectId(studyProjectId);
-        
-        // 새로운 선호 요일 정보 저장
-        if (request.getDayIds() != null && !request.getDayIds().isEmpty()) {
+        if (request.getDayIds() != null) {
+            availableDayRepository.deleteByStudyProjectId(studyProjectId);
+            
+            // 새로운 선호 요일 정보 저장
             for (Byte dayId : request.getDayIds()) {
                 StudyProjectAvailableDay availableDay = new StudyProjectAvailableDay();
                 availableDay.setStudyProjectId(studyProjectId);

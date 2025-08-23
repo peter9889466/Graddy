@@ -4,9 +4,12 @@ package com.smhrd.graddy.user.controller;
 import com.smhrd.graddy.api.dto.ApiResponse;
 import com.smhrd.graddy.user.dto.JoinRequest;
 import com.smhrd.graddy.user.dto.FindIdRequest;
-import com.smhrd.graddy.user.dto.UserIdUpdateRequest;
-import com.smhrd.graddy.user.dto.NicknameUpdateRequest;
+
+
 import com.smhrd.graddy.user.dto.UserInterestsUpdateRequest;
+import com.smhrd.graddy.user.dto.UserProfileUpdateRequest;
+import com.smhrd.graddy.user.dto.UserProfileUpdateResponse;
+import com.smhrd.graddy.user.dto.UserWithdrawalRequest;
 import com.smhrd.graddy.user.entity.User;
 import com.smhrd.graddy.user.service.UserService;
 import com.smhrd.graddy.security.jwt.JwtUtil;
@@ -17,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 import java.util.Map;
+import java.util.HashMap;
 import com.smhrd.graddy.user.entity.UserInterest;
 import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
@@ -191,131 +195,9 @@ public class UserController {
         }
     }
 
-    @Operation(
-        summary = "닉네임 수정",
-        description = "현재 로그인한 사용자의 닉네임을 변경합니다. JWT 토큰이 필요합니다."
-    )
-    @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "200", 
-            description = "닉네임 수정 성공",
-            content = @Content(schema = @Schema(implementation = Map.class))
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "400", 
-            description = "잘못된 요청",
-            content = @Content(schema = @Schema(implementation = Map.class))
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "401", 
-            description = "인증 실패",
-            content = @Content(schema = @Schema(implementation = Map.class))
-        )
-    })
-    @PatchMapping("/me/nick")
-    public ResponseEntity<ApiResponse<Map<String, String>>> updateNickname(
-        @Parameter(description = "닉네임 수정 요청 정보") 
-        @RequestBody NicknameUpdateRequest request,
-        @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiJ9...") 
-        @RequestHeader("Authorization") String authorizationHeader) {
-        try {
-            // 디버깅용 로그
-            System.out.println("=== 닉네임 수정 디버깅 정보 ===");
-            System.out.println("Authorization Header: " + authorizationHeader);
-            
-            // JWT 토큰에서 현재 사용자 아이디 추출
-            String token = authorizationHeader.replace("Bearer ", "");
-            System.out.println("Extracted Token: " + token);
-            
-            String currentUserId = jwtUtil.extractUserId(token);
-            System.out.println("Current User ID: " + currentUserId);
-            System.out.println("New Nickname: " + request.getNick());
-            System.out.println("==================");
-            
-            // UserService를 통해 닉네임 수정 처리
-            User updatedUser = userService.updateNickname(
-                    currentUserId, 
-                    request.getNick()
-            );
-            
-            // 성공 응답 데이터 생성
-            Map<String, String> data = Map.of("nick", updatedUser.getNick());
-            return ApiResponse.success("닉네임이 성공적으로 변경되었습니다.", data);
-            
-        } catch (IllegalArgumentException e) {
-            // 예외 발생 시 400 Bad Request 응답
-            System.out.println("IllegalArgumentException: " + e.getMessage());
-            return ApiResponse.error(HttpStatus.BAD_REQUEST, e.getMessage(), null);
-        } catch (Exception e) {
-            // JWT 토큰 관련 오류 등 기타 예외 발생 시 401 Unauthorized 응답
-            System.out.println("Exception: " + e.getMessage());
-            e.printStackTrace();
-            return ApiResponse.error(HttpStatus.UNAUTHORIZED, "인증에 실패했습니다: " + e.getMessage(), null);
-        }
-    }
 
-    @Operation(
-        summary = "아이디 수정",
-        description = "현재 비밀번호 확인 후 아이디를 변경합니다. JWT 토큰이 필요합니다."
-    )
-    @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "200", 
-            description = "아이디 수정 성공",
-            content = @Content(schema = @Schema(implementation = Map.class))
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "400", 
-            description = "잘못된 요청 (비밀번호 불일치 등)",
-            content = @Content(schema = @Schema(implementation = Map.class))
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "401", 
-            description = "인증 실패",
-            content = @Content(schema = @Schema(implementation = Map.class))
-        )
-    })
-    @PutMapping("/me/user-id")
-    public ResponseEntity<ApiResponse<Map<String, String>>> updateUserId(
-        @Parameter(description = "아이디 수정 요청 정보") 
-        @RequestBody UserIdUpdateRequest request,
-        @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiJ9...") 
-        @RequestHeader("Authorization") String authorizationHeader) {
-        try {
-            // 디버깅용 로그
-            System.out.println("=== 디버깅 정보 ===");
-            System.out.println("Authorization Header: " + authorizationHeader);
-            
-            // JWT 토큰에서 현재 사용자 아이디 추출
-            String token = authorizationHeader.replace("Bearer ", "");
-            System.out.println("Extracted Token: " + token);
-            
-            String currentUserId = jwtUtil.extractUserId(token);
-            System.out.println("Current User ID: " + currentUserId);
-            System.out.println("==================");
-            
-            // UserService를 통해 아이디 수정 처리
-            User updatedUser = userService.updateUserId(
-                    currentUserId, 
-                    request.getCurrentPassword(), 
-                    request.getNewUserId()
-            );
-            
-            // 성공 응답 데이터 생성
-            Map<String, String> data = Map.of("userId", updatedUser.getUserId());
-            return ApiResponse.success("아이디가 성공적으로 변경되었습니다.", data);
-            
-        } catch (IllegalArgumentException e) {
-            // 예외 발생 시 400 Bad Request 응답
-            System.out.println("IllegalArgumentException: " + e.getMessage());
-            return ApiResponse.error(HttpStatus.BAD_REQUEST, e.getMessage(), null);
-        } catch (Exception e) {
-            // JWT 토큰 관련 오류 등 기타 예외 발생 시 401 Unauthorized 응답
-            System.out.println("Exception: " + e.getMessage());
-            e.printStackTrace();
-            return ApiResponse.error(HttpStatus.UNAUTHORIZED, "인증에 실패했습니다: " + e.getMessage(), null);
-        }
-    }
+
+
 
     @Operation(
         summary = "사용자 관심분야 수정",
@@ -388,5 +270,119 @@ public class UserController {
         }
     }
 
+    @Operation(
+        summary = "회원 정보 수정",
+        description = "현재 로그인한 사용자의 비밀번호, 닉네임, 전화번호를 수정합니다. 비어있는 값은 이전 값을 유지합니다. 현재 비밀번호 확인 없이 바로 수정됩니다."
+    )
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200", 
+            description = "회원 정보 수정 성공",
+            content = @Content(schema = @Schema(implementation = UserProfileUpdateResponse.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "400", 
+            description = "잘못된 요청 (닉네임 중복 등)",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "401", 
+            description = "인증 실패",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        )
+    })
+    @PutMapping("/me/profile")
+    public ResponseEntity<ApiResponse<UserProfileUpdateResponse>> updateProfile(
+        @Parameter(description = "회원 정보 수정 요청 정보") 
+        @RequestBody UserProfileUpdateRequest request,
+        @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiJ9...") 
+        @RequestHeader("Authorization") String authorizationHeader) {
+        try {
+            // JWT 토큰에서 현재 사용자 아이디 추출
+            String token = authorizationHeader.replace("Bearer ", "");
+            String currentUserId = jwtUtil.extractUserId(token);
+            
+            // UserService를 통해 회원 정보 수정 처리
+            User updatedUser = userService.updateUserProfile(currentUserId, request);
+            
+            // 수정된 필드들을 응답에 포함
+            Map<String, String> updatedFields = new HashMap<>();
+            if (request.hasNewPassword()) {
+                updatedFields.put("password", "수정됨");
+            }
+            if (request.hasNewNickname()) {
+                updatedFields.put("nickname", updatedUser.getNick());
+            }
+            if (request.hasNewTel()) {
+                updatedFields.put("tel", updatedUser.getTel());
+            }
+            
+            // 성공 응답 데이터 생성
+            UserProfileUpdateResponse data = new UserProfileUpdateResponse(
+                "회원 정보가 성공적으로 수정되었습니다.", 
+                updatedFields
+            );
+            
+            return ApiResponse.success("회원 정보 수정이 완료되었습니다.", data);
+            
+        } catch (IllegalArgumentException e) {
+            // 예외 발생 시 400 Bad Request 응답
+            return ApiResponse.error(HttpStatus.BAD_REQUEST, e.getMessage(), null);
+        } catch (Exception e) {
+            // JWT 토큰 관련 오류 등 기타 예외 발생 시 401 Unauthorized 응답
+            return ApiResponse.error(HttpStatus.UNAUTHORIZED, "인증에 실패했습니다: " + e.getMessage(), null);
+        }
+    }
+
+    @Operation(
+        summary = "회원탈퇴",
+        description = "현재 로그인한 사용자의 계정을 삭제합니다. 프론트엔드에서 확인 처리를 하므로 즉시 삭제됩니다."
+    )
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200", 
+            description = "회원탈퇴 성공",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "400", 
+            description = "잘못된 요청 (확인 메시지 불일치 등)",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "401", 
+            description = "인증 실패",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        )
+    })
+    @DeleteMapping("/me/withdraw")
+    public ResponseEntity<ApiResponse<Map<String, String>>> withdrawUser(
+        @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiJ9...") 
+        @RequestHeader("Authorization") String authorizationHeader) {
+        try {
+            // JWT 토큰에서 현재 사용자 아이디 추출
+            String token = authorizationHeader.replace("Bearer ", "");
+            String currentUserId = jwtUtil.extractUserId(token);
+            
+            // UserService를 통해 회원탈퇴 처리
+            User deletedUser = userService.withdrawUser(currentUserId);
+            
+            // 성공 응답 데이터 생성
+            Map<String, String> data = Map.of(
+                "message", "회원탈퇴가 완료되었습니다.",
+                "deletedUserId", deletedUser.getUserId(),
+                "note", "관련 데이터는 CASCADE 설정에 따라 자동 삭제되었으며, 댓글은 남겨집니다."
+            );
+            
+            return ApiResponse.success("회원탈퇴가 성공적으로 처리되었습니다.", data);
+            
+        } catch (IllegalArgumentException e) {
+            // 예외 발생 시 400 Bad Request 응답
+            return ApiResponse.error(HttpStatus.BAD_REQUEST, e.getMessage(), null);
+        } catch (Exception e) {
+            // JWT 토큰 관련 오류 등 기타 예외 발생 시 401 Unauthorized 응답
+            return ApiResponse.error(HttpStatus.UNAUTHORIZED, "인증에 실패했습니다: " + e.getMessage(), null);
+        }
+    }
 
 }

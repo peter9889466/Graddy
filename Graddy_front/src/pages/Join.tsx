@@ -1,6 +1,7 @@
+import JoinProfile from "@/components/join/JoinProfile";
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import JoinProfile from "@/components/join/joinProfile";
+
 
 const Join: React.FC = () => {
     const navigate = useNavigate();
