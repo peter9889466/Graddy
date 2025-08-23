@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAutoComplete } from "../hooks/useAutoComplete";
-import { studyList, searchSuggestions } from "../data/studyData";
-import { StudyApiService, StudyData } from "../services/studyApi";
+import { searchSuggestions } from "../data/studyData";
+import { StudyApiService, StudyData, BackendStudyProjectData } from "../services/studyApi";
 import { Search, Plus } from "lucide-react";
 
 export const StudySearchPage = () => {
@@ -66,67 +66,92 @@ export const StudySearchPage = () => {
         };
     }, []);
 
-    const [backendStudies, setBackendStudies] = useState<StudyData[]>([]);
+    const [studiesProjects, setStudiesProjects] = useState<BackendStudyProjectData[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    // 백엔드에서 스터디 목록 가져오기
+    // 백엔드에서 스터디/프로젝트 목록 가져오기
     useEffect(() => {
-        const fetchStudies = async () => {
+        const fetchStudiesProjects = async () => {
+            setLoading(true);
+            setError(null);
             try {
-                const studies = await StudyApiService.getAllStudies();
-                setBackendStudies(studies);
-            } catch (error) {
-                console.error('스터디 목록 조회 실패:', error);
+                console.log('API 호출 시작...');
+                const data = await StudyApiService.getStudiesProjects();
+                console.log('API 응답 데이터:', data);
+                console.log('데이터 타입:', typeof data);
+                console.log('데이터 길이:', Array.isArray(data) ? data.length : '배열이 아님');
+                
+                if (Array.isArray(data)) {
+                    setStudiesProjects(data);
+                    console.log('스터디/프로젝트 데이터 로드 성공:', data);
+                } else {
+                    console.warn('API 응답이 배열이 아닙니다:', data);
+                    setStudiesProjects([]);
+                }
+            } catch (err) {
+                const errorMessage = err instanceof Error ? err.message : '스터디/프로젝트 데이터를 불러오는데 실패했습니다.';
+                setError(errorMessage);
+                console.error('스터디/프로젝트 목록 조회 실패:', err);
+                console.error('에러 상세:', err);
+            } finally {
+                setLoading(false);
             }
         };
-        fetchStudies();
+        fetchStudiesProjects();
     }, []);
 
     const filteredStudies = useMemo(() => {
-        // 기존 스터디 목록을 백엔드 타입에 맞게 변환
-        const convertedStudyList = studyList.map(study => ({
-            studyId: study.id,
-            studyName: study.title,
-            studyTitle: study.title,
-            studyDesc: study.description,
-            studyLevel: 1, // 기본값
-            userId: study.leader,
-            studyStart: study.period.split('~')[0] || new Date().toISOString(),
-            studyEnd: study.period.split('~')[1] || new Date().toISOString(),
-            studyTotal: 10, // 기본값
-            soltStart: '09:00',
-            soltEnd: '18:00',
-            isRecruiting: study.isRecruiting,
-            recruitmentStatus: study.recruitmentStatus,
-            type: study.type,
-            tags: study.tags,
-            leader: study.leader,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        }));
-
-        // 백엔드 스터디 데이터의 태그를 올바른 형식으로 변환
-        const convertedBackendStudies = backendStudies.map(study => ({
-            ...study,
-            tags: Array.isArray(study.tags) ? study.tags.map(tag => {
-                // 백엔드에서 온 태그가 문자열인 경우 그대로 사용
-                if (typeof tag === 'string') {
-                    return tag;
+        // 백엔드 데이터를 프론트엔드 형식으로 변환
+        const convertedStudies = studiesProjects.map(study => {
+            // ENUM 값에 따른 모집 상태 매핑
+            const getRecruitmentStatus = (isRecruiting: string) => {
+                switch (isRecruiting) {
+                    case 'recruitment':
+                        return '모집중';
+                    case 'complete':
+                        return '모집 완료';
+                    case 'end':
+                        return '스터디 종료';
+                    default:
+                        return '모집중';
                 }
-                // 객체인 경우 name 속성 사용
-                return tag.name || tag;
-            }) : []
-        }));
+            };
 
-        // 기존 스터디 목록과 백엔드 스터디 목록 합치기
-        let filtered: StudyData[] = [...convertedStudyList, ...convertedBackendStudies];
+            const getIsRecruiting = (isRecruiting: string) => {
+                return isRecruiting === 'recruitment';
+            };
+
+            return {
+                studyId: study.studyProjectId,
+                studyName: study.studyProjectName,
+                studyTitle: study.studyProjectTitle,
+                studyDesc: study.studyProjectDesc,
+                studyLevel: study.studyLevel,
+                userId: study.userId,
+                studyStart: study.studyProjectStart,
+                studyEnd: study.studyProjectEnd,
+                studyTotal: study.studyProjectTotal,
+                soltStart: study.soltStart,
+                soltEnd: study.soltEnd,
+                isRecruiting: getIsRecruiting(study.isRecruiting),
+                recruitmentStatus: getRecruitmentStatus(study.isRecruiting),
+                type: study.typeCheck === 'study' ? '스터디' : '프로젝트',
+                tags: study.tagNames || [],
+                leader: study.userId, // userId를 leader로 사용
+                createdAt: study.createdAt,
+                updatedAt: study.createdAt
+            };
+        });
+
+        let filtered = convertedStudies;
 
         // 모집 상태 필터링
         if (selectedStatus === "모집중") {
-            filtered = filtered.filter((study) => study.isRecruiting);
-        } else if (selectedStatus === "모집완료") {
-            filtered = filtered.filter((study) => !study.isRecruiting);
+            filtered = filtered.filter((study) => study.recruitmentStatus === "모집중");
+        } else if (selectedStatus === "모집 완료") {
+            filtered = filtered.filter((study) => study.recruitmentStatus === "모집 완료" || study.recruitmentStatus === "스터디 종료");
         }
-        // "전체"인 경우 필터링하지 않음
 
         // 타입 필터링 (스터디/프로젝트)
         if (selectedType === "스터디") {
@@ -134,7 +159,6 @@ export const StudySearchPage = () => {
         } else if (selectedType === "프로젝트") {
             filtered = filtered.filter((study) => study.type === "프로젝트");
         }
-        // "전체"인 경우 필터링하지 않음
 
         // 검색어 필터링
         if (inputValue.trim()) {
@@ -149,10 +173,9 @@ export const StudySearchPage = () => {
                             .toLowerCase()
                             .includes(inputValue.toLowerCase());
                     case "태그":
-                        return study.tags.some((tag: any) => {
-                            const tagName = typeof tag === 'string' ? tag : (tag.name || tag);
-                            return tagName.toLowerCase().includes(inputValue.toLowerCase());
-                        });
+                        return study.tags.some((tag: string) => 
+                            tag.toLowerCase().includes(inputValue.toLowerCase())
+                        );
                     default:
                         return (
                             study.studyTitle
@@ -167,7 +190,7 @@ export const StudySearchPage = () => {
         }
 
         return filtered;
-    }, [inputValue, selectedCategory, selectedStatus, selectedType]);
+    }, [studiesProjects, inputValue, selectedCategory, selectedStatus, selectedType]);
 
     const statusOptions = [
         { value: "전체", label: "전체" },
@@ -180,6 +203,20 @@ export const StudySearchPage = () => {
         { value: "스터디", label: "스터디" },
         { value: "프로젝트", label: "프로젝트" }
     ];
+
+    // 날짜 포맷팅 함수
+    const formatDate = (dateString: string): string => {
+        try {
+            const date = new Date(dateString);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        } catch (error) {
+            console.error('날짜 포맷팅 오류:', error);
+            return dateString; // 오류 시 원본 문자열 반환
+        }
+    };
 
     const categoryOptions = [
         { value: "제목", label: "제목" },
@@ -358,7 +395,29 @@ export const StudySearchPage = () => {
             </div>
 
             <div className="flex flex-col gap-5">
-                {filteredStudies.map((study) => (
+                {loading && (
+                    <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8B85E9]"></div>
+                        <span className="ml-2 text-gray-600">스터디/프로젝트 데이터를 불러오는 중...</span>
+                    </div>
+                )}
+                
+                {error && (
+                    <div className="flex items-center justify-center py-8">
+                        <div className="text-red-600 text-center">
+                            <p className="font-medium">데이터 로드 실패</p>
+                            <p className="text-sm">{error}</p>
+                        </div>
+                    </div>
+                )}
+                
+                {!loading && !error && filteredStudies.length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                        <p>검색 결과가 없습니다.</p>
+                    </div>
+                )}
+                
+                {!loading && !error && filteredStudies.map((study) => (
                     <div
                         key={study.studyId}
                         className="flex items-center p-5 border border-gray-200 rounded-lg bg-white gap-5 cursor-pointer"
@@ -372,7 +431,7 @@ export const StudySearchPage = () => {
                                             title: study.studyTitle,
                                             description: study.studyDesc,
                                             leader: study.leader,
-                                            period: `${study.studyStart} ~ ${study.studyEnd}`,
+                                            period: `${formatDate(study.studyStart)} ~ ${formatDate(study.studyEnd)}`,
                                             tags: study.tags
                                         }
                                     })
@@ -388,7 +447,7 @@ export const StudySearchPage = () => {
                                             title: study.studyTitle,
                                             description: study.studyDesc,
                                             leader: study.leader,
-                                            period: `${study.studyStart} ~ ${study.studyEnd}`,
+                                            period: `${formatDate(study.studyStart)} ~ ${formatDate(study.studyEnd)}`,
                                             tags: study.tags
                                         }
                                     })
@@ -398,56 +457,35 @@ export const StudySearchPage = () => {
                             </div>
 
                             <div className="text-sm text-gray-600 mb-2">
-                                스터디 기간: {study.studyStart} ~ {study.studyEnd} / 스터디장:{" "}
+                                스터디 기간: {formatDate(study.studyStart)} ~ {formatDate(study.studyEnd)} / 스터디장:{" "}
                                 {study.leader}
                             </div>
 
                             <div className="flex gap-2 flex-wrap">
-                                {study.tags.map((tag: any, index: number) => {
-                                    // 태그가 객체인지 문자열인지 확인
-                                    const tagName = typeof tag === 'string' ? tag : (tag.name || tag);
-                                    const tagDifficulty = typeof tag === 'object' && tag.difficulty ? tag.difficulty : null;
-
-                                    // 난이도별 색상 적용
-                                    let tagClasses = "px-2 py-0.5 rounded-xl text-xs";
-                                    if (tagDifficulty) {
-                                        switch (tagDifficulty) {
-                                            case "초급":
-                                                tagClasses += " bg-emerald-100 text-emerald-800 border border-emerald-300";
-                                                break;
-                                            case "중급":
-                                                tagClasses += " bg-blue-100 text-blue-800 border border-blue-300";
-                                                break;
-                                            case "고급":
-                                                tagClasses += " bg-purple-100 text-purple-800 border border-purple-300";
-                                                break;
-                                            default:
-                                                tagClasses += " bg-gray-100 text-gray-600";
-                                        }
-                                    } else {
-                                        tagClasses += " bg-gray-100 text-gray-600";
-                                    }
-
-                                    return (
-                                        <span key={index} className={tagClasses}>
-                                            #{tagName}
-                                            {tagDifficulty && (
-                                                <span className="ml-1 opacity-75">({tagDifficulty})</span>
-                                            )}
-                                        </span>
-                                    );
-                                })}
+                                {study.tags.map((tag: string, index: number) => (
+                                    <span key={index} className="px-2 py-0.5 rounded-xl text-xs bg-gray-100 text-gray-600">
+                                        #{tag}
+                                    </span>
+                                ))}
                             </div>
                         </div>
-                        <div className="min-w-20">
+                        <div className="min-w-20 flex flex-col items-center gap-2">
                             <span
-                                className={`px-3 py-1 rounded-full text-xs font-bold ${study.isRecruiting
-                                    ? "bg-blue-50 text-blue-700"
-                                    : "bg-purple-50 text-purple-700"
-                                    }`}
+                                className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                    study.recruitmentStatus === "모집중" 
+                                        ? "bg-blue-50 text-blue-700"
+                                        : study.recruitmentStatus === "모집 완료"
+                                        ? "bg-purple-50 text-purple-700"
+                                        : "bg-gray-50 text-gray-700"
+                                }`}
                             >
                                 {study.recruitmentStatus}
                             </span>
+                            {study.recruitmentStatus === "모집중" && (
+                                <span className="text-xs text-gray-600">
+                                    (현재 인원/{study.studyTotal}명)
+                                </span>
+                            )}
                         </div>
                     </div>
                 ))}

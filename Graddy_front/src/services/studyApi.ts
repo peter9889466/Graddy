@@ -1,6 +1,27 @@
 import { apiGet, apiPost, apiPut, apiDelete, apiPatch, ApiResponse } from './api';
 
-// 스터디 데이터 타입 정의
+// 백엔드 응답 구조에 맞는 스터디/프로젝트 데이터 타입
+export interface BackendStudyProjectData {
+    studyProjectId: number;
+    studyProjectName: string;
+    studyProjectTitle: string;
+    studyProjectDesc: string;
+    studyLevel: number;
+    typeCheck: string;
+    userId: string;
+    isRecruiting: 'recruitment' | 'complete' | 'end'; // ENUM 값에 맞게 수정
+    studyProjectStart: string;
+    studyProjectEnd: string;
+    studyProjectTotal: number;
+    soltStart: string;
+    soltEnd: string;
+    createdAt: string;
+    curText: string;
+    tagNames: string[];
+    availableDays: string[];
+}
+
+// 프론트엔드에서 사용할 스터디 데이터 타입 (기존 호환성 유지)
 export interface StudyData {
     studyId: number;
     studyName: string;
@@ -70,7 +91,43 @@ export interface UpdateStudyRequest {
 
 // 스터디 API 서비스 클래스
 export class StudyApiService {
-    // 전체 스터디 목록 조회
+    // 백엔드에서 스터디/프로젝트 목록 조회 (새로운 API)
+    static async getStudiesProjects(): Promise<BackendStudyProjectData[]> {
+        try {
+            console.log('API 호출 시작: /studies-projects');
+            
+            // 직접 fetch를 사용하여 백엔드 응답 구조에 맞게 처리
+            const response = await fetch('http://localhost:8080/api/studies-projects', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            console.log('HTTP 응답 상태:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const responseData = await response.json();
+            console.log('백엔드 응답 데이터:', responseData);
+            
+            if (!responseData || !responseData.data) {
+                console.warn('Studies-projects API data 필드가 없습니다. 전체 응답:', responseData);
+                return [];
+            }
+            
+            console.log('성공적으로 데이터 추출:', responseData.data);
+            return responseData.data;
+        } catch (error) {
+            console.error('Studies-projects API 호출 실패:', error);
+            console.error('에러 상세 정보:', error);
+            return [];
+        }
+    }
+
+    // 전체 스터디 목록 조회 (기존 - 호환성 유지)
     static async getAllStudies(): Promise<StudyData[]> {
         const response = await apiGet<StudyData[]>('/studies');
         return response.data;
