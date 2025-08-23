@@ -12,8 +12,8 @@ const ApiTestComponent: React.FC = () => {
 
         try {
             // 1. 기본 연결 테스트
-            const response = await fetch('http://localhost:8080/api/studies-projects', {
-                method: 'GET',
+            const response = await fetch('http://localhost:8080/api/api/studies-projects', {
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 }
