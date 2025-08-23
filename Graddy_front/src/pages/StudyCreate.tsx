@@ -91,7 +91,9 @@ const StudyCreate: React.FC = () => {
         introduction: '',
         description: '',
         maxMembers: 0,
-        tags: [] as Array<{name: string, difficulty?: string}>, // 태그에 난이도 정보 추가
+        startDate: '',
+        endDate: '',
+        tags: [] as Array<{name: string}>, // 태그 정보
         selectedDays: {
             monday: false,
             tuesday: false,
@@ -107,7 +109,8 @@ const StudyCreate: React.FC = () => {
     const [isTagModalOpen, setIsTagModalOpen] = useState(false);
     const [tagSearchValue, setTagSearchValue] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
-    const [selectedDifficulty, setSelectedDifficulty] = useState<'초급' | '중급' | '고급' | null>(null);
+
+    const [selectedStudyLevel, setSelectedStudyLevel] = useState<number | null>(null);
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
     const handleRemoveTag = (tagToRemove: {name: string, difficulty?: string}) => {
@@ -117,35 +120,7 @@ const StudyCreate: React.FC = () => {
         });
     };
 
-    // 난이도별 색상 함수
-    const getDifficultyColors = (difficulty: string) => {
-        switch (difficulty) {
-            case "초급":
-                return {
-                    bgColor: "bg-emerald-100",
-                    textColor: "text-emerald-800",
-                    borderColor: "border-emerald-300",
-                };
-            case "중급":
-                return {
-                    bgColor: "bg-blue-100",
-                    textColor: "text-blue-800",
-                    borderColor: "border-blue-300",
-                };
-            case "고급":
-                return {
-                    bgColor: "bg-purple-100",
-                    textColor: "text-purple-800",
-                    borderColor: "border-purple-300",
-                };
-            default:
-                return {
-                    bgColor: "bg-[#8B85E9]/10",
-                    textColor: "text-[#8B85E9]",
-                    borderColor: "border-[#8B85E9]/30",
-                };
-        }
-    };
+
 
     // 요일 선택 토글 함수
     const toggleDay = (day: string) => {
@@ -198,6 +173,18 @@ const StudyCreate: React.FC = () => {
     // 선택된 요일 개수 계산
     const getSelectedDayCount = () => {
         return Object.values(studyData.selectedDays).filter(day => day).length;
+    };
+
+    // 총 스터디 기간 계산 (일수)
+    const getTotalStudyDays = () => {
+        if (!studyData.startDate || !studyData.endDate) {
+            return 0;
+        }
+        const startDate = new Date(studyData.startDate);
+        const endDate = new Date(studyData.endDate);
+        const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // 시작일 포함
+        return diffDays;
     };
 
     // 시간 설정 함수
@@ -262,6 +249,18 @@ const StudyCreate: React.FC = () => {
             newErrors.description = `${studyType === 'study' ? '스터디' : '프로젝트'} 설명을 입력해주세요!`;
         }
 
+        // 시작일 검증
+        if (!studyData.startDate) {
+            newErrors.startDate = `${studyType === 'study' ? '스터디' : '프로젝트'} 시작일을 선택해주세요!`;
+        }
+
+        // 종료일 검증
+        if (!studyData.endDate) {
+            newErrors.endDate = `${studyType === 'study' ? '스터디' : '프로젝트'} 종료일을 선택해주세요!`;
+        } else if (studyData.startDate && studyData.endDate && studyData.startDate >= studyData.endDate) {
+            newErrors.endDate = '종료일은 시작일보다 늦어야 합니다!';
+        }
+
         // 최대 인원 검증
         if (!studyData.maxMembers || studyData.maxMembers <= 0) {
             newErrors.maxMembers = `${studyType === 'study' ? '스터디' : '프로젝트'} 최대 인원을 입력해주세요!`;
@@ -277,8 +276,6 @@ const StudyCreate: React.FC = () => {
         try {
             // 백엔드 API로 스터디 프로젝트 생성 요청
             // 백엔드에서 요구하는 형식으로 데이터 변환
-            const now = new Date();
-            const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
             
             // 시간 형식을 백엔드에서 요구하는 형식으로 변환
             const formatTimeForBackend = (hour: number | null, defaultHour: number) => {
@@ -316,11 +313,11 @@ const StudyCreate: React.FC = () => {
                 studyProjectName: studyData.title,
                 studyProjectTitle: studyData.title,
                 studyProjectDesc: studyData.description,
-                studyLevel: selectedDifficulty === '초급' ? 1 : selectedDifficulty === '중급' ? 2 : 3,
+                studyLevel: selectedStudyLevel || 1, // 선택되지 않으면 기본값 1
                 typeCheck: studyType, // "study" 또는 "project"
                 userId: user?.nickname || 'testuser', // JWT 토큰에서 자동 추출되므로 선택적
-                studyProjectStart: now.toISOString(), // 현재 날짜를 시작일로 설정
-                studyProjectEnd: endDate.toISOString(), // 30일 후를 종료일로 설정
+                studyProjectStart: new Date(studyData.startDate).toISOString(), // 선택된 시작일
+                studyProjectEnd: new Date(studyData.endDate).toISOString(), // 선택된 종료일
                 studyProjectTotal: studyData.maxMembers,
                 soltStart: formatTimeForBackend(studyData.startTime, 9), // 시작 시간을 ISO 형식으로
                 soltEnd: formatTimeForBackend(studyData.endTime, 18), // 종료 시간을 ISO 형식으로
@@ -424,15 +421,8 @@ const StudyCreate: React.FC = () => {
             });
         } else {
             // 새로운 태그라면 추가
-            if (studyType === 'study' && !selectedDifficulty) {
-                alert('먼저 난이도를 선택해주세요!');
-                return;
-            }
-            
             if (studyData.tags.length < 5) {
-                const newTag = studyType === 'study' 
-                    ? { name: tag, difficulty: selectedDifficulty! }
-                    : { name: tag };
+                const newTag = { name: tag };
                 setStudyData({
                     ...studyData,
                     tags: [...studyData.tags, newTag]
@@ -447,7 +437,7 @@ const StudyCreate: React.FC = () => {
     const handleComplete = () => {
         setIsTagModalOpen(false);
         setTagSearchValue('');
-        setSelectedDifficulty(null); // 모달이 닫힐 때 난이도 초기화
+
         // 모달이 닫힐 때 body 스크롤 복원
         document.body.classList.remove('modal-open');
     };
@@ -456,34 +446,12 @@ const StudyCreate: React.FC = () => {
         setIsTagModalOpen(true);
         setTagSearchValue(''); // 모달을 열 때 검색어 초기화
         setSelectedCategory(null); // 모달을 열 때 카테고리 필터 초기화
-        setSelectedDifficulty(null); // 모달을 열 때 난이도 초기화
+
         // 모달이 열릴 때 body에 클래스 추가하여 스크롤바 유지하면서 스크롤 막기
         document.body.classList.add('modal-open');
     };
 
-    // Join2.tsx와 동일한 난이도 버튼 스타일 함수
-    const getDifficultyButtonStyle = (level: string) => {
-        const isActive = selectedDifficulty === level;
-        switch (level) {
-            case "초급":
-                return `${isActive
-                    ? "bg-emerald-500 text-white shadow-lg ring-2 ring-emerald-200"
-                    : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"} 
-            transition-all duration-200 ease-in-out transform ${isActive ? "scale-105" : "hover:scale-105"}`;
-            case "중급":
-                return `${isActive
-                    ? "bg-blue-500 text-white shadow-lg ring-2 ring-blue-200"
-                    : "bg-blue-100 text-blue-700 hover:bg-blue-200"} 
-            transition-all duration-200 ease-in-out transform ${isActive ? "scale-105" : "hover:scale-105"}`;
-            case "고급":
-                return `${isActive
-                    ? "bg-purple-500 text-white shadow-lg ring-2 ring-purple-200"
-                    : "bg-purple-100 text-purple-700 hover:bg-purple-200"} 
-            transition-all duration-200 ease-in-out transform ${isActive ? "scale-105" : "hover:scale-105"}`;
-            default:
-                return "";
-        }
-    };
+
 
     return (
         <PageLayout>
@@ -564,9 +532,8 @@ const StudyCreate: React.FC = () => {
                                         setErrors(prev => ({ ...prev, title: '' }));
                                     }
                                 }}
-                                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] ${errors.title ? 'placeholder-red-500' : 'placeholder-gray-500'
-                                    }`}
-                                placeholder={errors.title || `${studyType === 'study' ? '스터디' : '프로젝트'} 제목을 입력해주세요.`}
+                                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] placeholder-gray-500 ${errors.title ? 'border-red-500' : 'border-gray-300'}`}
+                                placeholder={`${studyType === 'study' ? '스터디' : '프로젝트'} 제목을 입력해주세요.`}
                                 style={{ color: errors.title ? '#dc2626' : '#1f2937' }}
                             />
                         </div>
@@ -593,9 +560,8 @@ const StudyCreate: React.FC = () => {
                                         setErrors(prev => ({ ...prev, introduction: '' }));
                                     }
                                 }}
-                                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] ${errors.introduction ? 'placeholder-red-500' : 'placeholder-gray-500'
-                                    }`}
-                                placeholder={errors.introduction || `${studyType === 'study' ? '스터디' : '프로젝트'} 소개를 입력해주세요.`}
+                                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] placeholder-gray-500 ${errors.introduction ? 'border-red-500' : 'border-gray-300'}`}
+                                placeholder={`${studyType === 'study' ? '스터디' : '프로젝트'} 소개를 입력해주세요.`}
                                 style={{ color: errors.introduction ? '#dc2626' : '#1f2937' }}
                             />
                         </div>
@@ -615,27 +581,21 @@ const StudyCreate: React.FC = () => {
                         <div className="bg-gray-50 rounded-xl p-4">
                             <div className="flex flex-wrap gap-2 items-center">
                                 {/* 선택된 태그들 */}
-                                {studyData.tags.map((tag, index) => {
-                                    const colors = tag.difficulty ? getDifficultyColors(tag.difficulty) : getDifficultyColors('');
-                                    return (
-                                        <div
-                                            key={index}
-                                            className={`flex items-center space-x-1 px-3 py-2 rounded-lg text-sm border-2 ${colors.bgColor} ${colors.textColor} ${colors.borderColor}`}
+                                {studyData.tags.map((tag, index) => (
+                                    <div
+                                        key={index}
+                                        className="flex items-center space-x-1 px-3 py-2 rounded-lg text-sm border-2 bg-[#8B85E9] text-white border-[#8B85E9]"
+                                    >
+                                        <span>#{tag.name}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemoveTag(tag)}
+                                            className="ml-1 hover:opacity-70 transition-opacity duration-200"
                                         >
-                                            <span>#{tag.name}</span>
-                                            {tag.difficulty && (
-                                                <span className="ml-1 text-xs opacity-75">({tag.difficulty})</span>
-                                            )}
-                                            <button
-                                                type="button"
-                                                onClick={() => handleRemoveTag(tag)}
-                                                className="ml-1 hover:opacity-70 transition-opacity duration-200"
-                                            >
-                                                <X className="w-3 h-3" />
-                                            </button>
-                                        </div>
-                                    );
-                                })}
+                                            <X className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                ))}
 
                                 {/* 태그 찾기 버튼 */}
                                 <button
@@ -649,6 +609,36 @@ const StudyCreate: React.FC = () => {
                             </div>
                         </div>
                     </div>
+
+                    {/* 스터디 레벨 선택 - 스터디일 때만 표시 */}
+                    {studyType === 'study' && (
+                        <div>
+                            <div className="flex items-center gap-2 mb-4">
+                                <div className="w-1 h-5 rounded-full" style={{ backgroundColor: "#8B85E9" }}></div>
+                                <h3 className="text-lg font-bold text-gray-800">
+                                    스터디 레벨
+                                </h3>
+                            </div>
+                            <div className="bg-gray-50 rounded-xl p-4">
+                                <div className="flex gap-3">
+                                    {[1, 2, 3].map((level) => (
+                                        <button
+                                            key={level}
+                                            type="button"
+                                            onClick={() => setSelectedStudyLevel(selectedStudyLevel === level ? null : level)}
+                                            className={`flex-1 py-2 px-3 rounded-xl font-semibold text-sm transition-colors duration-200 ${
+                                                selectedStudyLevel === level
+                                                    ? 'bg-[#8B85E9] text-white border-[#8B85E9]'
+                                                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 border'
+                                            }`}
+                                        >
+                                            레벨 {level}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* 최대 인원 */}
                     <div>
@@ -714,6 +704,84 @@ const StudyCreate: React.FC = () => {
                         </div>
                         {errors.maxMembers && (
                             <p className="mt-2 text-sm text-red-500">{errors.maxMembers}</p>
+                        )}
+                    </div>
+
+                    {/* 시작일/종료일 선택 */}
+                    <div>
+                        <div className="flex items-center gap-2 mb-4">
+                            <div className="w-1 h-5 rounded-full" style={{ backgroundColor: "#8B85E9" }}></div>
+                            <h3 className="text-lg font-bold text-gray-800">
+                                {studyType === 'study' ? '스터디' : '프로젝트'} 기간 *
+                            </h3>
+                        </div>
+                        <div className="bg-gray-50 rounded-xl p-4">
+                            <div className="flex gap-6">
+                                {/* 시작일 */}
+                                <div className="flex-1">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                        시작일 *
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={studyData.startDate}
+                                        onChange={(e) => {
+                                            setStudyData({ ...studyData, startDate: e.target.value });
+                                            if (errors.startDate) {
+                                                setErrors(prev => ({ ...prev, startDate: '' }));
+                                            }
+                                        }}
+                                        min={new Date().toISOString().split('T')[0]}
+                                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] transition-colors duration-200 ${errors.startDate ? 'border-red-500' : 'border-gray-300'}`}
+                                    />
+                                    {errors.startDate && (
+                                        <p className="mt-1 text-sm text-red-500">{errors.startDate}</p>
+                                    )}
+                                </div>
+
+                                {/* 종료일 */}
+                                <div className="flex-1">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                        종료일 *
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={studyData.endDate}
+                                        onChange={(e) => {
+                                            setStudyData({ ...studyData, endDate: e.target.value });
+                                            if (errors.endDate) {
+                                                setErrors(prev => ({ ...prev, endDate: '' }));
+                                            }
+                                        }}
+                                        min={studyData.startDate || new Date().toISOString().split('T')[0]}
+                                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] transition-colors duration-200 ${errors.endDate ? 'border-red-500' : 'border-gray-300'}`}
+                                    />
+                                    {errors.endDate && (
+                                        <p className="mt-1 text-sm text-red-500">{errors.endDate}</p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 총 스터디 기간 표시 */}
+                        {studyData.startDate && studyData.endDate && (
+                            <div className="mt-4 flex justify-center">
+                                <div className="flex flex-col items-center gap-4">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <div className="w-5 h-5 rounded-full" style={{ backgroundColor: '#8B85E9' }}></div>
+                                        <label className="text-lg font-semibold text-gray-800">총 스터디 기간</label>
+                                    </div>
+                                    <div className="relative">
+                                        <div className="w-32 px-4 py-3 text-lg font-semibold text-center border-2 border-[#8B85E9] rounded-xl bg-white shadow-sm">
+                                            <span style={{ color: '#8B85E9' }}>{getTotalStudyDays()}</span>
+                                            <span className="text-gray-700">일</span>
+                                        </div>
+                                        <div className="absolute -top-2 -right-2">
+                                            <CheckCircle className="w-6 h-6 text-green-500 bg-white rounded-full shadow-sm" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         )}
                     </div>
 
@@ -918,10 +986,9 @@ const StudyCreate: React.FC = () => {
                                         setErrors(prev => ({ ...prev, description: '' }));
                                     }
                                 }}
-                                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] resize-none ${errors.description ? 'placeholder-red-500' : 'placeholder-gray-500'
-                                    }`}
+                                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] resize-none placeholder-gray-500 ${errors.description ? 'border-red-500' : 'border-gray-300'}`}
                                 rows={4}
-                                placeholder={errors.description || `${studyType === 'study' ? '스터디' : '프로젝트'}에 대한 상세한 설명을 입력해주세요.`}
+                                placeholder={`${studyType === 'study' ? '스터디' : '프로젝트'}에 대한 상세한 설명을 입력해주세요.`}
                                 style={{ color: errors.description ? '#dc2626' : '#1f2937' }}
                             />
                         </div>
@@ -971,7 +1038,7 @@ const StudyCreate: React.FC = () => {
                                 placeholder="태그를 검색해주세요."
                                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
                                 autoFocus
-                                disabled={studyType === 'study' && !selectedDifficulty}
+
                             />
                         </div>
 
@@ -1043,24 +1110,7 @@ const StudyCreate: React.FC = () => {
                             </div>
                         )}
 
-                        {/* 난이도 선택을 아래로 - 스터디일 때만 표시 */}
-                        {studyType === 'study' && (
-                            <div className="mb-4">
-                                <h4 className="font-semibold text-gray-800 mb-3 text-sm">난이도 선택 *</h4>
-                                <div className="flex gap-3">
-                                    {(['초급', '중급', '고급'] as const).map((difficulty) => (
-                                        <button
-                                            key={difficulty}
-                                            type="button"
-                                            onClick={() => setSelectedDifficulty(difficulty)}
-                                            className={`flex-1 py-2 px-3 rounded-xl font-semibold text-sm ${getDifficultyButtonStyle(difficulty)}`}
-                                        >
-                                            {difficulty}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+
 
                         <div className="max-h-60 overflow-y-auto pr-2" onClick={(e) => e.stopPropagation()}>
                             {filteredTags.length > 0 ? (
@@ -1071,8 +1121,6 @@ const StudyCreate: React.FC = () => {
                                             <div className="grid grid-cols-3 gap-2">
                                                 {category.tags.map((tag) => {
                                                     const isSelected = studyData.tags.some(t => t.name === tag);
-                                                    const selectedTag = studyData.tags.find(t => t.name === tag);
-                                                    const colors = selectedTag?.difficulty ? getDifficultyColors(selectedTag.difficulty) : null;
                                                     
                                                     return (
                                                         <button
@@ -1080,16 +1128,13 @@ const StudyCreate: React.FC = () => {
                                                             onClick={() => handleTagSelect(tag)}
                                                             className={`p-2 text-center rounded-lg border transition-colors duration-200 text-xs select-none ${
                                                                 isSelected
-                                                                    ? `${colors?.bgColor || 'bg-[#8B85E9]'} ${colors?.textColor || 'text-white'} ${colors?.borderColor || 'border-[#8B85E9]'} cursor-pointer hover:opacity-80`
+                                                                    ? 'bg-[#8B85E9] text-white border-[#8B85E9] cursor-pointer hover:opacity-80'
                                                                     : studyData.tags.length >= 5
                                                                         ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
                                                                         : 'bg-white text-gray-700 border-gray-300 hover:bg-[#8B85E9] hover:text-white hover:border-[#8B85E9] cursor-pointer'
                                                             }`}
                                                         >
                                                             #{tag}
-                                                            {selectedTag?.difficulty && (
-                                                                <div className="text-xs opacity-75">({selectedTag.difficulty})</div>
-                                                            )}
                                                         </button>
                                                     );
                                                 })}

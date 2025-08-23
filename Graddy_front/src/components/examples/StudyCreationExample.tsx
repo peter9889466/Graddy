@@ -147,3 +147,4 @@ const StudyCreationExample: React.FC = () => {
 };
 
 export default StudyCreationExample;
+

@@ -1,23 +1,62 @@
+import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
+
 // API 기본 설정
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
-// 공통 헤더 설정
-const getHeaders = (): HeadersInit => {
-    const token = localStorage.getItem('userToken');
-    const headers: HeadersInit = {
+// axios 인스턴스 생성
+const axiosInstance: AxiosInstance = axios.create({
+    baseURL: API_BASE_URL,
+    timeout: 10000,
+    headers: {
         'Content-Type': 'application/json'
-    };
-    
-    // 토큰이 있을 때만 Authorization 헤더 추가
-    if (token && token !== 'null' && token.trim() !== '') {
-        headers['Authorization'] = `Bearer ${token}`;
-    } else {
-        // 임시: 토큰이 없을 때는 헤더를 포함하지 않음
-        console.log('토큰이 없어서 Authorization 헤더를 포함하지 않습니다.');
     }
-    
-    return headers;
-};
+});
+
+// 요청 인터셉터 - 토큰 추가
+axiosInstance.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('userToken');
+        if (token && token !== 'null' && token.trim() !== '') {
+            config.headers.Authorization = `Bearer ${token}`;
+        } else {
+            console.log('토큰이 없어서 Authorization 헤더를 포함하지 않습니다.');
+        }
+        
+        console.log('API 요청 정보:', {
+            url: config.url,
+            method: config.method,
+            headers: config.headers,
+            data: config.data
+        });
+        
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
+    }
+);
+
+// 응답 인터셉터 - 에러 처리
+axiosInstance.interceptors.response.use(
+    (response: AxiosResponse) => {
+        return response;
+    },
+    (error: AxiosError) => {
+        console.error('API 요청 실패:', error);
+        if (error.response) {
+            // 서버에서 응답이 왔지만 에러 상태인 경우
+            const errorData = error.response.data as any;
+            const errorMessage = errorData?.message || `HTTP ${error.response.status}`;
+            throw new Error(errorMessage);
+        } else if (error.request) {
+            // 요청은 보냈지만 응답을 받지 못한 경우
+            throw new Error('서버에 연결할 수 없습니다.');
+        } else {
+            // 요청 자체를 보내지 못한 경우
+            throw new Error('요청을 보낼 수 없습니다.');
+        }
+    }
+);
 
 // API 응답 타입
 export interface ApiResponse<T> {
@@ -36,75 +75,28 @@ export interface ApiError {
 }
 
 // HTTP 메서드별 요청 함수
-export const apiRequest = async <T>(
-    endpoint: string,
-    options: RequestInit = {}
-): Promise<ApiResponse<T>> => {
-    const url = `${API_BASE_URL}${endpoint}`;
-    
-    const config: RequestInit = {
-        headers: getHeaders(),
-        ...options,
-    };
-
-    console.log('API 요청 정보:', {
-        url,
-        method: options.method || 'GET',
-        headers: config.headers,
-        body: options.body
-    });
-
-    try {
-        const response = await fetch(url, config);
-        
-        if (!response.ok) {
-            const errorData: ApiError = await response.json().catch(() => ({
-                success: false,
-                message: `HTTP ${response.status}: ${response.statusText}`
-            }));
-            
-            throw new Error(errorData.message || `HTTP ${response.status}`);
-        }
-
-        const data: ApiResponse<T> = await response.json();
-        return data;
-    } catch (error) {
-        console.error('API 요청 실패:', error);
-        throw error;
-    }
+export const apiGet = async <T>(endpoint: string): Promise<ApiResponse<T>> => {
+    const response = await axiosInstance.get<ApiResponse<T>>(endpoint);
+    return response.data;
 };
 
-// GET 요청
-export const apiGet = <T>(endpoint: string): Promise<ApiResponse<T>> => {
-    return apiRequest<T>(endpoint, { method: 'GET' });
+export const apiPost = async <T>(endpoint: string, data: any): Promise<ApiResponse<T>> => {
+    const response = await axiosInstance.post<ApiResponse<T>>(endpoint, data);
+    return response.data;
 };
 
-// POST 요청
-export const apiPost = <T>(endpoint: string, data: any): Promise<ApiResponse<T>> => {
-    return apiRequest<T>(endpoint, {
-        method: 'POST',
-        body: JSON.stringify(data)
-    });
+export const apiPut = async <T>(endpoint: string, data: any): Promise<ApiResponse<T>> => {
+    const response = await axiosInstance.put<ApiResponse<T>>(endpoint, data);
+    return response.data;
 };
 
-// PUT 요청
-export const apiPut = <T>(endpoint: string, data: any): Promise<ApiResponse<T>> => {
-    return apiRequest<T>(endpoint, {
-        method: 'PUT',
-        body: JSON.stringify(data)
-    });
+export const apiDelete = async <T>(endpoint: string): Promise<ApiResponse<T>> => {
+    const response = await axiosInstance.delete<ApiResponse<T>>(endpoint);
+    return response.data;
 };
 
-// DELETE 요청
-export const apiDelete = <T>(endpoint: string): Promise<ApiResponse<T>> => {
-    return apiRequest<T>(endpoint, { method: 'DELETE' });
-};
-
-// PATCH 요청
-export const apiPatch = <T>(endpoint: string, data?: any): Promise<ApiResponse<T>> => {
-    return apiRequest<T>(endpoint, {
-        method: 'PATCH',
-        ...(data && { body: JSON.stringify(data) })
-    });
+export const apiPatch = async <T>(endpoint: string, data?: any): Promise<ApiResponse<T>> => {
+    const response = await axiosInstance.patch<ApiResponse<T>>(endpoint, data);
+    return response.data;
 };
 
