@@ -9,7 +9,7 @@ import ProfileSection from "../components/mypage/ProfileSection";
 import IntroductionSection from "../components/mypage/IntroductionSection";
 import ProfileEditForm from "../components/mypage/ProfileEditForm";
 import MyPageSidebar from "../components/mypage/MyPageSidebar";
-import MyStudyList from "../components/mypage/MyStudyList";
+import { MyStudyList } from "../components/mypage/MyStudyList";
 
 // InterestModal과 동일한 타입 정의
 interface SelectedInterestItem {

@@ -1,97 +1,184 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import PageLayout from '../components/layout/PageLayout'
-import ResponsiveContainer from '../components/layout/ResponsiveContainer'
-import ResponsiveMainContent from '../components/layout/ResponsiveMainContent'
 import { CommunityProvider, useCommunityContext, PostType } from '../contexts/CommunityContext'
 import Comments from '../components/community/Comments'
 import CreatePostModal from '../components/community/CreatePostModal'
 import { useModal } from '../hooks/useModal'
+import { Search } from "lucide-react";
 
 const SearchAndCreate: React.FC = () => {
 	const { posts, createPost } = useCommunityContext()
-	const [typeFilter, setTypeFilter] = useState<'all' | PostType>('all')
 	const [searchField, setSearchField] = useState<'title' | 'author'>('title')
 	const [query, setQuery] = useState('')
 	const { isOpen, openModal, closeModal } = useModal()
+	const navigate = useNavigate()
+
+	// 드롭다운 상태 관리
+	const [isFieldOpen, setIsFieldOpen] = useState(false)
+	const fieldDropdownRef = useRef<HTMLDivElement>(null)
+
+	// 드롭다운 외부 클릭 시 닫기
+	useEffect(() => {
+		const handleClickOutside = (event: MouseEvent) => {
+			if (fieldDropdownRef.current && !fieldDropdownRef.current.contains(event.target as Node)) {
+				setIsFieldOpen(false)
+			}
+		}
+
+		document.addEventListener('mousedown', handleClickOutside)
+		return () => {
+			document.removeEventListener('mousedown', handleClickOutside)
+		}
+	}, [])
 
 	const filtered = useMemo(() => {
 		return posts.filter(p => {
-			const typeOk = typeFilter === 'all' || p.type === typeFilter
 			const field = searchField === 'title' ? p.title : p.author
 			const q = query.trim().toLowerCase()
 			const fieldOk = q === '' || field.toLowerCase().includes(q)
-			return typeOk && fieldOk
+			return fieldOk
 		})
-	}, [posts, typeFilter, searchField, query])
+	}, [posts, searchField, query])
 
 	const handleCreate = (data: { title: string; author: string; content: string; type: PostType }) => {
 		createPost(data)
 	}
 
+	const fieldOptions = [
+		{ value: "title", label: "제목" },
+		{ value: "author", label: "작성자" }
+	]
+
 	return (
-		<div className="space-y-6">
-			<div className="rounded-xl" >
-				<h2 className="text-lg font-semibold mb-3" style={{ color: '#8B85E9' }}>검색</h2>
-				<div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-					<select value={typeFilter} onChange={e => setTypeFilter(e.target.value as any)} className=" rounded-lg px-3 py-2">
-						<option value="all">전체</option>
-						<option value="project">프로젝트</option>
-						<option value="study">스터디</option>
-					</select>
-					<select value={searchField} onChange={e => setSearchField(e.target.value as any)} className=" rounded-lg px-3 py-2">
-						<option value="title">제목</option>
-						<option value="author">작성자</option>
-					</select>
-					<input value={query} onChange={e => setQuery(e.target.value)} placeholder="검색어를 입력하세요" className=" rounded-lg px-3 py-2 col-span-1 sm:col-span-2" />
-				</div>
-			</div>
+		<div className="max-w-6xl mx-auto p-5 min-h-screen scrollbar-hide">
+			<div className="flex gap-5 mb-8 items-center justify-center">
+				<div className="flex gap-2.5">
+					{/* 검색 필드 드롭다운 */}
+					<div className="relative" ref={fieldDropdownRef}>
+						<button
+							onClick={() => setIsFieldOpen(!isFieldOpen)}
+							className={`px-4 py-2 rounded-xl bg-white text-gray-700 flex items-center justify-between border ${isFieldOpen ? "border-2 border-[#8B85E9]" : "border-2 border-gray-300"
+								} focus:outline-none min-w-[100px]`}
+						>
+							<span>{fieldOptions.find(opt => opt.value === searchField)?.label || '제목'}</span>
+							<svg
+								className={`w-4 h-4 transition-transform ${isFieldOpen ? 'rotate-180' : ''}`}
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+							</svg>
+						</button>
 
-			<div className="rounded-xl " style={{backgroundColor: '#F9F9FF' }}>
-				<h2 className="text-lg font-semibold mb-3 mt-3 ml-3" style={{ color: '#8B85E9' }}>게시글 목록</h2>
-				<ul className="space-y-4">
-					{filtered.map(p => (
-						<li key={p.id} className="py-3 space-y-3">
-							<div className="flex items-center justify-between">
-								<div>
-									<span className="text-xs px-2 py-0.5 rounded-full mr-2" style={{ color: '#8B85E9', backgroundColor: '#E8E6FF' }}>{p.type === 'project' ? '프로젝트' : '스터디'}</span>
-									<span className="font-semibold">{p.title}</span>
-								</div>
-								<span className="text-sm text-gray-500">{p.author}</span>
+						{isFieldOpen && (
+							<div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-xl shadow-lg z-10 overflow-hidden">
+								{fieldOptions.map((option, index) => (
+									<div
+										key={option.value}
+										onClick={() => {
+											setSearchField(option.value as any)
+											setIsFieldOpen(false)
+										}}
+										className={`px-4 py-2 cursor-pointer transition-colors hover:bg-gray-50 ${index !== fieldOptions.length - 1 ? 'border-b border-gray-100' : ''}`}
+										style={{
+											backgroundColor: searchField === option.value ? '#E8E6FF' : '#FFFFFF',
+											color: searchField === option.value ? '#8B85E9' : '#374151'
+										}}
+									>
+										<div className="font-medium">{option.label}</div>
+									</div>
+								))}
 							</div>
-							<p className="text-gray-600 mt-1 text-sm whitespace-pre-line">{p.content}</p>
-							<Comments postId={p.id} />
-						</li>
-					))}
-					{filtered.length === 0 && (
-						<li className="py-6 text-center text-gray-500">게시글이 없습니다.</li>
-					)}
-				</ul>
+						)}
+					</div>
+				</div>
+
+				<div className="relative w-[500px]">
+					<input
+						type="text"
+						value={query}
+						onChange={(e) => setQuery(e.target.value)}
+						placeholder="검색어를 입력하세요"
+						className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-base outline-none"
+					/>
+					<button
+						style={{ color: "#8B85E9" }}
+						className="absolute right-5 top-1/2 transform -translate-y-1/2 bg-transparent border-none text-lg cursor-pointer"
+					>
+						<Search size={20} className="text-gray-500" />
+					</button>
+				</div>
+
+				{/* 게시글 작성 버튼 */}
+				<button
+					onClick={() => navigate('/community/create')}
+					className="px-6 py-2.5 bg-[#8B85E9] text-white rounded-lg font-medium hover:bg-[#7A74D8] transition-colors duration-200 flex items-center gap-2"
+				>
+					작성하기
+				</button>
 			</div>
 
-			<div className="rounded-xl">
-				<button onClick={openModal} className="px-4 py-2 rounded-lg text-white" style={{ backgroundColor: '#8B85E9' }}>게시글 작성</button>
-				<CreatePostModal isOpen={isOpen} onClose={closeModal} onCreate={handleCreate} />
+			<div className="flex flex-col gap-5">
+				{filtered.map((post) => (
+					<div
+						key={post.id}
+						className="flex items-start p-5 border border-gray-200 rounded-lg bg-white gap-5"
+					>
+						<div className="flex-1">
+							<div className="flex items-center gap-3 mb-3">
+								<span className="text-xs px-3 py-1 rounded-full font-bold" style={{
+									color: post.type === 'project' ? '#8B85E9' : '#10B981',
+									backgroundColor: post.type === 'project' ? '#E8E6FF' : '#D1FAE5'
+								}}>
+								</span>
+								<span className="text-sm text-gray-500">{post.author}</span>
+							</div>
+
+							<div 
+								className="text-lg font-bold text-gray-800 mb-2 cursor-pointer hover:text-[#8B85E9] transition-colors duration-200"
+								onClick={() => navigate(`/community/${post.id}`)}
+							>
+								{post.title}
+							</div>
+
+							<div className="text-base text-gray-600 mb-4 whitespace-pre-line">
+								{post.content}
+							</div>
+
+							<Comments postId={post.id} />
+						</div>
+					</div>
+				))}
+
+				{filtered.length === 0 && (
+					<div className="flex items-center justify-center py-12">
+						<div className="text-center">
+							<div className="text-gray-400 text-lg mb-2">게시글이 없습니다</div>
+							<div className="text-gray-300 text-sm">첫 번째 게시글을 작성해보세요!</div>
+						</div>
+					</div>
+				)}
 			</div>
+
+			<CreatePostModal isOpen={isOpen} onClose={closeModal} onCreate={handleCreate} />
 		</div>
 	)
 }
 
 const CommunityPageInner: React.FC = () => {
 	return (
-		<PageLayout>
-			<ResponsiveContainer variant="default">
-				<ResponsiveMainContent padding="md">
-					<SearchAndCreate />
-				</ResponsiveMainContent>
-			</ResponsiveContainer>
-		</PageLayout>
+		<SearchAndCreate />
 	)
 }
 
 export const CommunityPage = () => {
 	return (
-		<CommunityProvider>
-			<CommunityPageInner />
-		</CommunityProvider>
+		<PageLayout>
+			<CommunityProvider>
+				<CommunityPageInner />
+			</CommunityProvider>
+		</PageLayout>
 	)
 }
