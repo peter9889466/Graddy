@@ -56,28 +56,33 @@ public class StudyProject {
     private RecruitingStatus isRecruiting;
 
     @Column(name = "study_project_start", nullable = false)
+    @Temporal(TemporalType.TIMESTAMP)
     @Schema(description = "스터디/프로젝트 시작일")
-    private LocalDateTime studyProjectStart;
+    private Timestamp studyProjectStart;
 
     @Column(name = "study_project_end", nullable = false)
+    @Temporal(TemporalType.TIMESTAMP)
     @Schema(description = "스터디/프로젝트 마감일")
-    private LocalDateTime studyProjectEnd;
+    private Timestamp studyProjectEnd;
 
     @Column(name = "study_project_total", nullable = false)
     @Schema(description = "스터디/프로젝트 총원", example = "5")
     private Integer studyProjectTotal;
 
     @Column(name = "solt_start")
+    @Temporal(TemporalType.TIMESTAMP)
     @Schema(description = "선호 시작 시간")
     private Timestamp soltStart;
 
     @Column(name = "solt_end")
+    @Temporal(TemporalType.TIMESTAMP)
     @Schema(description = "선호 끝 시간")
     private Timestamp soltEnd;
 
     @Column(name = "created_at", nullable = false, updatable = false)
+    @Temporal(TemporalType.TIMESTAMP)
     @Schema(description = "개설 일자")
-    private LocalDateTime createdAt;
+    private Timestamp createdAt;
 
     @Column(name = "cur_text", columnDefinition = "TEXT")
     @Schema(description = "커리큘럼 내용")
@@ -95,6 +100,6 @@ public class StudyProject {
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
+        createdAt = new Timestamp(System.currentTimeMillis());
     }
 }
