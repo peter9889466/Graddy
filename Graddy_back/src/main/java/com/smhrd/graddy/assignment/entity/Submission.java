@@ -10,32 +10,26 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.sql.Timestamp;
 
 @Entity
-@Table(name = "assignments")
+@Table(name = "submissions")
 @Getter
 @Setter
 @NoArgsConstructor
 @ToString
-public class Assignment {
+public class Submission {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "assignment_id")
-    private Long assignmentId;
+    @Column(name = "submission_id")
+    private Long submissionId;
 
-    @Column(name = "study_project_id", nullable = false)
-    private Long studyProjectId;
+    @Column(name = "assignment_id", nullable = false)
+    private Long assignmentId;
 
     @Column(name = "member_id", nullable = false)
     private Long memberId;
 
-    @Column(length = 100, nullable = false)
-    private String title;
-
     @Column(columnDefinition = "TEXT", nullable = false)
-    private String description;
-
-    @Column(nullable = false)
-    private Timestamp deadline;
+    private String content;
 
     @Column(name = "file_url", columnDefinition = "TEXT")
     private String fileUrl;

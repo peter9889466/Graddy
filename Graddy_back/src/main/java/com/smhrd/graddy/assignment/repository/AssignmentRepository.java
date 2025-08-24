@@ -9,12 +9,12 @@ import java.util.List;
 @Repository
 public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     
-    // 스터디별 과제 목록 조회
-    List<Assignment> findByStudyIdOrderByCreatedAtDesc(Long studyId);
+    // 스터디/프로젝트별 과제 목록 조회
+    List<Assignment> findByStudyProjectIdOrderByCreatedAtDesc(Long studyProjectId);
     
-    // 사용자별 과제 목록 조회
-    List<Assignment> findByUserIdOrderByCreatedAtDesc(String userId);
+    // 멤버별 과제 목록 조회
+    List<Assignment> findByMemberIdOrderByCreatedAtDesc(Long memberId);
     
-    // 스터디와 사용자별 과제 목록 조회
-    List<Assignment> findByStudyIdAndUserIdOrderByCreatedAtDesc(Long studyId, String userId);
+    // 스터디/프로젝트와 멤버별 과제 목록 조회
+    List<Assignment> findByStudyProjectIdAndMemberIdOrderByCreatedAtDesc(Long studyProjectId, Long memberId);
 }

@@ -22,6 +22,9 @@ import java.util.stream.Collectors;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.LinkedHashSet;
+import com.smhrd.graddy.member.dto.MemberInfo;
+import com.smhrd.graddy.member.service.MemberService;
+import com.smhrd.graddy.member.repository.MemberRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +35,8 @@ public class StudyService {
     private final InterestRepository interestRepository;
     private final TagRepository tagRepository;
     private final StudyProjectAvailableDayRepository availableDayRepository;
+    private final MemberService memberService;
+    private final MemberRepository memberRepository;
 
     // 스터디/프로젝트 생성
     @Transactional
@@ -71,6 +76,9 @@ public class StudyService {
                 availableDayRepository.save(availableDay);
             }
         }
+        
+        // 리더를 멤버 테이블에 자동 추가
+        memberService.addLeaderAsMember(savedStudyProject.getStudyProjectId(), savedStudyProject.getUserId());
         
         return convertToResponse(savedStudyProject);
     }
@@ -266,6 +274,9 @@ public class StudyService {
         tagRepository.deleteByStudyProjectId(studyProjectId);
         availableDayRepository.deleteByStudyProjectId(studyProjectId);
         
+        // 멤버 테이블 데이터 삭제
+        memberRepository.deleteByStudyProjectId(studyProjectId);
+        
         // 스터디/프로젝트 삭제
         studyProjectRepository.deleteById(studyProjectId);
     }
@@ -289,6 +300,10 @@ public class StudyService {
             availableDays.add(availableDay.getDayId());
         }
         
+        // 현재 인원수와 멤버 정보는 MemberService에서 조회
+        int currentMembers = memberService.getCurrentMemberCount(studyProject.getStudyProjectId());
+        List<MemberInfo> members = memberService.getMembersByStudyProjectId(studyProject.getStudyProjectId());
+        
         return new StudyResponse(
                 studyProject.getStudyProjectId(),
                 studyProject.getStudyProjectName(),
@@ -306,7 +321,9 @@ public class StudyService {
                 timestampToLocalDateTime(studyProject.getCreatedAt()),
                 studyProject.getCurText(),
                 tagNames,
-                availableDays
+                availableDays,
+                currentMembers,
+                members
         );
     }
 

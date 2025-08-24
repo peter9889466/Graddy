@@ -11,14 +11,12 @@ import java.sql.Timestamp;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class AssignmentResponse {
+public class FeedbackResponse {
 
-    private Long assignmentId;
-    private Long studyProjectId;
+    private Long feedId;
     private Long memberId;
-    private String title;
-    private String description;
-    private Timestamp deadline;
-    private String fileUrl;
+    private Long submissionId;
+    private Integer score;
+    private String comment;
     private Timestamp createdAt;
 }

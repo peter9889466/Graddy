@@ -61,7 +61,7 @@ public interface StudyProjectRepository extends JpaRepository<StudyProject, Long
            "WHERE sp.isRecruiting = 'recruitment' " +
            "AND sp.userId != :userId " +
            "AND sp.studyProjectId NOT IN " +
-           "(SELECT spm.studyProjectId FROM StudyProjectMember spm WHERE spm.userId = :userId) " +
+           "(SELECT m.studyProjectId FROM Member m WHERE m.userId = :userId) " +
            "ORDER BY sp.createdAt DESC")
     List<StudyProject> findAvailableStudiesForUser(@Param("userId") String userId);
 }

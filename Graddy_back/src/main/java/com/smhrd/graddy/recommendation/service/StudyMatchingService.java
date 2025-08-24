@@ -2,9 +2,9 @@ package com.smhrd.graddy.recommendation.service;
 
 import com.smhrd.graddy.recommendation.dto.StudyRecommendationDto;
 import com.smhrd.graddy.study.entity.StudyProject;
-import com.smhrd.graddy.study.entity.StudyProjectMember;
+import com.smhrd.graddy.member.entity.Member;
 import com.smhrd.graddy.study.repository.StudyProjectRepository;
-import com.smhrd.graddy.study.repository.StudyProjectMemberRepository;
+import com.smhrd.graddy.member.repository.MemberRepository;
 import com.smhrd.graddy.tag.entity.Tag;
 import com.smhrd.graddy.tag.repository.TagRepository;
 import com.smhrd.graddy.user.entity.User;
@@ -47,7 +47,7 @@ public class StudyMatchingService {
     
     private final UserRepository userRepository;
     private final StudyProjectRepository studyProjectRepository;
-    private final StudyProjectMemberRepository studyProjectMemberRepository;
+    private final MemberRepository memberRepository;
     private final TagRepository tagRepository;
     private final UserAvailableDaysRepository userAvailableDaysRepository;
     private final StudyProjectAvailableDayRepository studyProjectAvailableDayRepository;
@@ -375,7 +375,7 @@ public class StudyMatchingService {
     private double calculateCollaborativeScore(User user, StudyProject study) {
         try {
             // 사용자의 스터디 참여 이력 조회
-            List<Long> userStudyIds = studyProjectMemberRepository.findStudyProjectIdsByUserId(user.getUserId());
+            List<Long> userStudyIds = memberRepository.findStudyProjectIdsByUserId(user.getUserId());
             
             // 콜드 스타트 처리: 참여 이력이 없는 경우
             if (userStudyIds.isEmpty()) {
@@ -399,7 +399,7 @@ public class StudyMatchingService {
                 double similarity = entry.getValue();
                 
                 // 유사 사용자가 해당 스터디에 참여했는지 확인
-                boolean isParticipating = studyProjectMemberRepository.existsByUserIdAndStudyProjectId(similarUserId, study.getStudyProjectId());
+                boolean isParticipating = memberRepository.existsByUserIdAndStudyProjectId(similarUserId, study.getStudyProjectId());
                 
                 if (isParticipating) {
                     collaborativeScore += similarity;
@@ -430,11 +430,11 @@ public class StudyMatchingService {
     private Map<String, Double> findSimilarUsers(String userId, List<Long> userStudyIds) {
         try {
             // 모든 사용자의 스터디 참여 이력 조회
-            List<StudyProjectMember> allMembers = studyProjectMemberRepository.findAll();
+            List<Member> allMembers = memberRepository.findAll();
             
             // 사용자별 스터디 참여 이력 정리
             Map<String, Set<Long>> userStudyMap = new HashMap<>();
-            for (StudyProjectMember member : allMembers) {
+            for (Member member : allMembers) {
                 userStudyMap.computeIfAbsent(member.getUserId(), k -> new HashSet<>())
                            .add(member.getStudyProjectId());
             }
@@ -523,7 +523,7 @@ public class StudyMatchingService {
      */
     private Long getCurrentMemberCount(Long studyProjectId) {
         try {
-            return studyProjectMemberRepository.countByStudyProjectId(studyProjectId);
+            return memberRepository.countByStudyProjectIdAndApproved(studyProjectId);
         } catch (Exception e) {
             log.warn("스터디 멤버 수 조회 중 오류 발생: {}", e.getMessage());
             return 0L;
