@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Eye, EyeOff, Check, X, AlertCircle, User, Lock, Mail, Phone, CheckCircle, Clock } from "lucide-react";
+import axios from "axios";
 
 interface JoinProfileProps {
     navigate: any;
@@ -11,7 +12,7 @@ interface JoinProfileProps {
 const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location, onNext }) => {
 // 상태 관리
     const [id, setId] = useState("");
-    const [idError, setIdError] = useState("");
+    const [idError, setIdError] = useState(""); // 아이디 중복 에러
     const [idChecked, setIdChecked] = useState(false);
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -26,9 +27,11 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location, onNext })
     const [phonePrefix, setPhonePrefix] = useState("010");
     const [phoneMiddle, setPhoneMiddle] = useState("");
     const [phoneLast, setPhoneLast] = useState("");
+    const [telError, setTelError] = useState(""); // 전화번호 중복 에러
     const [notificationPreference, setNotificationPreference] = useState<"email" | "phone" | "">("");
     const [hintMessage, setHintMessage] = useState<string>("");
     const [showHint, setShowHint] = useState(false);
+    
 
     // 컴포넌트 내부에 ref 선언
     const phoneMiddleRef = useRef<HTMLInputElement>(null);
@@ -82,39 +85,79 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location, onNext })
     };
 
     // 아이디 중복 확인
-    const onCheckId = () => {
-        if (id.trim() === "") {
-            setIdError("아이디를 입력하세요.");
-            setHintMessage("아이디를 먼저 입력해주세요!");
+    const onCheckId = async () => {
+        if (!id) {
+            setIdError("아이디를 입력해주세요.");
             return;
         }
-        if (id.length < 4) {
-            setIdError("아이디는 4자 이상이어야 합니다.");
-            setHintMessage("아이디는 최소 4자 이상 입력해주세요!");
-            return;
+
+        try {
+            const response = await axios.get(`http://localhost:8080/api/join/check-userId`, {
+                params: { userId: id },
+                validateStatus: () => true // HTTP 상태와 상관없이 항상 then으로 처리
+            });
+
+            if (response.data.status === 200 && response.data.data.isAvailable) {
+                setIdError("");
+                setIdChecked(true);
+                setHintMessage("사용 가능한 아이디입니다!");
+            } else if (response.data.status === 409 && !response.data.data.isAvailable) {
+                setIdError("이미 사용 중인 아이디입니다.");
+                setIdChecked(false);
+            } else {
+                setIdError("아이디 중복 확인 중 오류가 발생했습니다.");
+                setIdChecked(false);
+            }
+        } catch (error: any) {
+            console.error(error);
+            setIdError("아이디 중복 확인 중 오류가 발생했습니다.");
+            setIdChecked(false);
         }
-        
-        setIdError("");
-        setIdChecked(true);
-        setHintMessage("사용 가능한 아이디입니다!");
+    };
+
+    const handleIdKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault(); // 기본 submit 방지
+            onCheckId();        // 중복확인 함수 실행
+        }
     };
 
     // 닉네임 중복 확인
-    const onCheckNickname = () => {
-        if (nickname.trim() === "") {
-            setNicknameError("닉네임을 입력하세요.");
-            setHintMessage("닉네임을 먼저 입력해주세요!");
+    const onCheckNickname = async () => {
+        if (!nickname.trim()) {
+            setNicknameError("닉네임을 입력해주세요.");
             return;
         }
-        if (nickname.length < 2) {
-            setNicknameError("닉네임은 2자 이상이어야 합니다.");
-            setHintMessage("닉네임은 최소 2자 이상 입력해주세요!");
-            return;
+
+        try {
+            const response = await axios.get("http://localhost:8080/api/join/check-nick", {
+                params: { nick: nickname },
+                validateStatus: () => true // HTTP 상태와 상관없이 then으로 처리
+            });
+
+            if (response.data.status === 200 && response.data.data.isAvailable) {
+                setNicknameError("");      // 중복 없음
+                setNicknameChecked(true);  // 체크 완료
+                setHintMessage("사용 가능한 닉네임입니다!");
+            } else if (response.data.status === 409 && !response.data.data.isAvailable) {
+                setNicknameError("이미 사용 중인 닉네임입니다.");
+                setNicknameChecked(false);
+            } else {
+                setNicknameError("닉네임 중복 확인 중 오류가 발생했습니다.");
+                setNicknameChecked(false);
+            }
+        } catch (error: any) {
+            console.error(error);
+            setNicknameError("닉네임 중복 확인 중 오류가 발생했습니다.");
+            setNicknameChecked(false);
         }
-        
-        setNicknameError("");
-        setNicknameChecked(true);
-        setHintMessage("사용 가능한 닉네임입니다!");
+    };
+
+    const handleNicknameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault(); // 기본 submit 방지
+            onCheckNickname();  // 닉네임 중복 확인 실행
+        }
     };
 
     // 입력값 변경 시 검증 상태 초기화
@@ -150,6 +193,7 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location, onNext })
             phoneLastRef.current.focus();
         }
     };
+    
     const handlePhoneLastChange = (value: string) => {
         const numericValue = value.replace(/[^\d]/g, "").slice(0, 4);
         setPhoneLast(numericValue);
@@ -325,7 +369,7 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location, onNext })
                 <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
                     {/* 헤더 */}
                     <div className="px-6 py-8 text-white" style={{ background: `linear-gradient(to right, #8B85E9, #8B85E9)` }}>
-                        <h2 className="text-2xl font-bold mb-2 text-left">프로필 설정</h2>
+                        <h2 className="text-2xl font-bold mb-2 text-left">개인정보를 입력해주세요</h2>
                         <p className="opacity-90 text-sm text-left">
                             새로운 계정을 만들어 다양한 서비스를 이용해보세요
                         </p>
@@ -372,6 +416,7 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location, onNext })
                                         type="text"
                                         value={id}
                                         onChange={(e) => handleIdChange(e.target.value)}
+                                        onKeyDown={handleIdKeyDown} // 기존 handleKeyDown 대신
                                         placeholder="아이디를 입력하세요"
                                         className={`w-full pl-10 pr-4 py-3 border rounded-xl transition-all duration-200 ${
                                         idError ? "border-red-300 focus:ring-red-200" : 
@@ -380,7 +425,6 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location, onNext })
                                         }`}
                                         onFocus={(e) => !idError && !idChecked && ((e.target as HTMLInputElement).style.boxShadow = `0 0 0 2px rgba(139, 133, 233, 0.2)`)}
                                         onBlur={(e) => !idError && !idChecked && ((e.target as HTMLInputElement).style.boxShadow = 'none')}
-                                        onKeyDown={handleKeyDown}
                                     />
                                     {idChecked && (
                                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -534,6 +578,7 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location, onNext })
                                         type="text"
                                         value={nickname}
                                         onChange={(e) => handleNicknameChange(e.target.value)}
+                                        onKeyDown={handleNicknameKeyDown} // Enter → 중복 확인
                                         placeholder="사용할 닉네임을 입력하세요"
                                         className={`w-full pl-10 pr-10 py-3 border rounded-xl transition-all duration-200 ${
                                         nicknameError
@@ -553,7 +598,6 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location, onNext })
                                         !nicknameChecked &&
                                         ((e.target as HTMLInputElement).style.boxShadow = "none")
                                         }
-                                        onKeyDown={handleKeyDown}
                                     />
 
                                     {/* 성공 체크 아이콘 */}
