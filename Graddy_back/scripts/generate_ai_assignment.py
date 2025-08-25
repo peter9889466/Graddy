@@ -156,7 +156,7 @@ def generate_ai_assignment(study_info, assignment_type="general"):
     try:
         # OpenAI GPT API 호출
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "당신은 교육 전문가이자 과제 설계 전문가입니다. 체계적이고 실용적인 학습 과제를 설계하는 것이 특기입니다. 항상 요청된 JSON 형식으로 응답해주세요."},
                 {"role": "user", "content": prompt}

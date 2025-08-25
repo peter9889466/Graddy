@@ -291,16 +291,27 @@ curl -X 'GET' \
 ```
 
 **응답 구조 설명:**
-- `allStudies`: 참여중이거나 신청한 모든 스터디/프로젝트 통합 목록
+- `allStudies`: 참여중이거나 신청한 모든 스터디/프로젝트 통합 목록 (중복 제거됨)
 - `participations`: 참여 중인 스터디/프로젝트 목록
-- `applications`: 신청한 스터디/프로젝트 목록
-- `totalCount`: 전체 스터디/프로젝트 수
+- `applications`: 신청한 스터디/프로젝트 목록 (중복 제거됨)
+- `totalCount`: 전체 스터디/프로젝트 수 (중복 제거됨)
 - `participationCount`: 참여 중인 스터디/프로젝트 수
-- `applicationCount`: 신청한 스터디/프로젝트 수
+- `applicationCount`: 신청한 스터디/프로젝트 수 (중복 제거됨)
+
+**중복 제거 로직:**
+- 이미 참여 중인 스터디는 신청 목록에서 제외
+- 참여 중인 스터디가 우선순위를 가짐
+- 최종적으로 중복 없는 통합 목록 제공
+
+**상태 구분:**
+- **참여 중인 스터디**: `userParticipationStatus` = "participating" 또는 "leader"
+- **신청 대기 스터디**: `userParticipationStatus` = "applied", `applicationStatus` = "PENDING"
+- **스터디 진행 상태**: `studyStatus` = "active" (진행중), "recruitment_completed" (모집완료), "completed" (종료됨)
 
 **새로 추가된 필드:**
 - `applicationStatus`: 신청 상태 (PENDING, REJECTED, null)
 - `applicationDate`: 신청 일시 (신청한 경우에만 값이 있음)
+- `studyStatus`: 스터디 진행 상태 ("active": 진행중, "recruitment_completed": 모집완료, "completed": 종료됨)
 
 **참여 상태 설명**:
 - `"leader"`: 해당 스터디/프로젝트의 리더
@@ -484,6 +495,7 @@ curl -X 'GET' \
 
 **스터디 상태 구분 기준:**
 - **활성 (Active)**: 종료일이 현재 시간보다 이후이고, 모집 상태가 'end'가 아닌 경우
+- **모집완료 (Recruitment Completed)**: 모집 상태가 'complete'인 경우 (진행중이지만 모집 종료)
 - **종료 (Completed)**: 종료일이 현재 시간보다 이전이거나, 모집 상태가 'end'인 경우
 - **승인대기 (Pending)**: 신청 상태가 'PENDING'인 경우
 

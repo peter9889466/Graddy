@@ -31,6 +31,10 @@ import com.smhrd.graddy.member.dto.MemberInfo;
 import com.smhrd.graddy.member.service.MemberService;
 import com.smhrd.graddy.member.repository.MemberRepository;
 import com.smhrd.graddy.study.service.StudyApplicationService;
+import com.smhrd.graddy.schedule.service.ScheduleService;
+import java.util.HashSet;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -45,6 +49,7 @@ public class StudyService {
     private final MemberService memberService;
     private final MemberRepository memberRepository;
     private final StudyApplicationService studyApplicationRepository;
+    private final ScheduleService scheduleService;
 
     // 스터디/프로젝트 생성
     @Transactional
@@ -67,6 +72,21 @@ public class StudyService {
         
         // 스터디/프로젝트 생성자를 리더로 멤버 테이블에 추가
         memberService.addLeaderAsMember(savedStudyProject.getStudyProjectId(), request.getUserId());
+        
+        // 스터디 시작/종료일에 맞춰 자동으로 일정 추가
+        try {
+            scheduleService.createStudyPeriodSchedules(
+                request.getUserId(),
+                savedStudyProject.getStudyProjectId(),
+                request.getStudyProjectName(),
+                request.getStudyProjectStart(),
+                request.getStudyProjectEnd()
+            );
+            System.out.println("스터디 기간 일정 자동 생성 완료: " + savedStudyProject.getStudyProjectName());
+        } catch (Exception e) {
+            System.err.println("스터디 기간 일정 자동 생성 실패: " + e.getMessage());
+            // 일정 생성 실패해도 스터디 생성은 성공으로 처리
+        }
         
         // 관심 항목 태그 저장
         if (request.getInterestIds() != null && !request.getInterestIds().isEmpty()) {
@@ -320,12 +340,18 @@ public class StudyService {
         LocalDateTime applicationDate = null;
         
         if (userId != null) {
-            if (studyProject.getUserId().equals(userId)) {
-                userParticipationStatus = "leader";
-            } else if (memberService.isMember(studyProject.getStudyProjectId(), userId)) {
-                userParticipationStatus = "participating";
-            } else if (studyApplicationRepository.findStudyProjectIdsByUserId(userId).contains(studyProject.getStudyProjectId())) {
-                userParticipationStatus = "applied";
+            // 1. 먼저 study_project_member 테이블에서 멤버 상태 확인
+            if (memberService.isMember(studyProject.getStudyProjectId(), userId)) {
+                // 멤버로 등록된 경우
+                if (studyProject.getUserId().equals(userId)) {
+                    userParticipationStatus = "approved"; // 리더
+                } else {
+                    userParticipationStatus = "approved"; // 일반 멤버
+                }
+            } 
+            // 2. 멤버가 아닌 경우 study_project_status 테이블에서 신청 상태 확인
+            else if (studyApplicationRepository.findStudyProjectIdsByUserId(userId).contains(studyProject.getStudyProjectId())) {
+                userParticipationStatus = "pending"; // 신청 대기
                 
                 // study_project_status 테이블에서 신청 상태 정보 조회
                 Optional<StudyProjectStatus> statusOpt = studyProjectStatusRepository.findById(
@@ -337,6 +363,32 @@ public class StudyService {
                     applicationDate = timestampToLocalDateTime(status.getJoinedAt());
                 }
             }
+            // 3. 그 외의 경우는 "none" (참여하지도 신청하지도 않음)
+        }
+        
+        // 스터디 상태 판단 (진행중/종료)
+        String studyStatus = "active"; // 기본값은 진행중
+        
+        // 1. study_project_end가 현재 시간보다 이전인 경우 종료
+        if (studyProject.getStudyProjectEnd() != null) {
+            LocalDateTime endDate = timestampToLocalDateTime(studyProject.getStudyProjectEnd());
+            LocalDateTime now = LocalDateTime.now();
+            if (endDate != null && endDate.isBefore(now)) {
+                studyStatus = "completed"; // 종료됨
+            }
+        }
+        
+        // 2. is_recruiting이 'end'인 경우 스터디 종료
+        if ("end".equals(studyProject.getIsRecruiting().toString())) {
+            studyStatus = "completed";
+        }
+        // 3. is_recruiting이 'complete'인 경우 모집 완료 (진행중이지만 모집 종료)
+        else if ("complete".equals(studyProject.getIsRecruiting().toString())) {
+            studyStatus = "recruitment_completed";
+        }
+        // 4. is_recruiting이 'recruitment'인 경우 모집중 (진행중)
+        else if ("recruitment".equals(studyProject.getIsRecruiting().toString())) {
+            studyStatus = "active";
         }
         
         return new StudyResponse(
@@ -361,7 +413,8 @@ public class StudyService {
                 members,
                 userParticipationStatus,
                 applicationStatus,
-                applicationDate
+                applicationDate,
+                studyStatus // 스터디 상태 추가
         );
     }
 
@@ -395,49 +448,72 @@ public class StudyService {
      * @return 참여 중인 스터디/프로젝트 목록
      */
     public List<StudyResponse> getStudiesByParticipant(String userId) {
-        // 사용자가 멤버로 등록된 스터디/프로젝트 ID 목록 조회
+        System.out.println("   [참여 스터디 조회] 사용자 ID: " + userId);
+        
+        // 사용자가 멤버로 등록된 스터디/프로젝트 ID 목록 조회 (member 테이블에서)
         List<Long> studyProjectIds = memberRepository.findStudyProjectIdsByUserId(userId);
+        System.out.println("   [참여 스터디 조회] member 테이블에서 찾은 study_project_id 목록: " + studyProjectIds);
         
         List<StudyResponse> responses = new ArrayList<>();
         for (Long studyProjectId : studyProjectIds) {
             try {
+                // studies_projects 테이블에서 스터디/프로젝트 정보 조회
                 StudyProject studyProject = studyProjectRepository.findById(studyProjectId).orElse(null);
                 if (studyProject != null) {
                     StudyResponse response = convertToResponse(studyProject, userId);
                     responses.add(response);
+                    System.out.println("   [참여 스터디 조회] 추가됨: " + studyProject.getStudyProjectName() + " (ID: " + studyProjectId + ")");
                 }
             } catch (Exception e) {
                 // 개별 스터디/프로젝트 조회 실패 시 로그만 남기고 계속 진행
-                System.err.println("스터디/프로젝트 조회 실패: " + studyProjectId + ", 오류: " + e.getMessage());
+                System.err.println("   [참여 스터디 조회] 스터디/프로젝트 조회 실패: " + studyProjectId + ", 오류: " + e.getMessage());
             }
         }
         
+        System.out.println("   [참여 스터디 조회] 최종 결과: " + responses.size() + "개");
         return responses;
     }
 
     /**
      * 사용자가 신청한 스터디/프로젝트 목록 조회
      * @param userId 사용자 ID
-     * @return 신청한 스터디/프로젝트 목록
+     * @return 신청한 스터디/프로젝트 목록 (이미 참여 중인 스터디 제외)
      */
     public List<StudyResponse> getStudiesByApplicant(String userId) {
-        // 사용자가 신청한 스터디/프로젝트 ID 목록 조회
+        System.out.println("   [신청 스터디 조회] 사용자 ID: " + userId);
+        
+        // 사용자가 신청한 스터디/프로젝트 ID 목록 조회 (study_project_status 테이블에서)
         List<Long> studyProjectIds = studyApplicationRepository.findStudyProjectIdsByUserId(userId);
+        System.out.println("   [신청 스터디 조회] study_project_status 테이블에서 찾은 study_project_id 목록: " + studyProjectIds);
+        
+        // 사용자가 이미 참여 중인 스터디 ID 목록 조회 (member 테이블에서)
+        List<Long> participationIds = memberRepository.findStudyProjectIdsByUserId(userId);
+        System.out.println("   [신청 스터디 조회] member 테이블에서 찾은 참여 중인 study_project_id 목록: " + participationIds);
+        
+        // 신청한 스터디 중에서 이미 참여 중이 아닌 것만 필터링
+        List<Long> filteredStudyProjectIds = studyProjectIds.stream()
+                .filter(id -> !participationIds.contains(id))
+                .collect(Collectors.toList());
+        
+        System.out.println("   [신청 스터디 조회] 중복 제거 후 study_project_id 목록: " + filteredStudyProjectIds);
         
         List<StudyResponse> responses = new ArrayList<>();
-        for (Long studyProjectId : studyProjectIds) {
+        for (Long studyProjectId : filteredStudyProjectIds) {
             try {
+                // studies_projects 테이블에서 스터디/프로젝트 정보 조회
                 StudyProject studyProject = studyProjectRepository.findById(studyProjectId).orElse(null);
                 if (studyProject != null) {
                     StudyResponse response = convertToResponse(studyProject, userId);
                     responses.add(response);
+                    System.out.println("   [신청 스터디 조회] 추가됨: " + studyProject.getStudyProjectName() + " (ID: " + studyProjectId + ")");
                 }
             } catch (Exception e) {
                 // 개별 스터디/프로젝트 조회 실패 시 로그만 남기고 계속 진행
-                System.err.println("스터디/프로젝트 조회 실패: " + studyProjectId + ", 오류: " + e.getMessage());
+                System.err.println("   [신청 스터디 조회] 스터디/프로젝트 조회 실패: " + studyProjectId + ", 오류: " + e.getMessage());
             }
         }
         
+        System.out.println("   [신청 스터디 조회] 최종 결과: " + responses.size() + "개");
         return responses;
     }
 
@@ -449,46 +525,109 @@ public class StudyService {
     public Map<String, Object> getUserDashboard(String userId) {
         Map<String, Object> dashboard = new HashMap<>();
         
-        // 참여 중인 스터디/프로젝트 목록
-        List<StudyResponse> participations = getStudiesByParticipant(userId);
+        System.out.println("=== 사용자 대시보드 조회 시작 ===");
+        System.out.println("사용자 ID: " + userId);
         
-        // 신청한 스터디/프로젝트 목록
-        List<StudyResponse> applications = getStudiesByApplicant(userId);
+        // 1. 사용자가 참여 중인 스터디/프로젝트 ID 목록 조회 (study_project_member 테이블)
+        System.out.println("1. 참여 중인 스터디/프로젝트 ID 조회 중...");
+        List<Long> participationIds = memberRepository.findStudyProjectIdsByUserId(userId);
+        System.out.println("   - 참여 중인 스터디 ID 목록: " + participationIds);
         
-        // 통합된 목록 생성 (참여중인 것과 신청한 것을 합침)
+        // 2. 사용자가 신청한 스터디/프로젝트 ID 목록 조회 (study_project_status 테이블)
+        System.out.println("2. 신청한 스터디/프로젝트 ID 조회 중...");
+        List<Long> applicationIds = studyApplicationRepository.findStudyProjectIdsByUserId(userId);
+        System.out.println("   - 신청한 스터디 ID 목록: " + applicationIds);
+        
+        // 3. 모든 study_project_id를 하나의 Set으로 통합 (자동 중복 제거)
+        System.out.println("3. 모든 study_project_id 통합 및 중복 제거 중...");
+        Set<Long> allStudyProjectIds = new LinkedHashSet<>();
+        allStudyProjectIds.addAll(participationIds);
+        allStudyProjectIds.addAll(applicationIds);
+        
+        System.out.println("   - 통합된 고유 study_project_id 목록: " + allStudyProjectIds);
+        System.out.println("   - 중복 제거된 ID 수: " + allStudyProjectIds.size());
+        System.out.println("   - 원본 참여 ID 수: " + participationIds.size());
+        System.out.println("   - 원본 신청 ID 수: " + applicationIds.size());
+        
+        // 4. 통합된 ID 목록으로 한 번에 상세 정보 조회
+        System.out.println("4. 통합된 ID 목록으로 상세 정보 조회 중...");
         List<StudyResponse> allStudies = new ArrayList<>();
-        allStudies.addAll(participations);
-        allStudies.addAll(applications);
+        Map<Long, StudyResponse> studyMap = new HashMap<>();
         
-        // 중복 제거 (같은 스터디에 참여중이면서 동시에 신청한 경우)
-        allStudies = allStudies.stream()
-                .collect(Collectors.toMap(
-                        StudyResponse::getStudyProjectId,
-                        study -> study,
-                        (existing, replacement) -> {
-                            // 참여중인 것이 우선 (userParticipationStatus가 "참여중"인 것)
-                            if ("참여중".equals(existing.getUserParticipationStatus())) {
-                                return existing;
-                            } else {
-                                return replacement;
-                            }
-                        }
-                ))
-                .values()
-                .stream()
-                .collect(Collectors.toList());
+        for (Long studyProjectId : allStudyProjectIds) {
+            try {
+                StudyProject studyProject = studyProjectRepository.findById(studyProjectId).orElse(null);
+                if (studyProject != null) {
+                    StudyResponse response = convertToResponse(studyProject, userId);
+                    allStudies.add(response);
+                    studyMap.put(studyProjectId, response);
+                    System.out.println("   - 스터디 추가됨: " + studyProject.getStudyProjectName() + " (ID: " + studyProjectId + ")");
+                }
+            } catch (Exception e) {
+                System.err.println("   - 스터디 조회 실패: " + studyProjectId + ", 오류: " + e.getMessage());
+            }
+        }
         
-        // 참여 목록과 신청 목록도 별도로 제공
+        System.out.println("   - 조회된 총 스터디 수: " + allStudies.size());
+        
+        // 5. 참여 목록과 신청 목록 분리
+        System.out.println("5. 참여 목록과 신청 목록 분리 중...");
+        List<StudyResponse> participations = new ArrayList<>();
+        List<StudyResponse> applications = new ArrayList<>();
+        
+        for (StudyResponse study : allStudies) {
+            Long studyId = study.getStudyProjectId();
+            if (participationIds.contains(studyId)) {
+                participations.add(study);
+                System.out.println("   - 참여 목록에 추가: " + study.getStudyProjectName() + " (ID: " + studyId + ")");
+            } else if (applicationIds.contains(studyId)) {
+                applications.add(study);
+                System.out.println("   - 신청 목록에 추가: " + study.getStudyProjectName() + " (ID: " + studyId + ")");
+            }
+        }
+        
+        System.out.println("   - 참여 중인 스터디 수: " + participations.size());
+        System.out.println("   - 신청한 스터디 수: " + applications.size());
+        
+        // 6. 최종 중복 검증
+        System.out.println("6. 최종 중복 검증 중...");
+        Set<Long> finalStudyIds = allStudies.stream()
+                .map(StudyResponse::getStudyProjectId)
+                .collect(Collectors.toSet());
+        
+        System.out.println("   - 최종 고유 ID 수: " + finalStudyIds.size());
+        System.out.println("   - 중복 검증: " + (finalStudyIds.size() == allStudies.size() ? "통과" : "실패"));
+        
+        if (finalStudyIds.size() != allStudies.size()) {
+            System.err.println("   - ⚠️ 중복이 발견되었습니다!");
+            // 중복 제거된 최종 목록 생성
+            Map<Long, StudyResponse> uniqueStudiesMap = new LinkedHashMap<>();
+            for (StudyResponse study : allStudies) {
+                if (!uniqueStudiesMap.containsKey(study.getStudyProjectId())) {
+                    uniqueStudiesMap.put(study.getStudyProjectId(), study);
+                } else {
+                    System.out.println("   - 중복 제거됨: " + study.getStudyProjectId() + " (" + study.getStudyProjectName() + ")");
+                }
+            }
+            allStudies = new ArrayList<>(uniqueStudiesMap.values());
+            System.out.println("   - 중복 제거 후 최종 목록 수: " + allStudies.size());
+        }
+        
+        // 7. 대시보드 데이터 구성
+        System.out.println("7. 대시보드 데이터 구성 중...");
         dashboard.put("participations", participations);
         dashboard.put("applications", applications);
-        
-        // 통합된 전체 목록 제공
         dashboard.put("allStudies", allStudies);
-        
-        // 통계 정보 추가
         dashboard.put("totalCount", allStudies.size());
         dashboard.put("participationCount", participations.size());
         dashboard.put("applicationCount", applications.size());
+        
+        System.out.println("=== 최종 결과 ===");
+        System.out.println("   - 전체 스터디/프로젝트 수: " + allStudies.size());
+        System.out.println("   - 참여 중인 수: " + participations.size());
+        System.out.println("   - 신청한 수: " + applications.size());
+        System.out.println("   - 중복 제거된 고유 ID 수: " + finalStudyIds.size());
+        System.out.println("=== 사용자 대시보드 조회 완료 ===\n");
         
         return dashboard;
     }

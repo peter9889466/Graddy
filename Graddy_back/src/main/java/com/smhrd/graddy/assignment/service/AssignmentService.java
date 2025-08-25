@@ -6,7 +6,9 @@ import com.smhrd.graddy.assignment.dto.AssignmentUpdateRequest;
 import com.smhrd.graddy.assignment.entity.Assignment;
 import com.smhrd.graddy.assignment.repository.AssignmentRepository;
 import com.smhrd.graddy.member.service.MemberService;
+import com.smhrd.graddy.schedule.service.ScheduleService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,13 +19,17 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 @Transactional(readOnly = true)
 public class AssignmentService {
 
     private final AssignmentRepository assignmentRepository;
     private final MemberService memberService;
+    private final ScheduleService scheduleService;
 
-    // 과제 생성
+    /**
+     * 과제 생성 (자동 일정 추가 포함)
+     */
     @Transactional
     public AssignmentResponse createAssignment(AssignmentRequest request, String userId) {
         // 사용자가 해당 스터디/프로젝트의 리더인지 확인
@@ -53,6 +59,21 @@ public class AssignmentService {
         assignment.setFileUrl(request.getFileUrl());
 
         Assignment savedAssignment = assignmentRepository.save(assignment);
+
+                // 과제 생성 후 자동으로 일정 추가
+        try {
+            scheduleService.createAssignmentSchedule(
+                userId, 
+                request.getStudyProjectId(), 
+                request.getTitle(), 
+                request.getDeadline().toLocalDateTime()
+            );
+            log.info("과제 제출일 일정 자동 생성 완료: assignmentId={}", savedAssignment.getAssignmentId());
+        } catch (Exception e) {
+            log.warn("과제 제출일 일정 자동 생성 실패: assignmentId={}", savedAssignment.getAssignmentId(), e);
+            // 일정 생성 실패해도 과제 생성은 성공으로 처리
+        }
+
         return convertToResponse(savedAssignment);
     }
 

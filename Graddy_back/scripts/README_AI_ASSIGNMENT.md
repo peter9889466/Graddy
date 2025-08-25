@@ -11,6 +11,55 @@
 - **통합 대시보드**: 참여중인 스터디와 신청한 스터디를 한 번에 조회
 - **신청 상태 정보**: study_project_status 테이블의 상세 신청 정보 포함
 
+## 데이터 흐름 설명
+
+### `/studies-projects/my-dashboard` 엔드포인트 데이터 흐름
+
+1. **JWT 토큰에서 user_id 추출**
+   - Authorization 헤더에서 Bearer 토큰 추출
+   - JwtUtil을 통해 토큰에서 user_id 파싱
+
+2. **참여 중인 스터디/프로젝트 ID 조회 (study_project_member 테이블)**
+   - `memberRepository.findStudyProjectIdsByUserId(userId)` 호출
+   - study_project_member 테이블에서 해당 user_id가 가입된 study_project_id 목록 조회
+
+3. **신청한 스터디/프로젝트 ID 조회 (study_project_status 테이블)**
+   - `studyApplicationRepository.findStudyProjectIdsByUserId(userId)` 호출
+   - study_project_status 테이블에서 해당 user_id가 신청한 study_project_id 목록 조회
+
+4. **모든 study_project_id를 하나의 Set으로 통합 (자동 중복 제거)**
+   - `LinkedHashSet<Long> allStudyProjectIds` 생성
+   - 참여 ID와 신청 ID를 모두 추가하여 자동으로 중복 제거
+   - `allStudyProjectIds.addAll(participationIds)` + `allStudyProjectIds.addAll(applicationIds)`
+
+5. **통합된 ID 목록으로 한 번에 상세 정보 조회**
+   - 중복 제거된 `allStudyProjectIds`로 `studies_projects` 테이블에서 상세 정보 조회
+   - 각 스터디에 대해 `convertToResponse()` 호출하여 DTO 변환
+   - `Map<Long, StudyResponse> studyMap`으로 ID별 응답 데이터 관리
+
+6. **참여 목록과 신청 목록 분리**
+   - 조회된 모든 스터디 데이터를 기반으로 참여/신청 목록 분리
+   - `participationIds.contains(studyId)`로 참여 목록 분류
+   - `applicationIds.contains(studyId)`로 신청 목록 분류
+
+7. **상태 구분 및 설정**
+   - **참여 중인 스터디**: `userParticipationStatus` = "approved"
+   - **신청 대기 스터디**: `userParticipationStatus` = "pending"
+   - **스터디 진행 상태**: `studyStatus` = "active", "recruitment_completed", "completed"
+
+8. **데이터 통합 및 응답**
+   - `participations`: 참여 중인 스터디/프로젝트 목록
+   - `applications`: 신청한 스터디/프로젝트 목록 (중복 제거됨)
+   - `allStudies`: 통합된 전체 목록 (중복 제거됨)
+   - 각 스터디/프로젝트의 상세 정보와 사용자의 참여 상태, 스터디 진행 상태 포함
+
+### **주요 개선사항**
+
+- **효율적인 중복 제거**: `LinkedHashSet`을 사용하여 ID 레벨에서 자동 중복 제거
+- **단일 데이터 조회**: 통합된 ID 목록으로 한 번에 상세 정보 조회
+- **명확한 데이터 분리**: 조회된 데이터를 기반으로 참여/신청 목록 분리
+- **메모리 효율성**: 불필요한 중간 리스트 생성 최소화
+
 ## 설치 및 설정
 
 ### 1. 필요한 패키지 설치

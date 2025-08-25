@@ -44,7 +44,7 @@ public class SwaggerConfig {
                         .contact(new Contact()
                                 .name("Graddy Team")
                                 .email("graddy@example.com")
-                                .url("https://github.com/graddy"))
+                                .url("https://github.com/peter9889466/Graddy"))
                         .license(new License()
                                 .name("MIT License")
                                 .url("https://opensource.org/licenses/MIT")))
@@ -62,13 +62,13 @@ public class SwaggerConfig {
                         .description("스터디와 프로젝트의 생성, 조회, 수정, 삭제 및 태그 관리 API"),
                     new Tag()
                         .name("AI 커리큘럼 생성")
-                        .description("OpenAI GPT를 활용한 스터디/프로젝트 커리큘럼 자동 생성 API"),
-                    new Tag()
-                        .name("사용자 관리")
-                        .description("사용자 회원가입, 로그인, 프로필 관리 API"),
-                    new Tag()
-                        .name("관심 분야 관리")
-                        .description("관심 분야 조회 및 관리 API")
+                        .description("OpenAI GPT를 활용한 스터디/프로젝트 커리큘럼 자동 생성 API")
+                    // new Tag()
+                    //     .name("사용자 관리")
+                    //     .description("사용자 회원가입, 로그인, 프로필 관리 API")
+                    // new Tag()
+                    //     .name("관심 분야 관리")
+                    //     .description("관심 분야 조회 및 관리 API")
                 ));
     }
 }
