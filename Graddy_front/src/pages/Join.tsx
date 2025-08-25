@@ -1,4 +1,5 @@
 import JoinProfile from "@/components/join/JoinProfile";
+import JoinInterest from "@/components/join/JoinInterest";
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 

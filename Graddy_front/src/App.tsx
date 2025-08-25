@@ -27,6 +27,7 @@ import FindAccount from "./pages/FindAccount";
 import { Ranking } from "./pages/Ranking";
 import { CommunityPage } from "./pages/CommunityPage";
 import ApiTestComponent from "./components/examples/ApiTestComponent";
+import CommunityCreate from "./pages/CommunityCreate";
 
 function App() {
     return (
@@ -60,6 +61,7 @@ function App() {
                                 <Route path="/findAcc" element={<FindAccount />} />
                                 <Route path="/ranking" element={<Ranking />} />
                                 <Route path="/community" element={<CommunityPage />} />
+                                <Route path="/community/create" element={<CommunityCreate />} />
                                 <Route
                                     path="/search"
                                     element={<StudySearchPage />}

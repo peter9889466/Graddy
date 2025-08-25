@@ -16,12 +16,14 @@ import Curriculum from "@/components/detail/Curriculum";
 import Community from "@/components/detail/Community";
 import DraggableChatWidget from "@/components/shared/DraggableChatWidget";
 import { Tag, Info, Crown, Calendar } from "lucide-react";
+import { StudyApplicationApiService, StudyApplication } from "../services/studyApplicationApi";
 
 const StudyDetailPage = () => {
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
 	const [activeTab, setActiveTab] = useState("스터디 정보");
 	const [isApplied, setIsApplied] = useState(false);
+	const [applicationData, setApplicationData] = useState<StudyApplication | null>(null);
 	const [isRecruiting, setIsRecruiting] = useState(true); // 모집 상태 관리
 	const [isProject, setIsProject] = useState(false); // 프로젝트/스터디 구분
 	const authContext = useContext(AuthContext);
@@ -126,6 +128,36 @@ const StudyDetailPage = () => {
 	// 임시 테스트용 (실제 사용자 닉네임으로 변경해보세요)
 	// const isStudyLeader = "test" === studyLeader;
 	
+	// 가입 신청 상태 조회
+	useEffect(() => {
+		const fetchApplicationStatus = async () => {
+			if (!id || !authContext?.user?.email) {
+				return;
+			}
+
+			try {
+				console.log('가입 신청 상태 조회 시작:', { studyProjectId: parseInt(id, 10), userId: authContext.user.email });
+				const application = await StudyApplicationApiService.getApplicationStatus(parseInt(id, 10), authContext.user.email);
+				
+				if (application) {
+					setApplicationData(application);
+					setIsApplied(true);
+					console.log('가입 신청 상태 로드 성공:', application);
+				} else {
+					setApplicationData(null);
+					setIsApplied(false);
+					console.log('가입 신청 내역이 없습니다.');
+				}
+			} catch (error) {
+				console.error('가입 신청 상태 조회 실패:', error);
+				setApplicationData(null);
+				setIsApplied(false);
+			}
+		};
+
+		fetchApplicationStatus();
+	}, [id, authContext?.user?.email]);
+
 	// 사용자 권한 확인
 	const isLoggedIn = authContext?.isLoggedIn || false;
 	const isStudyMember = isStudyLeader || isApplied; // 스터디장이거나 가입 신청한 사용자
@@ -136,13 +168,35 @@ const StudyDetailPage = () => {
 	console.log('스터디장 여부:', isStudyLeader);
 	console.log('로그인 여부:', isLoggedIn);
 	console.log('스터디 멤버 여부:', isStudyMember);
+	console.log('가입 신청 데이터:', applicationData);
 
-	const handleApplyClick = () => {
+	const handleApplyClick = async () => {
 		if (!authContext?.isLoggedIn) {
 			alert("로그인 후 이용해주세요!");
 			return;
 		}
-		setIsApplied(true);
+
+		if (!id || !authContext?.user?.email) {
+			alert("스터디 정보를 불러올 수 없습니다.");
+			return;
+		}
+
+		try {
+			console.log('스터디 가입 신청 시작:', { studyProjectId: parseInt(id, 10), userId: authContext.user.email });
+			const application = await StudyApplicationApiService.applyForStudy(parseInt(id, 10), authContext.user.email);
+			
+			if (application) {
+				setApplicationData(application);
+				setIsApplied(true);
+				alert("가입 신청이 완료되었습니다!");
+				console.log('가입 신청 성공:', application);
+			} else {
+				alert("가입 신청에 실패했습니다. 다시 시도해주세요.");
+			}
+		} catch (error) {
+			console.error('가입 신청 실패:', error);
+			alert("가입 신청 중 오류가 발생했습니다. 다시 시도해주세요.");
+		}
 	};
 
 	const handleRecruitmentToggle = () => {
@@ -192,42 +246,13 @@ const StudyDetailPage = () => {
 								<Tag className="w-4 h-4 text-gray-600" />
 								<span className="font-medium">태그</span>
 							</div>
-							<div className="mt-2 flex gap-2 flex-wrap ">
+							<div className="mt-2 flex gap-2 flex-wrap">
 								{studyTags.length > 0 ? (
-									studyTags.map((t: any, index) => {
-										// 태그가 객체인지 문자열인지 확인
-										const tagName = typeof t === 'string' ? t : t.name;
-										const tagDifficulty = typeof t === 'object' ? t.difficulty : null;
-										
-										// 난이도별 색상 적용
-										let tagClasses = "px-2 py-0.5 rounded-xl text-xs border";
-										if (tagDifficulty) {
-											switch (tagDifficulty) {
-												case "초급":
-													tagClasses += " bg-emerald-100 text-emerald-800 border-emerald-300";
-													break;
-												case "중급":
-													tagClasses += " bg-blue-100 text-blue-800 border-blue-300";
-													break;
-												case "고급":
-													tagClasses += " bg-purple-100 text-purple-800 border-purple-300";
-													break;
-												default:
-													tagClasses += " bg-gray-100 text-gray-600 border-gray-300";
-											}
-										} else {
-											tagClasses += " bg-gray-100 text-gray-600 border-gray-300";
-										}
-										
-										return (
-											<span key={`${tagName}-${index}`} className={tagClasses}>
-												#{tagName}
-												{tagDifficulty && (
-													<span className="ml-1 opacity-75">({tagDifficulty})</span>
-												)}
-											</span>
-										);
-									})
+									studyTags.map((tag: string, index: number) => (
+										<span key={index} className="px-2 py-0.5 rounded-xl text-xs bg-gray-100 text-gray-600">
+											#{tag}
+										</span>
+									))
 								) : (
 									<span className="text-sm text-gray-500">태그 정보가 없습니다.</span>
 								)}
@@ -267,8 +292,16 @@ const StudyDetailPage = () => {
 								onClick={handleApplyClick}
 								className="w-full mt-3 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer"
 								style={{ backgroundColor: isApplied ? "#6B7280" : "#8B85E9" }}
+								disabled={isApplied}
 							>
-								{isApplied ? "승인 대기" : `${isProject ? '프로젝트' : '스터디'} 가입 신청`}
+								{isApplied 
+									? applicationData?.status === 'approved' 
+										? "가입 승인됨" 
+										: applicationData?.status === 'rejected'
+										? "가입 거절됨"
+										: "승인 대기"
+									: `${isProject ? '프로젝트' : '스터디'} 가입 신청`
+								}
 							</button>
 						)}
 					</div>
@@ -338,7 +371,7 @@ const StudyDetailPage = () => {
 				}
 				return <Schedule isStudyLeader={isStudyLeader} />;
 			case "커리큘럼":
-				return <Curriculum />;
+				return <Curriculum studyProjectId={id ? parseInt(id, 10) : undefined} />;
 			case "커뮤니티":
 				if (!isLoggedIn || !isStudyMember) {
 					return (

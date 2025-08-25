@@ -28,8 +28,6 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location }) => {
     const [notificationPreference, setNotificationPreference] = useState<"email" | "phone" | "">("");
     const [hintMessage, setHintMessage] = useState<string>("");
     const [showHint, setShowHint] = useState(false);
-    // const navigate = useNavigate();
-    // const location = useLocation();
     const [showVerificationInput, setShowVerificationInput] = useState(false);
     const [verificationCode, setVerificationCode] = useState("");
     const [isVerified, setIsVerified] = useState(false);
@@ -553,8 +551,9 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location }) => {
 
                                     {/* 중복확인 버튼 */}
                                     <button
-                                    onClick={onCheckNickname}
-                                    className="px-4 py-3 bg-indigo-600 text-white rounded-xl font-medium text-sm hover:bg-indigo-700 transition-colors"
+                                    onClick={onCheckId}
+                                    className="px-4 py-3 text-sm text-white rounded-lg font-medium transition-all duration-200 hover:opacity-90"
+                                    style={{ backgroundColor: "#8B85E9" }}
                                     >
                                     중복확인
                                     </button>
