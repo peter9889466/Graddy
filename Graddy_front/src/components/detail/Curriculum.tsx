@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { CheckCircle, Circle, Clock, BookOpen, Code, Users, Target, Edit } from "lucide-react";
-import { CurriculumApiService, CurriculumData } from "../../services/curriculumApi";
 
 interface CurriculumItem {
     week: number;
@@ -11,72 +10,126 @@ interface CurriculumItem {
     assignments: string[];
 }
 
-interface CurriculumProps {
-    studyProjectId?: number;
-}
-
-const Curriculum: React.FC<CurriculumProps> = ({ studyProjectId }) => {
+const Curriculum: React.FC = () => {
+    // 커리큘럼 데이터
+    const curriculumData = [
+        {
+            week: 1,
+            title: "스터디 오리엔테이션 & 환경 설정",
+            status: "completed",
+            topics: [
+                "스터디 규칙 및 목표 설정",
+                "개발 환경 설정 (IDE, Git)",
+                "기본 Git 명령어 학습",
+                "프로젝트 구조 이해"
+            ],
+            materials: ["Git 기초 강의", "개발 환경 설정 가이드"],
+            assignments: ["GitHub 계정 생성 및 첫 커밋", "개발 환경 설정 완료 인증"]
+        },
+        {
+            week: 2,
+            title: "기본 문법 및 데이터 구조",
+            status: "completed",
+            topics: [
+                "변수, 상수, 데이터 타입",
+                "조건문과 반복문",
+                "배열과 객체",
+                "함수 정의와 호출"
+            ],
+            materials: ["기본 문법 강의", "실습 예제"],
+            assignments: ["기본 문법 연습 문제 10개", "간단한 계산기 만들기"]
+        },
+        {
+            week: 3,
+            title: "객체지향 프로그래밍 기초",
+            status: "in-progress",
+            topics: [
+                "클래스와 객체",
+                "상속과 다형성",
+                "캡슐화와 추상화",
+                "인터페이스와 추상 클래스"
+            ],
+            materials: ["OOP 개념 강의", "실습 프로젝트"],
+            assignments: ["학생 관리 시스템 설계", "OOP 개념 정리 문서"]
+        },
+        {
+            week: 4,
+            title: "웹 개발 기초",
+            status: "upcoming",
+            topics: [
+                "HTML/CSS 기초",
+                "JavaScript DOM 조작",
+                "HTTP 프로토콜 이해",
+                "RESTful API 개념"
+            ],
+            materials: ["웹 개발 기초 강의", "API 문서"],
+            assignments: ["간단한 웹페이지 제작", "API 호출 연습"]
+        },
+        {
+            week: 5,
+            title: "프레임워크 학습",
+            status: "upcoming",
+            topics: [
+                "프레임워크 선택 및 설치",
+                "기본 구조 이해",
+                "라우팅과 컴포넌트",
+                "상태 관리 기초"
+            ],
+            materials: ["프레임워크 공식 문서", "튜토리얼"],
+            assignments: ["프레임워크로 간단한 앱 만들기", "컴포넌트 설계"]
+        },
+        {
+            week: 6,
+            title: "데이터베이스 연동",
+            status: "upcoming",
+            topics: [
+                "데이터베이스 설계",
+                "SQL 기초 문법",
+                "ORM 사용법",
+                "데이터 CRUD 작업"
+            ],
+            materials: ["SQL 기초 강의", "ORM 문서"],
+            assignments: ["데이터베이스 설계", "CRUD 기능 구현"]
+        },
+        {
+            week: 7,
+            title: "프로젝트 기획 및 설계",
+            status: "upcoming",
+            topics: [
+                "프로젝트 주제 선정",
+                "요구사항 분석",
+                "시스템 설계",
+                "팀 역할 분담"
+            ],
+            materials: ["프로젝트 기획 가이드", "설계 패턴"],
+            assignments: ["프로젝트 기획서 작성", "시스템 설계도"]
+        },
+        {
+            week: 8,
+            title: "최종 프로젝트 개발",
+            status: "upcoming",
+            topics: [
+                "프로젝트 개발 진행",
+                "코드 리뷰",
+                "버그 수정 및 개선",
+                "테스트 및 배포"
+            ],
+            materials: ["개발 가이드", "배포 문서"],
+            assignments: ["최종 프로젝트 완성", "프로젝트 발표"]
+        }
+    ];
 
     const [selectedWeek, setSelectedWeek] = useState<number>(1);
     const [isEditing, setIsEditing] = useState<boolean>(false);
-    const [curriculumDataState, setCurriculumDataState] = useState<CurriculumItem[]>([]);
-    const [loading, setLoading] = useState<boolean>(false);
-    const [error, setError] = useState<string | null>(null);
-    const [editingData, setEditingData] = useState<CurriculumItem | null>(null);
-
-    // 백엔드에서 커리큘럼 데이터 가져오기
-    useEffect(() => {
-        const fetchCurriculumData = async () => {
-            if (!studyProjectId) {
-                console.warn('studyProjectId가 없습니다.');
-                setCurriculumDataState([]);
-                setEditingData(null);
-                return;
-            }
-
-            setLoading(true);
-            setError(null);
-            
-            try {
-                console.log('커리큘럼 데이터 가져오기 시작:', studyProjectId);
-                const data = await CurriculumApiService.getCurriculumByStudyProject(studyProjectId);
-                
-                if (data && data.length > 0) {
-                    // 백엔드 데이터를 프론트엔드 형식으로 변환
-                    const convertedData: CurriculumItem[] = data.map(item => ({
-                        week: item.week,
-                        title: item.title,
-                        status: item.status,
-                        topics: item.topics,
-                        materials: item.materials,
-                        assignments: item.assignments
-                    }));
-                    
-                    setCurriculumDataState(convertedData);
-                    if (convertedData.length > 0) {
-                        setEditingData(convertedData[0]);
-                    }
-                    console.log('커리큘럼 데이터 로드 성공:', convertedData);
-                } else {
-                    console.log('백엔드에서 커리큘럼 데이터가 없습니다.');
-                    setCurriculumDataState([]);
-                    setEditingData(null);
-                }
-            } catch (err) {
-                const errorMessage = err instanceof Error ? err.message : '커리큘럼 데이터를 불러오는데 실패했습니다.';
-                setError(errorMessage);
-                console.error('커리큘럼 데이터 로드 실패:', err);
-                
-                // 에러 시 빈 배열로 설정
-                setCurriculumDataState([]);
-                setEditingData(null);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchCurriculumData();
-    }, [studyProjectId]);
+    
+    // localStorage에서 저장된 데이터를 가져오거나 초기 데이터 사용
+    const getSavedCurriculumData = (): CurriculumItem[] => {
+        const saved = localStorage.getItem('curriculumData');
+        return saved ? JSON.parse(saved) : curriculumData;
+    };
+    
+    const [curriculumDataState, setCurriculumDataState] = useState<CurriculumItem[]>(getSavedCurriculumData);
+    const [editingData, setEditingData] = useState(curriculumData[0]);
 
     const getStatusIcon = (status: string) => {
         switch (status) {
@@ -104,30 +157,26 @@ const Curriculum: React.FC<CurriculumProps> = ({ studyProjectId }) => {
         }
     };
 
+    const selectedCurriculum = curriculumDataState.find(c => c.week === selectedWeek);
+
     const handleEditToggle = () => {
         if (isEditing) {
             // 수정 완료 시 데이터 저장
-            const updatedData = curriculumDataState.map((c: CurriculumItem) => 
-                c.week === selectedWeek && editingData ? editingData : c
-            );
+            const updatedData = curriculumDataState.map((c: CurriculumItem) => c.week === selectedWeek ? editingData : c);
             setCurriculumDataState(updatedData);
             // localStorage에 저장
             localStorage.setItem('curriculumData', JSON.stringify(updatedData));
             setIsEditing(false);
         } else {
             // 수정 시작 시 현재 데이터를 편집 데이터로 복사
-            const currentCurriculum = curriculumDataState.find(c => c.week === selectedWeek);
-            if (currentCurriculum) {
-                setEditingData({ ...currentCurriculum });
-                setIsEditing(true);
-            }
+            setEditingData({ ...selectedCurriculum! });
+            setIsEditing(true);
         }
     };
 
     const handleInputChange = (value: string) => {
-        if (isEditing && editingData) {
+        if (isEditing) {
             setEditingData(prev => {
-                if (!prev) return prev;
                 const newData = { ...prev };
                 // 입력된 텍스트를 그대로 저장
                 newData.topics = [value];
@@ -138,33 +187,6 @@ const Curriculum: React.FC<CurriculumProps> = ({ studyProjectId }) => {
         }
     };
 
-    // 로딩 상태 표시
-    if (loading) {
-        return (
-            <div className="space-y-4 p-4 pr-10">
-                <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8B85E9]"></div>
-                    <span className="ml-2 text-gray-600">커리큘럼 데이터를 불러오는 중...</span>
-                </div>
-            </div>
-        );
-    }
-
-    // 에러 상태 표시
-    if (error) {
-        return (
-            <div className="space-y-4 p-4 pr-10">
-                <div className="flex items-center justify-center py-8">
-                    <div className="text-red-600 text-center">
-                        <p className="font-medium">커리큘럼 데이터 로드 실패</p>
-                        <p className="text-sm">{error}</p>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    const selectedCurriculum = curriculumDataState.find(c => c.week === selectedWeek);
     const displayData = isEditing ? editingData : selectedCurriculum;
 
     return (
@@ -186,26 +208,22 @@ const Curriculum: React.FC<CurriculumProps> = ({ studyProjectId }) => {
 
             {/* 커리큘럼 내용 */}
             <div className="bg-white rounded-xl shadow-sm border-2 p-6">
-                {displayData ? (
+                {displayData && (
                     <>
+
+
                         {isEditing ? (
                             <textarea
                                 value={displayData.topics[0] || ''}
                                 onChange={(e) => handleInputChange(e.target.value)}
                                 className="w-full text-gray-700 bg-gray-50 border border-gray-300 rounded px-3 py-2 min-h-[400px] resize-y"
-                                placeholder="커리큘럼 내용을 입력하세요..."
                             />
                         ) : (
-                            <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
-                                {displayData.topics[0] || '커리큘럼 내용이 없습니다.'}
+                            <div className="whitespace-pre-wrap text-gray-700">
+                                {displayData.topics[0] || ''}
                             </div>
                         )}
                     </>
-                ) : (
-                    <div className="text-center py-8 text-gray-500">
-                        <p>커리큘럼 데이터가 없습니다.</p>
-                        <p className="text-sm mt-2">Spring 백엔드에서 커리큘럼 정보를 가져올 수 없습니다.</p>
-                    </div>
                 )}
             </div>
         </div>

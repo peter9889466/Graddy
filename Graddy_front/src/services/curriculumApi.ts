@@ -1,96 +1,87 @@
-// 커리큘럼 API 서비스
-import axios from 'axios';
+import { apiGet, apiPost, apiPut, apiDelete, ApiResponse } from './api';
 
-// 커리큘럼 데이터 타입 정의
+// 커리큘럼 데이터 타입
 export interface CurriculumData {
     curriculumId: number;
     studyProjectId: number;
-    week: number;
     title: string;
-    status: 'completed' | 'in-progress' | 'upcoming';
-    topics: string[];
-    materials: string[];
-    assignments: string[];
+    content: string;
+    week: number;
+    order: number;
     createdAt: string;
     updatedAt: string;
 }
 
-// 백엔드 응답 타입
+// API 응답 타입
 export interface CurriculumResponse {
     status: number;
     message: string;
-    data: CurriculumData[];
+    data: CurriculumData | CurriculumData[];
 }
 
-// 커리큘럼 API 서비스 클래스
+// 커리큘럼 API 서비스
 export class CurriculumApiService {
-    private static baseURL = 'http://localhost:8080/api';
-
-    // 특정 스터디/프로젝트의 커리큘럼 목록 조회
+    // 특정 스터디/프로젝트의 커리큘럼 조회
     static async getCurriculumByStudyProject(studyProjectId: number): Promise<CurriculumData[]> {
         try {
-            console.log('커리큘럼 API 호출 시작:', studyProjectId);
+            console.log('커리큘럼 조회 시작:', studyProjectId);
             
-            // 먼저 스터디/프로젝트 정보를 가져와서 커리큘럼 텍스트 확인
-            const studyResponse = await fetch(`${this.baseURL}/studies-projects/${studyProjectId}`, {
+            // 먼저 스터디/프로젝트 상세 정보에서 curText 가져오기 시도
+            const studyResponse = await fetch(`http://localhost:8080/api/studies-projects/${studyProjectId}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'
                 }
             });
-
+            
             if (studyResponse.ok) {
                 const studyData = await studyResponse.json();
-                console.log('스터디/프로젝트 데이터:', studyData);
-                
-                // 커리큘럼 텍스트가 있는 경우 (curText 필드 사용)
                 if (studyData.data && studyData.data.curText) {
-                    const curriculumData: CurriculumData = {
-                        curriculumId: 1,
+                    console.log('curText에서 커리큘럼 데이터 발견:', studyData.data.curText);
+                    // curText가 있으면 간단한 커리큘럼 객체로 변환
+                    return [{
+                        curriculumId: 0,
                         studyProjectId: studyProjectId,
+                        title: '커리큘럼',
+                        content: studyData.data.curText,
                         week: 1,
-                        title: "커리큘럼",
-                        status: "in-progress",
-                        topics: [studyData.data.curText],
-                        materials: [],
-                        assignments: [],
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString()
-                    };
-                    
-                    console.log('커리큘럼 텍스트 데이터 생성 (curText):', curriculumData);
-                    return [curriculumData];
+                        order: 1,
+                        createdAt: studyData.data.createdAt || new Date().toISOString(),
+                        updatedAt: studyData.data.createdAt || new Date().toISOString()
+                    }];
                 }
             }
-
-            // 기존 커리큘럼 API 시도
-            const response = await fetch(`${this.baseURL}/curriculum/study-project/${studyProjectId}`, {
+            
+            // curText가 없으면 전용 커리큘럼 API 호출
+            const response = await fetch(`http://localhost:8080/api/curriculum/study-project/${studyProjectId}`, {
                 method: 'GET',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
             });
-
+            
             console.log('HTTP 응답 상태:', response.status);
+            
             if (!response.ok) {
+                if (response.status === 404) {
+                    console.log('커리큘럼 데이터가 없습니다.');
+                    return [];
+                }
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-
+            
             const responseData = await response.json();
-            console.log('백엔드 응답 데이터:', responseData);
-
+            console.log('커리큘럼 응답:', responseData);
+            
             if (!responseData || !responseData.data) {
-                console.warn('커리큘럼 API data 필드가 없습니다. 전체 응답:', responseData);
+                console.warn('커리큘럼 API data 필드가 없습니다.');
                 return [];
             }
-
-            // null 값 필터링
-            const filteredData = responseData.data.filter((item: any) => item !== null);
-            console.log('성공적으로 커리큘럼 데이터 추출:', filteredData);
-            return filteredData;
+            
+            return Array.isArray(responseData.data) ? responseData.data : [responseData.data];
         } catch (error) {
-            console.error('커리큘럼 API 호출 실패:', error);
-            console.error('에러 상세 정보:', error);
+            console.error('커리큘럼 조회 실패:', error);
             return [];
         }
     }
@@ -98,19 +89,31 @@ export class CurriculumApiService {
     // 커리큘럼 생성
     static async createCurriculum(curriculumData: Omit<CurriculumData, 'curriculumId' | 'createdAt' | 'updatedAt'>): Promise<CurriculumData | null> {
         try {
-            const response = await fetch(`${this.baseURL}/curriculum`, {
+            console.log('커리큘럼 생성 시작:', curriculumData);
+            
+            const response = await fetch('http://localhost:8080/api/curriculum', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
                 },
                 body: JSON.stringify(curriculumData)
             });
-
+            
+            console.log('HTTP 응답 상태:', response.status);
+            
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-
+            
             const responseData = await response.json();
+            console.log('커리큘럼 생성 응답:', responseData);
+            
+            if (!responseData || !responseData.data) {
+                console.warn('커리큘럼 생성 API data 필드가 없습니다.');
+                return null;
+            }
+            
             return responseData.data;
         } catch (error) {
             console.error('커리큘럼 생성 실패:', error);
@@ -121,19 +124,31 @@ export class CurriculumApiService {
     // 커리큘럼 수정
     static async updateCurriculum(curriculumId: number, curriculumData: Partial<CurriculumData>): Promise<CurriculumData | null> {
         try {
-            const response = await fetch(`${this.baseURL}/curriculum/${curriculumId}`, {
+            console.log('커리큘럼 수정 시작:', { curriculumId, curriculumData });
+            
+            const response = await fetch(`http://localhost:8080/api/curriculum/${curriculumId}`, {
                 method: 'PUT',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
                 },
                 body: JSON.stringify(curriculumData)
             });
-
+            
+            console.log('HTTP 응답 상태:', response.status);
+            
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-
+            
             const responseData = await response.json();
+            console.log('커리큘럼 수정 응답:', responseData);
+            
+            if (!responseData || !responseData.data) {
+                console.warn('커리큘럼 수정 API data 필드가 없습니다.');
+                return null;
+            }
+            
             return responseData.data;
         } catch (error) {
             console.error('커리큘럼 수정 실패:', error);
@@ -144,14 +159,22 @@ export class CurriculumApiService {
     // 커리큘럼 삭제
     static async deleteCurriculum(curriculumId: number): Promise<boolean> {
         try {
-            const response = await fetch(`${this.baseURL}/curriculum/${curriculumId}`, {
+            console.log('커리큘럼 삭제 시작:', curriculumId);
+            
+            const response = await fetch(`http://localhost:8080/api/curriculum/${curriculumId}`, {
                 method: 'DELETE',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
             });
-
-            return response.ok;
+            
+            console.log('HTTP 응답 상태:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            return true;
         } catch (error) {
             console.error('커리큘럼 삭제 실패:', error);
             return false;

@@ -1,12 +1,14 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef, useContext } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAutoComplete } from "../hooks/useAutoComplete";
 import { searchSuggestions } from "../data/studyData";
 import { StudyApiService, StudyData, BackendStudyProjectData } from "../services/studyApi";
 import { Search, Plus } from "lucide-react";
+import { AuthContext } from "../contexts/AuthContext";
 
 export const StudySearchPage = () => {
     const location = useLocation();
+    const authContext = useContext(AuthContext);
     const [selectedCategory, setSelectedCategory] = useState("제목");
     const [selectedStatus, setSelectedStatus] = useState("전체");
     const [selectedType, setSelectedType] = useState("전체");
@@ -100,7 +102,17 @@ export const StudySearchPage = () => {
             }
         };
         fetchStudiesProjects();
-    }, []);
+    }, [location.pathname]); // 페이지 경로가 변경될 때마다 데이터 새로고침
+
+    // 현재 로그인한 유저 정보 출력
+    useEffect(() => {
+        console.log('=== 현재 로그인한 유저 정보 ===');
+        console.log('로그인 상태:', authContext?.isLoggedIn);
+        console.log('유저 닉네임:', authContext?.user?.nickname);
+        console.log('유저 이메일:', authContext?.user?.email);
+        console.log('전체 유저 정보:', authContext?.user);
+        console.log('================================');
+    }, [authContext]);
 
     const filteredStudies = useMemo(() => {
         // 백엔드 데이터를 프론트엔드 형식으로 변환
@@ -123,6 +135,23 @@ export const StudySearchPage = () => {
                 return isRecruiting === 'recruitment';
             };
 
+                         // 리더의 닉네임 추출
+             const getLeaderNickname = () => {
+                 console.log(`[${study.studyProjectName}] members:`, study.members);
+                 console.log(`[${study.studyProjectName}] typeCheck:`, study.typeCheck);
+                 
+                 if (study.members && study.members.length > 0) {
+                     const leader = study.members.find((member: { memberType: string; nick: string }) => member.memberType === 'leader');
+                     console.log(`[${study.studyProjectName}] found leader:`, leader);
+                     if (leader && leader.nick && leader.nick.trim() !== '') {
+                         return leader.nick;
+                     }
+                 }
+                 // 닉네임이 없거나 비어있으면 userId 반환
+                 console.log(`[${study.studyProjectName}] returning userId:`, study.userId);
+                 return study.userId;
+             };
+
             return {
                 studyId: study.studyProjectId,
                 studyName: study.studyProjectName,
@@ -139,7 +168,8 @@ export const StudySearchPage = () => {
                 recruitmentStatus: getRecruitmentStatus(study.isRecruiting),
                 type: study.typeCheck === 'study' ? '스터디' : '프로젝트',
                 tags: study.tagNames || [],
-                leader: study.userId, // userId를 leader로 사용
+                leader: getLeaderNickname(), // 닉네임 우선, 없으면 userId
+                currentMembers: study.currentMemberCount || 0,
                 createdAt: study.createdAt,
                 updatedAt: study.createdAt
             };
@@ -169,29 +199,29 @@ export const StudySearchPage = () => {
         // 검색어 필터링
         if (inputValue.trim()) {
             filtered = filtered.filter((study) => {
-                switch (selectedCategory) {
-                    case "제목":
-                        return study.studyTitle
-                            .toLowerCase()
-                            .includes(inputValue.toLowerCase());
-                    case "스터디장":
-                        return study.leader
-                            .toLowerCase()
-                            .includes(inputValue.toLowerCase());
-                    case "태그":
-                        return study.tags.some((tag: string) => 
-                            tag.toLowerCase().includes(inputValue.toLowerCase())
-                        );
-                    default:
-                        return (
-                            study.studyTitle
-                                .toLowerCase()
-                                .includes(inputValue.toLowerCase()) ||
-                            study.studyDesc
-                                .toLowerCase()
-                                .includes(inputValue.toLowerCase())
-                        );
-                }
+                                 switch (selectedCategory) {
+                     case "제목":
+                         return study.studyTitle
+                             .toLowerCase()
+                             .includes(inputValue.toLowerCase());
+                     case "리더":
+                         return study.leader
+                             .toLowerCase()
+                             .includes(inputValue.toLowerCase());
+                     case "태그":
+                         return study.tags.some((tag: string) => 
+                             tag.toLowerCase().includes(inputValue.toLowerCase())
+                         );
+                     default:
+                         return (
+                             study.studyTitle
+                                 .toLowerCase()
+                                 .includes(inputValue.toLowerCase()) ||
+                             study.studyDesc
+                                 .toLowerCase()
+                                 .includes(inputValue.toLowerCase())
+                         );
+                 }
             });
         }
 
@@ -226,7 +256,7 @@ export const StudySearchPage = () => {
 
     const categoryOptions = [
         { value: "제목", label: "제목" },
-        { value: "스터디장", label: "스터디장" },
+        { value: "리더", label: "리더" },
         { value: "태그", label: "태그" }
     ];
 
@@ -441,7 +471,8 @@ export const StudySearchPage = () => {
                                             leader: study.leader,
                                             period: `${formatDate(study.studyStart)} ~ ${formatDate(study.studyEnd)}`,
                                             tags: study.tags,
-                                            type: isProject ? 'project' : 'study'
+                                            type: isProject ? 'project' : 'study',
+                                            studyLevel: study.studyLevel
                                         }
                                     });
                                 }}
@@ -460,7 +491,8 @@ export const StudySearchPage = () => {
                                             leader: study.leader,
                                             period: `${formatDate(study.studyStart)} ~ ${formatDate(study.studyEnd)}`,
                                             tags: study.tags,
-                                            type: isProject ? 'project' : 'study'
+                                            type: isProject ? 'project' : 'study',
+                                            studyLevel: study.studyLevel
                                         }
                                     });
                                 }}
@@ -469,19 +501,42 @@ export const StudySearchPage = () => {
                             </div>
 
                             <div className="text-sm text-gray-600 mb-2">
-                                {study.type === '프로젝트' ? '프로젝트' : '스터디'} 기간: {formatDate(study.studyStart)} ~ {formatDate(study.studyEnd)} / {study.type === '프로젝트' ? '팀장' : '스터디장'}:{" "}
+                                {study.type === '프로젝트' ? '프로젝트' : '스터디'} 기간: {formatDate(study.studyStart)} ~ {formatDate(study.studyEnd)} / 리더:{" "}
                                 {study.leader}
                             </div>
 
-                            <div className="flex gap-2 flex-wrap">
-                                {study.tags.map((tag: string, index: number) => (
-                                    <span key={index} className="px-2 py-0.5 rounded-xl text-xs bg-gray-100 text-gray-600">
-                                        #{tag}
-                                    </span>
-                                ))}
-                            </div>
+                                                         <div className="flex gap-2 flex-wrap">
+                                 {/* 스터디 레벨 뱃지 (스터디인 경우만) */}
+                                 {study.type === "스터디" && (
+                                     <span className={`px-2 py-0.5 rounded-xl text-xs font-medium ${
+                                         study.studyLevel === 1 
+                                             ? "bg-green-100 text-green-700"
+                                             : study.studyLevel === 2
+                                             ? "bg-yellow-100 text-yellow-700"
+                                             : "bg-red-100 text-red-700"
+                                     }`}>
+                                         스터디 레벨 {study.studyLevel}
+                                     </span>
+                                 )}
+                                 {study.tags.map((tag: string, index: number) => (
+                                     <span key={index} className="px-2 py-0.5 rounded-xl text-xs bg-gray-100 text-gray-600">
+                                         #{tag}
+                                     </span>
+                                 ))}
+                             </div>
                         </div>
                         <div className="min-w-20 flex flex-col items-center gap-2">
+                            {/* 타입 뱃지 */}
+                            <span
+                                className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                    study.type === "스터디" 
+                                        ? "bg-green-50 text-green-700"
+                                        : "bg-orange-50 text-orange-700"
+                                }`}
+                            >
+                                {study.type}
+                            </span>
+                            {/* 모집 상태 뱃지 */}
                             <span
                                 className={`px-3 py-1 rounded-full text-xs font-bold ${
                                     study.recruitmentStatus === "모집중" 
@@ -495,7 +550,7 @@ export const StudySearchPage = () => {
                             </span>
                             {study.recruitmentStatus === "모집중" && (
                                 <span className="text-xs text-gray-600">
-                                    (현재 인원/{study.studyTotal}명)
+                                    ({study.currentMembers || 0}/{study.studyTotal}명)
                                 </span>
                             )}
                         </div>

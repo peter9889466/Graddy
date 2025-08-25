@@ -14,14 +14,12 @@ import Curriculum from "@/components/detail/Curriculum";
 import Community from "@/components/detail/Community";
 import DraggableChatWidget from "@/components/shared/DraggableChatWidget";
 import { Tag, Info, Crown, Calendar, Github, Edit } from "lucide-react";
-import { StudyApplicationApiService, StudyApplication } from "../services/studyApplicationApi";
 
 const ProjectDetailPage = () => {
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
 	const [activeTab, setActiveTab] = useState("프로젝트 메인");
 	const [isApplied, setIsApplied] = useState(false);
-	const [applicationData, setApplicationData] = useState<StudyApplication | null>(null);
 	const [isRecruiting, setIsRecruiting] = useState(true); // 모집 상태 관리
 	const authContext = useContext(AuthContext);
 	const location = useLocation();
@@ -77,7 +75,7 @@ const ProjectDetailPage = () => {
 				return dateStr;
 			};
 			
-			return `${formatDate(startDate)}~${formatDate(endDate)}`;
+			return `${formatDate(startDate)} ~ ${formatDate(endDate)}`;
 		}
 		
 		return period;
@@ -86,35 +84,7 @@ const ProjectDetailPage = () => {
 		state?.tags || []
 	);
 
-	// 가입 신청 상태 조회
-	useEffect(() => {
-		const fetchApplicationStatus = async () => {
-			if (!id || !authContext?.user?.email) {
-				return;
-			}
 
-			try {
-				console.log('가입 신청 상태 조회 시작:', { studyProjectId: parseInt(id, 10), userId: authContext.user.email });
-				const application = await StudyApplicationApiService.getApplicationStatus(parseInt(id, 10), authContext.user.email);
-				
-				if (application) {
-					setApplicationData(application);
-					setIsApplied(true);
-					console.log('가입 신청 상태 로드 성공:', application);
-				} else {
-					setApplicationData(null);
-					setIsApplied(false);
-					console.log('가입 신청 내역이 없습니다.');
-				}
-			} catch (error) {
-				console.error('가입 신청 상태 조회 실패:', error);
-				setApplicationData(null);
-				setIsApplied(false);
-			}
-		};
-
-		fetchApplicationStatus();
-	}, [id, authContext?.user?.email]);
 
 	// 현재 사용자가 프로젝트장인지 확인
 	const isStudyLeader = authContext?.user?.nickname === leaderNickname;
@@ -130,7 +100,6 @@ const ProjectDetailPage = () => {
 	console.log('프로젝트장 여부:', isStudyLeader);
 	console.log('로그인 여부:', isLoggedIn);
 	console.log('프로젝트 멤버 여부:', isStudyMember);
-	console.log('가입 신청 데이터:', applicationData);
 
 	const handleApplyClick = async () => {
 		if (!authContext?.isLoggedIn) {
@@ -138,27 +107,7 @@ const ProjectDetailPage = () => {
 			return;
 		}
 
-		if (!id || !authContext?.user?.email) {
-			alert("프로젝트 정보를 불러올 수 없습니다.");
-			return;
-		}
-
-		try {
-			console.log('프로젝트 가입 신청 시작:', { studyProjectId: parseInt(id, 10), userId: authContext.user.email });
-			const application = await StudyApplicationApiService.applyForStudy(parseInt(id, 10), authContext.user.email);
-			
-			if (application) {
-				setApplicationData(application);
-				setIsApplied(true);
-				alert("가입 신청이 완료되었습니다!");
-				console.log('가입 신청 성공:', application);
-			} else {
-				alert("가입 신청에 실패했습니다. 다시 시도해주세요.");
-			}
-		} catch (error) {
-			console.error('가입 신청 실패:', error);
-			alert("가입 신청 중 오류가 발생했습니다. 다시 시도해주세요.");
-		}
+		alert("가입 신청 기능은 현재 개발 중입니다.");
 	};
 
 	const handleRecruitmentToggle = () => {
@@ -235,7 +184,7 @@ const ProjectDetailPage = () => {
 						<p className="text-gray-700">
 							<div className="flex items-center gap-2">
 								<Crown className="w-4 h-4 text-gray-600" />
-								<span>팀장</span>
+								<span>리더</span>
 							</div>
 							<span className="text-gray-800 block mt-1">{leaderNickname || studyLeader}</span>
 						</p>
@@ -312,20 +261,11 @@ const ProjectDetailPage = () => {
 								style={{ backgroundColor: isApplied ? "#6B7280" : "#8B85E9" }}
 								disabled={isApplied}
 							>
-								{isApplied 
-									? applicationData?.status === 'approved' 
-										? "가입 승인됨" 
-										: applicationData?.status === 'rejected'
-										? "가입 거절됨"
-										: "승인 대기"
-									: "프로젝트 가입 신청"
-								}
+								{isApplied ? "가입 신청됨" : "프로젝트 가입 신청"}
 							</button>
 						)}
 					</div>
 				);
-			case "커리큘럼":
-				return <Curriculum studyProjectId={id ? parseInt(id, 10) : undefined} />;
 			case "커뮤니티":
 				if (!isLoggedIn || !isStudyMember) {
 					return (

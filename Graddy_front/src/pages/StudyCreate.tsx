@@ -119,39 +119,7 @@ const StudyCreate: React.FC = () => {
     const [interestsLoading, setInterestsLoading] = useState(false);
     const [interestsError, setInterestsError] = useState<string | null>(null);
 
-    // 백엔드 데이터를 프론트엔드 형식으로 변환하는 함수
-    const convertBackendToFrontend = (backendInterests: Interest[]): InterestForFrontend[] => {
-        // interestDivision에 따른 카테고리 매핑
-        const getCategoryName = (division: number): string => {
-            switch (division) {
-                case 1: return '프로그래밍 언어';
-                case 2: return '라이브러리 & 프레임워크';
-                case 3: return '데이터베이스';
-                case 4: return '플랫폼/환경설정';
-                case 5: return 'AI/데이터';
-                case 6: return '기타';
-                case 7: return '포지션';
-                default: return '기타';
-            }
-        };
 
-        // 스터디와 프로젝트에 따라 다른 태그 필터링
-        const filteredInterests = backendInterests.filter(interest => {
-            if (studyType === 'study') {
-                // 스터디: interestDivision 1~6번만 (포지션 제외)
-                return interest.interestDivision >= 1 && interest.interestDivision <= 6;
-            } else {
-                // 프로젝트: 모든 태그 사용 가능 (1~7번)
-                return interest.interestDivision >= 1 && interest.interestDivision <= 7;
-            }
-        });
-
-        return filteredInterests.map(interest => ({
-            id: interest.interestId,
-            name: interest.interestName,
-            category: getCategoryName(interest.interestDivision)
-        }));
-    };
 
     // Interests 데이터 가져오기
     useEffect(() => {
@@ -160,13 +128,12 @@ const StudyCreate: React.FC = () => {
             setInterestsError(null);
             
             try {
-                const data = await InterestApiService.getAllInterests();
+                const data = await InterestApiService.getInterestsByType(studyType);
                 
                 // 데이터 검증
                 if (data && Array.isArray(data)) {
-                    const convertedData = convertBackendToFrontend(data);
-                    setInterests(convertedData);
-                    console.log('Interests 데이터 로드 성공:', convertedData);
+                    setInterests(data);
+                    console.log('Interests 데이터 로드 성공:', data);
                 } else {
                     console.warn('Interests 데이터가 유효하지 않습니다:', data);
                     setInterests([]);
@@ -394,8 +361,7 @@ const StudyCreate: React.FC = () => {
                 soltStart: formatTimeForBackend(studyData.startTime, 9), // 시작 시간을 ISO 형식으로
                 soltEnd: formatTimeForBackend(studyData.endTime, 18), // 종료 시간을 ISO 형식으로
                 interestIds: interestIds,
-                dayIds: selectedDayIds,
-                tagNames: tagNames // 선택된 태그 이름들
+                dayIds: selectedDayIds
             };
 
             console.log('백엔드로 전송할 데이터:', createStudyProjectRequest);
@@ -405,8 +371,13 @@ const StudyCreate: React.FC = () => {
             const createdStudyProject = await StudyApiService.createStudyProject(createStudyProjectRequest);
             console.log('생성된 스터디 프로젝트:', createdStudyProject);
 
-            // 성공 시 검색 페이지로 이동
-            navigate('/search');
+            // 성공 메시지 표시
+            alert(`${studyType === 'study' ? '스터디' : '프로젝트'}가 성공적으로 생성되었습니다!`);
+            
+            // 잠시 대기 후 검색 페이지로 이동 (백엔드 데이터 동기화를 위해)
+            setTimeout(() => {
+                navigate('/search');
+            }, 300);
         } catch (error) {
             console.error('스터디 생성 실패:', error);
             console.error('에러 상세 정보:', {
@@ -465,9 +436,9 @@ const StudyCreate: React.FC = () => {
 
         // interests 데이터를 카테고리별로 그룹화
         const groupedByCategory = interests.reduce((acc, interest) => {
-            if (!interest || !interest.name) return acc; // interest가 유효하지 않으면 건너뛰기
+            if (!interest || !interest.interestName) return acc; // interest가 유효하지 않으면 건너뛰기
             
-            const category = interest.category || '기타';
+            const category = interest.categoryName || '기타';
             if (!acc[category]) {
                 acc[category] = {
                     id: Object.keys(acc).length + 1,
@@ -475,7 +446,7 @@ const StudyCreate: React.FC = () => {
                     tags: []
                 };
             }
-            acc[category].tags.push(interest.name);
+            acc[category].tags.push(interest.interestName);
             return acc;
         }, {} as { [key: string]: { id: number; name: string; tags: string[] } });
 
@@ -521,9 +492,9 @@ const StudyCreate: React.FC = () => {
             // 새로운 태그라면 추가
             if (studyData.tags.length < 5) {
                 // interests 배열에서 해당 태그의 interestId 찾기
-                const interest = interests.find(i => i.name === tag);
+                const interest = interests.find(i => i.interestName === tag);
                 if (interest) {
-                    const newTag = { name: tag, interestId: interest.id };
+                    const newTag = { name: tag, interestId: interest.interestId };
                     setStudyData({
                         ...studyData,
                         tags: [...studyData.tags, newTag]
