@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import PageLayout from "../components/layout/PageLayout";
 import ResponsiveContainer from "../components/layout/ResponsiveContainer";
 import ResponsiveMainContent from "../components/layout/ResponsiveMainContent";
+import { myStudyList, MyStudyData } from "../data/myStudyData";
 
 // 유저 타입 정의
 interface User {
@@ -209,7 +210,7 @@ export const Ranking = () => {
                 onClick={() => setIsModalOpen(false)}
             >
                 <div
-                    className="relative bg-white p-8 rounded-lg shadow-xl m-4 max-w-lg w-full"
+                    className="relative bg-white p-8 rounded-lg shadow-xl m-4 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
                     onClick={(e) => e.stopPropagation()}
                 >
                     <button
@@ -287,6 +288,51 @@ export const Ranking = () => {
                                     {interest}
                                 </span>
                             ))}
+                        </div>
+                    </div>
+
+                    {/* 참여 중인 스터디/프로젝트 리스트 */}
+                    <div className="mt-6">
+                        <div className="text-sm text-gray-600 mb-3">
+                            참여 중인 스터디/프로젝트
+                        </div>
+                        <div className="max-h-48 overflow-y-auto space-y-2">
+                            {myStudyList
+                                .filter((study) => study.status === "active")
+                                .slice(0, 3)
+                                .map((study) => (
+                                    <div
+                                        key={study.id}
+                                        className="bg-gray-50 p-3 rounded-lg border"
+                                    >
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h4 className="font-medium text-gray-900 text-sm">
+                                                {study.title}
+                                            </h4>
+                                            <span
+                                                className={`px-2 py-1 rounded-full text-xs ${
+                                                    study.type === "study"
+                                                        ? "bg-blue-100 text-blue-800"
+                                                        : "bg-green-100 text-green-800"
+                                                }`}
+                                            >
+                                                {study.type === "study"
+                                                    ? "스터디"
+                                                    : "프로젝트"}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-gray-600 mb-2">
+                                            {study.description}
+                                        </p>
+                                    </div>
+                                ))}
+                            {myStudyList.filter(
+                                (study) => study.status === "active"
+                            ).length === 0 && (
+                                <div className="text-center py-4 text-gray-500 text-sm">
+                                    참여 중인 스터디/프로젝트가 없습니다.
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

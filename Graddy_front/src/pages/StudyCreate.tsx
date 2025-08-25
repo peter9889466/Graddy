@@ -1,9 +1,10 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, X, Search, Check, Sun, Moon, CheckCircle, AlertCircle } from 'lucide-react';
 import PageLayout from '../components/layout/PageLayout';
 import { AuthContext } from '../contexts/AuthContext';
 import { StudyApiService, CreateStudyRequest, CreateStudyProjectRequest } from '../services/studyApi';
+import { InterestApiService, Interest, InterestForFrontend } from '../services/interestApi';
 
 // 슬라이더 스타일을 위한 CSS
 const sliderStyles = `
@@ -112,6 +113,76 @@ const StudyCreate: React.FC = () => {
 
     const [selectedStudyLevel, setSelectedStudyLevel] = useState<number | null>(null);
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
+    
+    // Interests 데이터 상태
+    const [interests, setInterests] = useState<InterestForFrontend[]>([]);
+    const [interestsLoading, setInterestsLoading] = useState(false);
+    const [interestsError, setInterestsError] = useState<string | null>(null);
+
+    // 백엔드 데이터를 프론트엔드 형식으로 변환하는 함수
+    const convertBackendToFrontend = (backendInterests: Interest[]): InterestForFrontend[] => {
+        // interestDivision에 따른 카테고리 매핑
+        const getCategoryName = (division: number): string => {
+            switch (division) {
+                case 1: return '프로그래밍 언어';
+                case 2: return '라이브러리 & 프레임워크';
+                case 3: return '데이터베이스';
+                case 4: return '플랫폼/환경설정';
+                case 5: return 'AI/데이터';
+                case 6: return '기타';
+                case 7: return '포지션';
+                default: return '기타';
+            }
+        };
+
+        // 스터디와 프로젝트에 따라 다른 태그 필터링
+        const filteredInterests = backendInterests.filter(interest => {
+            if (studyType === 'study') {
+                // 스터디: interestDivision 1~6번만
+                return interest.interestDivision >= 1 && interest.interestDivision <= 6;
+            } else {
+                // 프로젝트: interestDivision 7번만
+                return interest.interestDivision === 7;
+            }
+        });
+
+        return filteredInterests.map(interest => ({
+            id: interest.interestId,
+            name: interest.interestName,
+            category: getCategoryName(interest.interestDivision)
+        }));
+    };
+
+    // Interests 데이터 가져오기
+    useEffect(() => {
+        const fetchInterests = async () => {
+            setInterestsLoading(true);
+            setInterestsError(null);
+            
+            try {
+                const data = await InterestApiService.getAllInterests();
+                
+                // 데이터 검증
+                if (data && Array.isArray(data)) {
+                    const convertedData = convertBackendToFrontend(data);
+                    setInterests(convertedData);
+                    console.log('Interests 데이터 로드 성공:', convertedData);
+                } else {
+                    console.warn('Interests 데이터가 유효하지 않습니다:', data);
+                    setInterests([]);
+                }
+            } catch (err) {
+                const errorMessage = err instanceof Error ? err.message : '관심사 데이터를 불러오는데 실패했습니다.';
+                setInterestsError(errorMessage);
+                console.error('Interests 데이터 로드 실패:', err);
+                setInterests([]); // 에러 시 빈 배열로 설정
+            } finally {
+                setInterestsLoading(false);
+            }
+        };
+
+        fetchInterests();
+    }, []);
 
     const handleRemoveTag = (tagToRemove: {name: string, difficulty?: string}) => {
         setStudyData({
@@ -352,39 +423,64 @@ const StudyCreate: React.FC = () => {
         }
     };
 
-    // 카테고리별 태그 데이터
-    const tagCategories = [
-        {
-            id: 1,
-            name: '프로그래밍 언어',
-            tags: ['Python', 'JavaScript', 'HTML/CSS', 'Java', 'C#', 'Swift', 'Kotlin', 'C++', 'TypeScript', 'C', 'assembly', 'go', 'php', 'dart', 'rust', 'Ruby']
-        },
-        {
-            id: 2,
-            name: '라이브러리 & 프레임워크',
-            tags: ['React', 'Spring Boot', 'Spring', 'Node.js', 'Pandas', 'next.js', 'flutter', 'vue', 'flask', 'Django', 'Unity']
-        },
-        {
-            id: 3,
-            name: '데이터베이스',
-            tags: ['SQL', 'NOSQL', 'DBMS/RDBMS']
-        },
-        {
-            id: 4,
-            name: '플랫폼/환경',
-            tags: ['iOS', 'Android', 'AWS', 'Docker', 'Linux', 'cloud', 'IoT', '임베디드']
-        },
-        {
-            id: 5,
-            name: 'AI/데이터',
-            tags: ['인공지능(AI)', '머신러닝', '딥러닝', '빅데이터', '데이터 리터러시', 'LLM', '프롬프트 엔지니어링', 'ChatGPT', 'AI 활용(AX)']
-        },
-        {
-            id: 6,
-            name: '포지션',
-            tags: ['Back', 'Front', 'DB', 'UI/UX', '알고리즘', 'AI', 'IoT']
+    // DB에서 가져온 interests 데이터를 카테고리별로 그룹화
+    const getTagCategoriesFromInterests = () => {
+        if (interestsLoading || interestsError || !interests || interests.length === 0) {
+            // 로딩 중이거나 에러가 있거나 데이터가 없으면 기본 데이터 반환
+            return [
+                {
+                    id: 1,
+                    name: '프로그래밍 언어',
+                    tags: ['Python', 'JavaScript', 'HTML/CSS', 'Java', 'C#', 'Swift', 'Kotlin', 'C++', 'TypeScript', 'C', 'assembly', 'go', 'php', 'dart', 'rust', 'Ruby']
+                },
+                {
+                    id: 2,
+                    name: '라이브러리 & 프레임워크',
+                    tags: ['React', 'Spring Boot', 'Spring', 'Node.js', 'Pandas', 'next.js', 'flutter', 'vue', 'flask', 'Django', 'Unity']
+                },
+                {
+                    id: 3,
+                    name: '데이터베이스',
+                    tags: ['SQL', 'NOSQL', 'DBMS/RDBMS']
+                },
+                {
+                    id: 4,
+                    name: '플랫폼/환경',
+                    tags: ['iOS', 'Android', 'AWS', 'Docker', 'Linux', 'cloud', 'IoT', '임베디드']
+                },
+                {
+                    id: 5,
+                    name: 'AI/데이터',
+                    tags: ['인공지능(AI)', '머신러닝', '딥러닝', '빅데이터', '데이터 리터러시', 'LLM', '프롬프트 엔지니어링', 'ChatGPT', 'AI 활용(AX)']
+                },
+                {
+                    id: 6,
+                    name: '포지션',
+                    tags: ['Back', 'Front', 'DB', 'UI/UX', '알고리즘', 'AI', 'IoT']
+                }
+            ];
         }
-    ];
+
+        // interests 데이터를 카테고리별로 그룹화
+        const groupedByCategory = interests.reduce((acc, interest) => {
+            if (!interest || !interest.name) return acc; // interest가 유효하지 않으면 건너뛰기
+            
+            const category = interest.category || '기타';
+            if (!acc[category]) {
+                acc[category] = {
+                    id: Object.keys(acc).length + 1,
+                    name: category,
+                    tags: []
+                };
+            }
+            acc[category].tags.push(interest.name);
+            return acc;
+        }, {} as { [key: string]: { id: number; name: string; tags: string[] } });
+
+        return Object.values(groupedByCategory);
+    };
+
+    const tagCategories = getTagCategoriesFromInterests();
 
     // studyType에 따른 태그 데이터
     const getTagData = () => {
@@ -406,11 +502,11 @@ const StudyCreate: React.FC = () => {
         .filter(category => studyType === 'project' || selectedCategory === null || category.id === selectedCategory)
         .map(category => ({
             ...category,
-            tags: category.tags.filter(tag =>
-                tag.toLowerCase().includes(tagSearchValue.toLowerCase())
+            tags: (category.tags || []).filter(tag =>
+                tag && typeof tag === 'string' && tag.toLowerCase().includes(tagSearchValue.toLowerCase())
             )
         }))
-        .filter(category => category.tags.length > 0);
+        .filter(category => category.tags && category.tags.length > 0);
 
         const handleTagSelect = (tag: string) => {
         if (studyData.tags.some(t => t.name === tag)) {
@@ -1043,9 +1139,9 @@ const StudyCreate: React.FC = () => {
                         </div>
 
                         {/* 카테고리 필터 버튼들을 아래로 - 스터디일 때만 표시 */}
-                        {studyType === 'study' && (
+                        {studyType === 'study' && !interestsLoading && !interestsError && (
                             <div className="mb-4">
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 flex-wrap">
                                     <button
                                         type="button"
                                         onClick={() => setSelectedCategory(null)}
@@ -1056,56 +1152,19 @@ const StudyCreate: React.FC = () => {
                                     >
                                         전체
                                     </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setSelectedCategory(1)}
-                                        className={`px-3 py-1.5 text-xs rounded-lg border transition-colors duration-200 whitespace-nowrap ${selectedCategory === 1
-                                                ? 'bg-[#8B85E9] text-white border-[#8B85E9]'
-                                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                                            }`}
-                                    >
-                                        프로그래밍 언어
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setSelectedCategory(2)}
-                                        className={`px-3 py-1.5 text-xs rounded-lg border transition-colors duration-200 whitespace-nowrap ${selectedCategory === 2
-                                                ? 'bg-[#8B85E9] text-white border-[#8B85E9]'
-                                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                                            }`}
-                                    >
-                                        라이브러리 & 프레임워크
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setSelectedCategory(3)}
-                                        className={`px-3 py-1.5 text-xs rounded-lg border transition-colors duration-200 whitespace-nowrap ${selectedCategory === 3
-                                                ? 'bg-[#8B85E9] text-white border-[#8B85E9]'
-                                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                                            }`}
-                                    >
-                                        데이터베이스
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setSelectedCategory(4)}
-                                        className={`px-3 py-1.5 text-xs rounded-lg border transition-colors duration-200 whitespace-nowrap ${selectedCategory === 4
-                                                ? 'bg-[#8B85E9] text-white border-[#8B85E9]'
-                                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                                            }`}
-                                    >
-                                        플랫폼/환경
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setSelectedCategory(5)}
-                                        className={`px-3 py-1.5 text-xs rounded-lg border transition-colors duration-200 whitespace-nowrap ${selectedCategory === 5
-                                                ? 'bg-[#8B85E9] text-white border-[#8B85E9]'
-                                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                                            }`}
-                                    >
-                                        AI/데이터
-                                    </button>
+                                    {tagCategories.map((category) => (
+                                        <button
+                                            key={category.id}
+                                            type="button"
+                                            onClick={() => setSelectedCategory(category.id)}
+                                            className={`px-3 py-1.5 text-xs rounded-lg border transition-colors duration-200 whitespace-nowrap ${selectedCategory === category.id
+                                                    ? 'bg-[#8B85E9] text-white border-[#8B85E9]'
+                                                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                                }`}
+                                        >
+                                            {category.name}
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
                         )}
@@ -1113,7 +1172,24 @@ const StudyCreate: React.FC = () => {
 
 
                         <div className="max-h-60 overflow-y-auto pr-2" onClick={(e) => e.stopPropagation()}>
-                            {filteredTags.length > 0 ? (
+                            {/* 로딩 상태 */}
+                            {interestsLoading && (
+                                <div className="flex items-center justify-center py-8">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8B85E9]"></div>
+                                    <span className="ml-2 text-gray-600">태그 데이터를 불러오는 중...</span>
+                                </div>
+                            )}
+
+                            {/* 에러 상태 */}
+                            {interestsError && (
+                                <div className="flex items-center justify-center py-8">
+                                    <AlertCircle className="w-6 h-6 text-red-500 mr-2" />
+                                    <span className="text-red-600">태그 데이터 로드 실패: {interestsError}</span>
+                                </div>
+                            )}
+
+                            {/* 태그 목록 */}
+                            {!interestsLoading && !interestsError && filteredTags.length > 0 ? (
                                 <div className="space-y-4">
                                     {filteredTags.map((category) => (
                                         <div key={category.id} className="border-b border-gray-200 pb-3 last:border-b-0">
@@ -1142,12 +1218,12 @@ const StudyCreate: React.FC = () => {
                                         </div>
                                     ))}
                                 </div>
-                            ) : (
+                            ) : !interestsLoading && !interestsError ? (
                                 <div className="text-center py-8 text-gray-500">
                                     <Search className="w-12 h-12 mx-auto mb-2 text-gray-300" />
                                     <p>검색 결과가 없습니다.</p>
                                 </div>
-                            )}
+                            ) : null}
                         </div>
 
                         <div className="mt-4 flex justify-end">
