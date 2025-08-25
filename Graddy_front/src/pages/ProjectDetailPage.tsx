@@ -4,8 +4,6 @@ import ResponsiveContainer from "../components/layout/ResponsiveContainer";
 import ResponsiveSidebar from "../components/layout/ResponsiveSidebar";
 import ResponsiveMainContent from "../components/layout/ResponsiveMainContent";
 import StudyDetailSideBar from "../components/detail/StudyDetailSideBar";
-import ProjectDetailSideBar from "../components/detail/ProjectDetailSideBar";
-// import StudyChatting from "../components/detail/StudyChatting";
 import Assignment from "../components/detail/Assignment";
 import { studyList } from "../data/studyData";
 import { AuthContext } from "../contexts/AuthContext";
@@ -15,17 +13,16 @@ import Schedule from "@/components/detail/Schedule";
 import Curriculum from "@/components/detail/Curriculum";
 import Community from "@/components/detail/Community";
 import DraggableChatWidget from "@/components/shared/DraggableChatWidget";
-import { Tag, Info, Crown, Calendar, Edit } from "lucide-react";
+import { Tag, Info, Crown, Calendar, Github, Edit } from "lucide-react";
 import { StudyApplicationApiService, StudyApplication } from "../services/studyApplicationApi";
 
-const StudyDetailPage = () => {
+const ProjectDetailPage = () => {
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
-	const [activeTab, setActiveTab] = useState("스터디 정보");
+	const [activeTab, setActiveTab] = useState("프로젝트 메인");
 	const [isApplied, setIsApplied] = useState(false);
 	const [applicationData, setApplicationData] = useState<StudyApplication | null>(null);
 	const [isRecruiting, setIsRecruiting] = useState(true); // 모집 상태 관리
-	const [isEditing, setIsEditing] = useState(false);
 	const authContext = useContext(AuthContext);
 	const location = useLocation();
 	const state = location.state as {
@@ -38,22 +35,24 @@ const StudyDetailPage = () => {
 	} | null;
 	
 	const [studyTitle, setStudyTitle] = useState<string>(
-		state?.title || `스터디#${id}`
+		state?.title || `프로젝트#${id}`
 	);
 	const [studyDescription, setStudyDescription] = useState<String>(
-		state?.description || `스터디#${id}의 설명이 없습니다.`
+		state?.description || `프로젝트#${id}의 설명이 없습니다.`
 	);
 	const [studyLeader, setStudyLeader] = useState<string>(
-		state?.leader || "스터디장이 지정되지 않았습니다."
+		state?.leader || "프로젝트장이 지정되지 않았습니다."
 	);
 	const [leaderNickname, setLeaderNickname] = useState<string>("");
 	const [studyPeriod, setStudyPeriod] = useState<string>(
 		state?.period || ""
 	);
+	const [githubUrl, setGithubUrl] = useState<string>("");
+	const [isEditing, setIsEditing] = useState(false);
 	
-	// 스터디 설정
+	// 프로젝트 설정
 	useEffect(() => {
-		setActiveTab("스터디 정보");
+		setActiveTab("프로젝트 메인");
 	}, []);
 
 	// 기간 포맷팅 함수
@@ -87,42 +86,6 @@ const StudyDetailPage = () => {
 		state?.tags || []
 	);
 
-	const menuItems = ["스터디 정보", "참여자", "활동 기록"]
-
-	useEffect(() => {
-		if (!state?.title) {
-			setStudyTitle(`스터디#${id}`);
-		}
-		if (!state?.description) {
-			setStudyDescription(`스터디#${id}의 설명이 없습니다.`);
-		}
-		if (!state?.leader) {
-			setStudyLeader("스터디장이 지정되지 않았습니다.")
-		}
-
-		if (!state?.period) {
-			const numericId = id ? parseInt(id, 10) : NaN;
-			const found = studyList.find((s) => s.id === numericId);
-			setStudyPeriod(found?.period ?? "기간 정보가 없습니다.");
-		} else {
-			setStudyPeriod(state.period);
-		}
-
-		if (!state?.tags || state.tags.length === 0) {
-			const numericId = id ? parseInt(id, 10) : NaN;
-			const found = studyList.find((s) => s.id === numericId);
-			setStudyTags(found?.tags ?? []);
-		} else {
-			setStudyTags(state.tags);
-		}
-	}, [id, state]);
-
-	// 현재 사용자가 스터디장인지 확인
-	const isStudyLeader = authContext?.user?.nickname === leaderNickname;
-	
-	// 임시 테스트용 (실제 사용자 닉네임으로 변경해보세요)
-	// const isStudyLeader = "test" === studyLeader;
-	
 	// 가입 신청 상태 조회
 	useEffect(() => {
 		const fetchApplicationStatus = async () => {
@@ -153,17 +116,20 @@ const StudyDetailPage = () => {
 		fetchApplicationStatus();
 	}, [id, authContext?.user?.email]);
 
+	// 현재 사용자가 프로젝트장인지 확인
+	const isStudyLeader = authContext?.user?.nickname === leaderNickname;
+	
 	// 사용자 권한 확인
 	const isLoggedIn = authContext?.isLoggedIn || false;
-	const isStudyMember = isStudyLeader || isApplied; // 스터디장이거나 가입 신청한 사용자
+	const isStudyMember = isStudyLeader || isApplied; // 프로젝트장이거나 가입 신청한 사용자
 	
 	// 디버깅을 위한 콘솔 로그
 	console.log('현재 사용자 닉네임:', authContext?.user?.nickname);
-	console.log('스터디장 ID:', studyLeader);
-	console.log('스터디장 닉네임:', leaderNickname);
-	console.log('스터디장 여부:', isStudyLeader);
+	console.log('프로젝트장 ID:', studyLeader);
+	console.log('프로젝트장 닉네임:', leaderNickname);
+	console.log('프로젝트장 여부:', isStudyLeader);
 	console.log('로그인 여부:', isLoggedIn);
-	console.log('스터디 멤버 여부:', isStudyMember);
+	console.log('프로젝트 멤버 여부:', isStudyMember);
 	console.log('가입 신청 데이터:', applicationData);
 
 	const handleApplyClick = async () => {
@@ -173,12 +139,12 @@ const StudyDetailPage = () => {
 		}
 
 		if (!id || !authContext?.user?.email) {
-			alert("스터디 정보를 불러올 수 없습니다.");
+			alert("프로젝트 정보를 불러올 수 없습니다.");
 			return;
 		}
 
 		try {
-			console.log('스터디 가입 신청 시작:', { studyProjectId: parseInt(id, 10), userId: authContext.user.email });
+			console.log('프로젝트 가입 신청 시작:', { studyProjectId: parseInt(id, 10), userId: authContext.user.email });
 			const application = await StudyApplicationApiService.applyForStudy(parseInt(id, 10), authContext.user.email);
 			
 			if (application) {
@@ -201,9 +167,9 @@ const StudyDetailPage = () => {
 	};
 
 	const handleStudyEnd = () => {
-		if (confirm("스터디를 종료하시겠습니까?")) {
-			alert("스터디가 종료되었습니다.");
-			// 여기에 스터디 종료 로직 추가
+		if (confirm("프로젝트를 종료하시겠습니까?")) {
+			alert("프로젝트가 종료되었습니다.");
+			// 여기에 프로젝트 종료 로직 추가
 		}
 	};
 
@@ -213,7 +179,7 @@ const StudyDetailPage = () => {
 
 	const handleSave = () => {
 		// 여기에 저장 로직 추가
-		alert("스터디 정보가 저장되었습니다.");
+		alert("프로젝트 정보가 저장되었습니다.");
 		setIsEditing(false);
 	};
 
@@ -225,12 +191,11 @@ const StudyDetailPage = () => {
 	// 메인 콘텐츠 렌더링 함수
 	const renderMainContent = () => {
 		switch (activeTab) {
-			case "스터디 메인":
-			case "스터디 정보":
+			case "프로젝트 메인":
 			default:
 				return (
 					<div className="space-y-2 p-4 pr-10 relative">
-						{/* 수정 버튼 - 스터디장만 표시 */}
+						{/* 수정 버튼 - 팀장만 표시 */}
 						{isStudyLeader && (
 							<div className="absolute top-0 right-0">
 								{!isEditing ? (
@@ -263,21 +228,21 @@ const StudyDetailPage = () => {
 						<p className="text-gray-700">
 							<div className="flex items-center gap-2">
 								<Info className="w-4 h-4 text-gray-600" />
-								<span>스터디 소개</span>
+								<span>프로젝트 소개</span>
 							</div>
 							<span className="text-gray-800 block mt-1">{studyDescription}</span>
 						</p>
 						<p className="text-gray-700">
 							<div className="flex items-center gap-2">
 								<Crown className="w-4 h-4 text-gray-600" />
-								<span>스터디장</span>
+								<span>팀장</span>
 							</div>
 							<span className="text-gray-800 block mt-1">{leaderNickname || studyLeader}</span>
 						</p>
 						<p className="text-gray-700">
 							<div className="flex items-center gap-2">
 								<Calendar className="w-4 h-4 text-gray-600" />
-								<span>스터디 기간</span>
+								<span>프로젝트 기간</span>
 							</div>
 							<span className="text-gray-800 block mt-1">{formatPeriod(studyPeriod)}</span>
 						</p>
@@ -298,15 +263,28 @@ const StudyDetailPage = () => {
 								)}
 							</div>
 						</div>
+						<div className="flex items-center gap-2 mt-2">
+							<Github className="w-4 h-4 text-gray-600" />
+							<span className="font-medium text-gray-600">GitHub</span>
+						</div>
+						<div className="mt-1">
+							<input
+								type="url"
+								value={githubUrl}
+								onChange={(e) => setGithubUrl(e.target.value)}
+								placeholder="GitHub URL"
+								className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-transparent"
+							/>
+						</div>
 						<hr className="my-4"/>
 
-						<h4 className="font-semibold mb-2" style={{ color: "#8B85E9" }}>스터디 설명</h4>
+						<h4 className="font-semibold mb-2" style={{ color: "#8B85E9" }}>프로젝트 설명</h4>
 						<div className="bg-white border-2 rounded-xl p-4" style={{ borderColor: "#8B85E9" }}>
 							<p className="text-gray-700 text-sm sm:text-base leading-relaxed">{studyDescription}</p>
 						</div>
 						{/* 버튼 영역 */}
 						{isStudyLeader ? (
-							// 스터디장인 경우
+							// 프로젝트장인 경우
 							<div className="flex gap-2 mt-3">
 								<button
 									type="button"
@@ -322,7 +300,7 @@ const StudyDetailPage = () => {
 									className="flex-1 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer transition-colors duration-200"
 									style={{ backgroundColor: "#6B7280" }}
 								>
-									스터디 종료
+									프로젝트 종료
 								</button>
 							</div>
 						) : (
@@ -340,49 +318,12 @@ const StudyDetailPage = () => {
 										: applicationData?.status === 'rejected'
 										? "가입 거절됨"
 										: "승인 대기"
-									: "스터디 가입 신청"
+									: "프로젝트 가입 신청"
 								}
 							</button>
 						)}
 					</div>
 				);
-			case "과제 제출":
-				if (!isLoggedIn || !isStudyMember) {
-					return (
-						<div className="flex items-center justify-center h-64">
-							<div className="text-center">
-								<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
-								<p className="text-sm text-gray-400">스터디에 가입한 멤버만 접근할 수 있습니다.</p>
-							</div>
-						</div>
-					);
-				}
-				return <Assignment />;
-
-			case "과제 피드백":
-				if (!isLoggedIn || !isStudyMember) {
-					return (
-						<div className="flex items-center justify-center h-64">
-							<div className="text-center">
-								<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
-								<p className="text-sm text-gray-400">스터디에 가입한 멤버만 접근할 수 있습니다.</p>
-							</div>
-						</div>
-					);
-				}
-				return <FeedBack />;
-			case "과제 / 일정 관리":
-				if (!isLoggedIn || !isStudyMember) {
-					return (
-						<div className="flex items-center justify-center h-64">
-							<div className="text-center">
-								<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
-								<p className="text-sm text-gray-400">스터디에 가입한 멤버만 접근할 수 있습니다.</p>
-							</div>
-						</div>
-					);
-				}
-				return <Schedule isStudyLeader={isStudyLeader} />;
 			case "커리큘럼":
 				return <Curriculum studyProjectId={id ? parseInt(id, 10) : undefined} />;
 			case "커뮤니티":
@@ -391,7 +332,7 @@ const StudyDetailPage = () => {
 						<div className="flex items-center justify-center h-64">
 							<div className="text-center">
 								<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
-								<p className="text-sm text-gray-400">스터디에 가입한 멤버만 접근할 수 있습니다.</p>
+								<p className="text-sm text-gray-400">프로젝트에 가입한 멤버만 접근할 수 있습니다.</p>
 							</div>
 						</div>
 					);
@@ -410,7 +351,7 @@ const StudyDetailPage = () => {
 						onTabChange={(tab) => setActiveTab(tab)}
 						isLoggedIn={isLoggedIn}
 						isStudyMember={isStudyMember}
-						isProject={false}
+						isProject={true}
 					/>
 				</ResponsiveSidebar>
 
@@ -424,4 +365,4 @@ const StudyDetailPage = () => {
 	);
 };
 
-export default StudyDetailPage;
+export default ProjectDetailPage;

@@ -83,6 +83,7 @@ export const StudySearchPage = () => {
                 console.log('데이터 길이:', Array.isArray(data) ? data.length : '배열이 아님');
                 
                 if (Array.isArray(data)) {
+                    
                     setStudiesProjects(data);
                     console.log('스터디/프로젝트 데이터 로드 성공:', data);
                 } else {
@@ -430,39 +431,45 @@ export const StudySearchPage = () => {
                         <div className="flex-1">
                             <div
                                 className="text-lg font-bold text-gray-800 mb-2  duration-200"
-                                onClick={() =>
-                                    navigate(`/study/${study.studyId}`, {
+                                onClick={() => {
+                                    const isProject = study.type === '프로젝트';
+                                    const route = isProject ? `/project/${study.studyId}` : `/study/${study.studyId}`;
+                                    navigate(route, {
                                         state: {
                                             title: study.studyTitle,
                                             description: study.studyDesc,
                                             leader: study.leader,
                                             period: `${formatDate(study.studyStart)} ~ ${formatDate(study.studyEnd)}`,
-                                            tags: study.tags
+                                            tags: study.tags,
+                                            type: isProject ? 'project' : 'study'
                                         }
-                                    })
-                                }
+                                    });
+                                }}
                             >
                                 {study.studyTitle}
                             </div>
                             <div
                                 className="text-base mb-2 text-gray-800 duration-200"
-                                onClick={() =>
-                                    navigate(`/study/${study.studyId}`, {
+                                onClick={() => {
+                                    const isProject = study.type === '프로젝트';
+                                    const route = isProject ? `/project/${study.studyId}` : `/study/${study.studyId}`;
+                                    navigate(route, {
                                         state: {
                                             title: study.studyTitle,
                                             description: study.studyDesc,
                                             leader: study.leader,
                                             period: `${formatDate(study.studyStart)} ~ ${formatDate(study.studyEnd)}`,
-                                            tags: study.tags
+                                            tags: study.tags,
+                                            type: isProject ? 'project' : 'study'
                                         }
-                                    })
-                                }
+                                    });
+                                }}
                             >
                                 {study.studyDesc}
                             </div>
 
                             <div className="text-sm text-gray-600 mb-2">
-                                스터디 기간: {formatDate(study.studyStart)} ~ {formatDate(study.studyEnd)} / 스터디장:{" "}
+                                {study.type === '프로젝트' ? '프로젝트' : '스터디'} 기간: {formatDate(study.studyStart)} ~ {formatDate(study.studyEnd)} / {study.type === '프로젝트' ? '팀장' : '스터디장'}:{" "}
                                 {study.leader}
                             </div>
 
