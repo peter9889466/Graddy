@@ -265,10 +265,9 @@ const JoinTime: React.FC<JoinTimeProps> = ({
     // 이전 버튼 클릭 시 현재 Join3 데이터와 함께 Join2로 이동
     const handlePrevious = () => {
         if (onPrevious) {
-            onPrevious(); // Join 컴포넌트의 setStep(2) 실행
+            onPrevious(); // Join 컴포넌트의 setStep(1) 실행 (JoinInterest 단계)
         } else {
-            // 기존 방식 유지
-            navigate("/join2", {
+            navigate("/join-interest", {  // 경로를 JoinInterest로 변경
                 state: {
                     formData: formData,
                     join2Data: interestData

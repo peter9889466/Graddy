@@ -15,7 +15,7 @@ const Join: React.FC = () => {
     const [formData, setFormData] = useState<any>(location.state?.formData || {});
 
     const [interestData, setInterestData] = useState<any>({}); // 관심분야 데이터 추가
-    
+
     return (
         <div className="max-w-4xl mx-auto p-6">
         <h2 className="text-2xl font-bold text-gray-800 mb-6">회원가입</h2>
@@ -38,8 +38,8 @@ const Join: React.FC = () => {
                 formData={formData}  // JoinProfile에서 받은 데이터 전달
                 onPrevious={() => setStep(1)} // 이전 버튼 → 다시 프로필로
                 onNext={(data: any) => {
-                setInterestData(data);
-                setStep(3);
+                    setInterestData(data);
+                    setStep(3);
                 }}
             />
         )}
