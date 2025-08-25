@@ -31,7 +31,6 @@ public class StudyProjectAvailableDay {
     private Byte dayId;
 
     // 복합키 클래스
-    @Embeddable
     public static class StudyProjectAvailableDayId implements Serializable {
         private Long studyProjectId;
         private Byte dayId;

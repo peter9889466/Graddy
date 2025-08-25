@@ -22,9 +22,12 @@ public interface StudyProjectStatusRepository extends JpaRepository<StudyProject
     // 유저와 스터디/프로젝트로 특정 신청 조회
     Optional<StudyProjectStatus> findByUserIdAndStudyProjectId(String userId, Long studyProjectId);
     
-    // 승인된 신청 조회
+    // PENDING 상태의 신청 조회
     List<StudyProjectStatus> findByStudyProjectIdAndStatus(Long studyProjectId, StudyProjectStatus.Status status);
     
     // 스터디/프로젝트 ID로 삭제
     void deleteByStudyProjectId(Long studyProjectId);
+    
+    // 특정 유저가 특정 스터디/프로젝트에 신청했는지 확인
+    boolean existsByUserIdAndStudyProjectId(String userId, Long studyProjectId);
 }

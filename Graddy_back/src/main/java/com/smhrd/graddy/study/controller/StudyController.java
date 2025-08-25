@@ -74,13 +74,20 @@ public class StudyController {
 
     /**
      * 스터디/프로젝트 조회
-     * 특정 스터디/프로젝트 ID로 정보와 태그, 선호 요일을 조회합니다.
+     * 특정 스터디/프로젝트 ID로 정보와 태그, 선호 요일, 현재 인원수를 조회합니다.
      * 
      * @param studyProjectId 조회할 스터디/프로젝트의 ID
-     * @return 스터디/프로젝트 정보 (태그, 선호 요일 포함)
+     * @return 스터디/프로젝트 정보 (태그, 선호 요일, 멤버 정보 포함)
      */
     @GetMapping("/{studyProjectId}")
-    @Operation(summary = "스터디/프로젝트 조회", description = "특정 스터디/프로젝트 ID로 정보와 태그, 선호 요일을 조회합니다.")
+    @Operation(summary = "스터디/프로젝트 조회",
+              description = "특정 스터디/프로젝트 ID로 정보와 태그, 선호 요일, 현재 인원수를 조회합니다.\n\n" +
+                           "**반환 정보:**\n" +
+                           "• 기본 정보: 이름, 제목, 설명, 레벨, 타입 등\n" +
+                           "• 태그 정보: 관심 분야 태그 목록\n" +
+                           "• 선호 요일: 가능한 요일 목록\n" +
+                           "• 인원 정보: 총 인원수(studyProjectTotal)와 현재 인원수(currentMemberCount)\n" +
+                           "• 멤버 정보: 현재 가입된 멤버들의 상세 정보 (ID, 타입, 상태, 가입일)")
     public ResponseEntity<ApiResponse<StudyResponse>> getStudyProject(@PathVariable Long studyProjectId) {
         try {
             StudyResponse response = studyService.getStudy(studyProjectId);
@@ -94,13 +101,24 @@ public class StudyController {
      * 모든 스터디/프로젝트 목록 조회
      * 전체 스터디/프로젝트 목록을 생성일 기준 내림차순으로 조회합니다.
      * 
-     * @return 전체 스터디/프로젝트 목록 (태그, 선호 요일 포함)
+     * @return 전체 스터디/프로젝트 목록 (태그, 선호 요일, 멤버 정보 포함)
      */
     @GetMapping
-    @Operation(summary = "전체 스터디/프로젝트 목록", description = "전체 스터디/프로젝트 목록을 생성일 기준 내림차순으로 조회합니다.")
+    @Operation(summary = "전체 스터디/프로젝트 목록",
+              description = "전체 스터디/프로젝트 목록을 생성일 기준 내림차순으로 조회합니다.\n\n" +
+                           "**반환 정보:**\n" +
+                           "• 기본 정보: 이름, 제목, 설명, 레벨, 타입 등\n" +
+                           "• 태그 정보: 관심 분야 태그 목록\n" +
+                           "• 선호 요일: 가능한 요일 목록\n" +
+                           "• 인원 정보: 총 인원수(studyProjectTotal)와 현재 인원수(currentMemberCount)\n" +
+                           "• 멤버 정보: 현재 가입된 멤버들의 상세 정보 (ID, 타입, 상태, 가입일)")
     public ResponseEntity<ApiResponse<List<StudyResponse>>> getAllStudyProjects() {
-        List<StudyResponse> studyProjects = studyService.getAllStudies();
-        return ApiResponse.success("전체 스터디/프로젝트 목록 조회가 성공했습니다.", studyProjects);
+        try {
+            List<StudyResponse> studies = studyService.getAllStudies();
+            return ApiResponse.success("전체 스터디/프로젝트 목록 조회가 성공했습니다.", studies);
+        } catch (Exception e) {
+            return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "스터디/프로젝트 목록 조회에 실패했습니다.", null);
+        }
     }
 
     /**

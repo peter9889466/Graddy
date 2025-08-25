@@ -1,4 +1,4 @@
-package com.smhrd.graddy.study.entity;
+package com.smhrd.graddy.member.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
@@ -16,7 +16,7 @@ import java.sql.Timestamp;
 @NoArgsConstructor
 @ToString
 @Schema(description = "스터디/프로젝트 멤버")
-public class StudyProjectMember {
+public class Member {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,7 +32,29 @@ public class StudyProjectMember {
     @Schema(description = "스터디/프로젝트 ID", example = "1")
     private Long studyProjectId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "study_project_check", nullable = false)
+    @Schema(description = "멤버 상태", example = "approved")
+    private MemberStatus studyProjectCheck;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "member_type", nullable = false)
+    @Schema(description = "멤버 타입", example = "leader")
+    private MemberType memberType;
+
     @Column(name = "joined_at", nullable = false)
     @Schema(description = "가입시간")
     private Timestamp joinedAt;
+
+    // 멤버 상태 enum
+    public enum MemberStatus {
+        approved,    // 승인됨
+        withdraw     // 탈퇴
+    }
+
+    // 멤버 타입 enum
+    public enum MemberType {
+        leader,      // 리더
+        member       // 일반 멤버
+    }
 }

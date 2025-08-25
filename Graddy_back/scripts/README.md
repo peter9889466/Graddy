@@ -1,145 +1,163 @@
 # AI 커리큘럼 생성 시스템
 
-이 시스템은 OpenAI GPT를 사용하여 스터디의 관심 항목과 수준을 고려한 맞춤형 커리큘럼을 자동으로 생성합니다.
+OpenAI GPT를 활용하여 스터디/프로젝트 커리큘럼을 자동 생성하는 FastAPI 기반 시스템입니다.
 
-## 구성 요소
+## 🏗️ **시스템 구조**
 
-### 1. Spring Boot 백엔드
-- `AICurriculumController`: AI 커리큘럼 생성 API 엔드포인트
-- `AICurriculumService`: Python 스크립트 호출 및 결과 처리
-- `Study`, `Tag`, `Interest` 엔티티: 데이터베이스 연동
+```
+Spring Boot (Java) ←→ FastAPI (Python) ←→ OpenAI GPT
+     (Backend)           (AI Server)      (AI Model)
+```
 
-### 2. Python 스크립트
-- `generate_curriculum.py`: OpenAI GPT API를 사용한 커리큘럼 생성
+## 🚀 **빠른 시작**
 
-## 설치 및 설정
+### **1. FastAPI 서버 실행**
 
-### 1. Python 환경 설정
+#### **Windows**
 ```bash
-cd scripts
+cd Graddy_back/scripts
+start_fastapi.bat
+```
+
+#### **Linux/Mac**
+```bash
+cd Graddy_back/scripts
+chmod +x start_fastapi.sh
+./start_fastapi.sh
+```
+
+#### **수동 실행**
+```bash
+cd Graddy_back/scripts
+pip install -r requirements.txt
+python main.py
+```
+
+### **2. Spring Boot 애플리케이션 실행**
+```bash
+cd Graddy_back
+./gradlew bootRun
+```
+
+## 📋 **API 엔드포인트**
+
+### **FastAPI 서버 (포트: 8000)**
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|------------|------|
+| GET | `/` | 서버 상태 확인 |
+| GET | `/health` | 헬스 체크 |
+| POST | `/generate-curriculum` | AI 커리큘럼 생성 |
+| GET | `/models` | 사용 가능한 OpenAI 모델 목록 |
+
+### **Spring Boot (포트: 8080)**
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|------------|------|
+| POST | `/api/ai-curriculum/generate/{studyProjectId}` | AI 커리큘럼 생성 요청 |
+| GET | `/api/ai-curriculum/health` | AI 서버 상태 확인 |
+
+## 🔧 **설정**
+
+### **1. 환경 변수 설정**
+
+`.env` 파일을 `scripts` 폴더에 생성하고 OpenAI API 키를 설정하세요:
+
+```env
+OPENAI_API_KEY=your_openai_api_key_here
+```
+
+### **2. Spring Boot 설정**
+
+`application.properties`에서 AI API URL을 설정할 수 있습니다:
+
+```properties
+ai.curriculum.api.url=http://localhost:8000
+```
+
+## 📊 **사용법**
+
+### **1. AI 커리큘럼 생성**
+
+#### **FastAPI 직접 호출**
+```bash
+curl -X POST "http://localhost:8000/generate-curriculum" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "study_project_id": 1,
+    "study_project_name": "웹개발 스터디",
+    "study_project_title": "React와 Spring Boot로 풀스택 개발하기",
+    "study_project_desc": "풀스택 웹 개발을 배우는 스터디입니다.",
+    "study_level": 2,
+    "interest_tags": ["React", "Spring Boot", "웹개발"],
+    "study_project_start": "2024-01-01",
+    "study_project_end": "2024-03-31",
+    "type_check": "study"
+  }'
+```
+
+#### **Spring Boot를 통한 호출**
+```bash
+curl -X POST "http://localhost:8080/api/ai-curriculum/generate/1"
+```
+
+### **2. 서버 상태 확인**
+
+```bash
+# FastAPI 서버 상태
+curl http://localhost:8000/health
+
+# Spring Boot에서 AI 서버 상태 확인
+curl http://localhost:8080/api/ai-curriculum/health
+```
+
+## 🛠️ **개발 환경**
+
+### **필요한 패키지**
+- Python 3.8+
+- FastAPI
+- Uvicorn
+- OpenAI
+- Python-dotenv
+- Pydantic
+
+### **설치**
+```bash
 pip install -r requirements.txt
 ```
 
-### 2. OpenAI API 키 설정 (.env 파일 사용)
-프로젝트 루트 디렉토리에 `.env` 파일을 생성하고 다음 내용을 추가하세요:
+## 🔍 **문제 해결**
 
-```bash
-# .env 파일 (프로젝트 루트 디렉토리에 위치)
-OPENAI_API_KEY=your_actual_openai_api_key_here
-```
+### **1. FastAPI 서버 연결 오류**
+- FastAPI 서버가 실행 중인지 확인
+- 포트 8000이 사용 가능한지 확인
+- 방화벽 설정 확인
 
-**주의사항:**
-- `.env` 파일은 프로젝트 루트 디렉토리(`Graddy/`)에 위치해야 합니다
-- `.env` 파일은 `.gitignore`에 포함되어 있어야 합니다 (보안상)
-- API 키는 실제 OpenAI에서 발급받은 키로 교체해야 합니다
+### **2. OpenAI API 오류**
+- `.env` 파일에 API 키가 올바르게 설정되었는지 확인
+- API 키의 유효성 확인
+- OpenAI 계정의 크레딧 확인
 
-### 3. 환경변수 직접 설정 (선택사항)
-`.env` 파일 대신 환경변수로 직접 설정할 수도 있습니다:
+### **3. Spring Boot 연동 오류**
+- `application.properties`의 AI API URL 설정 확인
+- 네트워크 연결 상태 확인
 
-```bash
-# Windows
-set OPENAI_API_KEY=your_actual_api_key_here
+## 📝 **주요 기능**
 
-# Linux/Mac
-export OPENAI_API_KEY=your_actual_api_key_here
-```
+1. **자동 커리큘럼 생성**: OpenAI GPT를 활용한 지능형 커리큘럼 생성
+2. **레벨별 맞춤형**: 초급/중급/고급 레벨에 따른 적절한 난이도 설정
+3. **태그 기반 맞춤화**: 관심 분야 태그를 반영한 맞춤형 커리큘럼
+4. **자동 저장**: 생성된 커리큘럼을 데이터베이스에 자동 저장
+5. **상태 모니터링**: 서버 상태 및 연결 상태 실시간 확인
 
-## 사용법
+## 🔮 **향후 계획**
 
-### 1. API 호출
-```bash
-POST /api/ai-curriculum/generate/{studyId}
-```
+- [ ] GPT-4 모델 지원
+- [ ] 다국어 지원
+- [ ] 커리큘럼 템플릿 시스템
+- [ ] 사용자 피드백 기반 학습
+- [ ] 성능 최적화
 
-### 2. Python 스크립트 직접 실행
-```bash
-# 프로젝트 루트 디렉토리에서 실행
-python scripts/generate_curriculum.py <study_id> <study_name> <study_title> <study_desc> <study_level> <interest_tags> <study_start> <study_end>
-```
+## 📞 **지원**
 
-### 3. 시스템 테스트
-```bash
-# 프로젝트 루트 디렉토리에서 실행
-python scripts/test_curriculum.py
-```
-
-## 입력 데이터
-
-- **study_id**: 스터디 ID
-- **study_name**: 스터디명
-- **study_title**: 스터디 제목
-- **study_desc**: 스터디 설명
-- **study_level**: 스터디 레벨 (1-5)
-- **interest_tags**: 관심 태그들 (쉼표로 구분)
-- **study_start**: 스터디 시작일
-- **study_end**: 스터디 마감일
-
-## 출력
-
-생성된 커리큘럼은 마크다운 형식으로 반환되며, 다음을 포함합니다:
-- 주차별 학습 목표
-- 주요 학습 내용
-- 실습 과제
-- 성과 평가 방법
-
-## 파일 구조
-
-```
-Graddy/
-├── .env                          # OpenAI API 키 설정 (프로젝트 루트)
-├── Graddy_back/
-│   ├── scripts/
-│   │   ├── generate_curriculum.py    # AI 커리큘럼 생성 스크립트
-│   │   ├── test_curriculum.py        # 테스트 스크립트
-│   │   ├── requirements.txt           # Python 패키지 의존성
-│   │   └── README.md                  # 이 파일
-│   └── src/main/java/
-│       └── com/smhrd/graddy/
-│           ├── study/
-│           │   ├── controller/
-│           │   │   └── AICurriculumController.java
-│           │   ├── service/
-│           │   │   └── AICurriculumService.java
-│           │   └── dto/
-│           │       ├── AICurriculumRequest.java
-│           │       └── AICurriculumResponse.java
-│           └── tag/
-│               └── entity/
-│                   └── Tag.java
-```
-
-## 주의사항
-
-1. **OpenAI API 키**: `.env` 파일에 올바른 API 키가 설정되어야 합니다
-2. **Python 3.7 이상**: Python 3.7 이상이 필요합니다
-3. **인터넷 연결**: OpenAI API 호출을 위한 인터넷 연결이 필요합니다
-4. **API 비용**: API 사용량에 따른 비용이 발생할 수 있습니다
-5. **파일 위치**: `.env` 파일은 반드시 프로젝트 루트 디렉토리에 위치해야 합니다
-
-## 에러 처리
-
-- API 키 미설정 시 에러 메시지 출력
-- `.env` 파일을 찾을 수 없을 때 안내 메시지 출력
-- 네트워크 오류 시 적절한 에러 메시지 반환
-- Spring Boot에서 Python 스크립트 실행 오류 시 로그 기록
-
-## 문제 해결
-
-### OpenAI API 키 관련 문제
-```bash
-# .env 파일이 올바른 위치에 있는지 확인
-ls -la .env
-
-# .env 파일 내용 확인 (API 키가 올바르게 설정되어 있는지)
-cat .env
-```
-
-### Python 패키지 관련 문제
-```bash
-# 필요한 패키지 재설치
-pip install -r scripts/requirements.txt
-
-# 패키지 버전 확인
-pip list | grep openai
-pip list | grep python-dotenv
-```
+문제가 발생하거나 질문이 있으시면 개발팀에 문의하세요.

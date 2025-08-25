@@ -5,10 +5,13 @@ import com.smhrd.graddy.assignment.dto.AssignmentResponse;
 import com.smhrd.graddy.assignment.dto.AssignmentUpdateRequest;
 import com.smhrd.graddy.assignment.entity.Assignment;
 import com.smhrd.graddy.assignment.repository.AssignmentRepository;
+import com.smhrd.graddy.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -18,16 +21,35 @@ import java.util.stream.Collectors;
 public class AssignmentService {
 
     private final AssignmentRepository assignmentRepository;
+    private final MemberService memberService;
 
     // 과제 생성
     @Transactional
-    public AssignmentResponse createAssignment(AssignmentRequest request) {
+    public AssignmentResponse createAssignment(AssignmentRequest request, String userId) {
+        // 사용자가 해당 스터디/프로젝트의 리더인지 확인
+        if (!memberService.isLeader(request.getStudyProjectId(), userId)) {
+            throw new IllegalArgumentException("과제 생성은 스터디/프로젝트 리더만 가능합니다.");
+        }
+
+        // 사용자의 member_id 조회
+        Long memberId = memberService.getMemberIdByUserIdAndStudyProjectId(userId, request.getStudyProjectId());
+        if (memberId == null) {
+            throw new IllegalArgumentException("해당 스터디/프로젝트의 멤버가 아닙니다.");
+        }
+
+        // 마감일이 설정되지 않은 경우 기본값으로 생성일로부터 7일 뒤로 설정
+        Timestamp deadline = request.getDeadline();
+        if (deadline == null) {
+            LocalDateTime defaultDeadline = LocalDateTime.now().plusDays(7);
+            deadline = Timestamp.valueOf(defaultDeadline);
+        }
+
         Assignment assignment = new Assignment();
-        assignment.setStudyId(request.getStudyId());
-        assignment.setUserId(request.getUserId());
+        assignment.setStudyProjectId(request.getStudyProjectId());
+        assignment.setMemberId(memberId);
         assignment.setTitle(request.getTitle());
         assignment.setDescription(request.getDescription());
-        assignment.setDeadline(request.getDeadline());
+        assignment.setDeadline(deadline);
         assignment.setFileUrl(request.getFileUrl());
 
         Assignment savedAssignment = assignmentRepository.save(assignment);
@@ -42,16 +64,16 @@ public class AssignmentService {
     }
 
     // 스터디별 과제 목록 조회
-    public List<AssignmentResponse> getAssignmentsByStudy(Long studyId) {
-        List<Assignment> assignments = assignmentRepository.findByStudyIdOrderByCreatedAtDesc(studyId);
+    public List<AssignmentResponse> getAssignmentsByStudyProject(Long studyProjectId) {
+        List<Assignment> assignments = assignmentRepository.findByStudyProjectIdOrderByCreatedAtDesc(studyProjectId);
         return assignments.stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
     }
 
-    // 사용자별 과제 목록 조회
-    public List<AssignmentResponse> getAssignmentsByUser(String userId) {
-        List<Assignment> assignments = assignmentRepository.findByUserIdOrderByCreatedAtDesc(userId);
+    // 멤버별 과제 목록 조회
+    public List<AssignmentResponse> getAssignmentsByMember(Long memberId) {
+        List<Assignment> assignments = assignmentRepository.findByMemberIdOrderByCreatedAtDesc(memberId);
         return assignments.stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
@@ -59,9 +81,20 @@ public class AssignmentService {
 
     // 과제 수정
     @Transactional
-    public AssignmentResponse updateAssignment(Long assignmentId, AssignmentUpdateRequest request) {
+    public AssignmentResponse updateAssignment(Long assignmentId, AssignmentUpdateRequest request, String userId) {
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new IllegalArgumentException("과제를 찾을 수 없습니다: " + assignmentId));
+
+        // 사용자가 해당 스터디/프로젝트의 리더인지 확인
+        if (!memberService.isLeader(assignment.getStudyProjectId(), userId)) {
+            throw new IllegalArgumentException("과제 수정은 스터디/프로젝트 리더만 가능합니다.");
+        }
+
+        // 사용자의 member_id 조회
+        Long memberId = memberService.getMemberIdByUserIdAndStudyProjectId(userId, assignment.getStudyProjectId());
+        if (memberId == null) {
+            throw new IllegalArgumentException("해당 스터디/프로젝트의 멤버가 아닙니다.");
+        }
 
         assignment.setTitle(request.getTitle());
         assignment.setDescription(request.getDescription());
@@ -74,10 +107,21 @@ public class AssignmentService {
 
     // 과제 삭제
     @Transactional
-    public void deleteAssignment(Long assignmentId) {
-        if (!assignmentRepository.existsById(assignmentId)) {
-            throw new IllegalArgumentException("과제를 찾을 수 없습니다: " + assignmentId);
+    public void deleteAssignment(Long assignmentId, String userId) {
+        Assignment assignment = assignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> new IllegalArgumentException("과제를 찾을 수 없습니다: " + assignmentId));
+
+        // 사용자가 해당 스터디/프로젝트의 리더인지 확인
+        if (!memberService.isLeader(assignment.getStudyProjectId(), userId)) {
+            throw new IllegalArgumentException("과제 삭제는 스터디/프로젝트 리더만 가능합니다.");
         }
+
+        // 사용자의 member_id 조회
+        Long memberId = memberService.getMemberIdByUserIdAndStudyProjectId(userId, assignment.getStudyProjectId());
+        if (memberId == null) {
+            throw new IllegalArgumentException("해당 스터디/프로젝트의 멤버가 아닙니다.");
+        }
+
         assignmentRepository.deleteById(assignmentId);
     }
 
@@ -85,8 +129,8 @@ public class AssignmentService {
     private AssignmentResponse convertToResponse(Assignment assignment) {
         return new AssignmentResponse(
                 assignment.getAssignmentId(),
-                assignment.getStudyId(),
-                assignment.getUserId(),
+                assignment.getStudyProjectId(),
+                assignment.getMemberId(),
                 assignment.getTitle(),
                 assignment.getDescription(),
                 assignment.getDeadline(),
