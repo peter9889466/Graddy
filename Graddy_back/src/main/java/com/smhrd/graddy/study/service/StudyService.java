@@ -15,11 +15,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.LinkedHashSet;
+import com.smhrd.graddy.member.dto.MemberInfo;
+import com.smhrd.graddy.member.service.MemberService;
+import com.smhrd.graddy.member.repository.MemberRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +35,8 @@ public class StudyService {
     private final InterestRepository interestRepository;
     private final TagRepository tagRepository;
     private final StudyProjectAvailableDayRepository availableDayRepository;
+    private final MemberService memberService;
+    private final MemberRepository memberRepository;
 
     // 스터디/프로젝트 생성
     @Transactional
@@ -42,11 +49,11 @@ public class StudyService {
         studyProject.setTypeCheck(StudyProject.TypeCheck.valueOf(request.getTypeCheck()));
         studyProject.setUserId(request.getUserId());
         studyProject.setIsRecruiting(StudyProject.RecruitingStatus.recruitment);
-        studyProject.setStudyProjectStart(request.getStudyProjectStart());
-        studyProject.setStudyProjectEnd(request.getStudyProjectEnd());
+        studyProject.setStudyProjectStart(localDateTimeToTimestamp(request.getStudyProjectStart()));
+        studyProject.setStudyProjectEnd(localDateTimeToTimestamp(request.getStudyProjectEnd()));
         studyProject.setStudyProjectTotal(request.getStudyProjectTotal());
-        studyProject.setSoltStart(request.getSoltStart());
-        studyProject.setSoltEnd(request.getSoltEnd());
+        studyProject.setSoltStart(localDateTimeToTimestamp(request.getSoltStart()));
+        studyProject.setSoltEnd(localDateTimeToTimestamp(request.getSoltEnd()));
 
         StudyProject savedStudyProject = studyProjectRepository.save(studyProject);
         
@@ -69,6 +76,9 @@ public class StudyService {
                 availableDayRepository.save(availableDay);
             }
         }
+        
+        // 리더를 멤버 테이블에 자동 추가
+        memberService.addLeaderAsMember(savedStudyProject.getStudyProjectId(), savedStudyProject.getUserId());
         
         return convertToResponse(savedStudyProject);
     }
@@ -138,7 +148,12 @@ public class StudyService {
         
         // 생성일 기준 내림차순 정렬
         return allStudies.stream()
-                .sorted((s1, s2) -> s2.getCreatedAt().compareTo(s1.getCreatedAt()))
+                .sorted((s1, s2) -> {
+                    if (s1.getCreatedAt() == null && s2.getCreatedAt() == null) return 0;
+                    if (s1.getCreatedAt() == null) return 1;
+                    if (s2.getCreatedAt() == null) return -1;
+                    return s2.getCreatedAt().compareTo(s1.getCreatedAt());
+                })
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
     }
@@ -182,19 +197,19 @@ public class StudyService {
             studyProject.setIsRecruiting(StudyProject.RecruitingStatus.valueOf(request.getIsRecruiting()));
         }
         if (request.getStudyProjectStart() != null) {
-            studyProject.setStudyProjectStart(request.getStudyProjectStart());
+            studyProject.setStudyProjectStart(localDateTimeToTimestamp(request.getStudyProjectStart()));
         }
         if (request.getStudyProjectEnd() != null) {
-            studyProject.setStudyProjectEnd(request.getStudyProjectEnd());
+            studyProject.setStudyProjectEnd(localDateTimeToTimestamp(request.getStudyProjectEnd()));
         }
         if (request.getStudyProjectTotal() != null) {
             studyProject.setStudyProjectTotal(request.getStudyProjectTotal());
         }
         if (request.getSoltStart() != null) {
-            studyProject.setSoltStart(request.getSoltStart());
+            studyProject.setSoltStart(localDateTimeToTimestamp(request.getSoltStart()));
         }
         if (request.getSoltEnd() != null) {
-            studyProject.setSoltEnd(request.getSoltEnd());
+            studyProject.setSoltEnd(localDateTimeToTimestamp(request.getSoltEnd()));
         }
 
         StudyProject updatedStudyProject = studyProjectRepository.save(studyProject);
@@ -259,6 +274,9 @@ public class StudyService {
         tagRepository.deleteByStudyProjectId(studyProjectId);
         availableDayRepository.deleteByStudyProjectId(studyProjectId);
         
+        // 멤버 테이블 데이터 삭제
+        memberRepository.deleteByStudyProjectId(studyProjectId);
+        
         // 스터디/프로젝트 삭제
         studyProjectRepository.deleteById(studyProjectId);
     }
@@ -282,6 +300,10 @@ public class StudyService {
             availableDays.add(availableDay.getDayId());
         }
         
+        // 현재 인원수와 멤버 정보는 MemberService에서 조회
+        int currentMembers = memberService.getCurrentMemberCount(studyProject.getStudyProjectId());
+        List<MemberInfo> members = memberService.getMembersByStudyProjectId(studyProject.getStudyProjectId());
+        
         return new StudyResponse(
                 studyProject.getStudyProjectId(),
                 studyProject.getStudyProjectName(),
@@ -291,15 +313,41 @@ public class StudyService {
                 studyProject.getTypeCheck().toString(),
                 studyProject.getUserId(),
                 studyProject.getIsRecruiting().toString(),
-                studyProject.getStudyProjectStart(),
-                studyProject.getStudyProjectEnd(),
+                timestampToLocalDateTime(studyProject.getStudyProjectStart()),
+                timestampToLocalDateTime(studyProject.getStudyProjectEnd()),
                 studyProject.getStudyProjectTotal(),
-                studyProject.getSoltStart(),
-                studyProject.getSoltEnd(),
-                studyProject.getCreatedAt(),
+                timestampToLocalDateTime(studyProject.getSoltStart()),
+                timestampToLocalDateTime(studyProject.getSoltEnd()),
+                timestampToLocalDateTime(studyProject.getCreatedAt()),
                 studyProject.getCurText(),
                 tagNames,
-                availableDays
+                availableDays,
+                currentMembers,
+                members
         );
+    }
+
+    /**
+     * LocalDateTime을 Timestamp로 변환하는 유틸리티 메서드
+     * @param localDateTime 변환할 LocalDateTime
+     * @return Timestamp 객체, localDateTime이 null이면 null 반환
+     */
+    private Timestamp localDateTimeToTimestamp(LocalDateTime localDateTime) {
+        if (localDateTime == null) {
+            return null;
+        }
+        return Timestamp.valueOf(localDateTime);
+    }
+
+    /**
+     * Timestamp를 LocalDateTime으로 변환하는 유틸리티 메서드
+     * @param timestamp 변환할 Timestamp
+     * @return LocalDateTime 객체, timestamp가 null이면 null 반환
+     */
+    private LocalDateTime timestampToLocalDateTime(Timestamp timestamp) {
+        if (timestamp == null) {
+            return null;
+        }
+        return timestamp.toLocalDateTime();
     }
 }

@@ -2,6 +2,8 @@ package com.smhrd.graddy.study.service;
 
 import com.smhrd.graddy.study.entity.*;
 import com.smhrd.graddy.study.repository.*;
+import com.smhrd.graddy.member.entity.Member;
+import com.smhrd.graddy.member.repository.MemberRepository;
 import com.smhrd.graddy.tag.entity.Tag;
 import com.smhrd.graddy.tag.repository.TagRepository;
 import com.smhrd.graddy.interest.entity.Interest;
@@ -26,7 +28,7 @@ public class StudyProjectService {
     private StudyProjectStatusRepository statusRepository;
 
     @Autowired
-    private StudyProjectMemberRepository memberRepository;
+    private MemberRepository memberRepository;
 
     @Autowired
     private TagRepository tagRepository;
@@ -93,14 +95,12 @@ public class StudyProjectService {
                 .findByUserIdAndStudyProjectId(userId, studyProjectId)
                 .orElseThrow(() -> new RuntimeException("신청 정보를 찾을 수 없습니다."));
 
-        // 승인 상태로 변경
-        status.setStatus(StudyProjectStatus.Status.APPROVED);
-        statusRepository.save(status);
-
         // 멤버 테이블에 추가
-        StudyProjectMember member = new StudyProjectMember();
+        Member member = new Member();
         member.setUserId(userId);
         member.setStudyProjectId(studyProjectId);
+        member.setStudyProjectCheck(Member.MemberStatus.approved);
+        member.setMemberType(Member.MemberType.member);
         member.setJoinedAt(new Timestamp(System.currentTimeMillis()));
         memberRepository.save(member);
 
@@ -247,7 +247,7 @@ public class StudyProjectService {
     }
 
     // 스터디/프로젝트의 멤버 목록 조회
-    public List<StudyProjectMember> getStudyProjectMembers(Long studyProjectId) {
+    public List<Member> getStudyProjectMembers(Long studyProjectId) {
         return memberRepository.findByStudyProjectId(studyProjectId);
     }
 }
