@@ -15,6 +15,7 @@ interface StudyDetailSideBarProps {
     onTabChange: (tab: string) => void;
     isLoggedIn: boolean;
     isStudyMember: boolean;
+    isProject?: boolean;
 }
 
 // 스터디원 데이터 타입 정의
@@ -37,18 +38,24 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
     onTabChange,
     isLoggedIn,
     isStudyMember,
+    isProject = false,
 }) => {
     const [selectedMember, setSelectedMember] = useState<StudyMember | null>(null);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
-    const sideMenuItems: SideMenuItem[] = [
-        { name: "스터디 메인" },
-        { name: "커리큘럼" },
-        { name: "커뮤니티", requiresAuth: true, requiresMembership: true },
-        { name: "과제 제출", requiresAuth: true, requiresMembership: true },
-        { name: "과제 피드백", requiresAuth: true, requiresMembership: true },
-        { name: "과제 / 일정 관리", requiresAuth: true, requiresMembership: true },
-    ];
+    const sideMenuItems: SideMenuItem[] = isProject 
+        ? [
+            { name: "프로젝트 메인" },
+            { name: "커뮤니티", requiresAuth: true, requiresMembership: true },
+        ]
+        : [
+            { name: "스터디 메인" },
+            { name: "커리큘럼" },
+            { name: "커뮤니티", requiresAuth: true, requiresMembership: true },
+            { name: "과제 제출", requiresAuth: true, requiresMembership: true },
+            { name: "과제 피드백", requiresAuth: true, requiresMembership: true },
+            { name: "과제 / 일정 관리", requiresAuth: true, requiresMembership: true },
+        ];
 
     // 스터디원 데이터 (실제로는 API에서 가져올 예정)
     const studyMembers: StudyMember[] = [
@@ -115,7 +122,7 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
                 className="bg-white rounded-xl p-3 sm:p-4"
             >
                 <div className="space-y-2">
-                    {sideMenuItems.slice(0, 6).map((item) => {
+                    {sideMenuItems.map((item) => {
                         // 권한 체크
                         const hasAuth = !item.requiresAuth || isLoggedIn;
                         const hasMembership = !item.requiresMembership || isStudyMember;
@@ -155,13 +162,13 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
                 </div>
             </div>
 
-            {/* 스터디 멤버 섹션 */}
+            {/* 스터디/프로젝트 멤버 섹션 */}
             <div className="p-3 sm:p-4">
                 <h3
                     className="font-bold mb-3 text-sm sm:text-base"
                     style={{ color: "#8B85E9" }}
                 >
-                    스터디 멤버
+                    {isProject ? "프로젝트 멤버" : "스터디 멤버"}
                 </h3>
                 <hr className="mb-3 border-gray-200" />
                 <div className="bg-gray-50 rounded-lg p-3 pl-6 space-y-3">
