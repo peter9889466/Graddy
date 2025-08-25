@@ -87,7 +87,7 @@ export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
 
     if (userStudies.length === 0) {
         return (
-            <div className="space-y-6 sm:space-y-8">
+            <div className="space-y-6 sm:space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <h2 className="text-xl sm:text-2xl font-bold">
                         스터디/프로젝트
@@ -160,35 +160,39 @@ export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
     }
 
     return (
-        <div className="space-y-6 sm:space-y-8">
+        <div className="space-y-6 sm:space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <h2 className="text-xl sm:text-2xl font-bold">
                     스터디/프로젝트
                 </h2>
-
-                {/* 필터 버튼들 */}
-                <div className="flex gap-2 flex-wrap">
-                    {[
-                        { key: "all", label: "전체" },
-                        { key: "active", label: "진행중" },
-                        { key: "completed", label: "완료" },
-                        { key: "recruiting", label: "모집중" },
-                    ].map((filter) => (
-                        <button
-                            key={filter.key}
-                            onClick={() => setActiveFilter(filter.key as any)}
-                            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                                activeFilter === filter.key
-                                    ? "bg-[#8B85E9] text-white"
-                                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                            }`}
-                        >
-                            {filter.label}
-                        </button>
-                    ))}
-                </div>
+                <button
+                    onClick={() => navigate("/study/create")}
+                    className="px-6 py-2 bg-[#8B85E9] text-white rounded-lg hover:bg-[#7A74D8] transition-colors duration-200 font-medium"
+                >
+                    생성
+                </button>
             </div>
-
+            {/* 필터 버튼들 */}
+            <div className="flex gap-2 flex-wrap">
+                {[
+                    { key: "all", label: "전체" },
+                    { key: "applied", label: "승인 대기" },
+                    { key: "participating", label: "참여 중" },
+                    { key: "end", label: "스터디 종료" },
+                ].map((filter) => (
+                    <button
+                        key={filter.key}
+                        onClick={() => setActiveFilter(filter.key as any)}
+                        className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                            activeFilter === filter.key
+                                ? "bg-[#8B85E9] text-white"
+                                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        }`}
+                    >
+                        {filter.label}
+                    </button>
+                ))}
+            </div>
             <div className="space-y-4">
                 {userStudies.map((study) => {
                     const badges = getStatusBadge(study.status, study.role);
@@ -204,14 +208,7 @@ export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
                                         <h3 className="text-lg font-bold text-gray-800">
                                             {study.title}
                                         </h3>
-                                        <button
-                                            onClick={() =>
-                                                navigate("/study-create")
-                                            }
-                                            className="px-6 py-3 bg-[#8B85E9] text-white rounded-lg hover:bg-[#7A74D8] transition-colors duration-200 font-medium"
-                                        >
-                                            생성
-                                        </button>
+
                                         <span
                                             className={`px-2 py-1 rounded-full text-xs font-medium ${
                                                 study.type === "study"

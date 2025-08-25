@@ -5,7 +5,7 @@ import { User, Lock, AlertCircle, Check } from "lucide-react";
 import axios, { AxiosError } from "axios"; // AxiosError 타입을 가져옵니다.
 
 const Login: React.FC = () => {
-    const [id, setId] = useState(""); 
+    const [id, setId] = useState("");
     const [password, setPassword] = useState("");
     const [rememberId, setRememberId] = useState(false);
     const [idError, setIdError] = useState("");
@@ -18,7 +18,9 @@ const Login: React.FC = () => {
 
     const authContext = useContext(AuthContext);
     if (!authContext) {
-        throw new Error("Login 컴포넌트는 AuthProvider 내에서 사용되어야 합니다.");
+        throw new Error(
+            "Login 컴포넌트는 AuthProvider 내에서 사용되어야 합니다."
+        );
     }
     const { login } = authContext;
 
@@ -45,7 +47,7 @@ const Login: React.FC = () => {
         setIdError("");
         setPasswordError("");
         setHintMessage("");
-        
+
         if (!id) {
             setIdError("아이디를 입력하세요.");
             setHintMessage("아이디를 입력해주세요!");
@@ -60,16 +62,19 @@ const Login: React.FC = () => {
         setIsLoading(true);
 
         try {
-            const response = await axios.post("http://localhost:8080/api/login", {
-                userId: id,
-                password: password,
-            });
+            const response = await axios.post(
+                "http://localhost:8080/api/login",
+                {
+                    userId: id,
+                    password: password,
+                }
+            );
 
             // 💡 1. API 응답에서 토큰을 가져옵니다.
             const token = response.data.data.token;
-            
+
             const userData = {
-                nickname: response.data.nickname || id, 
+                nickname: response.data.nickname || id,
                 email: response.data.email || `${id}@example.com`,
             };
 
@@ -88,11 +93,16 @@ const Login: React.FC = () => {
             if (axios.isAxiosError(error)) {
                 // Axios 에러인 경우 (서버 응답이 온 경우)
                 const serverErrorMessage = error.response?.data?.message;
-                let displayMessage = "로그인에 실패했습니다. 아이디 또는 비밀번호를 다시 확인해주세요.";
-                
+                let displayMessage =
+                    "로그인에 실패했습니다. 아이디 또는 비밀번호를 다시 확인해주세요.";
+
                 // Type definition error가 발생했을 때 특별히 처리합니다.
-                if (serverErrorMessage && serverErrorMessage.includes("Type definition error")) {
-                    displayMessage = "서버 내부 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+                if (
+                    serverErrorMessage &&
+                    serverErrorMessage.includes("Type definition error")
+                ) {
+                    displayMessage =
+                        "서버 내부 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
                 } else if (serverErrorMessage) {
                     displayMessage = serverErrorMessage;
                 }
@@ -101,7 +111,8 @@ const Login: React.FC = () => {
                 setHintMessage(displayMessage);
             } else {
                 // 네트워크 에러 등 알 수 없는 에러인 경우
-                const unknownErrorMessage = "네트워크 연결에 실패했거나 서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.";
+                const unknownErrorMessage =
+                    "네트워크 연결에 실패했거나 서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.";
                 setPasswordError(unknownErrorMessage);
                 setHintMessage(unknownErrorMessage);
             }
@@ -126,7 +137,9 @@ const Login: React.FC = () => {
                             background: `linear-gradient(to right, #8B85E9, #8B85E9)`,
                         }}
                     >
-                        <h2 className="text-2xl font-bold mb-2 text-left">로그인</h2>
+                        <h2 className="text-2xl font-bold mb-2 text-left">
+                            로그인
+                        </h2>
                         <p className="opacity-90 text-sm text-left">
                             계정에 로그인하고 다양한 서비스를 이용해보세요
                         </p>
@@ -169,7 +182,9 @@ const Login: React.FC = () => {
                         <div>
                             <div className="flex items-center gap-2 mb-2">
                                 <div className="w-1 h-6 bg-indigo-600 rounded-full"></div>
-                                <h3 className="text-xl font-bold text-gray-800">아이디</h3>
+                                <h3 className="text-xl font-bold text-gray-800">
+                                    아이디
+                                </h3>
                             </div>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -192,14 +207,18 @@ const Login: React.FC = () => {
                                 />
                             </div>
                             {idError && (
-                                <p className="text-red-500 text-sm mt-1">{idError}</p>
+                                <p className="text-red-500 text-sm mt-1">
+                                    {idError}
+                                </p>
                             )}
                         </div>
 
                         <div>
                             <div className="flex items-center gap-2 mb-2">
                                 <div className="w-1 h-6 bg-indigo-600 rounded-full"></div>
-                                <h3 className="text-xl font-bold text-gray-800">비밀번호</h3>
+                                <h3 className="text-xl font-bold text-gray-800">
+                                    비밀번호
+                                </h3>
                             </div>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -222,7 +241,9 @@ const Login: React.FC = () => {
                                 />
                             </div>
                             {passwordError && (
-                                <p className="text-red-500 text-sm mt-1">{passwordError}</p>
+                                <p className="text-red-500 text-sm mt-1">
+                                    {passwordError}
+                                </p>
                             )}
                         </div>
 
@@ -231,10 +252,15 @@ const Login: React.FC = () => {
                                 type="checkbox"
                                 id="rememberId"
                                 checked={rememberId}
-                                onChange={(e) => setRememberId(e.target.checked)}
+                                onChange={(e) =>
+                                    setRememberId(e.target.checked)
+                                }
                                 className="w-5 h-5 rounded-md border border-gray-300 text-[#8B85E9] focus:ring-[#8B85E9]"
                             />
-                            <label htmlFor="rememberId" className="text-gray-600 text-sm">
+                            <label
+                                htmlFor="rememberId"
+                                className="text-gray-600 text-sm"
+                            >
                                 아이디 저장
                             </label>
                         </div>
@@ -243,17 +269,23 @@ const Login: React.FC = () => {
                             onClick={loginBtn}
                             disabled={isLoading}
                             className={`w-full py-4 px-6 rounded-xl font-semibold text-white transition-all duration-200 hover:shadow-xl transform hover:scale-105 ${
-                                isLoading ? "bg-gray-400 cursor-not-allowed" : "bg-[#8B85E9]"
+                                isLoading
+                                    ? "bg-gray-400 cursor-not-allowed"
+                                    : "bg-[#8B85E9]"
                             }`}
                             style={{
                                 boxShadow:
                                     "0 10px 15px -3px rgba(139, 133, 233, 0.1), 0 4px 6px -2px rgba(139, 133, 233, 0.05)",
                             }}
                             onMouseEnter={(e) =>
-                                !isLoading && (e.currentTarget.style.backgroundColor = "#7d75e3")
+                                !isLoading &&
+                                (e.currentTarget.style.backgroundColor =
+                                    "#7d75e3")
                             }
                             onMouseLeave={(e) =>
-                                !isLoading && (e.currentTarget.style.backgroundColor = "#8B85E9")
+                                !isLoading &&
+                                (e.currentTarget.style.backgroundColor =
+                                    "#8B85E9")
                             }
                         >
                             {isLoading ? "로그인 중..." : "로그인"}
@@ -262,7 +294,10 @@ const Login: React.FC = () => {
                         <div className="pt-4 text-center space-y-2">
                             <p className="text-sm text-gray-600">
                                 아직 회원이 아니신가요?{" "}
-                                <Link to="/join" className="text-[#8B85E9] hover:underline">
+                                <Link
+                                    to="/join"
+                                    className="text-[#8B85E9] hover:underline"
+                                >
                                     회원가입
                                 </Link>
                             </p>
@@ -270,7 +305,10 @@ const Login: React.FC = () => {
 
                         <div className="pt-2 text-center space-y-2">
                             <p className="text-sm text-gray-600">
-                                <Link to="/findAcc" className="text-[#8B85E9] hover:underline">
+                                <Link
+                                    to="/findAcc"
+                                    className="text-[#8B85E9] hover:underline"
+                                >
                                     아이디/비밀번호 찾기
                                 </Link>
                             </p>

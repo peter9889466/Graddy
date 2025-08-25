@@ -233,15 +233,7 @@ const JoinInterest: React.FC<JoinInterestProps> = ({
         };
         
         if (onNext) {
-            onNext(currentJoin2Data);
-        } else {
-            // 기존 방식 유지
-            navigate("/join3", {
-                state: {
-                    formData: formData,
-                    join2Data: currentJoin2Data
-                }
-            });
+            onNext(selectedInterests);
         }
     };
 
