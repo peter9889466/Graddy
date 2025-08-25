@@ -38,4 +38,8 @@ public class StudyResponse {
 
     // 사용자의 참여 상태 ("participating", "applied", "leader")
     private String userParticipationStatus;
+    
+    // 신청 상태 정보 (study_project_status 테이블에서 가져온 정보)
+    private String applicationStatus;  // PENDING, REJECTED, null
+    private LocalDateTime applicationDate;  // 신청 일시
 }

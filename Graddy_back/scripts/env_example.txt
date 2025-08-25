@@ -1,3 +1,8 @@
-# OpenAI API 키 설정
-# 실제 API 키로 교체하여 사용하세요
+# OpenAI API 설정
 OPENAI_API_KEY=your_openai_api_key_here
+
+# 데이터베이스 설정
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your_password_here
+DB_NAME=graddy

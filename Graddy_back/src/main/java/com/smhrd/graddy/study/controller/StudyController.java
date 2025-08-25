@@ -356,20 +356,24 @@ public class StudyController {
 
     /**
      * 로그인한 사용자의 스터디/프로젝트 관리 대시보드
-     * 참여 중인 스터디/프로젝트와 신청한 스터디/프로젝트 정보를 한 번에 조회합니다.
+     * 참여 중인 스터디/프로젝트와 신청한 스터디/프로젝트 정보를 통합하여 조회합니다.
      * 
      * @param authorization JWT 토큰 (Bearer 형식)
-     * @return 사용자의 스터디/프로젝트 관리 정보 (참여 목록 + 신청 목록)
+     * @return 사용자의 스터디/프로젝트 관리 정보 (통합 목록 + 개별 목록 + 통계)
      */
     @GetMapping("/my-dashboard")
     @Operation(summary = "내 스터디/프로젝트 관리 대시보드", 
-              description = "현재 로그인한 사용자의 스터디/프로젝트 관리 정보를 한 번에 조회합니다.\n\n" +
+              description = "현재 로그인한 사용자의 스터디/프로젝트 관리 정보를 통합하여 조회합니다.\n\n" +
                            "**반환 정보:**\n" +
-                           "• 참여 중인 스터디/프로젝트 목록\n" +
-                           "• 신청한 스터디/프로젝트 목록\n" +
-                           "• 각 스터디/프로젝트의 상세 정보와 상태")
+                           "• `allStudies`: 참여중이거나 신청한 모든 스터디/프로젝트 통합 목록\n" +
+                           "• `participations`: 참여 중인 스터디/프로젝트 목록\n" +
+                           "• `applications`: 신청한 스터디/프로젝트 목록\n" +
+                           "• `totalCount`: 전체 스터디/프로젝트 수\n" +
+                           "• `participationCount`: 참여 중인 스터디/프로젝트 수\n" +
+                           "• `applicationCount`: 신청한 스터디/프로젝트 수\n" +
+                           "• 각 스터디/프로젝트의 상세 정보와 참여 상태")
     @SecurityRequirement(name = "Bearer Authentication")
-    public ResponseEntity<ApiResponse<Map<String, List<StudyResponse>>>> getMyDashboard(
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getMyDashboard(
             @Parameter(description = "JWT 토큰 (Bearer 형식)", 
                       example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
                       required = true)
@@ -379,10 +383,43 @@ public class StudyController {
             String token = authorization.replace("Bearer ", "");
             String userId = jwtUtil.extractUserId(token);
             
-            Map<String, List<StudyResponse>> dashboard = studyService.getUserDashboard(userId);
+            Map<String, Object> dashboard = studyService.getUserDashboard(userId);
             return ApiResponse.success("내 스터디/프로젝트 대시보드 조회가 성공했습니다.", dashboard);
         } catch (Exception e) {
             return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "대시보드 조회에 실패했습니다.", null);
+        }
+    }
+
+    /**
+     * 내 스터디/프로젝트 상태별 상세 정보 조회
+     * 현재 로그인한 사용자의 스터디/프로젝트를 상태별로 구분하여 조회합니다.
+     * 
+     * @param authorization JWT 토큰 (Bearer 형식)
+     * @return 참여중, 승인대기중, 종료된 스터디/프로젝트 정보
+     */
+    @GetMapping("/my-status-details")
+    @Operation(summary = "내 스터디/프로젝트 상태별 상세 정보", 
+              description = "현재 로그인한 사용자의 스터디/프로젝트를 상태별로 구분하여 조회합니다.\n\n" +
+                           "**반환 정보:**\n" +
+                           "• `activeStudies`: 참여중인 활성 스터디/프로젝트 목록 (진행중)\n" +
+                           "• `pendingStudies`: 승인대기중인 스터디/프로젝트 목록\n" +
+                           "• `completedStudies`: 종료된 스터디/프로젝트 목록 (참여했던 것들)\n" +
+                           "• `completedAppliedStudies`: 종료된 스터디/프로젝트 목록 (신청했던 것들)\n" +
+                           "• 각 카테고리별 개수와 전체 개수")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getMyStudyStatusDetails(
+            @Parameter(description = "JWT 토큰 (Bearer 형식)", 
+                      example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                      required = true)
+            @RequestHeader(name = "Authorization", required = true) String authorization) {
+        try {
+            String token = authorization.replace("Bearer ", "");
+            String userId = jwtUtil.extractUserId(token);
+            
+            Map<String, Object> statusDetails = studyService.getUserStudyStatusDetails(userId);
+            return ApiResponse.success("내 스터디/프로젝트 상태별 상세 정보 조회가 성공했습니다.", statusDetails);
+        } catch (Exception e) {
+            return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "상태별 상세 정보 조회에 실패했습니다.", null);
         }
     }
 }
