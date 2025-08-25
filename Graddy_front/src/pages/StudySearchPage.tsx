@@ -147,10 +147,15 @@ export const StudySearchPage = () => {
         let filtered = convertedStudies;
 
         // 모집 상태 필터링
+        console.log('선택된 상태:', selectedStatus);
+        console.log('필터링 전 데이터:', convertedStudies.map(s => ({ title: s.studyTitle, status: s.recruitmentStatus })));
+        
         if (selectedStatus === "모집중") {
             filtered = filtered.filter((study) => study.recruitmentStatus === "모집중");
+            console.log('모집중 필터 적용 후:', filtered.length);
         } else if (selectedStatus === "모집 완료") {
             filtered = filtered.filter((study) => study.recruitmentStatus === "모집 완료" || study.recruitmentStatus === "스터디 종료");
+            console.log('모집완료 필터 적용 후:', filtered.length);
         }
 
         // 타입 필터링 (스터디/프로젝트)
@@ -195,7 +200,7 @@ export const StudySearchPage = () => {
     const statusOptions = [
         { value: "전체", label: "전체" },
         { value: "모집중", label: "모집중" },
-        { value: "모집완료", label: "모집완료" }
+        { value: "모집 완료", label: "모집완료" }
     ];
 
     const typeOptions = [
