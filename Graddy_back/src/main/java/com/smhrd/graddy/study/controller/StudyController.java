@@ -17,6 +17,10 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 import java.net.URI;
 import java.util.List;
+import com.smhrd.graddy.member.service.MemberService;
+import com.smhrd.graddy.study.service.StudyApplicationService;
+
+import java.util.Map;
 
 /**
  * 스터디/프로젝트 관리 API 컨트롤러
@@ -30,6 +34,8 @@ public class StudyController {
 
     private final StudyService studyService;
     private final JwtUtil jwtUtil;
+    private final MemberService memberService;
+    private final StudyApplicationService studyApplicationService;
 
     /**
      * 스터디/프로젝트 생성
@@ -74,20 +80,13 @@ public class StudyController {
 
     /**
      * 스터디/프로젝트 조회
-     * 특정 스터디/프로젝트 ID로 정보와 태그, 선호 요일, 현재 인원수를 조회합니다.
+     * 특정 스터디/프로젝트 ID로 정보와 태그, 선호 요일을 조회합니다.
      * 
      * @param studyProjectId 조회할 스터디/프로젝트의 ID
-     * @return 스터디/프로젝트 정보 (태그, 선호 요일, 멤버 정보 포함)
+     * @return 스터디/프로젝트 정보 (태그, 선호 요일 포함)
      */
     @GetMapping("/{studyProjectId}")
-    @Operation(summary = "스터디/프로젝트 조회",
-              description = "특정 스터디/프로젝트 ID로 정보와 태그, 선호 요일, 현재 인원수를 조회합니다.\n\n" +
-                           "**반환 정보:**\n" +
-                           "• 기본 정보: 이름, 제목, 설명, 레벨, 타입 등\n" +
-                           "• 태그 정보: 관심 분야 태그 목록\n" +
-                           "• 선호 요일: 가능한 요일 목록\n" +
-                           "• 인원 정보: 총 인원수(studyProjectTotal)와 현재 인원수(currentMemberCount)\n" +
-                           "• 멤버 정보: 현재 가입된 멤버들의 상세 정보 (ID, 타입, 상태, 가입일)")
+    @Operation(summary = "스터디/프로젝트 조회", description = "특정 스터디/프로젝트 ID로 정보와 태그, 선호 요일을 조회합니다.")
     public ResponseEntity<ApiResponse<StudyResponse>> getStudyProject(@PathVariable Long studyProjectId) {
         try {
             StudyResponse response = studyService.getStudy(studyProjectId);
@@ -101,24 +100,13 @@ public class StudyController {
      * 모든 스터디/프로젝트 목록 조회
      * 전체 스터디/프로젝트 목록을 생성일 기준 내림차순으로 조회합니다.
      * 
-     * @return 전체 스터디/프로젝트 목록 (태그, 선호 요일, 멤버 정보 포함)
+     * @return 전체 스터디/프로젝트 목록 (태그, 선호 요일 포함)
      */
     @GetMapping
-    @Operation(summary = "전체 스터디/프로젝트 목록",
-              description = "전체 스터디/프로젝트 목록을 생성일 기준 내림차순으로 조회합니다.\n\n" +
-                           "**반환 정보:**\n" +
-                           "• 기본 정보: 이름, 제목, 설명, 레벨, 타입 등\n" +
-                           "• 태그 정보: 관심 분야 태그 목록\n" +
-                           "• 선호 요일: 가능한 요일 목록\n" +
-                           "• 인원 정보: 총 인원수(studyProjectTotal)와 현재 인원수(currentMemberCount)\n" +
-                           "• 멤버 정보: 현재 가입된 멤버들의 상세 정보 (ID, 타입, 상태, 가입일)")
+    @Operation(summary = "전체 스터디/프로젝트 목록", description = "전체 스터디/프로젝트 목록을 생성일 기준 내림차순으로 조회합니다.")
     public ResponseEntity<ApiResponse<List<StudyResponse>>> getAllStudyProjects() {
-        try {
-            List<StudyResponse> studies = studyService.getAllStudies();
-            return ApiResponse.success("전체 스터디/프로젝트 목록 조회가 성공했습니다.", studies);
-        } catch (Exception e) {
-            return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "스터디/프로젝트 목록 조회에 실패했습니다.", null);
-        }
+        List<StudyResponse> studyProjects = studyService.getAllStudies();
+        return ApiResponse.success("전체 스터디/프로젝트 목록 조회가 성공했습니다.", studyProjects);
     }
 
     /**
@@ -293,6 +281,108 @@ public class StudyController {
             return ApiResponse.error(HttpStatus.FORBIDDEN, e.getMessage(), null);
         } catch (Exception e) {
             return ApiResponse.error(HttpStatus.UNAUTHORIZED, "JWT 토큰이 유효하지 않습니다.", null);
+        }
+    }
+
+    /**
+     * 로그인한 사용자의 참여 스터디/프로젝트 목록 조회
+     * 현재 로그인한 사용자가 참여하고 있는 모든 스터디/프로젝트 정보를 조회합니다.
+     * 
+     * @param authorization JWT 토큰 (Bearer 형식)
+     * @return 사용자가 참여하고 있는 스터디/프로젝트 목록
+     */
+    @GetMapping("/my-participations")
+    @Operation(summary = "내 참여 스터디/프로젝트 목록", 
+              description = "현재 로그인한 사용자가 참여하고 있는 모든 스터디/프로젝트 정보를 조회합니다.\n\n" +
+                           "**반환 정보:**\n" +
+                           "• 기본 정보: 이름, 제목, 설명, 레벨, 타입 등\n" +
+                           "• 태그 정보: 관심 분야 태그 목록\n" +
+                           "• 선호 요일: 가능한 요일 목록\n" +
+                           "• 인원 정보: 총 인원수와 현재 인원수\n" +
+                           "• 멤버 정보: 현재 가입된 멤버들의 상세 정보\n" +
+                           "• 내 역할: 해당 스터디/프로젝트에서의 역할 (리더/멤버)")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<ApiResponse<List<StudyResponse>>> getMyParticipations(
+            @Parameter(description = "JWT 토큰 (Bearer 형식)", 
+                      example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                      required = true)
+            @RequestHeader(name = "Authorization", required = true) String authorization) {
+        try {
+            // JWT 토큰에서 user_id 추출
+            String token = authorization.replace("Bearer ", "");
+            String userId = jwtUtil.extractUserId(token);
+            
+            List<StudyResponse> participations = studyService.getStudiesByParticipant(userId);
+            return ApiResponse.success("내 참여 스터디/프로젝트 목록 조회가 성공했습니다.", participations);
+        } catch (Exception e) {
+            return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "참여 목록 조회에 실패했습니다.", null);
+        }
+    }
+
+    /**
+     * 로그인한 사용자의 신청 스터디/프로젝트 목록 조회
+     * 현재 로그인한 사용자가 신청한 모든 스터디/프로젝트 정보를 조회합니다.
+     * 
+     * @param authorization JWT 토큰 (Bearer 형식)
+     * @return 사용자가 신청한 스터디/프로젝트 목록
+     */
+    @GetMapping("/my-applications")
+    @Operation(summary = "내 신청 스터디/프로젝트 목록", 
+              description = "현재 로그인한 사용자가 신청한 모든 스터디/프로젝트 정보를 조회합니다.\n\n" +
+                           "**반환 정보:**\n" +
+                           "• 기본 정보: 이름, 제목, 설명, 레벨, 타입 등\n" +
+                           "• 태그 정보: 관심 분야 태그 목록\n" +
+                           "• 선호 요일: 가능한 요일 목록\n" +
+                           "• 인원 정보: 총 인원수와 현재 인원수\n" +
+                           "• 신청 상태: PENDING(대기중), APPROVED(승인됨), REJECTED(거부됨)\n" +
+                           "• 신청 메시지: 신청 시 작성한 메시지")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<ApiResponse<List<StudyResponse>>> getMyApplications(
+            @Parameter(description = "JWT 토큰 (Bearer 형식)", 
+                      example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                      required = true)
+            @RequestHeader(name = "Authorization", required = true) String authorization) {
+        try {
+            // JWT 토큰에서 user_id 추출
+            String token = authorization.replace("Bearer ", "");
+            String userId = jwtUtil.extractUserId(token);
+            
+            List<StudyResponse> applications = studyService.getStudiesByApplicant(userId);
+            return ApiResponse.success("내 신청 스터디/프로젝트 목록 조회가 성공했습니다.", applications);
+        } catch (Exception e) {
+            return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "신청 목록 조회에 실패했습니다.", null);
+        }
+    }
+
+    /**
+     * 로그인한 사용자의 스터디/프로젝트 관리 대시보드
+     * 참여 중인 스터디/프로젝트와 신청한 스터디/프로젝트 정보를 한 번에 조회합니다.
+     * 
+     * @param authorization JWT 토큰 (Bearer 형식)
+     * @return 사용자의 스터디/프로젝트 관리 정보 (참여 목록 + 신청 목록)
+     */
+    @GetMapping("/my-dashboard")
+    @Operation(summary = "내 스터디/프로젝트 관리 대시보드", 
+              description = "현재 로그인한 사용자의 스터디/프로젝트 관리 정보를 한 번에 조회합니다.\n\n" +
+                           "**반환 정보:**\n" +
+                           "• 참여 중인 스터디/프로젝트 목록\n" +
+                           "• 신청한 스터디/프로젝트 목록\n" +
+                           "• 각 스터디/프로젝트의 상세 정보와 상태")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<ApiResponse<Map<String, List<StudyResponse>>>> getMyDashboard(
+            @Parameter(description = "JWT 토큰 (Bearer 형식)", 
+                      example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                      required = true)
+            @RequestHeader(name = "Authorization", required = true) String authorization) {
+        try {
+            // JWT 토큰에서 user_id 추출
+            String token = authorization.replace("Bearer ", "");
+            String userId = jwtUtil.extractUserId(token);
+            
+            Map<String, List<StudyResponse>> dashboard = studyService.getUserDashboard(userId);
+            return ApiResponse.success("내 스터디/프로젝트 대시보드 조회가 성공했습니다.", dashboard);
+        } catch (Exception e) {
+            return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "대시보드 조회에 실패했습니다.", null);
         }
     }
 }

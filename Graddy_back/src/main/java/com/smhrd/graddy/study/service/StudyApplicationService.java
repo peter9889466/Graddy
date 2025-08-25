@@ -119,6 +119,16 @@ public class StudyApplicationService {
     }
 
     /**
+     * 사용자가 신청한 스터디/프로젝트 ID 목록 조회
+     */
+    public List<Long> findStudyProjectIdsByUserId(String userId) {
+        List<StudyProjectStatus> applications = statusRepository.findByUserId(userId);
+        return applications.stream()
+                .map(StudyProjectStatus::getStudyProjectId)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * 신청 취소
      */
     @Transactional
@@ -151,3 +161,6 @@ public class StudyApplicationService {
         );
     }
 }
+
+
+
