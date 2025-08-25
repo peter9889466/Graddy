@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Eye, EyeOff, Check, X, AlertCircle, User, Lock, Mail, Phone, CheckCircle, Clock } from "lucide-react";
 
 interface JoinProfileProps {
     navigate: any;
     location: any;
+    onNext?: (data: any) => void; // onNext prop 추가
 }
 
-const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location }) => {
+const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location, onNext }) => {
 // 상태 관리
     const [id, setId] = useState("");
     const [idError, setIdError] = useState("");
@@ -28,10 +29,14 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location }) => {
     const [notificationPreference, setNotificationPreference] = useState<"email" | "phone" | "">("");
     const [hintMessage, setHintMessage] = useState<string>("");
     const [showHint, setShowHint] = useState(false);
-    const [showVerificationInput, setShowVerificationInput] = useState(false);
-    const [verificationCode, setVerificationCode] = useState("");
-    const [isVerified, setIsVerified] = useState(false);
-    const [verificationTimer, setVerificationTimer] = useState(0);
+
+    // 컴포넌트 내부에 ref 선언
+    const phoneMiddleRef = useRef<HTMLInputElement>(null);
+    const phoneLastRef = useRef<HTMLInputElement>(null);
+    // const [showVerificationInput, setShowVerificationInput] = useState(false);
+    // const [verificationCode, setVerificationCode] = useState("");
+    // const [isVerified, setIsVerified] = useState(false);
+    // const [verificationTimer, setVerificationTimer] = useState(0);
 
     // 힌트 메시지 자동 숨김
     useEffect(() => {
@@ -45,16 +50,18 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location }) => {
         }
     }, [hintMessage]);
 
+    
+
     // 인증 타이머용 useEffect 추가
-    useEffect(() => {
-        let interval: ReturnType<typeof setInterval>;
-        if (verificationTimer > 0) {
-            interval = setInterval(() => {
-                setVerificationTimer((prev) => prev - 1);
-            }, 1000);
-        }
-        return () => clearInterval(interval);
-    }, [verificationTimer]);
+    // useEffect(() => {
+    //     let interval: ReturnType<typeof setInterval>;
+    //     if (verificationTimer > 0) {
+    //         interval = setInterval(() => {
+    //             setVerificationTimer((prev) => prev - 1);
+    //         }, 1000);
+    //     }
+    //     return () => clearInterval(interval);
+    // }, [verificationTimer]);
 
     // 비밀번호 유효성 검사
     const validatePassword = (pwd: string) => {
@@ -137,38 +144,42 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location }) => {
     const handlePhoneMiddleChange = (value: string) => {
         const numericValue = value.replace(/[^\d]/g, "").slice(0, 4);
         setPhoneMiddle(numericValue);
+        
+        // 4자리 입력 완료 시 다음 입력칸으로 이동
+        if (numericValue.length === 4 && phoneLastRef.current) {
+            phoneLastRef.current.focus();
+        }
     };
-
     const handlePhoneLastChange = (value: string) => {
         const numericValue = value.replace(/[^\d]/g, "").slice(0, 4);
         setPhoneLast(numericValue);
     };
 
-    const handleSendVerification = () => {
-        if (!validatePhoneNumber(phonePrefix, phoneMiddle, phoneLast)) {
-            setHintMessage("올바른 전화번호를 입력해주세요!");
-            return;
-        }
+    // const handleSendVerification = () => {
+    //     if (!validatePhoneNumber(phonePrefix, phoneMiddle, phoneLast)) {
+    //         setHintMessage("올바른 전화번호를 입력해주세요!");
+    //         return;
+    //     }
         
-        setShowVerificationInput(true);
-        setVerificationTimer(180); // 3분
-        setHintMessage("인증번호가 발송되었습니다!");
-    };
+    //     setShowVerificationInput(true);
+    //     setVerificationTimer(180); // 3분
+    //     setHintMessage("인증번호가 발송되었습니다!");
+    // };
 
-    const handleVerifyCode = () => {
-        if (verificationCode.trim() === "") {
-            setHintMessage("인증번호를 입력해주세요!");
-            return;
-        }
+    // const handleVerifyCode = () => {
+    //     if (verificationCode.trim() === "") {
+    //         setHintMessage("인증번호를 입력해주세요!");
+    //         return;
+    //     }
         
-        // 실제로는 서버에서 확인해야 함
-        if (verificationCode === "123456") {
-            setIsVerified(true);
-            setHintMessage("전화번호 인증이 완료되었습니다!");
-        } else {
-            setHintMessage("인증번호가 올바르지 않습니다!");
-        }
-    };
+    //     // 실제로는 서버에서 확인해야 함
+    //     if (verificationCode === "123456") {
+    //         setIsVerified(true);
+    //         setHintMessage("전화번호 인증이 완료되었습니다!");
+    //     } else {
+    //         setHintMessage("인증번호가 올바르지 않습니다!");
+    //     }
+    // };
 
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
@@ -216,16 +227,16 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location }) => {
             return;
         }
 
-        if (!isVerified) {
-            setHintMessage("전화번호 인증을 완료해주세요!");
-            return;
-        }
+        // if (!isVerified) {
+        //     setHintMessage("전화번호 인증을 완료해주세요!");
+        //     return;
+        // }
 
-        // 모든 조건 통과 → Join2 페이지로 이동 (상태 전달)
+        // 모든 조건 통과 
         setPasswordError("");
         setHintMessage("회원가입이 완료되었습니다!");
         
-        // 현재 폼 데이터를 state로 전달
+        // 모든 조건 통과 후
         const formData = {
             userId: id,
             password: password,
@@ -235,37 +246,41 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location }) => {
             alarmType: notificationPreference === "phone" ? true : false
         };
         
-        navigate("/join2", { state: { formData } });
+        // onNext 콜백만 사용 (navigate 제거)
+        if (onNext) {
+            onNext(formData);
+        }
+        // else 부분 완전 삭제
     };
 
     const isFormValid = id && password && confirmPassword && name && nickname && phoneMiddle && phoneLast && 
-                    idChecked && nicknameChecked && validatePhoneNumber(phonePrefix, phoneMiddle, phoneLast) && isVerified;
+                    idChecked && nicknameChecked && validatePhoneNumber(phonePrefix, phoneMiddle, phoneLast);
 
     // Join2에서 돌아올 때 전달된 formData 가져오기
     const previousFormData = location.state?.formData;
 
     // Join2 → Join 으로 돌아올 때 값 복원
-    useEffect(() => {
-        if (previousFormData) {
-            setId(previousFormData.id || "");
-            setPassword(previousFormData.password || "");
-            setConfirmPassword(previousFormData.confirmPassword || "");
-            setName(previousFormData.name || "");
-            setNickname(previousFormData.nickname || "");
-            setEmail(previousFormData.email || "");
+    // useEffect(() => {
+    //     if (previousFormData) {
+    //         setId(previousFormData.userId || "");
+    //         setPassword(previousFormData.password || "");
+    //         setConfirmPassword(previousFormData.password || "");
+    //         setName(previousFormData.name || "");
+    //         setNickname(previousFormData.nick || "");
+    //         setEmail(previousFormData.email || "");
             
-            // 전화번호 분리해서 복원
-            const fullPhoneNumber = previousFormData.tel || "";
-            if (fullPhoneNumber.length >= 11) {
-                const prefix = fullPhoneNumber.substring(0, 3);
-                const middle = fullPhoneNumber.substring(3, 7);
-                const last = fullPhoneNumber.substring(7, 11);
-                setPhonePrefix(prefix);
-                setPhoneMiddle(middle);
-                setPhoneLast(last);
-            }
-        }
-    }, [previousFormData]);
+    //         // 전화번호 분리해서 복원
+    //         const fullPhoneNumber = previousFormData.tel || "";
+    //         if (fullPhoneNumber.length >= 11) {
+    //             const prefix = fullPhoneNumber.substring(0, 3);
+    //             const middle = fullPhoneNumber.substring(3, 7);
+    //             const last = fullPhoneNumber.substring(7, 11);
+    //             setPhonePrefix(prefix);
+    //             setPhoneMiddle(middle);
+    //             setPhoneLast(last);
+    //         }
+    //     }
+    // }, [previousFormData]);
 
     const steps = ["프로필 설정", "관심사 선택", "시간대 선택"];
 
@@ -310,7 +325,7 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location }) => {
                 <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
                     {/* 헤더 */}
                     <div className="px-6 py-8 text-white" style={{ background: `linear-gradient(to right, #8B85E9, #8B85E9)` }}>
-                        <h2 className="text-2xl font-bold mb-2 text-left">회원가입</h2>
+                        <h2 className="text-2xl font-bold mb-2 text-left">프로필 설정</h2>
                         <p className="opacity-90 text-sm text-left">
                             새로운 계정을 만들어 다양한 서비스를 이용해보세요
                         </p>
@@ -551,11 +566,11 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location }) => {
 
                                     {/* 중복확인 버튼 */}
                                     <button
-                                    onClick={onCheckId}
-                                    className="px-4 py-3 text-sm text-white rounded-lg font-medium transition-all duration-200 hover:opacity-90"
-                                    style={{ backgroundColor: "#8B85E9" }}
+                                        onClick={onCheckNickname}  // onCheckId -> onCheckNickname 으로 변경
+                                        className="px-4 py-3 text-sm text-white rounded-lg font-medium transition-all duration-200 hover:opacity-90"
+                                        style={{ backgroundColor: "#8B85E9" }}
                                     >
-                                    중복확인
+                                        중복확인
                                     </button>
                                 </div>
 
@@ -586,7 +601,7 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location }) => {
                                             className="w-28 pl-10 pr-8 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:border-transparent transition-all duration-200 appearance-none bg-white"
                                             onFocus={(e) => (e.target as HTMLSelectElement).style.boxShadow = `0 0 0 2px rgba(139, 133, 233, 0.2)`}
                                             onBlur={(e) => (e.target as HTMLSelectElement).style.boxShadow = 'none'}
-                                            disabled={isVerified}
+                                            // disabled={isVerified}
                                         >
                                             <option value="010">010</option>
                                             <option value="011">011</option>
@@ -606,6 +621,7 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location }) => {
                                     {/* 두 번째 필드 - 가운데 4자리 */}
                                     <div className="relative flex-1">
                                         <input
+                                            ref={phoneMiddleRef}
                                             type="tel"
                                             value={phoneMiddle}
                                             onChange={(e) => handlePhoneMiddleChange(e.target.value)}
@@ -618,7 +634,7 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location }) => {
                                             }`}
                                             onFocus={(e) => (e.target as HTMLInputElement).style.boxShadow = `0 0 0 2px rgba(139, 133, 233, 0.2)`}
                                             onBlur={(e) => (e.target as HTMLInputElement).style.boxShadow = 'none'}
-                                            disabled={isVerified}
+                                            // disabled={isVerified}
                                             maxLength={4}
                                         />
                                     </div>
@@ -629,6 +645,7 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location }) => {
                                     {/* 세 번째 필드 - 마지막 4자리 */}
                                     <div className="relative flex-1">
                                         <input
+                                            ref={phoneLastRef}
                                             type="tel"
                                             value={phoneLast}
                                             onChange={(e) => handlePhoneLastChange(e.target.value)}
@@ -641,19 +658,19 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location }) => {
                                             }`}
                                             onFocus={(e) => (e.target as HTMLInputElement).style.boxShadow = `0 0 0 2px rgba(139, 133, 233, 0.2)`}
                                             onBlur={(e) => (e.target as HTMLInputElement).style.boxShadow = 'none'}
-                                            disabled={isVerified}
+                                            // disabled={isVerified}
                                             maxLength={4}
                                         />
-                                        {validatePhoneNumber(phonePrefix, phoneMiddle, phoneLast) && !showVerificationInput && (
+                                        {validatePhoneNumber(phonePrefix, phoneMiddle, phoneLast) && (
                                             <div className="absolute right-3 top-1/2 -translate-y-1/2">
                                                 <Check className="w-5 h-5 text-green-500" />
                                             </div>
                                         )}
-                                        {isVerified && (
+                                        {/* {isVerified && (
                                             <div className="absolute right-3 top-1/2 -translate-y-1/2">
                                                 <CheckCircle className="w-5 h-5 text-green-500" />
                                             </div>
-                                        )}
+                                        )} */}
                                     </div>
                                 </div>
                                 <p className="text-sm text-gray-500 mt-1">
@@ -661,7 +678,7 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location }) => {
                                 </p>
                                 
                                 {/* 인증 버튼 - 수정된 유효성 검사 함수 사용 */}
-                                <div className="mt-3">
+                                {/* <div className="mt-3">
                                     <button 
                                         onClick={handleSendVerification}
                                         disabled={!validatePhoneNumber(phonePrefix, phoneMiddle, phoneLast) || isVerified}
@@ -679,10 +696,10 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location }) => {
                                     >
                                         {isVerified ? "인증 완료" : showVerificationInput ? "인증번호 재발송" : "인증번호 발송"}
                                     </button>
-                                </div>
+                                </div> */}
 
                                 {/* 인증번호 입력 필드 */}
-                                {showVerificationInput && !isVerified && (
+                                {/* {showVerificationInput && !isVerified && (
                                     <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
                                         <div className="flex items-center gap-2 mb-2">
                                             <AlertCircle className="w-4 h-4 text-indigo-600" />
@@ -718,7 +735,7 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location }) => {
                                             </button>
                                         </div>
                                     </div>
-                                )}
+                                )} */}
                             </div>
 
                             {/* 알림 설정 - 토글 가능하도록 수정 */}
