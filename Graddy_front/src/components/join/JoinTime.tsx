@@ -19,7 +19,21 @@ interface LocationState {
     join2Data?: any;
 }
 
-const JoinTime: React.FC = () => {
+interface JoinTimeProps {
+    navigate: any;
+    location: any;
+    formData: any;
+    interestData: any;
+    onPrevious: () => void;
+}
+
+const JoinTime: React.FC<JoinTimeProps> = ({ 
+    navigate, 
+    location, 
+    formData, 
+    interestData, 
+    onPrevious 
+}) => {
     // State to manage day selections
     const [selectedDays, setSelectedDays] = useState<DaySelection>({
         monday: false,
@@ -42,13 +56,8 @@ const JoinTime: React.FC = () => {
     // State to control hint message visibility.
     const [showHint, setShowHint] = useState(false);
     
-    // Navigation function
-    const navigate = useNavigate();
-    const location = useLocation();
-    
     // 📌 수정: useLocation으로 전달받은 데이터 가져오기
     const locationState = location.state as LocationState | null;
-    const formData = locationState?.formData;
     const join2Data = locationState?.join2Data;
 
     // Hides the hint message automatically after a delay.
@@ -176,7 +185,7 @@ const JoinTime: React.FC = () => {
         const soltEnd = toISOTime(customTimeSlot.endTime);
 
         // 📌 수정: Join2에서 전달받은 관심사 데이터 올바르게 처리
-        const interestsFromJoin2 = join2Data?.selectedInterests || [];
+        const interestsFromJoin2 = interestData?.selectedInterests || [];
         
         // 난이도 매핑
         const difficultyMapping: { [key: string]: number } = {
@@ -255,20 +264,17 @@ const JoinTime: React.FC = () => {
 
     // 이전 버튼 클릭 시 현재 Join3 데이터와 함께 Join2로 이동
     const handlePrevious = () => {
-        // 현재 Join3의 상태 데이터 준비
-        const currentJoin3Data = {
-            selectedDays,
-            customTimeSlot
-        };
-
-        // Join2로 이동하면서 모든 데이터 전달
-        navigate("/join2", {
-            state: {
-                formData: formData,           // Join에서 받은 프로필 데이터
-                join2Data: join2Data,         // Join2의 관심사 데이터 (복원용)
-                join3Data: currentJoin3Data   // Join3의 시간대 데이터 (복원용)
-            }
-        });
+        if (onPrevious) {
+            onPrevious(); // Join 컴포넌트의 setStep(2) 실행
+        } else {
+            // 기존 방식 유지
+            navigate("/join2", {
+                state: {
+                    formData: formData,
+                    join2Data: interestData
+                }
+            });
+        }
     };
 
     const selectedDayCount = getSelectedDayCount();

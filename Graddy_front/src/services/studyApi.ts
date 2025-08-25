@@ -73,6 +73,7 @@ export interface CreateStudyProjectRequest {
     soltEnd: string; // ISO 8601 형식: "2025-08-22T11:27:56.603Z"
     interestIds: number[];
     dayIds: string[]; // 백엔드에서는 Byte[]이지만 프론트엔드에서는 string[]로 처리
+    tagNames?: string[]; // 선택된 태그 이름들
 }
 
 // 스터디 수정 요청 타입

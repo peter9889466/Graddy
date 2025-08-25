@@ -94,7 +94,7 @@ const StudyCreate: React.FC = () => {
         maxMembers: 0,
         startDate: '',
         endDate: '',
-        tags: [] as Array<{name: string}>, // 태그 정보
+        tags: [] as Array<{name: string, interestId: number}>, // 태그 정보 (name과 interestId 포함)
         selectedDays: {
             monday: false,
             tuesday: false,
@@ -138,11 +138,11 @@ const StudyCreate: React.FC = () => {
         // 스터디와 프로젝트에 따라 다른 태그 필터링
         const filteredInterests = backendInterests.filter(interest => {
             if (studyType === 'study') {
-                // 스터디: interestDivision 1~6번만
+                // 스터디: interestDivision 1~6번만 (포지션 제외)
                 return interest.interestDivision >= 1 && interest.interestDivision <= 6;
             } else {
-                // 프로젝트: interestDivision 7번만
-                return interest.interestDivision === 7;
+                // 프로젝트: 모든 태그 사용 가능 (1~7번)
+                return interest.interestDivision >= 1 && interest.interestDivision <= 7;
             }
         });
 
@@ -182,9 +182,9 @@ const StudyCreate: React.FC = () => {
         };
 
         fetchInterests();
-    }, []);
+    }, [studyType]); // studyType이 변경될 때마다 다시 실행
 
-    const handleRemoveTag = (tagToRemove: {name: string, difficulty?: string}) => {
+    const handleRemoveTag = (tagToRemove: {name: string, interestId: number}) => {
         setStudyData({
             ...studyData,
             tags: studyData.tags.filter(tag => tag.name !== tagToRemove.name)
@@ -376,8 +376,9 @@ const StudyCreate: React.FC = () => {
                 .filter(([_, isSelected]) => isSelected)
                 .map(([dayKey, _]) => dayMapping[dayKey as keyof typeof dayMapping]);
             
-            // 태그에서 interestIds 추출 (임시로 1, 2, 3 사용)
-            const interestIds = studyData.tags.length > 0 ? [1, 2, 3] : [1];
+            // 선택된 태그에서 interestIds와 tagNames 추출
+            const interestIds = studyData.tags.map(tag => tag.interestId);
+            const tagNames = studyData.tags.map(tag => tag.name);
             
             // 새로운 스터디 프로젝트 생성 요청 데이터
             const createStudyProjectRequest: CreateStudyProjectRequest = {
@@ -393,7 +394,8 @@ const StudyCreate: React.FC = () => {
                 soltStart: formatTimeForBackend(studyData.startTime, 9), // 시작 시간을 ISO 형식으로
                 soltEnd: formatTimeForBackend(studyData.endTime, 18), // 종료 시간을 ISO 형식으로
                 interestIds: interestIds,
-                dayIds: selectedDayIds
+                dayIds: selectedDayIds,
+                tagNames: tagNames // 선택된 태그 이름들
             };
 
             console.log('백엔드로 전송할 데이터:', createStudyProjectRequest);
@@ -518,11 +520,17 @@ const StudyCreate: React.FC = () => {
         } else {
             // 새로운 태그라면 추가
             if (studyData.tags.length < 5) {
-                const newTag = { name: tag };
-                setStudyData({
-                    ...studyData,
-                    tags: [...studyData.tags, newTag]
-                });
+                // interests 배열에서 해당 태그의 interestId 찾기
+                const interest = interests.find(i => i.name === tag);
+                if (interest) {
+                    const newTag = { name: tag, interestId: interest.id };
+                    setStudyData({
+                        ...studyData,
+                        tags: [...studyData.tags, newTag]
+                    });
+                } else {
+                    console.warn('태그에 해당하는 interest를 찾을 수 없습니다:', tag);
+                }
             } else {
                 alert('태그는 5개까지만 선택할 수 있습니다!');
             }

@@ -23,6 +23,14 @@ interface SelectedInterestItem extends InterestItem {
     difficulty: string;
 }
 
+interface JoinInterestProps {
+    navigate: any;
+    location: any;
+    formData: any;
+    onPrevious: () => void;
+    onNext?: (interestData: any) => void; // 필요시 추가
+}
+
 // interestDivision(숫자)를 category(문자열)로 매핑하는 객체
 const categoryMapping: { [key: number]: string } = {
     1: "language",
@@ -44,13 +52,19 @@ const categories = {
     common: "기타"
 };
 
-const JoinInterest: React.FC = () => {
-    const navigate = useNavigate();
-    const location = useLocation();
+const JoinInterest: React.FC<JoinInterestProps> = ({ 
+    navigate, 
+    location, 
+    formData, 
+    onPrevious, 
+    onNext
+}) => {
+    // const navigate = useNavigate();
+    // const location = useLocation();
 
     const previousFormData = location.state?.formData;
-    const previousJoin2Data = location.state?.join2Data;
-    const previousJoin3Data = location.state?.join3Data;
+    // const previousJoin2Data = location.state?.join2Data;
+    // const previousJoin3Data = location.state?.join3Data;
 
     // API에서 가져온 모든 관심사 목록
     const [allInterests, setAllInterests] = useState<InterestItem[]>([]);
@@ -58,10 +72,10 @@ const JoinInterest: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     
     // 컴포넌트 상태
-    const [selectedInterests, setSelectedInterests] = useState<SelectedInterestItem[]>(previousJoin2Data?.selectedInterests || []);
-    const [searchTerm, setSearchTerm] = useState(previousJoin2Data?.searchTerm || "");
-    const [activeDifficulty, setActiveDifficulty] = useState<string | null>(previousJoin2Data?.activeDifficulty || null);
-    const [activeCategory, setActiveCategory] = useState<string>(previousJoin2Data?.activeCategory || "all");
+    const [selectedInterests, setSelectedInterests] = useState<SelectedInterestItem[]>([]);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [activeDifficulty, setActiveDifficulty] = useState<string | null>(null);
+    const [activeCategory, setActiveCategory] = useState<string>("all");
     
     const [hintMessage, setHintMessage] = useState<string>("");
     const [showHint, setShowHint] = useState(false);
@@ -200,6 +214,17 @@ const JoinInterest: React.FC = () => {
     };
 
     const goToPrevious = () => {
+        if (onPrevious) {
+            onPrevious(); // Join 컴포넌트의 setStep(1) 호출
+        }
+    };
+    
+    const goToNext = () => {
+        if (selectedInterests.length === 0) {
+            setHintMessage("최소 하나 이상의 관심분야를 선택해주세요!");
+            return;
+        }
+        
         const currentJoin2Data = {
             selectedInterests,
             searchTerm,
@@ -207,35 +232,18 @@ const JoinInterest: React.FC = () => {
             activeCategory
         };
         
-        navigate("/join", { 
-            state: { 
-                formData: previousFormData,
-                join2Data: currentJoin2Data
-            } 
-        });
-    };
-    
-const goToNext = () => {
-    if (selectedInterests.length === 0) {
-        setHintMessage("최소 하나 이상의 관심분야를 선택해주세요!");
-        return;
-    }
-
-    const currentJoin2Data = {
-        selectedInterests,
-        searchTerm,
-        activeDifficulty,
-        activeCategory
-    };
-
-    // Join3로 모든 데이터 전달 (API 호출 제거)
-    navigate("/join3", {
-        state: {
-            formData: previousFormData,
-            join2Data: currentJoin2Data
+        if (onNext) {
+            onNext(currentJoin2Data);
+        } else {
+            // 기존 방식 유지
+            navigate("/join3", {
+                state: {
+                    formData: formData,
+                    join2Data: currentJoin2Data
+                }
+            });
         }
-    });
-};
+    };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && isProceedEnabled) {
@@ -255,7 +263,7 @@ const goToNext = () => {
     
     return (
         <div 
-            className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-8 px-4 font-sans"
+            className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-8 px-4"
             onKeyDown={handleKeyDown}
             tabIndex={0}
         >
