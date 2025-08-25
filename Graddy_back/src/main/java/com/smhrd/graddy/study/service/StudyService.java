@@ -22,9 +22,12 @@ import java.util.stream.Collectors;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.HashMap;
 import com.smhrd.graddy.member.dto.MemberInfo;
 import com.smhrd.graddy.member.service.MemberService;
 import com.smhrd.graddy.member.repository.MemberRepository;
+import com.smhrd.graddy.study.service.StudyApplicationService;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +40,7 @@ public class StudyService {
     private final StudyProjectAvailableDayRepository availableDayRepository;
     private final MemberService memberService;
     private final MemberRepository memberRepository;
+    private final StudyApplicationService studyApplicationRepository;
 
     // 스터디/프로젝트 생성
     @Transactional
@@ -76,9 +80,6 @@ public class StudyService {
                 availableDayRepository.save(availableDay);
             }
         }
-        
-        // 리더를 멤버 테이블에 자동 추가
-        memberService.addLeaderAsMember(savedStudyProject.getStudyProjectId(), savedStudyProject.getUserId());
         
         return convertToResponse(savedStudyProject);
     }
@@ -274,15 +275,17 @@ public class StudyService {
         tagRepository.deleteByStudyProjectId(studyProjectId);
         availableDayRepository.deleteByStudyProjectId(studyProjectId);
         
-        // 멤버 테이블 데이터 삭제
-        memberRepository.deleteByStudyProjectId(studyProjectId);
-        
         // 스터디/프로젝트 삭제
         studyProjectRepository.deleteById(studyProjectId);
     }
 
     // Entity를 Response DTO로 변환
     private StudyResponse convertToResponse(StudyProject studyProject) {
+        return convertToResponse(studyProject, null);
+    }
+
+    // Entity를 Response DTO로 변환 (사용자 참여 상태 포함)
+    private StudyResponse convertToResponse(StudyProject studyProject, String userId) {
         // 스터디/프로젝트의 태그 정보 조회 (관심 항목명으로)
         List<String> tagNames = new ArrayList<>();
         List<Tag> tags = tagRepository.findByStudyProjectId(studyProject.getStudyProjectId());
@@ -304,6 +307,18 @@ public class StudyService {
         int currentMembers = memberService.getCurrentMemberCount(studyProject.getStudyProjectId());
         List<MemberInfo> members = memberService.getMembersByStudyProjectId(studyProject.getStudyProjectId());
         
+        // 사용자의 참여 상태 설정
+        String userParticipationStatus = "none";
+        if (userId != null) {
+            if (studyProject.getUserId().equals(userId)) {
+                userParticipationStatus = "leader";
+            } else if (memberService.isMember(studyProject.getStudyProjectId(), userId)) {
+                userParticipationStatus = "participating";
+            } else if (studyApplicationRepository.findStudyProjectIdsByUserId(userId).contains(studyProject.getStudyProjectId())) {
+                userParticipationStatus = "applied";
+            }
+        }
+        
         return new StudyResponse(
                 studyProject.getStudyProjectId(),
                 studyProject.getStudyProjectName(),
@@ -323,7 +338,8 @@ public class StudyService {
                 tagNames,
                 availableDays,
                 currentMembers,
-                members
+                members,
+                userParticipationStatus
         );
     }
 
@@ -349,5 +365,76 @@ public class StudyService {
             return null;
         }
         return timestamp.toLocalDateTime();
+    }
+
+    /**
+     * 사용자가 참여하고 있는 스터디/프로젝트 목록 조회
+     * @param userId 사용자 ID
+     * @return 참여 중인 스터디/프로젝트 목록
+     */
+    public List<StudyResponse> getStudiesByParticipant(String userId) {
+        // 사용자가 멤버로 등록된 스터디/프로젝트 ID 목록 조회
+        List<Long> studyProjectIds = memberRepository.findStudyProjectIdsByUserId(userId);
+        
+        List<StudyResponse> responses = new ArrayList<>();
+        for (Long studyProjectId : studyProjectIds) {
+            try {
+                StudyProject studyProject = studyProjectRepository.findById(studyProjectId).orElse(null);
+                if (studyProject != null) {
+                    StudyResponse response = convertToResponse(studyProject, userId);
+                    responses.add(response);
+                }
+            } catch (Exception e) {
+                // 개별 스터디/프로젝트 조회 실패 시 로그만 남기고 계속 진행
+                System.err.println("스터디/프로젝트 조회 실패: " + studyProjectId + ", 오류: " + e.getMessage());
+            }
+        }
+        
+        return responses;
+    }
+
+    /**
+     * 사용자가 신청한 스터디/프로젝트 목록 조회
+     * @param userId 사용자 ID
+     * @return 신청한 스터디/프로젝트 목록
+     */
+    public List<StudyResponse> getStudiesByApplicant(String userId) {
+        // 사용자가 신청한 스터디/프로젝트 ID 목록 조회
+        List<Long> studyProjectIds = studyApplicationRepository.findStudyProjectIdsByUserId(userId);
+        
+        List<StudyResponse> responses = new ArrayList<>();
+        for (Long studyProjectId : studyProjectIds) {
+            try {
+                StudyProject studyProject = studyProjectRepository.findById(studyProjectId).orElse(null);
+                if (studyProject != null) {
+                    StudyResponse response = convertToResponse(studyProject, userId);
+                    responses.add(response);
+                }
+            } catch (Exception e) {
+                // 개별 스터디/프로젝트 조회 실패 시 로그만 남기고 계속 진행
+                System.err.println("스터디/프로젝트 조회 실패: " + studyProjectId + ", 오류: " + e.getMessage());
+            }
+        }
+        
+        return responses;
+    }
+
+    /**
+     * 사용자의 스터디/프로젝트 관리 대시보드 정보 조회
+     * @param userId 사용자 ID
+     * @return 참여 목록과 신청 목록을 포함한 대시보드 정보
+     */
+    public Map<String, List<StudyResponse>> getUserDashboard(String userId) {
+        Map<String, List<StudyResponse>> dashboard = new HashMap<>();
+        
+        // 참여 중인 스터디/프로젝트 목록
+        List<StudyResponse> participations = getStudiesByParticipant(userId);
+        dashboard.put("participations", participations);
+        
+        // 신청한 스터디/프로젝트 목록
+        List<StudyResponse> applications = getStudiesByApplicant(userId);
+        dashboard.put("applications", applications);
+        
+        return dashboard;
     }
 }
