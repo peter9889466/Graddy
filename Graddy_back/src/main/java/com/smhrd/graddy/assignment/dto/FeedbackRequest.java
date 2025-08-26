@@ -11,11 +11,5 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class FeedbackRequest {
 
-    private Long assignmentId;
-    private Long memberId;
-    private Long submissionId;
-    private String assignmentTitle;
-    private String assignmentDescription;
-    private String submissionContent;
-    private String submissionFileUrl;
+    private Long assignmentId; // 과제 ID만 필요
 }
