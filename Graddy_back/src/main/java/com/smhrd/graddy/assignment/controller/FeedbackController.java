@@ -24,21 +24,24 @@ public class FeedbackController {
     private final FeedbackService feedbackService;
 
     /**
-     * GPT를 사용하여 과제 제출에 대한 피드백 생성
+     * 과제 ID를 통해 과제 정보와 제출 정보를 가져와서 AI 피드백 생성
      */
     @PostMapping("/generate")
-    @Operation(summary = "GPT 피드백 생성",
-              description = "OpenAI GPT를 사용하여 과제 제출에 대한 자동 피드백을 생성합니다.\n\n" +
+    @Operation(summary = "AI 피드백 생성",
+              description = "과제 ID를 통해 과제 정보와 제출 정보를 가져와서 OpenAI GPT를 사용하여 자동 피드백을 생성합니다.\n\n" +
                            "**평가 기준:**\n" +
                            "• 내용의 완성도, 창의성, 논리적 구조, 기술적 정확성, 표현력\n" +
                            "• 점수 범위: -5 ~ 10점\n" +
-                           "• 상세한 피드백과 개선 방안 제공")
+                           "• 상세한 피드백과 개선 방안 제공\n" +
+                           "• 모든 제출에 대해 자동으로 피드백 생성")
     @SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<ApiResponse<FeedbackResponse>> generateFeedback(
             @RequestBody FeedbackRequest request) {
         try {
             FeedbackResponse response = feedbackService.generateFeedback(request);
-            return ApiResponse.success("GPT 피드백이 성공적으로 생성되었습니다.", response);
+            return ApiResponse.success("AI 피드백이 성공적으로 생성되었습니다.", response);
+        } catch (IllegalArgumentException e) {
+            return ApiResponse.error(HttpStatus.BAD_REQUEST, e.getMessage(), null);
         } catch (Exception e) {
             return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, 
                 "피드백 생성에 실패했습니다: " + e.getMessage(), null);
