@@ -12,7 +12,6 @@ import { TestModal } from "./pages/TestModal";
 import { TestDropdown } from "./pages/TestDropdown";
 import { TestAutoCompleteSearch } from "./pages/TestAutoComplete";
 import Join from "./pages/Join";
-import Join2 from "./pages/Join2";
 import Login from "./pages/Login";
 import Header from "./components/layout/Header";
 import Footer from "./components/layout/Footer";
@@ -23,7 +22,6 @@ import MainPage from "./pages/MainPage";
 import StudyDetailPage from "./pages/StudyDetailPage";
 import ProjectDetailPage from "./pages/ProjectDetailPage";
 import StudyCreate from "./pages/StudyCreate";
-import Join3 from "./pages/Join3";
 import FindAccount from "./pages/FindAccount";
 import { Ranking } from "./pages/Ranking";
 import { CommunityPage } from "./pages/CommunityPage";
@@ -56,8 +54,6 @@ function App() {
                                     element={<TestAutoCompleteSearch />}
                                 />
                                 <Route path="/join" element={<Join />} />
-                                <Route path="/join2" element={<Join2 />} />
-                                <Route path="/join3" element={<Join3 />} />
                                 <Route path="/login" element={<Login />} />
                                 <Route path="/findAcc" element={<FindAccount />} />
                                 <Route path="/ranking" element={<Ranking />} />

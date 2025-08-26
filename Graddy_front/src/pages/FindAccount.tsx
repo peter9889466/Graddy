@@ -41,38 +41,61 @@ const FindAccount: React.FC = () => {
     };
 
     const handleFindId = async () => {
-        clearErrors();
-        const newErrors: {[key: string]: string} = {};
+    clearErrors();
+    const newErrors: {[key: string]: string} = {};
 
-        if (!idName.trim()) {
-            newErrors.idName = "이름을 입력하세요.";
-        }
+    if (!idName.trim()) {
+        newErrors.idName = "이름을 입력하세요.";
+    }
 
-        if (!idPhone.trim()) {
-            newErrors.idPhone = "전화번호를 입력하세요.";
-        } else if (!validatePhone(idPhone)) {
-            newErrors.idPhone = "올바른 전화번호 형식이 아닙니다.";
-        }
+    if (!idPhone.trim()) {
+        newErrors.idPhone = "전화번호를 입력하세요.";
+    } else if (!validatePhone(idPhone)) {
+        newErrors.idPhone = "올바른 전화번호 형식이 아닙니다.";
+    }
 
-        if (Object.keys(newErrors).length > 0) {
-            setErrors(newErrors);
-            setHintMessage("입력하신 정보를 다시 확인해주세요.");
-            return;
-        }
+    if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        setHintMessage("입력하신 정보를 다시 확인해주세요.");
+        return;
+    }
 
-        setIsLoading(true);
+    setIsLoading(true);
+    
+    try {
+        const requestData = {
+            name: idName.trim(),
+            tel: idPhone.trim()
+        };
         
-        try {
-            // 실제 API 호출 로직을 여기에 구현하세요
-            await new Promise(resolve => setTimeout(resolve, 2000)); // 임시 로딩
-            
-            setHintMessage("휴대폰으로 아이디 정보를 발송했습니다. 📱");
-        } catch (error) {
-            setHintMessage("아이디 찾기에 실패했습니다. 입력하신 정보를 확인해주세요.");
-        } finally {
-            setIsLoading(false);
+        console.log('전송할 데이터:', requestData); // 디버깅용
+        
+        const response = await fetch('http://localhost:8080/api/find-id', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestData)
+        });
+
+        const result = await response.json();
+        console.log('서버 응답:', result); // 디버깅용
+
+        if (result.status === 200) {
+            // 성공 시 - 아이디 정보를 포함한 메시지 표시
+            setHintMessage(`찾으신 아이디는 "${result.data.userId}" 입니다. 📱`);
+        } else {
+            // 실패 시 - 서버에서 온 에러 메시지 표시
+            console.log('실패 상황 - 상태:', result.status, '메시지:', result.message);
+            setHintMessage(result.message || "아이디 찾기에 실패했습니다. 입력하신 정보를 확인해주세요.");
         }
-    };
+    } catch (error) {
+        console.error('아이디 찾기 API 호출 오류:', error);
+        setHintMessage("서버 연결에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.");
+    } finally {
+        setIsLoading(false);
+    }
+};
 
     const handleFindPassword = async () => {
         clearErrors();

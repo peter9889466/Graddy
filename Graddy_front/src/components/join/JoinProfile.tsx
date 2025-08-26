@@ -338,11 +338,10 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location, onNext })
 
     return (
         <div 
-            className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-8 px-4"
+            className="min-h-screen bg-gradient-to-br from-indigo-50 to-indigo-100 py-8 px-4"
             onKeyDown={handleKeyDown} 
             tabIndex={0} 
         >
-
             <div className="max-w-3xl mx-auto">
 
                 {/* 진행 단계 */}
