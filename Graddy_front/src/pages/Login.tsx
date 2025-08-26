@@ -13,6 +13,7 @@ const Login: React.FC = () => {
     const [hintMessage, setHintMessage] = useState("");
     const [showHint, setShowHint] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const navigate = useNavigate();
 
