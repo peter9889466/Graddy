@@ -16,6 +16,14 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+import com.smhrd.graddy.assignment.dto.AssignmentDetailResponse;
+import com.smhrd.graddy.assignment.dto.SubmissionDetailResponse;
+import com.smhrd.graddy.assignment.dto.FeedbackDetailResponse;
+import com.smhrd.graddy.assignment.entity.Submission;
+import com.smhrd.graddy.assignment.entity.Feedback;
+import com.smhrd.graddy.assignment.repository.SubmissionRepository;
+import com.smhrd.graddy.assignment.repository.FeedbackRepository;
+import java.util.ArrayList;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +34,8 @@ public class AssignmentService {
     private final AssignmentRepository assignmentRepository;
     private final MemberService memberService;
     private final ScheduleService scheduleService;
+    private final SubmissionRepository submissionRepository;
+    private final FeedbackRepository feedbackRepository;
 
     /**
      * 과제 생성 (자동 일정 추가 포함)
@@ -98,6 +108,118 @@ public class AssignmentService {
         return assignments.stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 스터디 ID로 과제 전체 정보 조회 (과제, 제출물, 피드백 포함)
+     * @param studyProjectId 스터디 프로젝트 ID
+     * @return 과제 전체 정보 리스트
+     */
+    public List<AssignmentDetailResponse> getAssignmentsWithDetailsByStudyProject(Long studyProjectId) {
+        log.info("스터디 과제 전체 정보 조회 시작: studyProjectId={}", studyProjectId);
+        
+        // 1. 해당 스터디의 모든 과제 조회
+        List<Assignment> assignments = assignmentRepository.findByStudyProjectId(studyProjectId);
+        log.info("과제 조회 완료: {}개", assignments.size());
+        
+        List<AssignmentDetailResponse> responses = new ArrayList<>();
+        
+        for (Assignment assignment : assignments) {
+            try {
+                // 2. 각 과제의 제출물 조회
+                List<Submission> submissions = submissionRepository.findByAssignmentId(assignment.getAssignmentId());
+                log.info("과제 ID {} 제출물 조회 완료: {}개", assignment.getAssignmentId(), submissions.size());
+                
+                List<SubmissionDetailResponse> submissionResponses = new ArrayList<>();
+                
+                for (Submission submission : submissions) {
+                    try {
+                        // 3. 각 제출물의 피드백 조회
+                        List<Feedback> feedbacks = feedbackRepository.findBySubmissionId(submission.getSubmissionId());
+                        log.info("제출물 ID {} 피드백 조회 완료: {}개", submission.getSubmissionId(), feedbacks.size());
+                        
+                        // 피드백 정보 변환
+                        List<FeedbackDetailResponse> feedbackResponses = feedbacks.stream()
+                                .map(feedback -> FeedbackDetailResponse.builder()
+                                        .feedId(feedback.getFeedId())
+                                        .memberId(feedback.getMemberId())
+                                        .submissionId(feedback.getSubmissionId())
+                                        .score(feedback.getScore())
+                                        .comment(feedback.getComment())
+                                        .createdAt(feedback.getCreatedAt())
+                                        .build())
+                                .collect(Collectors.toList());
+                        
+                        // 제출물 정보 변환
+                        SubmissionDetailResponse submissionResponse = SubmissionDetailResponse.builder()
+                                .submissionId(submission.getSubmissionId())
+                                .assignmentId(submission.getAssignmentId())
+                                .memberId(submission.getMemberId())
+                                .content(submission.getContent())
+                                .fileUrl(submission.getFileUrl())
+                                .createdAt(submission.getCreatedAt())
+                                .feedbacks(feedbackResponses)
+                                .feedbackMessage(feedbacks.isEmpty() ? "아직 피드백이 없습니다." : null)
+                                .build();
+                        
+                        submissionResponses.add(submissionResponse);
+                        
+                    } catch (Exception e) {
+                        log.error("제출물 ID {} 피드백 조회 실패: {}", submission.getSubmissionId(), e.getMessage());
+                        // 피드백 조회 실패 시에도 제출물은 포함
+                        SubmissionDetailResponse submissionResponse = SubmissionDetailResponse.builder()
+                                .submissionId(submission.getSubmissionId())
+                                .assignmentId(submission.getAssignmentId())
+                                .memberId(submission.getMemberId())
+                                .content(submission.getContent())
+                                .fileUrl(submission.getFileUrl())
+                                .createdAt(submission.getCreatedAt())
+                                .feedbacks(new ArrayList<>())
+                                .feedbackMessage("피드백 조회에 실패했습니다.")
+                                .build();
+                        
+                        submissionResponses.add(submissionResponse);
+                    }
+                }
+                
+                // 과제 정보 변환
+                AssignmentDetailResponse assignmentResponse = AssignmentDetailResponse.builder()
+                        .assignmentId(assignment.getAssignmentId())
+                        .studyProjectId(assignment.getStudyProjectId())
+                        .memberId(assignment.getMemberId())
+                        .title(assignment.getTitle())
+                        .description(assignment.getDescription())
+                        .deadline(assignment.getDeadline())
+                        .fileUrl(assignment.getFileUrl())
+                        .createdAt(assignment.getCreatedAt())
+                        .submissions(submissionResponses)
+                        .submissionMessage(submissions.isEmpty() ? "아직 제출물이 없습니다." : null)
+                        .build();
+                
+                responses.add(assignmentResponse);
+                
+            } catch (Exception e) {
+                log.error("과제 ID {} 제출물 조회 실패: {}", assignment.getAssignmentId(), e.getMessage());
+                // 제출물 조회 실패 시에도 과제는 포함
+                AssignmentDetailResponse assignmentResponse = AssignmentDetailResponse.builder()
+                        .assignmentId(assignment.getAssignmentId())
+                        .studyProjectId(assignment.getStudyProjectId())
+                        .memberId(assignment.getMemberId())
+                        .title(assignment.getTitle())
+                        .description(assignment.getDescription())
+                        .deadline(assignment.getDeadline())
+                        .fileUrl(assignment.getFileUrl())
+                        .createdAt(assignment.getCreatedAt())
+                        .submissions(new ArrayList<>())
+                        .submissionMessage("제출물 조회에 실패했습니다.")
+                        .build();
+                
+                responses.add(assignmentResponse);
+            }
+        }
+        
+        log.info("스터디 과제 전체 정보 조회 완료: {}개 과제", responses.size());
+        return responses;
     }
 
     // 과제 수정
