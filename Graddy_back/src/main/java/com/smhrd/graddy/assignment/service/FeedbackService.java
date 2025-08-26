@@ -61,6 +61,12 @@ public class FeedbackService {
             List<Feedback> generatedFeedbacks = new ArrayList<>();
             
             for (Submission submission : submissions) {
+                // 이미 피드백이 있는지 확인
+                if (feedbackRepository.findBySubmissionIdAndMemberId(submission.getSubmissionId(), submission.getMemberId()).isPresent()) {
+                    log.info("제출 {}에 대한 피드백이 이미 존재합니다. 건너뜁니다.", submission.getSubmissionId());
+                    continue;
+                }
+
                 // AI 피드백 생성
                 Map<String, Object> aiFeedback = generateAiFeedback(assignment, submission);
                 
@@ -79,7 +85,11 @@ public class FeedbackService {
                         submission.getSubmissionId(), savedFeedback.getFeedId(), savedFeedback.getScore());
             }
 
-            // 4. 첫 번째 피드백을 응답으로 반환 (또는 모든 피드백을 반환할 수도 있음)
+            if (generatedFeedbacks.isEmpty()) {
+                throw new IllegalArgumentException("모든 제출에 대해 이미 피드백이 존재합니다.");
+            }
+
+            // 4. 첫 번째 피드백을 응답으로 반환
             Feedback firstFeedback = generatedFeedbacks.get(0);
             return new FeedbackResponse(
                     firstFeedback.getFeedId(),
