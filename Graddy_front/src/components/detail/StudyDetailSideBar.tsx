@@ -100,20 +100,20 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
                 <div className="space-y-2">
                     {sideMenuItems.map((item) => {
                         // 권한 체크 - leader 또는 member는 모든 메뉴에 접근 가능
-                        // const hasAuth = !item.requiresAuth || isLoggedIn;
-                        // const hasMembership = !item.requiresMembership || (userMemberType === 'leader' || userMemberType === 'member');
-                        // const canAccess = hasAuth && hasMembership;
+                        const hasAuth = !item.requiresAuth || isLoggedIn;
+                        const hasMembership = !item.requiresMembership || (userMemberType === 'leader' || userMemberType === 'member');
+                        const canAccess = hasAuth && hasMembership;
 
                         // 클릭 핸들러 함수
                         const handleClick = () => {
-                            // if (item.requiresAuth && !isLoggedIn) {
-                            //     alert('로그인 후 이용해주세요.');
-                            //     return;
-                            // }
-                            // if (item.requiresMembership && !(userMemberType === 'leader' || userMemberType === 'member')) {
-                            //     alert('스터디원만 확인할 수 있습니다.');
-                            //     return;
-                            // }
+                            if (item.requiresAuth && !isLoggedIn) {
+                                alert('로그인 후 이용해주세요.');
+                                return;
+                            }
+                            if (item.requiresMembership && !(userMemberType === 'leader' || userMemberType === 'member')) {
+                                alert('스터디원만 확인할 수 있습니다.');
+                                return;
+                            }
                             onTabChange(item.name);
                         };
 

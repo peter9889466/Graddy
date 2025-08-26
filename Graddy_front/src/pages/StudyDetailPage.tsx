@@ -15,7 +15,9 @@ import Schedule from "@/components/detail/Schedule";
 import Curriculum from "@/components/detail/Curriculum";
 import Community from "@/components/detail/Community";
 import DraggableChatWidget from "@/components/shared/DraggableChatWidget";
-import { Tag, Info, Crown, Calendar } from "lucide-react";
+import { Tag, Info, Crown, Calendar, Search, AlertCircle, X, Star } from "lucide-react";
+import { getUserIdFromToken } from "../utils/jwtUtils";
+import { InterestApiService, InterestForFrontend } from "../services/interestApi";
 
 const StudyDetailPage = () => {
 	const { id } = useParams<{ id: string }>();
@@ -42,7 +44,7 @@ const StudyDetailPage = () => {
 	const [studyTitle, setStudyTitle] = useState<string>(
 		state?.title || `스터디#${id} 소개가 없습니다.`
 	);
-	const [studyDescription, setStudyDescription] = useState<String>(
+	const [studyDescription, setStudyDescription] = useState<string>(
 		state?.description || `스터디#${id}의 설명이 없습니다.`
 	);
 	const [studyLeader, setStudyLeader] = useState<string>(
@@ -135,6 +137,27 @@ const StudyDetailPage = () => {
 	const [maxMembers, setMaxMembers] = useState<number>(10);
 	const [isLoading, setIsLoading] = useState(true);
 	
+	// 편집 관련 상태
+	const [isEditing, setIsEditing] = useState(false);
+	const [editName, setEditName] = useState(studyName);
+	const [editTitle, setEditTitle] = useState(studyTitle);
+	const [editDescription, setEditDescription] = useState(studyDescription);
+	const [editPeriod, setEditPeriod] = useState(studyPeriod);
+	const [editTags, setEditTags] = useState<Array<{name: string, interestId: number}>>([]);
+	const [editStudyLevel, setEditStudyLevel] = useState(studyLevel);
+	const [isTagModalOpen, setIsTagModalOpen] = useState(false);
+	const [tagSearchValue, setTagSearchValue] = useState('');
+	const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+	
+	// 태그 관련 상태
+	const [interests, setInterests] = useState<InterestForFrontend[]>([]);
+	const [interestsLoading, setInterestsLoading] = useState(false);
+	const [interestsError, setInterestsError] = useState<string | null>(null);
+	const [tagCategories, setTagCategories] = useState<Array<{id: number, name: string, tags: string[]}>>([]);
+	
+	// 스터디 레벨 드롭다운 상태
+	const [isLevelOpen, setIsLevelOpen] = useState(false);
+	
 	// 사용자 권한 확인
 	const isLoggedIn = authContext?.isLoggedIn || false;
 	
@@ -165,37 +188,38 @@ const StudyDetailPage = () => {
 						setStudyPeriod(`${startDate} ~ ${endDate}`);
 					}
 					
+					// JWT 토큰에서 사용자 ID 가져오기
+					const currentUserId = getUserIdFromToken();
+					console.log('JWT에서 추출한 사용자 ID:', currentUserId);
+					
 					// 멤버 정보 설정
 					if (studyData.members) {
 						setMembers(studyData.members);
 						
 						// 디버깅을 위한 로그
 						console.log('백엔드에서 받은 멤버 데이터:', studyData.members);
-						console.log('현재 로그인한 사용자 이메일:', authContext?.user?.email);
+						console.log('JWT에서 추출한 사용자 ID:', currentUserId);
 						console.log('스터디 생성자 ID:', studyData.userId);
 						
 						// 현재 사용자의 멤버 정보 찾기
-						if (authContext?.user?.email) {
-							console.log('이메일 비교 - 현재 사용자:', authContext?.user?.email);
-							console.log('이메일 비교 - 멤버들:', studyData.members.map(m => ({ userId: m.userId, memberType: m.memberType, nick: m.nick })));
+						if (currentUserId) {
+							console.log('사용자 ID 비교 - 현재 사용자:', currentUserId);
+							console.log('사용자 ID 비교 - 멤버들:', studyData.members.map(m => ({ userId: m.userId, memberType: m.memberType, nick: m.nick })));
 							
-							// 더 유연한 비교를 위해 여러 방법으로 시도
+							// JWT에서 추출한 사용자 ID로 매치
 							const currentUser = studyData.members.find((member: { userId: string; memberType: string; nick: string }) => {
 								// 정확한 매치
-								const exactMatch = member.userId === authContext?.user?.email;
+								const exactMatch = member.userId === currentUserId;
 								// 대소문자 무시 매치
-								const caseInsensitiveMatch = member.userId.toLowerCase() === authContext?.user?.email.toLowerCase();
+								const caseInsensitiveMatch = member.userId.toLowerCase() === currentUserId.toLowerCase();
 								// 공백 제거 후 매치
-								const trimmedMatch = member.userId.trim() === authContext?.user?.email.trim();
-								// 닉네임으로도 매치 시도
-								const nicknameMatch = member.nick === authContext?.user?.nickname;
+								const trimmedMatch = member.userId.trim() === currentUserId.trim();
 								
-								console.log(`비교: ${member.userId} === ${authContext?.user?.email} = ${exactMatch}`);
-								console.log(`대소문자 무시: ${member.userId.toLowerCase()} === ${authContext?.user?.email.toLowerCase()} = ${caseInsensitiveMatch}`);
-								console.log(`공백 제거: ${member.userId.trim()} === ${authContext?.user?.email.trim()} = ${trimmedMatch}`);
-								console.log(`닉네임 매치: ${member.nick} === ${authContext?.user?.nickname} = ${nicknameMatch}`);
+								console.log(`비교: ${member.userId} === ${currentUserId} = ${exactMatch}`);
+								console.log(`대소문자 무시: ${member.userId.toLowerCase()} === ${currentUserId.toLowerCase()} = ${caseInsensitiveMatch}`);
+								console.log(`공백 제거: ${member.userId.trim()} === ${currentUserId.trim()} = ${trimmedMatch}`);
 								
-								return exactMatch || caseInsensitiveMatch || trimmedMatch || nicknameMatch;
+								return exactMatch || caseInsensitiveMatch || trimmedMatch;
 							});
 							console.log('찾은 현재 사용자:', currentUser);
 							
@@ -205,8 +229,17 @@ const StudyDetailPage = () => {
 								setIsStudyMember(true);
 							} else {
 								console.log('멤버 목록에서 찾을 수 없음');
-								setUserMemberType(null);
-								setIsStudyMember(false);
+								
+								// 스터디 생성자인지 확인
+								if (currentUserId === studyData.userId) {
+									console.log('스터디 생성자로 인식됨');
+									setUserMemberType('leader');
+									setIsStudyMember(true);
+								} else {
+									console.log('스터디 생성자도 아님');
+									setUserMemberType(null);
+									setIsStudyMember(false);
+								}
 							}
 						}
 						
@@ -220,8 +253,17 @@ const StudyDetailPage = () => {
 					} else {
 						setMembers([]);
 						console.log('멤버 목록이 비어있음');
-						setUserMemberType(null);
-						setIsStudyMember(false);
+						
+						// 스터디 생성자인지 확인
+						if (currentUserId === studyData.userId) {
+							console.log('스터디 생성자로 인식됨 (멤버 목록이 비어있음)');
+							setUserMemberType('leader');
+							setIsStudyMember(true);
+						} else {
+							setUserMemberType(null);
+							setIsStudyMember(false);
+						}
+						
 						setStudyLeader(studyData.userId || "리더가 지정되지 않았습니다.");
 					}
 				}
@@ -279,9 +321,195 @@ const StudyDetailPage = () => {
 	};
 
 	const handleEditStudy = () => {
-		alert("스터디 수정 기능은 현재 개발 중입니다.");
-		// 여기에 스터디 수정 페이지로 이동하는 로직 추가
-		// navigate(`/study/edit/${id}`);
+		if (!isEditing) {
+			// 편집 모드 시작
+			setEditName(studyName);
+			setEditTitle(studyTitle);
+			setEditDescription(studyDescription);
+			setEditPeriod(studyPeriod);
+			
+			// 기존 태그를 올바른 interestId로 초기화
+			const initialTags = studyTags.map(tag => {
+				const interest = interests.find(i => i.interestName === tag);
+				return { name: tag, interestId: interest ? interest.interestId : 0 };
+			});
+			setEditTags(initialTags);
+			
+			setEditStudyLevel(studyLevel);
+			setIsEditing(true);
+		}
+	};
+
+	const handleSaveStudy = async () => {
+		try {
+			// 기간을 ISO 형식으로 변환
+			const [startDate, endDate] = editPeriod.split(' ~ ');
+			const startISO = new Date(startDate).toISOString();
+			const endISO = new Date(endDate).toISOString();
+			
+			// 태그에서 interestIds 추출
+			const interestIds = editTags.map(tag => tag.interestId);
+			
+			console.log('=== 태그 저장 디버깅 ===');
+			console.log('editTags:', editTags);
+			console.log('interestIds:', interestIds);
+			console.log('interests:', interests);
+			
+			const updateData = {
+				studyProjectName: editName,
+				studyProjectTitle: editTitle,
+				studyProjectDesc: editDescription,
+				studyLevel: editStudyLevel, // 수정된 레벨 사용
+				typeCheck: "study", // 스터디 타입
+				isRecruiting: isRecruiting ? "recruitment" : "closed",
+				studyProjectStart: startISO,
+				studyProjectEnd: endISO,
+				studyProjectTotal: maxMembers,
+				soltStart: new Date().toISOString(), // 기존 시간 유지
+				soltEnd: new Date().toISOString(), // 기존 시간 유지
+				interestIds: interestIds,
+				dayIds: [] // 기존 요일 정보 유지
+			};
+
+			console.log('백엔드로 전송할 데이터:', updateData);
+
+			// 백엔드 API 호출
+			await StudyApiService.updateStudyProject(parseInt(id!, 10), updateData);
+			
+			// 로컬 상태 업데이트
+			setStudyName(editName);
+			setStudyTitle(editTitle);
+			setStudyDescription(editDescription);
+			setStudyPeriod(editPeriod);
+			setStudyTags(editTags.map(tag => tag.name));
+			setStudyLevel(editStudyLevel);
+			
+			setIsEditing(false);
+			alert("스터디 정보가 성공적으로 수정되었습니다.");
+		} catch (error) {
+			console.error('스터디 수정 실패:', error);
+			alert("스터디 수정에 실패했습니다.");
+		}
+	};
+
+	const handleCancelEdit = () => {
+		setIsEditing(false);
+	};
+
+	// 태그 모달 관련 함수들
+	const handleOpenTagModal = () => {
+		setIsTagModalOpen(true);
+		setTagSearchValue('');
+		setSelectedCategory(null);
+	};
+
+	const handleCloseTagModal = () => {
+		setIsTagModalOpen(false);
+		setTagSearchValue('');
+		setSelectedCategory(null);
+	};
+
+	// 태그 데이터 가져오기
+	useEffect(() => {
+		const fetchInterests = async () => {
+			setInterestsLoading(true);
+			setInterestsError(null);
+			try {
+				// 백엔드에서 실제 interests 데이터 가져오기
+				const data = await InterestApiService.getInterestsByType('study');
+				setInterests(data);
+				
+				// 태그 카테고리도 설정 (UI용)
+				const tagCategories = [
+					{
+						id: 1,
+						name: '프로그래밍 언어',
+						tags: ['Python', 'JavaScript', 'HTML/CSS', 'Java', 'C#', 'Swift', 'Kotlin', 'C++', 'TypeScript', 'C', 'assembly', 'go', 'php', 'dart', 'rust', 'Ruby']
+					},
+					{
+						id: 2,
+						name: '라이브러리 & 프레임워크',
+						tags: ['React', 'Spring Boot', 'Spring', 'Node.js', 'Pandas', 'next.js', 'flutter', 'vue', 'flask', 'Django', 'Unity']
+					},
+					{
+						id: 3,
+						name: '데이터베이스',
+						tags: ['SQL', 'NOSQL', 'DBMS/RDBMS']
+					},
+					{
+						id: 4,
+						name: '플랫폼/환경',
+						tags: ['iOS', 'Android', 'AWS', 'Docker', 'Linux', 'cloud', 'IoT', '임베디드']
+					},
+					{
+						id: 5,
+						name: 'AI/데이터',
+						tags: ['인공지능(AI)', '머신러닝', '딥러닝', '빅데이터', '데이터 리터러시', 'LLM', '프롬프트 엔지니어링', 'ChatGPT', 'AI 활용(AX)']
+					}
+				];
+				setTagCategories(tagCategories);
+			} catch (error) {
+				console.error('태그 데이터 로드 실패:', error);
+				setInterestsError('태그 데이터를 불러오는데 실패했습니다.');
+			} finally {
+				setInterestsLoading(false);
+			}
+		};
+
+		fetchInterests();
+	}, []);
+
+
+
+	// 검색어와 카테고리 필터에 따른 태그 필터링
+	const getFilteredTags = () => {
+		if (interestsLoading || interestsError || !tagCategories || tagCategories.length === 0) {
+			return [];
+		}
+
+		let filtered = tagCategories;
+
+		// 검색어 필터링
+		if (tagSearchValue.trim()) {
+			filtered = filtered.map(category => ({
+				...category,
+				tags: category.tags.filter(tag =>
+					tag.toLowerCase().includes(tagSearchValue.toLowerCase())
+				)
+			})).filter(category => category.tags.length > 0);
+		}
+
+		// 카테고리 필터링
+		if (selectedCategory) {
+			filtered = filtered.filter(category => category.id.toString() === selectedCategory);
+		}
+
+		return filtered;
+	};
+
+	const filteredTags = getFilteredTags();
+
+	const handleTagSelect = (tag: string) => {
+		if (editTags.some(t => t.name === tag)) {
+			setEditTags(editTags.filter(t => t.name !== tag));
+		} else {
+			if (editTags.length < 5) {
+				// interests 배열에서 해당 태그의 interestId 찾기
+				const interest = interests.find(i => i.interestName === tag);
+				if (interest) {
+					setEditTags([...editTags, { name: tag, interestId: interest.interestId }]);
+				} else {
+					console.warn('태그에 해당하는 interest를 찾을 수 없습니다:', tag);
+					alert('태그 정보를 찾을 수 없습니다. 다시 시도해주세요.');
+				}
+			} else {
+				alert('태그는 5개까지만 선택할 수 있습니다!');
+			}
+		}
+	};
+
+	const handleRemoveTag = (tagToRemove: {name: string, interestId: number}) => {
+		setEditTags(editTags.filter(tag => tag.name !== tagToRemove.name));
 	};
 
 	// 메인 콘텐츠 렌더링 함수
@@ -294,48 +522,179 @@ const StudyDetailPage = () => {
 					<div className="space-y-2 p-4 pr-10">
 						{/* 헤더 영역 - 제목과 수정 버튼 */}
 						<div className="flex justify-between items-start mb-4">
-							<h3 className="text-2xl font-bold">{studyName}</h3>
-							{/* 리더만 수정 버튼 표시 */}
+							{isEditing ? (
+								<input
+									type="text"
+									value={editName}
+									onChange={(e) => setEditName(e.target.value)}
+									className="text-2xl font-bold border-b-2 border-[#8B85E9] focus:outline-none"
+								/>
+							) : (
+								<h3 className="text-2xl font-bold">{studyName}</h3>
+							)}
+							{/* 리더만 수정/저장/취소 버튼 표시 */}
 							{!isLoading && isStudyLeader && (
-								<button
-									onClick={handleEditStudy}
-									className="px-4 py-2 bg-[#8B85E9] text-white rounded-lg text-sm font-medium hover:bg-[#7C76D8] transition-colors duration-200 flex items-center gap-2"
-								>
-									<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-									</svg>
-									수정
-								</button>
+								<div className="flex gap-2">
+									{isEditing ? (
+										<>
+											<button
+												onClick={handleSaveStudy}
+												className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors duration-200 flex items-center gap-2"
+											>
+												<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+												</svg>
+												저장
+											</button>
+											<button
+												onClick={handleCancelEdit}
+												className="px-4 py-2 bg-gray-500 text-white rounded-lg text-sm font-medium hover:bg-gray-600 transition-colors duration-200 flex items-center gap-2"
+											>
+												<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+												</svg>
+												취소
+											</button>
+										</>
+									) : (
+										<button
+											onClick={handleEditStudy}
+											className="px-4 py-2 bg-[#8B85E9] text-white rounded-lg text-sm font-medium hover:bg-[#7C76D8] transition-colors duration-200 flex items-center gap-2"
+										>
+											<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+											</svg>
+											수정
+										</button>
+									)}
+								</div>
 							)}
 						</div>
-						<div className="text-gray-700">
+						<div className="text-gray-700 mb-4">
 							<div className="flex items-center gap-2">
 								<Info className="w-4 h-4 text-gray-600" />
 								<span>스터디 소개</span>
 							</div>
-							<span className="text-gray-800 block mt-1">{studyTitle}</span>
+							{isEditing ? (
+								<input
+									type="text"
+									value={editTitle}
+									onChange={(e) => setEditTitle(e.target.value)}
+									className="text-gray-800 block mt-1 border-b-2 border-[#8B85E9] focus:outline-none w-full"
+								/>
+							) : (
+								<span className="text-gray-800 block mt-1">{studyTitle}</span>
+							)}
 						</div>
-						<div className="text-gray-700">
+						<div className="text-gray-700 mb-4">
 							<div className="flex items-center gap-2">
 								<Crown className="w-4 h-4 text-gray-600" />
 								<span>리더</span>
 							</div>
 							<span className="text-gray-800 block mt-1">{studyLeader}</span>
 						</div>
-						<div className="text-gray-700">
+						<div className="text-gray-700 mb-4">
 							<div className="flex items-center gap-2">
 								<Calendar className="w-4 h-4 text-gray-600" />
 								<span>스터디 기간</span>
 							</div>
-							<span className="text-gray-800 block mt-1">{formatPeriod(studyPeriod)}</span>
+							{isEditing ? (
+								<div className="flex items-center gap-2 mt-1">
+									<input
+										type="date"
+										value={editPeriod.split(' ~ ')[0] || ''}
+										onChange={(e) => {
+											const startDate = e.target.value;
+											const endDate = editPeriod.split(' ~ ')[1] || '';
+											setEditPeriod(`${startDate} ~ ${endDate}`);
+										}}
+										className="text-gray-800 border-b-2 border-[#8B85E9] focus:outline-none"
+									/>
+									<span className="text-gray-500">~</span>
+									<input
+										type="date"
+										value={editPeriod.split(' ~ ')[1] || ''}
+										onChange={(e) => {
+											const startDate = editPeriod.split(' ~ ')[0] || '';
+											const endDate = e.target.value;
+											setEditPeriod(`${startDate} ~ ${endDate}`);
+										}}
+										className="text-gray-800 border-b-2 border-[#8B85E9] focus:outline-none"
+									/>
+								</div>
+							) : (
+								<span className="text-gray-800 block mt-1">{formatPeriod(studyPeriod)}</span>
+							)}
 						</div>
-						<div className="text-gray-700 inline-block">
-							<div className="flex items-center gap-2">
-								<Tag className="w-4 h-4 text-gray-600" />
-								<span className="font-medium">태그</span>
+						{/* 스터디 레벨 */}
+						<div className="text-gray-700 mb-4">
+							<div className="flex items-center gap-2 mb-2">
+								<Star className="w-4 h-4 text-gray-600" />
+								<span className="font-medium">스터디 레벨</span>
 							</div>
-							<div className="mt-2 flex gap-2 flex-wrap">
-								{/* 스터디 레벨 뱃지 */}
+							{isEditing ? (
+								<div className="flex items-center gap-2">
+									<span className="text-sm font-medium text-gray-700 min-w-[80px]">스터디 레벨:</span>
+									<div className="relative">
+										<button
+											onClick={() => setIsLevelOpen(!isLevelOpen)}
+											className={`px-4 py-2 rounded-xl bg-white text-gray-700 flex items-center justify-between border ${
+												isLevelOpen
+													? "border-2 border-[#8B85E9]"
+													: "border-2 border-gray-300"
+											} focus:outline-none min-w-[120px] h-[40px]`}
+										>
+											<span>레벨 {editStudyLevel}</span>
+											<svg
+												className={`w-4 h-4 transition-transform ${
+													isLevelOpen ? "rotate-180" : ""
+												}`}
+												fill="none"
+												stroke="currentColor"
+												viewBox="0 0 24 24"
+											>
+												<path
+													strokeLinecap="round"
+													strokeLinejoin="round"
+													strokeWidth={2}
+													d="M19 9l-7 7-7-7"
+												/>
+											</svg>
+										</button>
+
+										{isLevelOpen && (
+											<div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-xl shadow-lg z-10 overflow-hidden">
+												{[1, 2, 3].map((level, index) => (
+													<div
+														key={level}
+														onClick={() => {
+															setEditStudyLevel(level);
+															setIsLevelOpen(false);
+														}}
+														className={`px-4 py-2 cursor-pointer transition-colors hover:bg-gray-50 ${
+															index !== 2 ? "border-b border-gray-100" : ""
+														}`}
+														style={{
+															backgroundColor:
+																editStudyLevel === level
+																	? "#E8E6FF"
+																	: "#FFFFFF",
+															color:
+																editStudyLevel === level
+																	? "#8B85E9"
+																	: "#374151",
+														}}
+													>
+														<div className="font-medium">
+															레벨 {level}
+														</div>
+													</div>
+												))}
+											</div>
+										)}
+									</div>
+								</div>
+							) : (
 								<span className={`px-2 py-0.5 rounded-xl text-xs font-medium ${
 									studyLevel === 1 
 										? "bg-green-100 text-green-700"
@@ -345,26 +704,82 @@ const StudyDetailPage = () => {
 								}`}>
 									스터디 레벨 {studyLevel}
 								</span>
-								{studyTags.length > 0 ? (
-									studyTags.map((tag: string, index: number) => (
-										<span key={index} className="px-2 py-0.5 rounded-xl text-xs bg-gray-100 text-gray-600">
-											#{tag}
-										</span>
-									))
+							)}
+						</div>
+
+						{/* 태그 */}
+						<div className="text-gray-700 mb-4">
+							<div className="flex items-center gap-2 mb-2">
+								<Tag className="w-4 h-4 text-gray-600" />
+								<span className="font-medium">태그</span>
+							</div>
+							<div className="mt-2 flex gap-2 flex-wrap">
+								{isEditing ? (
+									<div className="bg-gray-50 rounded-xl p-4">
+										<div className="flex flex-wrap gap-2 items-center">
+											{/* 선택된 태그들 */}
+											{editTags.map((tag, index) => (
+												<div
+													key={index}
+													className="flex items-center space-x-1 px-3 py-2 rounded-lg text-sm border-2 bg-[#8B85E9] text-white border-[#8B85E9]"
+												>
+													<span>#{tag.name}</span>
+													<button
+														type="button"
+														onClick={() => handleRemoveTag(tag)}
+														className="ml-1 hover:opacity-70 transition-opacity duration-200"
+													>
+														<X className="w-3 h-3" />
+													</button>
+												</div>
+											))}
+
+											{/* 태그 찾기 버튼 */}
+											<button
+												type="button"
+												onClick={handleOpenTagModal}
+												className="px-3 py-2 border-2 border-dashed border-[#8B85E9] text-[#8B85E9] rounded-lg hover:bg-[#8B85E9] hover:text-white transition-colors duration-200 flex items-center space-x-2 h-[40px]"
+											>
+												<Search className="w-5 h-5" />
+												<span>태그 찾기</span>
+											</button>
+										</div>
+									</div>
 								) : (
-									<span className="text-sm text-gray-500">태그 정보가 없습니다.</span>
+									<>
+										{studyTags.length > 0 ? (
+											studyTags.map((tag: string, index: number) => (
+												<span key={index} className="px-2 py-0.5 rounded-xl text-xs bg-gray-100 text-gray-600">
+													#{tag}
+												</span>
+											))
+										) : (
+											<span className="text-sm text-gray-500">태그 정보가 없습니다.</span>
+										)}
+									</>
 								)}
 							</div>
 						</div>
 						<hr className="my-4"/>
 
-						<h4 className="font-semibold mb-2" style={{ color: "#8B85E9" }}>스터디 설명</h4>
-						<div className="bg-white border-2 rounded-xl p-4" style={{ borderColor: "#8B85E9" }}>
-							<p className="text-gray-700 text-sm sm:text-base leading-relaxed">{studyDescription}</p>
+						<div className="mb-4">
+							<h4 className="font-semibold mb-2" style={{ color: "#8B85E9" }}>스터디 설명</h4>
+							<div className="bg-white border-2 rounded-xl p-4" style={{ borderColor: "#8B85E9" }}>
+								{isEditing ? (
+									<textarea
+										value={editDescription}
+										onChange={(e) => setEditDescription(e.target.value)}
+										className="text-gray-700 text-sm sm:text-base leading-relaxed w-full h-32 resize-none border-none focus:outline-none"
+										placeholder="스터디 설명을 입력하세요"
+									/>
+								) : (
+									<p className="text-gray-700 text-sm sm:text-base leading-relaxed">{studyDescription}</p>
+								)}
+							</div>
 						</div>
 						{/* 버튼 영역 */}
-						{!isLoading && isStudyLeader ? (
-							// 스터디장인 경우
+						{!isEditing && !isLoading && isStudyLeader ? (
+							// 스터디장인 경우 (수정 모드가 아닐 때만 표시)
 							<div className="flex gap-2 mt-3">
 								<button
 									type="button"
@@ -383,8 +798,8 @@ const StudyDetailPage = () => {
 									스터디 종료
 								</button>
 							</div>
-						) : !isLoading && (userMemberType === 'member' || userMemberType === null) ? (
-							// 일반 사용자이거나 멤버인 경우
+						) : !isEditing && !isLoading && (userMemberType === 'member' || userMemberType === null) ? (
+							// 일반 사용자이거나 멤버인 경우 (수정 모드가 아닐 때만 표시)
 							<button
 								type="button"
 								onClick={handleApplyClick}
@@ -398,54 +813,60 @@ const StudyDetailPage = () => {
 					</div>
 				);
 			case "과제 제출":
-				// if (!isLoggedIn || !(userMemberType === 'leader' || userMemberType === 'member')) {
-				// 	return (
-				// 		<div className="flex items-center justify-center h-64">
-				// 			<div className="text-center">
-				// 				<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
-				// 				<p className="text-sm text-gray-400">스터디에 가입한 멤버만 접근할 수 있습니다.</p>
-				// 			</div>
-				// 		</div>
-				// 	);
-				// }
+				if (!isLoggedIn || !(userMemberType === 'leader' || userMemberType === 'member')) {
+					return (
+						<div className="flex items-center justify-center h-64">
+							<div className="text-center">
+								<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
+								<p className="text-sm text-gray-400">스터디에 가입한 멤버만 접근할 수 있습니다.</p>
+							</div>
+						</div>
+					);
+				}
 				return <Assignment />;
 
 			case "과제 피드백":
-				// if (!isLoggedIn || !(userMemberType === 'leader' || userMemberType === 'member')) {
-				// 	return (
-				// 		<div className="flex items-center justify-center h-64">
-				// 			<div className="text-center">
-				// 			<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
-				// 			<p className="text-sm text-gray-400">스터디에 가입한 멤버만 접근할 수 있습니다.</p>
-				// 		</div>
-				// 	);
-				// }
+				if (!isLoggedIn || !(userMemberType === 'leader' || userMemberType === 'member')) {
+					return (
+						<div className="flex items-center justify-center h-64">
+							<div className="text-center">
+								<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
+								<p className="text-sm text-gray-400">스터디에 가입한 멤버만 접근할 수 있습니다.</p>
+							</div>
+						</div>
+					);
+				}
 				return <FeedBack />;
 			case "과제 / 일정 관리":
-				// if (!isLoggedIn || !(userMemberType === 'leader' || userMemberType === 'member')) {
-				// 	return (
-				// 		<div className="flex items-center justify-center h-64">
-				// 			<div className="text-center">
-				// 				<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
-				// 				<p className="text-sm text-gray-400">스터디에 가입한 멤버만 접근할 수 있습니다.</p>
-				// 			</div>
-				// 		</div>
-				// 	);
-				// }
-				return <Schedule isStudyLeader={isStudyLeader} />;
+				if (!isLoggedIn || !(userMemberType === 'leader' || userMemberType === 'member')) {
+					return (
+						<div className="flex items-center justify-center h-64">
+							<div className="text-center">
+								<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
+								<p className="text-sm text-gray-400">스터디에 가입한 멤버만 접근할 수 있습니다.</p>
+							</div>
+						</div>
+					);
+				}
+				return <Schedule 
+					isStudyLeader={isStudyLeader} 
+					studyProjectId={parseInt(id!, 10)}
+					userId={authContext?.user?.nickname || ''}
+					memberId={0} // TODO: 실제 멤버 ID로 변경 필요
+				/>;
 			case "커리큘럼":
 				return <Curriculum />;
 			case "커뮤니티":
-				// if (!isLoggedIn || !(userMemberType === 'leader' || userMemberType === 'member')) {
-				// 	return (
-				// 		<div className="flex items-center justify-center h-64">
-				// 			<div className="text-center">
-				// 				<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
-				// 				<p className="text-sm text-gray-400">스터디에 가입한 멤버만 접근할 수 있습니다.</p>
-				// 			</div>
-				// 		</div>
-				// 	);
-				// }
+				if (!isLoggedIn || !(userMemberType === 'leader' || userMemberType === 'member')) {
+					return (
+						<div className="flex items-center justify-center h-64">
+							<div className="text-center">
+								<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
+								<p className="text-sm text-gray-400">스터디에 가입한 멤버만 접근할 수 있습니다.</p>
+							</div>
+						</div>
+					);
+				}
 				return <Community />;
 		}
 	};
@@ -474,6 +895,124 @@ const StudyDetailPage = () => {
 				</ResponsiveMainContent>
 			</ResponsiveContainer>
 			<DraggableChatWidget />
+			
+			{/* 태그 모달 */}
+			{isTagModalOpen && (
+				<div className="fixed inset-0 bg-[rgba(0,0,0,0.1)] flex items-center justify-center z-50" onClick={handleCloseTagModal}>
+					<div className="bg-white rounded-lg p-4 w-full max-w-4xl mx-4" onClick={(e) => e.stopPropagation()}>
+						<div className="flex justify-center items-center mb-4">
+							<h3 className="text-lg font-semibold text-gray-800">태그 찾기</h3>
+							<span className="ml-2 text-sm text-gray-500">({editTags.length}/5)</span>
+						</div>
+
+						{/* 검색창 */}
+						<div className="mb-4">
+							<input
+								type="text"
+								value={tagSearchValue}
+								onChange={(e) => setTagSearchValue(e.target.value)}
+								placeholder="태그를 검색해주세요."
+								className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
+								autoFocus
+							/>
+						</div>
+
+						{/* 카테고리 필터 버튼들 */}
+						<div className="mb-4">
+							<div className="flex gap-2 flex-wrap">
+								<button
+									type="button"
+									onClick={() => setSelectedCategory(null)}
+									className={`px-3 py-1.5 text-xs rounded-lg border transition-colors duration-200 whitespace-nowrap ${selectedCategory === null
+											? 'bg-[#8B85E9] text-white border-[#8B85E9]'
+											: 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+										}`}
+								>
+									전체
+								</button>
+								{tagCategories.map((category) => (
+									<button
+										key={category.id}
+										type="button"
+										onClick={() => setSelectedCategory(category.id.toString())}
+										className={`px-3 py-1.5 text-xs rounded-lg border transition-colors duration-200 whitespace-nowrap ${selectedCategory === category.id.toString()
+												? 'bg-[#8B85E9] text-white border-[#8B85E9]'
+												: 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+											}`}
+									>
+										{category.name}
+									</button>
+								))}
+							</div>
+						</div>
+
+						{/* 태그 목록 */}
+						<div className="max-h-60 overflow-y-auto pr-2" onClick={(e) => e.stopPropagation()}>
+							{/* 로딩 상태 */}
+							{interestsLoading && (
+								<div className="flex items-center justify-center py-8">
+									<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8B85E9]"></div>
+									<span className="ml-2 text-gray-600">태그 데이터를 불러오는 중...</span>
+								</div>
+							)}
+
+							{/* 에러 상태 */}
+							{interestsError && (
+								<div className="flex items-center justify-center py-8">
+									<AlertCircle className="w-6 h-6 text-red-500 mr-2" />
+									<span className="text-red-600">태그 데이터 로드 실패: {interestsError}</span>
+								</div>
+							)}
+
+							{/* 태그 목록 */}
+							{!interestsLoading && !interestsError && filteredTags.length > 0 ? (
+								<div className="space-y-4">
+									{filteredTags.map((category) => (
+										<div key={category.id} className="border-b border-gray-200 pb-3 last:border-b-0">
+											<h4 className="font-semibold text-gray-800 mb-2 text-sm">{category.name}</h4>
+											<div className="grid grid-cols-3 gap-2">
+												{category.tags.map((tag) => {
+													const isSelected = editTags.some(t => t.name === tag);
+													
+													return (
+														<button
+															key={tag}
+															onClick={() => handleTagSelect(tag)}
+															className={`p-2 text-center rounded-lg border transition-colors duration-200 text-xs select-none ${
+																isSelected
+																	? 'bg-[#8B85E9] text-white border-[#8B85E9] cursor-pointer hover:opacity-80'
+																	: editTags.length >= 5
+																		? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+																		: 'bg-white text-gray-700 border-gray-300 hover:bg-[#8B85E9] hover:text-white hover:border-[#8B85E9] cursor-pointer'
+															}`}
+														>
+															#{tag}
+														</button>
+													);
+												})}
+											</div>
+										</div>
+									))}
+								</div>
+							) : !interestsLoading && !interestsError ? (
+								<div className="text-center py-8 text-gray-500">
+									<Search className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+									<p>검색 결과가 없습니다.</p>
+								</div>
+							) : null}
+						</div>
+
+						<div className="mt-4 flex justify-end">
+							<button
+								onClick={handleCloseTagModal}
+								className="px-4 py-2 bg-[#8B85E9] text-white rounded-lg hover:bg-[#7A74D8] transition-colors duration-200"
+							>
+								완료
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
 		</PageLayout>
 	);
 };
