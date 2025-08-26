@@ -17,4 +17,9 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     
     // 스터디/프로젝트와 멤버별 과제 목록 조회
     List<Assignment> findByStudyProjectIdAndMemberIdOrderByCreatedAtDesc(Long studyProjectId, Long memberId);
+    
+    /**
+     * 스터디 프로젝트 ID로 과제 목록 조회
+     */
+    List<Assignment> findByStudyProjectId(Long studyProjectId);
 }

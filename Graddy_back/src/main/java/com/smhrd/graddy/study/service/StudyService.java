@@ -35,6 +35,7 @@ import com.smhrd.graddy.schedule.service.ScheduleService;
 import java.util.HashSet;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import com.smhrd.graddy.study.dto.StudyProjectStatusInfo;
 
 @Service
 @RequiredArgsConstructor
@@ -67,6 +68,7 @@ public class StudyService {
         studyProject.setStudyProjectTotal(request.getStudyProjectTotal());
         studyProject.setSoltStart(localDateTimeToTimestamp(request.getSoltStart()));
         studyProject.setSoltEnd(localDateTimeToTimestamp(request.getSoltEnd()));
+        studyProject.setGitUrl(request.getGitUrl());
 
         StudyProject savedStudyProject = studyProjectRepository.save(studyProject);
         
@@ -239,6 +241,9 @@ public class StudyService {
         if (request.getSoltEnd() != null) {
             studyProject.setSoltEnd(localDateTimeToTimestamp(request.getSoltEnd()));
         }
+        if (request.getGitUrl() != null) {
+            studyProject.setGitUrl(request.getGitUrl());
+        }
 
         StudyProject updatedStudyProject = studyProjectRepository.save(studyProject);
         
@@ -338,6 +343,7 @@ public class StudyService {
         String userParticipationStatus = "none";
         String applicationStatus = null;
         LocalDateTime applicationDate = null;
+        StudyProjectStatusInfo studyProjectStatusInfo = null;
         
         if (userId != null) {
             // 1. 먼저 study_project_member 테이블에서 멤버 상태 확인
@@ -354,16 +360,38 @@ public class StudyService {
                 userParticipationStatus = "pending"; // 신청 대기
                 
                 // study_project_status 테이블에서 신청 상태 정보 조회
-                Optional<StudyProjectStatus> statusOpt = studyProjectStatusRepository.findById(
-                    new StudyProjectStatus.StudyProjectStatusId(userId, studyProject.getStudyProjectId())
+                Optional<StudyProjectStatus> statusOpt = studyProjectStatusRepository.findByUserIdAndStudyProjectId(
+                    userId, studyProject.getStudyProjectId()
                 );
                 if (statusOpt.isPresent()) {
                     StudyProjectStatus status = statusOpt.get();
                     applicationStatus = status.getStatus().toString();
                     applicationDate = timestampToLocalDateTime(status.getJoinedAt());
+                    
+                    // study_project_status 정보를 StudyProjectStatusInfo로 변환
+                    studyProjectStatusInfo = StudyProjectStatusInfo.builder()
+                            .userId(status.getUserId())
+                            .studyProjectId(status.getStudyProjectId())
+                            .status(status.getStatus().toString())
+                            .joinedAt(timestampToLocalDateTime(status.getJoinedAt()))
+                            .build();
                 }
             }
             // 3. 그 외의 경우는 "none" (참여하지도 신청하지도 않음)
+        } else {
+            // userId가 null인 경우 (로그인하지 않은 사용자)
+            // 해당 스터디에 신청한 모든 사용자의 study_project_status 정보를 조회
+            List<StudyProjectStatus> allStatuses = studyProjectStatusRepository.findByStudyProjectId(studyProject.getStudyProjectId());
+            if (!allStatuses.isEmpty()) {
+                // 첫 번째 신청자의 정보를 기본으로 사용 (또는 모든 신청자 정보를 포함할 수도 있음)
+                StudyProjectStatus firstStatus = allStatuses.get(0);
+                studyProjectStatusInfo = StudyProjectStatusInfo.builder()
+                        .userId(firstStatus.getUserId())
+                        .studyProjectId(firstStatus.getStudyProjectId())
+                        .status(firstStatus.getStatus().toString())
+                        .joinedAt(timestampToLocalDateTime(firstStatus.getJoinedAt()))
+                        .build();
+            }
         }
         
         // 스터디 상태 판단 (진행중/종료)
@@ -407,6 +435,7 @@ public class StudyService {
                 timestampToLocalDateTime(studyProject.getSoltEnd()),
                 timestampToLocalDateTime(studyProject.getCreatedAt()),
                 studyProject.getCurText(),
+                studyProject.getGitUrl(),
                 tagNames,
                 availableDays,
                 currentMembers,
@@ -414,7 +443,8 @@ public class StudyService {
                 userParticipationStatus,
                 applicationStatus,
                 applicationDate,
-                studyStatus // 스터디 상태 추가
+                studyStatus, // 스터디 상태 추가
+                studyProjectStatusInfo // study_project_status 정보 추가
         );
     }
 

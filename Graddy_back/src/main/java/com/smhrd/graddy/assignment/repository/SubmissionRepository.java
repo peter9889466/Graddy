@@ -21,4 +21,9 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
     
     // 과제별 제출 수 조회
     Long countByAssignmentId(Long assignmentId);
+    
+    /**
+     * 과제 ID로 제출물 목록 조회
+     */
+    List<Submission> findByAssignmentId(Long assignmentId);
 }

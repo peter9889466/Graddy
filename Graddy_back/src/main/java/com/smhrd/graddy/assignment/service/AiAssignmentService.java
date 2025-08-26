@@ -51,7 +51,7 @@ public class AiAssignmentService {
     @Value("${openai.api.url:https://api.openai.com/v1/chat/completions}")
     private String openaiApiUrl;
     
-    @Value("${openai.model:gpt-3.5-turbo}")
+    @Value("${openai.model:gpt-4o-mini}")
     private String openaiModel;
     
     /**

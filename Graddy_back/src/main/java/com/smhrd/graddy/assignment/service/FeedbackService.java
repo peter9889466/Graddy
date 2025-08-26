@@ -98,11 +98,69 @@ public class FeedbackService {
                     firstFeedback.getScore(),
                     firstFeedback.getComment(),
                     firstFeedback.getCreatedAt()
-            );
-
+                );
         } catch (Exception e) {
             log.error("AI 피드백 생성 중 오류 발생", e);
-            throw new RuntimeException("피드백 생성에 실패했습니다: " + e.getMessage());
+            throw new RuntimeException("AI 피드백 생성에 실패했습니다: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Assignment와 Submission을 직접 받아서 AI 피드백 생성 (SubmissionService에서 사용)
+     */
+    public Map<String, Object> generateFeedback(Assignment assignment, Submission submission) {
+        try {
+            log.info("개별 제출에 대한 AI 피드백 생성 시작: submissionId={}", submission.getSubmissionId());
+
+            // AI 피드백 생성
+            Map<String, Object> aiFeedback = generateAiFeedback(assignment, submission);
+            
+            log.info("개별 제출에 대한 AI 피드백 생성 완료: submissionId={}", submission.getSubmissionId());
+            return aiFeedback;
+            
+        } catch (Exception e) {
+            log.error("개별 제출에 대한 AI 피드백 생성 중 오류 발생: submissionId={}", submission.getSubmissionId(), e);
+            throw new RuntimeException("AI 피드백 생성에 실패했습니다: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Submission만 받아서 AI 피드백을 생성하고 저장 (SubmissionService에서 사용)
+     */
+    @Transactional
+    public void generateFeedbackForSubmission(Submission submission) {
+        try {
+            log.info("제출에 대한 AI 피드백 생성 및 저장 시작: submissionId={}", submission.getSubmissionId());
+
+            // 1. 과제 정보 조회
+            Assignment assignment = assignmentRepository.findById(submission.getAssignmentId())
+                    .orElseThrow(() -> new IllegalArgumentException("과제를 찾을 수 없습니다: " + submission.getAssignmentId()));
+
+            // 2. 이미 피드백이 있는지 확인
+            if (feedbackRepository.findBySubmissionIdAndMemberId(submission.getSubmissionId(), submission.getMemberId()).isPresent()) {
+                log.info("제출 {}에 대한 피드백이 이미 존재합니다. 건너뜁니다.", submission.getSubmissionId());
+                return;
+            }
+
+            // 3. AI 피드백 생성
+            Map<String, Object> aiFeedback = generateAiFeedback(assignment, submission);
+            
+            // 4. 피드백을 데이터베이스에 저장
+            Feedback feedback = new Feedback();
+            feedback.setMemberId(submission.getMemberId());
+            feedback.setSubmissionId(submission.getSubmissionId());
+            feedback.setScore((Integer) aiFeedback.get("score"));
+            feedback.setComment((String) aiFeedback.get("comment"));
+            feedback.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
+
+            Feedback savedFeedback = feedbackRepository.save(feedback);
+            
+            log.info("제출 {}에 대한 AI 피드백 생성 및 저장 완료: feedId={}, score={}", 
+                    submission.getSubmissionId(), savedFeedback.getFeedId(), savedFeedback.getScore());
+            
+        } catch (Exception e) {
+            log.error("제출에 대한 AI 피드백 생성 및 저장 중 오류 발생: submissionId={}", submission.getSubmissionId(), e);
+            throw new RuntimeException("AI 피드백 생성 및 저장에 실패했습니다: " + e.getMessage());
         }
     }
 

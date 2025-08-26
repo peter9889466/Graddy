@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/schedules")
+@RequestMapping("/schedules")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "일정 관리 API", description = "일정 관리 API")
@@ -73,16 +73,16 @@ public class ScheduleController {
     /**
      * 사용자의 개인 일정만 조회
      */
-    @GetMapping("/my/personal")
-    @Operation(summary = "사용자 개인 일정 조회", description = "로그인한 사용자의 개인 일정만 조회합니다.")
-    public ResponseEntity<List<ScheduleResponse>> getMyPersonalSchedules(
-            @RequestHeader("Authorization") String authorization) {
+    // @GetMapping("/my/personal")
+    // @Operation(summary = "사용자 개인 일정 조회", description = "로그인한 사용자의 개인 일정만 조회합니다.")
+    // public ResponseEntity<List<ScheduleResponse>> getMyPersonalSchedules(
+    //         @RequestHeader("Authorization") String authorization) {
         
-        String userId = jwtUtil.extractUserId(authorization.replace("Bearer ", ""));
-        List<ScheduleResponse> schedules = scheduleService.getPersonalSchedulesByUserId(userId);
+    //     String userId = jwtUtil.extractUserId(authorization.replace("Bearer ", ""));
+    //     List<ScheduleResponse> schedules = scheduleService.getPersonalSchedulesByUserId(userId);
         
-        return ResponseEntity.ok(schedules);
-    }
+    //     return ResponseEntity.ok(schedules);
+    // }
     
     /**
      * 사용자의 스터디 일정만 조회
@@ -113,18 +113,18 @@ public class ScheduleController {
     /**
      * 특정 기간의 일정 조회
      */
-    @GetMapping("/my/period")
-    @Operation(summary = "기간별 일정 조회", description = "로그인한 사용자의 특정 기간 일정을 조회합니다.")
-    public ResponseEntity<List<ScheduleResponse>> getSchedulesByPeriod(
-            @RequestHeader("Authorization") String authorization,
-            @RequestParam LocalDateTime startTime,
-            @RequestParam LocalDateTime endTime) {
+    // @GetMapping("/my/period")
+    // @Operation(summary = "기간별 일정 조회", description = "로그인한 사용자의 특정 기간 일정을 조회합니다.")
+    // public ResponseEntity<List<ScheduleResponse>> getSchedulesByPeriod(
+    //         @RequestHeader("Authorization") String authorization,
+    //         @RequestParam LocalDateTime startTime,
+    //         @RequestParam LocalDateTime endTime) {
         
-        String userId = jwtUtil.extractUserId(authorization.replace("Bearer ", ""));
-        List<ScheduleResponse> schedules = scheduleService.getSchedulesByUserIdAndPeriod(userId, startTime, endTime);
+    //     String userId = jwtUtil.extractUserId(authorization.replace("Bearer ", ""));
+    //     List<ScheduleResponse> schedules = scheduleService.getSchedulesByUserIdAndPeriod(userId, startTime, endTime);
         
-        return ResponseEntity.ok(schedules);
-    }
+    //     return ResponseEntity.ok(schedules);
+    // }
     
     /**
      * 일정 수정
