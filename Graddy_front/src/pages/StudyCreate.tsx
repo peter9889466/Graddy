@@ -346,22 +346,23 @@ const StudyCreate: React.FC = () => {
             // 선택된 태그에서 interestIds 추출
             const interestIds = studyData.tags.map(tag => tag.interestId);
             
-            // 새로운 스터디 프로젝트 생성 요청 데이터
-            const createStudyProjectRequest: CreateStudyProjectRequest = {
-                studyProjectName: studyData.title,
-                studyProjectTitle: studyData.introduction,
-                studyProjectDesc: studyData.description,
-                studyLevel: selectedStudyLevel || 1, // 선택되지 않으면 기본값 1
-                typeCheck: studyType, // "study" 또는 "project"
-                userId: user?.nickname || 'testuser', // JWT 토큰에서 자동 추출되므로 선택적
-                studyProjectStart: new Date(studyData.startDate).toISOString(), // 선택된 시작일
-                studyProjectEnd: new Date(studyData.endDate).toISOString(), // 선택된 종료일
-                studyProjectTotal: studyData.maxMembers,
-                soltStart: formatTimeForBackend(studyData.startTime, 9), // 시작 시간을 ISO 형식으로
-                soltEnd: formatTimeForBackend(studyData.endTime, 18), // 종료 시간을 ISO 형식으로
-                interestIds: interestIds,
-                dayIds: selectedDayIds
-            };
+            			// 새로운 스터디 프로젝트 생성 요청 데이터
+			const createStudyProjectRequest: CreateStudyProjectRequest = {
+				studyProjectName: studyData.title,
+				studyProjectTitle: studyData.introduction,
+				studyProjectDesc: studyData.description,
+				studyLevel: selectedStudyLevel || 1, // 선택되지 않으면 기본값 1
+				typeCheck: studyType, // "study" 또는 "project"
+				userId: user?.nickname || 'testuser', // JWT 토큰에서 자동 추출되므로 선택적
+				studyProjectStart: new Date(studyData.startDate).toISOString(), // 선택된 시작일
+				studyProjectEnd: new Date(studyData.endDate).toISOString(), // 선택된 종료일
+				studyProjectTotal: studyData.maxMembers,
+				soltStart: formatTimeForBackend(studyData.startTime, 9), // 시작 시간을 ISO 형식으로
+				soltEnd: formatTimeForBackend(studyData.endTime, 18), // 종료 시간을 ISO 형식으로
+				interestIds: interestIds,
+				dayIds: selectedDayIds,
+				...(studyType === 'project' && { githubUrl: '' }) // 프로젝트일 때만 GitHub URL 필드 추가
+			};
 
             console.log('백엔드로 전송할 데이터:', createStudyProjectRequest);
             console.log('현재 사용자 정보:', user);
