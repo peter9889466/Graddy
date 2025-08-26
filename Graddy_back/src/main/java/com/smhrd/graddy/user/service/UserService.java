@@ -9,11 +9,13 @@ import com.smhrd.graddy.user.entity.User;
 import com.smhrd.graddy.user.entity.UserInterest;
 import com.smhrd.graddy.user.entity.UserAvailableDays;
 import com.smhrd.graddy.user.entity.Days;
+import com.smhrd.graddy.user.entity.UserScore;
 import com.smhrd.graddy.interest.entity.Interest;
 import com.smhrd.graddy.user.repository.UserInterestRepository;
 import com.smhrd.graddy.user.repository.UserRepository;
 import com.smhrd.graddy.user.repository.UserAvailableDaysRepository;
 import com.smhrd.graddy.user.repository.DaysRepository;
+import com.smhrd.graddy.user.repository.UserScoreRepository;
 import com.smhrd.graddy.interest.repository.InterestRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -32,6 +34,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final UserInterestRepository userInterestRepository;
     private final UserAvailableDaysRepository userAvailableDaysRepository;
+    private final UserScoreRepository userScoreRepository;
     private final InterestRepository interestRepository;
     private final PasswordEncoder passwordEncoder;
     private final DaysRepository daysRepository;
@@ -65,6 +68,60 @@ public class UserService {
     public String findUserIdByNameAndTel(String name, String tel) {
         Optional<User> user = userRepository.findByNameAndTel(name, tel);
         return user.map(User::getUserId).orElse(null);
+    }
+
+    /**
+     * [추가] 사용자 점수 조회 메서드
+     * @param userId 사용자 ID
+     * @return 사용자 점수 정보
+     */
+    public UserScore getUserScore(String userId) {
+        return userScoreRepository.findByUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자 점수 정보를 찾을 수 없습니다: " + userId));
+    }
+
+    /**
+     * [추가] 사용자 점수 증가 메서드
+     * @param userId 사용자 ID
+     * @param amount 증가할 점수
+     * @return 업데이트된 점수 정보
+     */
+    @Transactional
+    public UserScore addUserScore(String userId, int amount) {
+        UserScore userScore = getUserScore(userId);
+        userScore.addScore(amount);
+        return userScoreRepository.save(userScore);
+    }
+
+    /**
+     * [추가] 사용자 점수 감소 메서드
+     * @param userId 사용자 ID
+     * @param amount 감소할 점수
+     * @return 업데이트된 점수 정보
+     */
+    @Transactional
+    public UserScore subtractUserScore(String userId, int amount) {
+        UserScore userScore = getUserScore(userId);
+        userScore.subtractScore(amount);
+        return userScoreRepository.save(userScore);
+    }
+
+    /**
+     * [추가] 상위 사용자 점수 조회 메서드
+     * @param limit 조회할 상위 사용자 수
+     * @return 상위 사용자 점수 목록
+     */
+    public List<UserScore> getTopUsersByScore(int limit) {
+        return userScoreRepository.findTopUsersByScore(limit);
+    }
+
+    /**
+     * [추가] 특정 점수 이상의 사용자들 조회 메서드
+     * @param minScore 최소 점수
+     * @return 점수 정보 목록
+     */
+    public List<UserScore> getUsersByMinScore(int minScore) {
+        return userScoreRepository.findByUserScoreGreaterThanEqualOrderByUserScoreDesc(minScore);
     }
 
 
@@ -170,6 +227,12 @@ public class UserService {
             }
         }
         
+        // 5. 사용자의 기본 점수 1000점을 생성합니다.
+        UserScore userScore = new UserScore();
+        userScore.setUserId(savedUser.getUserId());
+        userScore.setScore(1000);
+        userScoreRepository.save(userScore);
+        
         return savedUser; // 저장된 User 정보를 컨트롤러로 반환
     }
 
@@ -247,5 +310,36 @@ public class UserService {
         userRepository.delete(user);
         
         return user;
+    }
+
+    /**
+     * [추가] 비밀번호 찾기 1단계: 사용자 존재 여부 확인
+     * @param userId 사용자 아이디
+     * @param tel 사용자 전화번호
+     * @return 사용자 존재 여부
+     */
+    public boolean verifyUserForPasswordFind(String userId, String tel) {
+        Optional<User> user = userRepository.findByUserId(userId);
+        if (user.isPresent()) {
+            return user.get().getTel().equals(tel);
+        }
+        return false;
+    }
+
+    /**
+     * [추가] 비밀번호 찾기 3단계: 비밀번호 변경
+     * @param userId 사용자 아이디
+     * @param newPassword 새로운 비밀번호
+     * @return 변경된 사용자 정보
+     */
+    @Transactional
+    public User resetPassword(String userId, String newPassword) {
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        
+        // 새 비밀번호 암호화하여 저장
+        user.setPassword(passwordEncoder.encode(newPassword));
+        
+        return userRepository.save(user);
     }
 }

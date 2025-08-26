@@ -61,4 +61,8 @@ public class User {
     // UserInterest와의 OneToMany 관계
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<UserInterest> userInterests = new ArrayList<>();
+
+    // UserScore와의 OneToOne 관계
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private UserScore userScore;
 }
