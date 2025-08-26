@@ -31,6 +31,7 @@ public class SecurityConfig {
                 // 2. 모든 HTTP 요청에 대해 인증을 요구하도록 설정
                 .authorizeHttpRequests(authorize -> authorize
                         // 'api/studies'와 Swagger 관련 경로는 모두에게 허용
+                        .requestMatchers("/api/ws/**").permitAll()
                         .requestMatchers("**").permitAll()
                         // .requestMatchers("/api/join","/api/studies", "/swagger-ui/**", "/v3/api-docs/**", "/api/login/**").permitAll()
                         // USER 역할을 가진 사용자 접근 가능
