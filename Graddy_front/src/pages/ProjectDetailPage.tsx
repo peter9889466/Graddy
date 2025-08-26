@@ -8,7 +8,7 @@ import Assignment from "../components/detail/Assignment";
 import { studyList } from "../data/studyData";
 import { AuthContext } from "../contexts/AuthContext";
 import PageLayout from "../components/layout/PageLayout";
-import { StudyApiService } from "../services/studyApi";
+import { StudyApiService, applyToStudyProject, getStudyApplications, processStudyApplication, getUserApplicationStatus, StudyApplicationResponse } from "../services/studyApi";
 import FeedBack from "@/components/detail/FeedBack";
 import Schedule from "@/components/detail/Schedule";
 import Curriculum from "@/components/detail/Curriculum";
@@ -126,6 +126,11 @@ const ProjectDetailPage = () => {
 	const [interestsError, setInterestsError] = useState<string | null>(null);
 	const [tagCategories, setTagCategories] = useState<Array<{id: number, name: string, tags: string[]}>>([]);
 	
+	// 가입 신청 관련 상태
+	const [applications, setApplications] = useState<StudyApplicationResponse[]>([]);
+	const [isApplying, setIsApplying] = useState(false);
+	const [applicationMessage, setApplicationMessage] = useState('');
+	
 	// 사용자 권한 확인
 	const isLoggedIn = authContext?.isLoggedIn || false;
 	
@@ -160,9 +165,28 @@ const ProjectDetailPage = () => {
 					
 					// 기간 설정
 					if (studyData.studyProjectStart && studyData.studyProjectEnd) {
-						const startDate = new Date(studyData.studyProjectStart).toISOString().split('T')[0];
-						const endDate = new Date(studyData.studyProjectEnd).toISOString().split('T')[0];
-						setStudyPeriod(`${startDate} ~ ${endDate}`);
+						console.log('원본 날짜 데이터:', studyData.studyProjectStart, studyData.studyProjectEnd);
+						
+						// 날짜 파싱 및 변환
+						const parseDate = (dateString: string) => {
+							// 이미 YYYY-MM-DD 형식인 경우
+							if (dateString.includes('T')) {
+								return dateString.split('T')[0];
+							}
+							// 다른 형식인 경우 Date 객체로 변환
+							const date = new Date(dateString);
+							if (isNaN(date.getTime())) {
+								console.error('날짜 파싱 실패:', dateString);
+								return dateString; // 파싱 실패 시 원본 반환
+							}
+							return date.toISOString().split('T')[0];
+						};
+						
+						const startDateStr = parseDate(studyData.studyProjectStart);
+						const endDateStr = parseDate(studyData.studyProjectEnd);
+						
+						console.log('변환된 날짜:', startDateStr, endDateStr);
+						setStudyPeriod(`${startDateStr} ~ ${endDateStr}`);
 					}
 					
 					// GitHub URL 설정
@@ -387,6 +411,95 @@ const ProjectDetailPage = () => {
 		setSelectedCategory(null);
 	};
 
+	// 가입 신청 관련 함수들
+	const handleApplyToProject = async () => {
+		if (!id || !authContext?.user?.nickname) {
+			alert('로그인이 필요합니다.');
+			return;
+		}
+
+		setIsApplying(true);
+		try {
+			const request = {
+				studyProjectId: parseInt(id, 10),
+				message: "열심히 참여하겠습니다!"
+			};
+
+			const response = await applyToStudyProject(request);
+			alert('가입 신청이 완료되었습니다!');
+			
+			// 가입 신청 목록 새로고침 (리더인 경우)
+			if (userMemberType === 'leader') {
+				loadApplications();
+			}
+		} catch (error) {
+			console.error('가입 신청 실패:', error);
+			alert('가입 신청에 실패했습니다. 다시 시도해주세요.');
+		} finally {
+			setIsApplying(false);
+		}
+	};
+
+	const loadApplications = async () => {
+		if (!id || userMemberType !== 'leader') return;
+		
+		try {
+			const studyProjectId = parseInt(id, 10);
+			const applicationsData = await getStudyApplications(studyProjectId);
+			setApplications(applicationsData.filter(app => app.status === 'PENDING'));
+		} catch (error) {
+			console.error('가입 신청 목록 로드 실패:', error);
+		}
+	};
+
+	const handleProcessApplication = async (userId: string, status: 'PENDING' | 'REJECTED', reason?: string) => {
+		if (!id) return;
+
+		try {
+			const request = {
+				userId,
+				status,
+				...(reason && { reason })
+			};
+
+			await processStudyApplication(parseInt(id, 10), request);
+			
+			if (status === 'PENDING') {
+				alert('가입 신청이 승인되었습니다.');
+			} else {
+				alert('가입 신청이 거절되었습니다.');
+			}
+
+			// 가입 신청 목록 새로고침
+			loadApplications();
+			
+			// 멤버 목록 새로고침
+			fetchProjectInfo();
+		} catch (error) {
+			console.error('가입 신청 처리 실패:', error);
+			alert('가입 신청 처리에 실패했습니다.');
+		}
+	};
+
+	// 사용자의 가입 신청 상태 확인
+	const checkUserApplicationStatus = async () => {
+		if (!id || !authContext?.user?.nickname || userMemberType === 'leader' || userMemberType === 'member') {
+			return;
+		}
+
+		try {
+			const studyProjectId = parseInt(id, 10);
+			const applicationStatus = await getUserApplicationStatus(studyProjectId);
+			
+			if (applicationStatus) {
+				setIsApplied(true);
+				console.log('사용자 가입 신청 상태:', applicationStatus);
+			}
+		} catch (error) {
+			console.error('가입 신청 상태 확인 실패:', error);
+		}
+	};
+
 	// 태그 데이터 가져오기
 	useEffect(() => {
 		const fetchInterests = async () => {
@@ -441,6 +554,20 @@ const ProjectDetailPage = () => {
 
 		fetchInterests();
 	}, []);
+
+	// 가입 신청 목록 로드 (리더인 경우)
+	useEffect(() => {
+		if (userMemberType === 'leader' && id) {
+			loadApplications();
+		}
+	}, [userMemberType, id]);
+
+	// 사용자 가입 신청 상태 확인
+	useEffect(() => {
+		if (id && authContext?.user?.nickname && !isLoading) {
+			checkUserApplicationStatus();
+		}
+	}, [id, authContext?.user?.nickname, isLoading, userMemberType]);
 
 
 
@@ -703,15 +830,28 @@ const ProjectDetailPage = () => {
 							</div>
 						) : !isEditing ? (
 							// 일반 사용자인 경우 (수정 모드가 아닐 때만 표시)
-							<button
-								type="button"
-								onClick={handleApplyClick}
-								className="w-full mt-3 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer"
-								style={{ backgroundColor: isApplied ? "#6B7280" : "#8B85E9" }}
-								disabled={isApplied}
-							>
-								{isApplied ? "가입 신청됨" : "프로젝트 가입 신청"}
-							</button>
+							<div className="w-full mt-3">
+								{!isApplied ? (
+									<button
+										type="button"
+										onClick={handleApplyToProject}
+										disabled={isApplying}
+										className="w-full px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer"
+										style={{ backgroundColor: isApplying ? "#6B7280" : "#8B85E9" }}
+									>
+										{isApplying ? "신청 중..." : "프로젝트 가입 신청"}
+									</button>
+								) : (
+									<button
+										type="button"
+										className="w-full px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-not-allowed"
+										style={{ backgroundColor: "#6B7280" }}
+										disabled
+									>
+										가입 신청됨
+									</button>
+								)}
+							</div>
 						) : null}
 					</div>
 				);
@@ -742,6 +882,8 @@ const ProjectDetailPage = () => {
 						isStudyMember={!isLoading && (userMemberType === 'leader' || userMemberType === 'member')}
 						maxMembers={maxMembers}
 						members={members}
+						applications={applications}
+						onProcessApplication={handleProcessApplication}
 					/>
 				</ResponsiveSidebar>
 

@@ -950,7 +950,7 @@ const StudyCreate: React.FC = () => {
                                         </div>
                                         <div className="relative">
                                             <select
-                                                value={studyData.startTime || ''}
+                                                value={studyData.startTime !== null ? studyData.startTime : ''}
                                                 onChange={(e) => setTimeSlot('start', parseInt(e.target.value))}
                                                 className="time-select w-32 px-4 py-3 text-lg font-semibold text-center border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] bg-white shadow-sm transition-all duration-200 hover:shadow-md"
                                                 style={{
@@ -987,7 +987,7 @@ const StudyCreate: React.FC = () => {
                                         </div>
                                         <div className="relative">
                                             <select
-                                                value={studyData.endTime || ''}
+                                                value={studyData.endTime !== null ? studyData.endTime : ''}
                                                 onChange={(e) => setTimeSlot('end', parseInt(e.target.value))}
                                                 className="time-select w-32 px-4 py-3 text-lg font-semibold text-center border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] bg-white shadow-sm transition-all duration-200 hover:shadow-md"
                                                 style={{
