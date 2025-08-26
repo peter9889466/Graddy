@@ -19,6 +19,7 @@ export interface BackendStudyProjectData {
     curText: string | null;
     tagNames: string[];
     availableDays: string[];
+    githubUrl?: string; // GitHub URL 필드 추가
     currentMemberCount?: number;
     members?: Array<{
         memberId: number;
@@ -83,6 +84,7 @@ export interface CreateStudyProjectRequest {
     soltEnd: string; // ISO 8601 형식: "2025-08-22T11:27:56.603Z"
     interestIds: number[];
     dayIds: string[]; // 백엔드에서는 Byte[]이지만 프론트엔드에서는 string[]로 처리
+    githubUrl?: string; // GitHub URL (프로젝트 전용)
 }
 
 // 스터디 수정 요청 타입
@@ -188,6 +190,21 @@ export class StudyApiService {
     static async updateStudy(studyId: number, studyData: UpdateStudyRequest): Promise<StudyData> {
         const response = await apiPut<StudyData>(`/studies/${studyId}`, studyData);
         return response.data;
+    }
+
+    // 스터디/프로젝트 수정
+    static async updateStudyProject(studyProjectId: number, updateData: any): Promise<any> {
+        try {
+            console.log('updateStudyProject 호출 시작:', studyProjectId);
+            
+            const response = await apiPut<any>(`/studies-projects/${studyProjectId}`, updateData);
+            console.log('updateStudyProject 응답:', response);
+            
+            return response.data;
+        } catch (error) {
+            console.error('updateStudyProject 실패:', error);
+            throw error;
+        }
     }
 
     // 스터디 상태 변경

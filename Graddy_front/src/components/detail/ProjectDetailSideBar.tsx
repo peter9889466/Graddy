@@ -14,6 +14,15 @@ interface ProjectDetailSideBarProps {
     onTabChange: (tab: string) => void;
     isLoggedIn: boolean;
     isStudyMember: boolean;
+    maxMembers?: number;
+    members?: Array<{
+        memberId: number;
+        userId: string;
+        nick: string;
+        memberType: string;
+        memberStatus: string;
+        joinedAt: string;
+    }>;
 }
 
 const ProjectDetailSideBar: React.FC<ProjectDetailSideBarProps> = ({
@@ -21,10 +30,11 @@ const ProjectDetailSideBar: React.FC<ProjectDetailSideBarProps> = ({
     onTabChange,
     isLoggedIn,
     isStudyMember,
+    maxMembers = 10,
+    members = [],
 }) => {
     const sideMenuItems: SideMenuItem[] = [
         { name: "프로젝트 메인" },
-        { name: "커리큘럼" },
         { name: "커뮤니티", requiresAuth: true, requiresMembership: true },
     ];
 
@@ -48,7 +58,7 @@ const ProjectDetailSideBar: React.FC<ProjectDetailSideBarProps> = ({
                                 return;
                             }
                             if (item.requiresMembership && !isStudyMember) {
-                                alert('프로젝트 멤버만 확인할 수 있습니다.');
+                                alert('팀원만 확인할 수 있습니다.');
                                 return;
                             }
                             onTabChange(item.name);
@@ -76,21 +86,31 @@ const ProjectDetailSideBar: React.FC<ProjectDetailSideBarProps> = ({
             </div>
 
             {/* 프로젝트 멤버 섹션 */}
-            {/* <div className="p-3 sm:p-4">
-                <h3
-                    className="font-bold mb-3 text-sm sm:text-base"
-                    style={{ color: "#8B85E9" }}
-                >
-                    프로젝트 멤버
-                </h3>
+            <div className="p-3 sm:p-4">
+                <div className="flex items-center justify-between mb-3">
+                    <h3
+                        className="font-bold text-sm sm:text-base"
+                        style={{ color: "#8B85E9" }}
+                    >
+                        프로젝트 멤버
+                    </h3>
+                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                        {members.length}/{maxMembers}
+                    </span>
+                </div>
                 <hr className="mb-3 border-gray-200" />
                 <div className="bg-gray-50 rounded-lg p-3 pl-6 space-y-3">
-                    <div className="text-sm text-gray-700">김개발</div>
-                    <div className="text-sm text-gray-700">이코딩</div>
-                    <div className="text-sm text-gray-700">박스터디</div>
-                    <div className="text-sm text-gray-700">정알고</div>
+                    {members.length > 0 ? (
+                        members.map((member, index) => (
+                            <div key={index} className="text-sm text-gray-700">
+                                {member.nick || member.userId}
+                            </div>
+                        ))
+                    ) : (
+                        <div className="text-sm text-gray-500">멤버가 없습니다.</div>
+                    )}
                 </div>
-            </div> */}
+            </div>
         </>
     );
 };

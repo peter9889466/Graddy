@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import ResponsiveContainer from "../components/layout/ResponsiveContainer";
 import ResponsiveSidebar from "../components/layout/ResponsiveSidebar";
 import ResponsiveMainContent from "../components/layout/ResponsiveMainContent";
-import StudyDetailSideBar from "../components/detail/StudyDetailSideBar";
+import ProjectDetailSideBar from "../components/detail/ProjectDetailSideBar";
 import Assignment from "../components/detail/Assignment";
 import { studyList } from "../data/studyData";
 import { AuthContext } from "../contexts/AuthContext";
@@ -14,7 +14,9 @@ import Schedule from "@/components/detail/Schedule";
 import Curriculum from "@/components/detail/Curriculum";
 import Community from "@/components/detail/Community";
 import DraggableChatWidget from "@/components/shared/DraggableChatWidget";
-import { Tag, Info, Crown, Calendar, Github, Edit } from "lucide-react";
+import { Tag, Info, Crown, Calendar, Github, Edit, Search, AlertCircle, X } from "lucide-react";
+import { getUserIdFromToken } from "../utils/jwtUtils";
+import { InterestApiService, InterestForFrontend } from "../services/interestApi";
 
 const ProjectDetailPage = () => {
 	const { id } = useParams<{ id: string }>();
@@ -41,7 +43,7 @@ const ProjectDetailPage = () => {
 	const [studyTitle, setStudyTitle] = useState<string>(
 		state?.title || `프로젝트#${id}의 소개가 없습니다.`
 	);
-	const [studyDescription, setStudyDescription] = useState<String>(
+	const [studyDescription, setStudyDescription] = useState<string>(
 		state?.description || `프로젝트#${id}의 설명이 없습니다.`
 	);
 	const [studyLeader, setStudyLeader] = useState<string>(
@@ -52,7 +54,7 @@ const ProjectDetailPage = () => {
 		state?.period || ""
 	);
 	const [githubUrl, setGithubUrl] = useState<string>("");
-	const [isEditing, setIsEditing] = useState(false);
+	const [studyLevel, setStudyLevel] = useState<number>(1);
 	
 	// 프로젝트 설정
 	useEffect(() => {
@@ -103,7 +105,26 @@ const ProjectDetailPage = () => {
 		memberStatus: string;
 		joinedAt: string;
 	}>>([]);
+	const [maxMembers, setMaxMembers] = useState<number>(10);
 	const [isLoading, setIsLoading] = useState(true);
+	
+	// 편집 관련 상태
+	const [isEditing, setIsEditing] = useState(false);
+	const [editName, setEditName] = useState(studyName);
+	const [editTitle, setEditTitle] = useState(studyTitle);
+	const [editDescription, setEditDescription] = useState(studyDescription);
+	const [editPeriod, setEditPeriod] = useState(studyPeriod);
+	const [editTags, setEditTags] = useState<Array<{name: string, interestId: number}>>([]);
+	const [editGithubUrl, setEditGithubUrl] = useState(githubUrl);
+	const [isTagModalOpen, setIsTagModalOpen] = useState(false);
+	const [tagSearchValue, setTagSearchValue] = useState('');
+	const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+	
+	// 태그 관련 상태
+	const [interests, setInterests] = useState<InterestForFrontend[]>([]);
+	const [interestsLoading, setInterestsLoading] = useState(false);
+	const [interestsError, setInterestsError] = useState<string | null>(null);
+	const [tagCategories, setTagCategories] = useState<Array<{id: number, name: string, tags: string[]}>>([]);
 	
 	// 사용자 권한 확인
 	const isLoggedIn = authContext?.isLoggedIn || false;
@@ -119,12 +140,23 @@ const ProjectDetailPage = () => {
 				const studyProjectId = parseInt(id, 10);
 				const studyData = await StudyApiService.getStudyProject(studyProjectId);
 				
+				console.log('=== 프로젝트 데이터 디버깅 ===');
+				console.log('전체 studyData:', studyData);
 				if (studyData) {
+					console.log('studyData 키들:', Object.keys(studyData));
+				}
+				
+				if (studyData) {
+					// JWT 토큰에서 사용자 ID 가져오기
+					const currentUserId = getUserIdFromToken();
+					console.log('JWT에서 추출한 사용자 ID:', currentUserId);
+					
 					// 프로젝트 기본 정보 설정
 					setStudyName(studyData.studyProjectName || `프로젝트#${id}`);
 					setStudyTitle(studyData.studyProjectTitle || `프로젝트#${id} 소개가 없습니다.`);
 					setStudyDescription(studyData.studyProjectDesc || `프로젝트#${id}의 설명이 없습니다.`);
 					setStudyTags(studyData.tagNames || []);
+					setMaxMembers(studyData.studyProjectTotal || 10);
 					
 					// 기간 설정
 					if (studyData.studyProjectStart && studyData.studyProjectEnd) {
@@ -133,24 +165,38 @@ const ProjectDetailPage = () => {
 						setStudyPeriod(`${startDate} ~ ${endDate}`);
 					}
 					
+					// GitHub URL 설정
+					console.log('백엔드에서 받은 GitHub URL:', studyData.githubUrl);
+					setGithubUrl(studyData.githubUrl || "");
+					
 					// 멤버 정보 설정
 					if (studyData.members) {
 						setMembers(studyData.members);
 						
 						// 디버깅을 위한 로그
 						console.log('백엔드에서 받은 멤버 데이터:', studyData.members);
-						console.log('현재 로그인한 사용자 이메일:', authContext?.user?.email);
+						console.log('JWT에서 추출한 사용자 ID:', currentUserId);
 						console.log('프로젝트 생성자 ID:', studyData.userId);
 						
 						// 현재 사용자의 멤버 정보 찾기
-						if (authContext?.user?.email) {
-							console.log('이메일 비교 - 현재 사용자:', authContext?.user?.email);
-							console.log('이메일 비교 - 멤버들:', studyData.members.map(m => ({ userId: m.userId, memberType: m.memberType, nick: m.nick })));
+						if (currentUserId) {
+							console.log('사용자 ID 비교 - 현재 사용자:', currentUserId);
+							console.log('사용자 ID 비교 - 멤버들:', studyData.members.map(m => ({ userId: m.userId, memberType: m.memberType, nick: m.nick })));
 							
+							// JWT에서 추출한 사용자 ID로 매치
 							const currentUser = studyData.members.find((member: { userId: string; memberType: string; nick: string }) => {
-								const match = member.userId === authContext?.user?.email;
-								console.log(`비교: ${member.userId} === ${authContext?.user?.email} = ${match}`);
-								return match;
+								// 정확한 매치
+								const exactMatch = member.userId === currentUserId;
+								// 대소문자 무시 매치
+								const caseInsensitiveMatch = member.userId.toLowerCase() === currentUserId.toLowerCase();
+								// 공백 제거 후 매치
+								const trimmedMatch = member.userId.trim() === currentUserId.trim();
+								
+								console.log(`비교: ${member.userId} === ${currentUserId} = ${exactMatch}`);
+								console.log(`대소문자 무시: ${member.userId.toLowerCase()} === ${currentUserId.toLowerCase()} = ${caseInsensitiveMatch}`);
+								console.log(`공백 제거: ${member.userId.trim()} === ${currentUserId.trim()} = ${trimmedMatch}`);
+								
+								return exactMatch || caseInsensitiveMatch || trimmedMatch;
 							});
 							console.log('찾은 현재 사용자:', currentUser);
 							
@@ -160,8 +206,17 @@ const ProjectDetailPage = () => {
 								setIsStudyMember(true);
 							} else {
 								console.log('멤버 목록에서 찾을 수 없음');
-								setUserMemberType(null);
-								setIsStudyMember(false);
+								
+								// 프로젝트 생성자인지 확인
+								if (currentUserId === studyData.userId) {
+									console.log('프로젝트 생성자로 인식됨');
+									setUserMemberType('leader');
+									setIsStudyMember(true);
+								} else {
+									console.log('프로젝트 생성자도 아님');
+									setUserMemberType(null);
+									setIsStudyMember(false);
+								}
 							}
 						}
 						
@@ -175,8 +230,17 @@ const ProjectDetailPage = () => {
 					} else {
 						setMembers([]);
 						console.log('멤버 목록이 비어있음');
-						setUserMemberType(null);
-						setIsStudyMember(false);
+						
+						// 프로젝트 생성자인지 확인
+						if (currentUserId === studyData.userId) {
+							console.log('프로젝트 생성자로 인식됨 (멤버 목록이 비어있음)');
+							setUserMemberType('leader');
+							setIsStudyMember(true);
+						} else {
+							setUserMemberType(null);
+							setIsStudyMember(false);
+						}
+						
 						setStudyLeader(studyData.userId || "리더가 지정되지 않았습니다.");
 					}
 				}
@@ -232,18 +296,203 @@ const ProjectDetailPage = () => {
 	};
 
 	const handleEditToggle = () => {
-		setIsEditing(!isEditing);
+		if (!isEditing) {
+			// 편집 모드 시작
+			setEditName(studyName);
+			setEditTitle(studyTitle);
+			setEditDescription(studyDescription);
+			setEditPeriod(studyPeriod);
+			
+			// 기존 태그를 올바른 interestId로 초기화
+			const initialTags = studyTags.map(tag => {
+				const interest = interests.find(i => i.interestName === tag);
+				return { name: tag, interestId: interest ? interest.interestId : 0 };
+			});
+			setEditTags(initialTags);
+			
+			setEditGithubUrl(githubUrl);
+			setIsEditing(true);
+		}
 	};
 
-	const handleSave = () => {
-		// 여기에 저장 로직 추가
-		alert("프로젝트 정보가 저장되었습니다.");
-		setIsEditing(false);
+	const handleSave = async () => {
+		try {
+			// 기간을 ISO 형식으로 변환
+			const [startDate, endDate] = editPeriod.split(' ~ ');
+			const startISO = new Date(startDate).toISOString();
+			const endISO = new Date(endDate).toISOString();
+			
+			// 태그에서 interestIds 추출
+			const interestIds = editTags.map(tag => tag.interestId);
+			
+			console.log('=== 프로젝트 저장 디버깅 ===');
+			console.log('editTags:', editTags);
+			console.log('interestIds:', interestIds);
+			console.log('interests:', interests);
+			console.log('editGithubUrl:', editGithubUrl);
+			
+			const updateData = {
+				studyProjectName: editName,
+				studyProjectTitle: editTitle,
+				studyProjectDesc: editDescription,
+				studyLevel: studyLevel, // 기존 레벨 유지
+				typeCheck: "project", // 프로젝트 타입
+				isRecruiting: isRecruiting ? "recruitment" : "closed",
+				studyProjectStart: startISO,
+				studyProjectEnd: endISO,
+				studyProjectTotal: maxMembers,
+				soltStart: new Date().toISOString(), // 기존 시간 유지
+				soltEnd: new Date().toISOString(), // 기존 시간 유지
+				interestIds: interestIds,
+				dayIds: [], // 프로젝트는 요일 정보 없음
+				githubUrl: editGithubUrl
+			};
+
+			console.log('백엔드로 전송할 데이터:', updateData);
+			console.log('GitHub URL이 포함되어 있는지 확인:', updateData.githubUrl);
+
+			// 백엔드 API 호출
+			await StudyApiService.updateStudyProject(parseInt(id!, 10), updateData);
+			
+			// 로컬 상태 업데이트
+			setStudyName(editName);
+			setStudyTitle(editTitle);
+			setStudyDescription(editDescription);
+			setStudyPeriod(editPeriod);
+			setStudyTags(editTags.map(tag => tag.name));
+			setGithubUrl(editGithubUrl);
+			
+			setIsEditing(false);
+			alert("프로젝트 정보가 성공적으로 수정되었습니다.");
+		} catch (error) {
+			console.error('프로젝트 수정 실패:', error);
+			alert("프로젝트 수정에 실패했습니다.");
+		}
 	};
 
 	const handleCancel = () => {
 		setIsEditing(false);
-		// 변경사항 초기화
+	};
+
+	// 태그 모달 관련 함수들
+	const handleOpenTagModal = () => {
+		setIsTagModalOpen(true);
+		setTagSearchValue('');
+		setSelectedCategory(null);
+	};
+
+	const handleCloseTagModal = () => {
+		setIsTagModalOpen(false);
+		setTagSearchValue('');
+		setSelectedCategory(null);
+	};
+
+	// 태그 데이터 가져오기
+	useEffect(() => {
+		const fetchInterests = async () => {
+			setInterestsLoading(true);
+			setInterestsError(null);
+			try {
+				// 백엔드에서 실제 interests 데이터 가져오기
+				const data = await InterestApiService.getInterestsByType('project');
+				setInterests(data);
+				
+				// 태그 카테고리도 설정 (UI용)
+				const tagCategories = [
+					{
+						id: 1,
+						name: '프로그래밍 언어',
+						tags: ['Python', 'JavaScript', 'HTML/CSS', 'Java', 'C#', 'Swift', 'Kotlin', 'C++', 'TypeScript', 'C', 'assembly', 'go', 'php', 'dart', 'rust', 'Ruby']
+					},
+					{
+						id: 2,
+						name: '라이브러리 & 프레임워크',
+						tags: ['React', 'Spring Boot', 'Spring', 'Node.js', 'Pandas', 'next.js', 'flutter', 'vue', 'flask', 'Django', 'Unity']
+					},
+					{
+						id: 3,
+						name: '데이터베이스',
+						tags: ['SQL', 'NOSQL', 'DBMS/RDBMS']
+					},
+					{
+						id: 4,
+						name: '플랫폼/환경',
+						tags: ['iOS', 'Android', 'AWS', 'Docker', 'Linux', 'cloud', 'IoT', '임베디드']
+					},
+					{
+						id: 5,
+						name: 'AI/데이터',
+						tags: ['인공지능(AI)', '머신러닝', '딥러닝', '빅데이터', '데이터 리터러시', 'LLM', '프롬프트 엔지니어링', 'ChatGPT', 'AI 활용(AX)']
+					},
+					{
+						id: 6,
+						name: '포지션',
+						tags: ['Back', 'Front', 'DB', 'UI/UX', '알고리즘', 'AI', 'IoT']
+					}
+				];
+				setTagCategories(tagCategories);
+			} catch (error) {
+				console.error('태그 데이터 로드 실패:', error);
+				setInterestsError('태그 데이터를 불러오는데 실패했습니다.');
+			} finally {
+				setInterestsLoading(false);
+			}
+		};
+
+		fetchInterests();
+	}, []);
+
+
+
+	// 검색어와 카테고리 필터에 따른 태그 필터링
+	const getFilteredTags = () => {
+		if (interestsLoading || interestsError || !tagCategories || tagCategories.length === 0) {
+			return [];
+		}
+
+		let filtered = tagCategories;
+
+		// 검색어 필터링
+		if (tagSearchValue.trim()) {
+			filtered = filtered.map(category => ({
+				...category,
+				tags: category.tags.filter(tag =>
+					tag.toLowerCase().includes(tagSearchValue.toLowerCase())
+				)
+			})).filter(category => category.tags.length > 0);
+		}
+
+		// 카테고리 필터링
+		if (selectedCategory) {
+			filtered = filtered.filter(category => category.id.toString() === selectedCategory);
+		}
+
+		return filtered;
+	};
+
+	const filteredTags = getFilteredTags();
+
+	const handleTagSelect = (tag: string) => {
+		if (editTags.some(t => t.name === tag)) {
+			setEditTags(editTags.filter(t => t.name !== tag));
+		} else {
+			if (editTags.length < 5) {
+				// interests 배열에서 해당 태그의 interestId 찾기
+				const interest = interests.find(i => i.interestName === tag);
+				if (interest) {
+					setEditTags([...editTags, { name: tag, interestId: interest.interestId }]);
+				} else {
+					console.warn('태그에 해당하는 interest를 찾을 수 없습니다:', tag);
+					alert('태그 정보를 찾을 수 없습니다. 다시 시도해주세요.');
+				}
+			} else {
+				alert('태그는 5개까지만 선택할 수 있습니다!');
+			}
+		}
+	};
+
+	const handleRemoveTag = (tagToRemove: {name: string, interestId: number}) => {
+		setEditTags(editTags.filter(tag => tag.name !== tagToRemove.name));
 	};
 
 	// 메인 콘텐츠 렌더링 함수
@@ -282,67 +531,158 @@ const ProjectDetailPage = () => {
 								)}
 							</div>
 						)}
-						<h3 className="text-2xl font-bold">{studyName}</h3>
-						<p className="text-gray-700">
+						{isEditing ? (
+							<input
+								type="text"
+								value={editName}
+								onChange={(e) => setEditName(e.target.value)}
+								className="text-2xl font-bold border-b-2 border-[#8B85E9] focus:outline-none"
+							/>
+						) : (
+							<h3 className="text-2xl font-bold">{studyName}</h3>
+						)}
+						<div className="text-gray-700 mb-4">
 							<div className="flex items-center gap-2">
 								<Info className="w-4 h-4 text-gray-600" />
 								<span>프로젝트 소개</span>
 							</div>
-							<span className="text-gray-800 block mt-1">{studyTitle}</span>
-						</p>
-						<p className="text-gray-700">
+							{isEditing ? (
+								<input
+									type="text"
+									value={editTitle}
+									onChange={(e) => setEditTitle(e.target.value)}
+									className="text-gray-800 block mt-1 border-b-2 border-[#8B85E9] focus:outline-none w-full"
+								/>
+							) : (
+								<span className="text-gray-800 block mt-1">{studyTitle}</span>
+							)}
+						</div>
+						<div className="text-gray-700 mb-4">
 							<div className="flex items-center gap-2">
 								<Crown className="w-4 h-4 text-gray-600" />
 								<span>리더</span>
 							</div>
 							<span className="text-gray-800 block mt-1">{leaderNickname || studyLeader}</span>
-						</p>
-						<p className="text-gray-700">
+						</div>
+						<div className="text-gray-700 mb-4">
 							<div className="flex items-center gap-2">
 								<Calendar className="w-4 h-4 text-gray-600" />
 								<span>프로젝트 기간</span>
 							</div>
-							<span className="text-gray-800 block mt-1">{formatPeriod(studyPeriod)}</span>
-						</p>
-						<div className="text-gray-700 inline-block">
+							{isEditing ? (
+								<input
+									type="text"
+									value={editPeriod}
+									onChange={(e) => setEditPeriod(e.target.value)}
+									placeholder="YYYY-MM-DD ~ YYYY-MM-DD"
+									className="text-gray-800 block mt-1 border-b-2 border-[#8B85E9] focus:outline-none w-full"
+								/>
+							) : (
+								<span className="text-gray-800 block mt-1">{formatPeriod(studyPeriod)}</span>
+							)}
+						</div>
+						<div className="text-gray-700 mb-4">
 							<div className="flex items-center gap-2">
 								<Tag className="w-4 h-4 text-gray-600" />
 								<span className="font-medium">태그</span>
 							</div>
 							<div className="mt-2 flex gap-2 flex-wrap">
-								{studyTags.length > 0 ? (
-									studyTags.map((tag: string, index: number) => (
-										<span key={index} className="px-2 py-0.5 rounded-xl text-xs bg-gray-100 text-gray-600">
-											#{tag}
-										</span>
-									))
+								{isEditing ? (
+									<div className="bg-gray-50 rounded-xl p-4">
+										<div className="flex flex-wrap gap-2 items-center">
+											{/* 선택된 태그들 */}
+											{editTags.map((tag, index) => (
+												<div
+													key={index}
+													className="flex items-center space-x-1 px-3 py-2 rounded-lg text-sm border-2 bg-[#8B85E9] text-white border-[#8B85E9]"
+												>
+													<span>#{tag.name}</span>
+													<button
+														type="button"
+														onClick={() => handleRemoveTag(tag)}
+														className="ml-1 hover:opacity-70 transition-opacity duration-200"
+													>
+														<X className="w-3 h-3" />
+													</button>
+												</div>
+											))}
+
+											{/* 태그 찾기 버튼 */}
+											<button
+												type="button"
+												onClick={handleOpenTagModal}
+												className="px-3 py-2 border-2 border-dashed border-[#8B85E9] text-[#8B85E9] rounded-lg hover:bg-[#8B85E9] hover:text-white transition-colors duration-200 flex items-center space-x-2"
+											>
+												<Search className="w-5 h-5" />
+												<span>태그 찾기</span>
+											</button>
+										</div>
+									</div>
 								) : (
-									<span className="text-sm text-gray-500">태그 정보가 없습니다.</span>
+									<>
+										{studyTags.length > 0 ? (
+											studyTags.map((tag: string, index: number) => (
+												<span key={index} className="px-2 py-0.5 rounded-xl text-xs bg-gray-100 text-gray-600">
+													#{tag}
+												</span>
+											))
+										) : (
+											<span className="text-sm text-gray-500">태그 정보가 없습니다.</span>
+										)}
+									</>
 								)}
 							</div>
 						</div>
-						<div className="flex items-center gap-2 mt-2">
-							<Github className="w-4 h-4 text-gray-600" />
-							<span className="font-medium text-gray-600">GitHub</span>
-						</div>
-						<div className="mt-1">
-							<input
-								type="url"
-								value={githubUrl}
-								onChange={(e) => setGithubUrl(e.target.value)}
-								placeholder="GitHub URL"
-								className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-transparent"
-							/>
+						<div className="text-gray-700 mb-4">
+							<div className="flex items-center gap-2 mb-2">
+								<Github className="w-4 h-4 text-gray-600" />
+								<span className="font-medium">GitHub</span>
+							</div>
+							{isEditing ? (
+								<input
+									type="url"
+									value={editGithubUrl}
+									onChange={(e) => setEditGithubUrl(e.target.value)}
+									placeholder="GitHub URL을 입력하세요"
+									className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-transparent"
+								/>
+							) : (
+								githubUrl ? (
+									<a
+										href={githubUrl}
+										target="_blank"
+										rel="noopener noreferrer"
+										className="block w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors cursor-pointer"
+									>
+										{githubUrl}
+									</a>
+								) : (
+									<span className="block w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50 text-gray-500">
+										GitHub URL이 없습니다.
+									</span>
+								)
+							)}
 						</div>
 						<hr className="my-4"/>
 
-						<h4 className="font-semibold mb-2" style={{ color: "#8B85E9" }}>프로젝트 설명</h4>
-						<div className="bg-white border-2 rounded-xl p-4" style={{ borderColor: "#8B85E9" }}>
-							<p className="text-gray-700 text-sm sm:text-base leading-relaxed">{studyDescription}</p>
+						<div className="mb-4">
+							<h4 className="font-semibold mb-2" style={{ color: "#8B85E9" }}>프로젝트 설명</h4>
+							<div className="bg-white border-2 rounded-xl p-4" style={{ borderColor: "#8B85E9" }}>
+								{isEditing ? (
+									<textarea
+										value={editDescription}
+										onChange={(e) => setEditDescription(e.target.value)}
+										className="text-gray-700 text-sm sm:text-base leading-relaxed w-full h-32 resize-none border-none focus:outline-none"
+										placeholder="프로젝트 설명을 입력하세요"
+									/>
+								) : (
+									<p className="text-gray-700 text-sm sm:text-base leading-relaxed">{studyDescription}</p>
+								)}
+							</div>
 						</div>
 						{/* 버튼 영역 */}
-						{isStudyLeader ? (
-							// 프로젝트장인 경우
+						{!isEditing && isStudyLeader ? (
+							// 프로젝트장인 경우 (수정 모드가 아닐 때만 표시)
 							<div className="flex gap-2 mt-3">
 								<button
 									type="button"
@@ -361,8 +701,8 @@ const ProjectDetailPage = () => {
 									프로젝트 종료
 								</button>
 							</div>
-						) : (
-							// 일반 사용자인 경우
+						) : !isEditing ? (
+							// 일반 사용자인 경우 (수정 모드가 아닐 때만 표시)
 							<button
 								type="button"
 								onClick={handleApplyClick}
@@ -372,7 +712,7 @@ const ProjectDetailPage = () => {
 							>
 								{isApplied ? "가입 신청됨" : "프로젝트 가입 신청"}
 							</button>
-						)}
+						) : null}
 					</div>
 				);
 			case "커뮤니티":
@@ -381,7 +721,7 @@ const ProjectDetailPage = () => {
 						<div className="flex items-center justify-center h-64">
 							<div className="text-center">
 								<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
-								<p className="text-sm text-gray-400">프로젝트에 가입한 멤버만 접근할 수 있습니다.</p>
+								<p className="text-sm text-gray-400">팀원만 확인할 수 있습니다.</p>
 							</div>
 						</div>
 					);
@@ -395,14 +735,12 @@ const ProjectDetailPage = () => {
 			<ResponsiveContainer variant="sidebar">
 				{/* 사이드바 */}
 				<ResponsiveSidebar>
-					<StudyDetailSideBar
+					<ProjectDetailSideBar
 						activeTab={activeTab}
-						onTabChange={(tab) => setActiveTab(tab)}
+						onTabChange={(tab: string) => setActiveTab(tab)}
 						isLoggedIn={isLoggedIn}
 						isStudyMember={!isLoading && (userMemberType === 'leader' || userMemberType === 'member')}
-						isProject={true}
-						isStudyLeader={isStudyLeader}
-						userMemberType={userMemberType}
+						maxMembers={maxMembers}
 						members={members}
 					/>
 				</ResponsiveSidebar>
@@ -413,6 +751,124 @@ const ProjectDetailPage = () => {
 				</ResponsiveMainContent>
 			</ResponsiveContainer>
 			<DraggableChatWidget />
+			
+			{/* 태그 모달 */}
+			{isTagModalOpen && (
+				<div className="fixed inset-0 bg-[rgba(0,0,0,0.1)] flex items-center justify-center z-50" onClick={handleCloseTagModal}>
+					<div className="bg-white rounded-lg p-4 w-full max-w-4xl mx-4" onClick={(e) => e.stopPropagation()}>
+						<div className="flex justify-center items-center mb-4">
+							<h3 className="text-lg font-semibold text-gray-800">태그 찾기</h3>
+							<span className="ml-2 text-sm text-gray-500">({editTags.length}/5)</span>
+						</div>
+
+						{/* 검색창 */}
+						<div className="mb-4">
+							<input
+								type="text"
+								value={tagSearchValue}
+								onChange={(e) => setTagSearchValue(e.target.value)}
+								placeholder="태그를 검색해주세요."
+								className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
+								autoFocus
+							/>
+						</div>
+
+						{/* 카테고리 필터 버튼들 */}
+						<div className="mb-4">
+							<div className="flex gap-2 flex-wrap">
+								<button
+									type="button"
+									onClick={() => setSelectedCategory(null)}
+									className={`px-3 py-1.5 text-xs rounded-lg border transition-colors duration-200 whitespace-nowrap ${selectedCategory === null
+											? 'bg-[#8B85E9] text-white border-[#8B85E9]'
+											: 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+										}`}
+								>
+									전체
+								</button>
+								{tagCategories.map((category) => (
+									<button
+										key={category.id}
+										type="button"
+										onClick={() => setSelectedCategory(category.id.toString())}
+										className={`px-3 py-1.5 text-xs rounded-lg border transition-colors duration-200 whitespace-nowrap ${selectedCategory === category.id.toString()
+												? 'bg-[#8B85E9] text-white border-[#8B85E9]'
+												: 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+											}`}
+									>
+										{category.name}
+									</button>
+								))}
+							</div>
+						</div>
+
+						{/* 태그 목록 */}
+						<div className="max-h-60 overflow-y-auto pr-2" onClick={(e) => e.stopPropagation()}>
+							{/* 로딩 상태 */}
+							{interestsLoading && (
+								<div className="flex items-center justify-center py-8">
+									<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8B85E9]"></div>
+									<span className="ml-2 text-gray-600">태그 데이터를 불러오는 중...</span>
+								</div>
+							)}
+
+							{/* 에러 상태 */}
+							{interestsError && (
+								<div className="flex items-center justify-center py-8">
+									<AlertCircle className="w-6 h-6 text-red-500 mr-2" />
+									<span className="text-red-600">태그 데이터 로드 실패: {interestsError}</span>
+								</div>
+							)}
+
+							{/* 태그 목록 */}
+							{!interestsLoading && !interestsError && filteredTags.length > 0 ? (
+								<div className="space-y-4">
+									{filteredTags.map((category) => (
+										<div key={category.id} className="border-b border-gray-200 pb-3 last:border-b-0">
+											<h4 className="font-semibold text-gray-800 mb-2 text-sm">{category.name}</h4>
+											<div className="grid grid-cols-3 gap-2">
+												{category.tags.map((tag) => {
+													const isSelected = editTags.some(t => t.name === tag);
+													
+													return (
+														<button
+															key={tag}
+															onClick={() => handleTagSelect(tag)}
+															className={`p-2 text-center rounded-lg border transition-colors duration-200 text-xs select-none ${
+																isSelected
+																	? 'bg-[#8B85E9] text-white border-[#8B85E9] cursor-pointer hover:opacity-80'
+																	: editTags.length >= 5
+																		? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+																		: 'bg-white text-gray-700 border-gray-300 hover:bg-[#8B85E9] hover:text-white hover:border-[#8B85E9] cursor-pointer'
+															}`}
+														>
+															#{tag}
+														</button>
+													);
+												})}
+											</div>
+										</div>
+									))}
+								</div>
+							) : !interestsLoading && !interestsError ? (
+								<div className="text-center py-8 text-gray-500">
+									<Search className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+									<p>검색 결과가 없습니다.</p>
+								</div>
+							) : null}
+						</div>
+
+						<div className="mt-4 flex justify-end">
+							<button
+								onClick={handleCloseTagModal}
+								className="px-4 py-2 bg-[#8B85E9] text-white rounded-lg hover:bg-[#7A74D8] transition-colors duration-200"
+							>
+								완료
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
 		</PageLayout>
 	);
 };
