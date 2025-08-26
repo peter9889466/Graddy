@@ -21,11 +21,14 @@ import { AuthProvider } from "./contexts/AuthContext"; // AuthProvider import
 import { AssignmentProvider } from "./contexts/AssignmentContext"; // AssignmentProvider import
 import MainPage from "./pages/MainPage";
 import StudyDetailPage from "./pages/StudyDetailPage";
+import ProjectDetailPage from "./pages/ProjectDetailPage";
 import StudyCreate from "./pages/StudyCreate";
 import Join3 from "./pages/Join3";
 import FindAccount from "./pages/FindAccount";
 import { Ranking } from "./pages/Ranking";
 import { CommunityPage } from "./pages/CommunityPage";
+import ApiTestComponent from "./components/examples/ApiTestComponent";
+import CommunityCreate from "./pages/CommunityCreate";
 
 function App() {
     return (
@@ -59,16 +62,20 @@ function App() {
                                 <Route path="/findAcc" element={<FindAccount />} />
                                 <Route path="/ranking" element={<Ranking />} />
                                 <Route path="/community" element={<CommunityPage />} />
+                                <Route path="/community/create" element={<CommunityCreate />} />
                                 <Route
                                     path="/search"
                                     element={<StudySearchPage />}
                                 />
+                                <Route path="/api-test" element={<ApiTestComponent />} />
                                 <Route
                                     path="/study/create"
                                     element={<StudyCreate />}
                                 />
                                 <Route path="/study/:id"
                                 element={<StudyDetailPage/>}/>
+                                <Route path="/project/:id"
+                                element={<ProjectDetailPage/>}/>
                             </Routes>
                         </Suspense>
                     </main>

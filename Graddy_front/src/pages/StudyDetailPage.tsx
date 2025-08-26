@@ -4,6 +4,7 @@ import ResponsiveContainer from "../components/layout/ResponsiveContainer";
 import ResponsiveSidebar from "../components/layout/ResponsiveSidebar";
 import ResponsiveMainContent from "../components/layout/ResponsiveMainContent";
 import StudyDetailSideBar from "../components/detail/StudyDetailSideBar";
+// import StudyChatting from "../components/detail/StudyChatting";
 import Assignment from "../components/detail/Assignment";
 import { studyList } from "../data/studyData";
 import { AuthContext } from "../contexts/AuthContext";
@@ -29,6 +30,8 @@ const StudyDetailPage = () => {
 		leader:string;
 		period: string;
 		tags: string[];
+		type?: 'study' | 'project';
+		studyLevel?: number;
 	} | null;
 	
 	const [studyTitle, setStudyTitle] = useState<string>(
@@ -43,6 +46,14 @@ const StudyDetailPage = () => {
 	const [studyPeriod, setStudyPeriod] = useState<string>(
 		state?.period || ""
 	);
+	const [studyLevel, setStudyLevel] = useState<number>(
+		state?.studyLevel || 1
+	);
+	
+	// 스터디 설정
+	useEffect(() => {
+		setActiveTab("스터디 정보");
+	}, []);
 
 	// 기간 포맷팅 함수
 	const formatPeriod = (period: string): string => {
@@ -66,12 +77,12 @@ const StudyDetailPage = () => {
 				return dateStr;
 			};
 			
-			return `${formatDate(startDate)}~${formatDate(endDate)}`;
+			return `${formatDate(startDate)} ~ ${formatDate(endDate)}`;
 		}
 		
 		return period;
 	};
-	const [studyTags, setStudyTags] = useState<string[]>(
+	const [studyTags, setStudyTags] = useState<any[]>(
 		state?.tags || []
 	);
 
@@ -111,17 +122,26 @@ const StudyDetailPage = () => {
 	// 임시 테스트용 (실제 사용자 닉네임으로 변경해보세요)
 	// const isStudyLeader = "test" === studyLeader;
 	
+
+
+	// 사용자 권한 확인
+	const isLoggedIn = authContext?.isLoggedIn || false;
+	const isStudyMember = isStudyLeader || isApplied; // 스터디장이거나 가입 신청한 사용자
+	
 	// 디버깅을 위한 콘솔 로그
 	console.log('현재 사용자 닉네임:', authContext?.user?.nickname);
 	console.log('스터디장:', studyLeader);
 	console.log('스터디장 여부:', isStudyLeader);
+	console.log('로그인 여부:', isLoggedIn);
+	console.log('스터디 멤버 여부:', isStudyMember);
 
-	const handleApplyClick = () => {
+	const handleApplyClick = async () => {
 		if (!authContext?.isLoggedIn) {
 			alert("로그인 후 이용해주세요!");
 			return;
 		}
-		setIsApplied(true);
+
+		alert("가입 신청 기능은 현재 개발 중입니다.");
 	};
 
 	const handleRecruitmentToggle = () => {
@@ -139,8 +159,7 @@ const StudyDetailPage = () => {
 	// 메인 콘텐츠 렌더링 함수
 	const renderMainContent = () => {
 		switch (activeTab) {
-			case "과제 제출":
-				return <Assignment />;
+			case "스터디 메인":
 			case "스터디 정보":
 			default:
 				return (
@@ -156,7 +175,7 @@ const StudyDetailPage = () => {
 						<p className="text-gray-700">
 							<div className="flex items-center gap-2">
 								<Crown className="w-4 h-4 text-gray-600" />
-								<span>스터디장</span>
+								<span>리더</span>
 							</div>
 							<span className="text-gray-800 block mt-1">{studyLeader}</span>
 						</p>
@@ -172,10 +191,22 @@ const StudyDetailPage = () => {
 								<Tag className="w-4 h-4 text-gray-600" />
 								<span className="font-medium">태그</span>
 							</div>
-							<div className="mt-2 flex gap-2 flex-wrap ">
+							<div className="mt-2 flex gap-2 flex-wrap">
+								{/* 스터디 레벨 뱃지 */}
+								<span className={`px-2 py-0.5 rounded-xl text-xs font-medium ${
+									studyLevel === 1 
+										? "bg-green-100 text-green-700"
+										: studyLevel === 2
+										? "bg-yellow-100 text-yellow-700"
+										: "bg-red-100 text-red-700"
+								}`}>
+									스터디 레벨 {studyLevel}
+								</span>
 								{studyTags.length > 0 ? (
-									studyTags.map((t, index) => (
-										<span key={`${t}-${index}`} className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-xl text-xs border border-gray-300">#{t}</span>
+									studyTags.map((tag: string, index: number) => (
+										<span key={index} className="px-2 py-0.5 rounded-xl text-xs bg-gray-100 text-gray-600">
+											#{tag}
+										</span>
 									))
 								) : (
 									<span className="text-sm text-gray-500">태그 정보가 없습니다.</span>
@@ -216,19 +247,63 @@ const StudyDetailPage = () => {
 								onClick={handleApplyClick}
 								className="w-full mt-3 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer"
 								style={{ backgroundColor: isApplied ? "#6B7280" : "#8B85E9" }}
+								disabled={isApplied}
 							>
-								{isApplied ? "승인 대기" : "스터디 가입 신청"}
+								{isApplied ? "가입 신청됨" : "스터디 가입 신청"}
 							</button>
 						)}
 					</div>
 				);
+			case "과제 제출":
+				if (!isLoggedIn || !isStudyMember) {
+					return (
+						<div className="flex items-center justify-center h-64">
+							<div className="text-center">
+								<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
+								<p className="text-sm text-gray-400">스터디에 가입한 멤버만 접근할 수 있습니다.</p>
+							</div>
+						</div>
+					);
+				}
+				return <Assignment />;
+
 			case "과제 피드백":
+				if (!isLoggedIn || !isStudyMember) {
+					return (
+						<div className="flex items-center justify-center h-64">
+							<div className="text-center">
+								<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
+								<p className="text-sm text-gray-400">스터디에 가입한 멤버만 접근할 수 있습니다.</p>
+							</div>
+						</div>
+					);
+				}
 				return <FeedBack />;
 			case "과제 / 일정 관리":
-				return <Schedule/>;
+				if (!isLoggedIn || !isStudyMember) {
+					return (
+						<div className="flex items-center justify-center h-64">
+							<div className="text-center">
+								<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
+								<p className="text-sm text-gray-400">스터디에 가입한 멤버만 접근할 수 있습니다.</p>
+							</div>
+						</div>
+					);
+				}
+				return <Schedule isStudyLeader={isStudyLeader} />;
 			case "커리큘럼":
 				return <Curriculum />;
 			case "커뮤니티":
+				if (!isLoggedIn || !isStudyMember) {
+					return (
+						<div className="flex items-center justify-center h-64">
+							<div className="text-center">
+								<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
+								<p className="text-sm text-gray-400">스터디에 가입한 멤버만 접근할 수 있습니다.</p>
+							</div>
+						</div>
+					);
+				}
 				return <Community />;
 		}
 	};
@@ -241,6 +316,9 @@ const StudyDetailPage = () => {
 					<StudyDetailSideBar
 						activeTab={activeTab}
 						onTabChange={(tab) => setActiveTab(tab)}
+						isLoggedIn={isLoggedIn}
+						isStudyMember={isStudyMember}
+						isProject={false}
 					/>
 				</ResponsiveSidebar>
 

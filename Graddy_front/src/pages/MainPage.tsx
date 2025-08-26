@@ -161,8 +161,6 @@ const MainPage = () => {
         })),
     ];
 
-
-
     // 추천 스터디 데이터
     const recommendedStudies = [
         { id: 1, name: "스터디 추천 1" },

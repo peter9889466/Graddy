@@ -22,11 +22,11 @@ public class Assignment {
     @Column(name = "assignment_id")
     private Long assignmentId;
 
-    @Column(name = "study_id", nullable = false)
-    private Long studyId;
+    @Column(name = "study_project_id", nullable = false)
+    private Long studyProjectId;
 
-    @Column(name = "user_id", length = 50, nullable = false)
-    private String userId;
+    @Column(name = "member_id", nullable = false)
+    private Long memberId;
 
     @Column(length = 100, nullable = false)
     private String title;

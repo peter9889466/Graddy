@@ -1,5 +1,6 @@
 package com.smhrd.graddy.tag.entity;
 
+import com.smhrd.graddy.interest.entity.Interest;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -29,6 +30,11 @@ public class Tag {
     @Column(name = "interest_id")
     @Schema(description = "관심 항목 ID", example = "1")
     private Long interestId;
+
+    // Interest와의 ManyToOne 관계
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "interest_id", insertable = false, updatable = false)
+    private Interest interest;
 }
 
 // 복합키 클래스

@@ -17,6 +17,10 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 import java.net.URI;
 import java.util.List;
+import com.smhrd.graddy.member.service.MemberService;
+import com.smhrd.graddy.study.service.StudyApplicationService;
+
+import java.util.Map;
 
 /**
  * 스터디/프로젝트 관리 API 컨트롤러
@@ -30,6 +34,8 @@ public class StudyController {
 
     private final StudyService studyService;
     private final JwtUtil jwtUtil;
+    private final MemberService memberService;
+    private final StudyApplicationService studyApplicationService;
 
     /**
      * 스터디/프로젝트 생성
@@ -41,11 +47,18 @@ public class StudyController {
      * @return 생성된 스터디/프로젝트 정보 (태그, 선호 요일 포함)
      */
     @PostMapping
-    @Operation(summary = "스터디/프로젝트 생성", description = "새로운 스터디 또는 프로젝트를 생성하고 태그 정보와 선호 요일과 함께 데이터베이스에 저장합니다. JWT 토큰에서 user_id를 자동으로 추출합니다.")
+    @Operation(summary = "스터디/프로젝트 생성", 
+              description = "새로운 스터디 또는 프로젝트를 생성하고 태그 정보와 선호 요일과 함께 데이터베이스에 저장합니다. JWT 토큰에서 user_id를 자동으로 추출합니다.\n\n" +
+                           "**사용법:**\n" +
+                           "1. Authorization 헤더에 JWT 토큰 입력 (Bearer 형식)\n" +
+                           "2. Request Body에 생성할 정보 입력\n" +
+                           "3. user_id는 자동으로 JWT 토큰에서 추출됨")
     @SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<ApiResponse<StudyResponse>> createStudyProject(
             @RequestBody StudyRequest request,
-            @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+            @Parameter(description = "JWT 토큰 (Bearer 형식)", 
+                      example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                      required = true)
             @RequestHeader(name = "Authorization", required = true) String authorization) {
         try {
             // JWT 토큰에서 user_id 추출
@@ -162,24 +175,29 @@ public class StudyController {
      * @return 수정된 스터디/프로젝트 정보 (태그, 선호 요일 포함)
      */
     @PutMapping("/{studyProjectId}")
-    @Operation(summary = "스터디/프로젝트 수정", description = "기존 스터디/프로젝트 정보를 수정하고 태그 정보와 선호 요일도 함께 업데이트합니다. JWT 토큰으로 권한을 확인합니다.")
+    @Operation(summary = "스터디/프로젝트 수정", 
+              description = "기존 스터디/프로젝트 정보를 수정하고 태그 정보와 선호 요일도 함께 업데이트합니다. **권한: 해당 스터디/프로젝트의 리더만 수정 가능**\n\n" +
+                           "**사용법:**\n" +
+                           "1. Authorization 헤더에 JWT 토큰 입력 (Bearer 형식)\n" +
+                           "2. Request Body에 수정할 정보 입력\n" +
+                           "3. 리더만 수정 가능")
     @SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<ApiResponse<StudyResponse>> updateStudyProject(
             @PathVariable Long studyProjectId,
             @RequestBody StudyUpdateRequest request,
-            @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+            @Parameter(description = "JWT 토큰 (Bearer 형식)", 
+                      example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                      required = true)
             @RequestHeader(name = "Authorization", required = true) String authorization) {
         try {
             // JWT 토큰에서 user_id 추출하여 권한 확인
             String token = authorization.replace("Bearer ", "");
             String userId = jwtUtil.extractUserId(token);
             
-            // TODO: 해당 스터디/프로젝트의 리더인지 확인하는 로직 추가 필요
-            
-            StudyResponse response = studyService.updateStudy(studyProjectId, request);
+            StudyResponse response = studyService.updateStudy(studyProjectId, request, userId);
             return ApiResponse.success("스터디/프로젝트가 성공적으로 수정되었습니다.", response);
         } catch (IllegalArgumentException e) {
-            return ApiResponse.error(HttpStatus.NOT_FOUND, "스터디/프로젝트를 찾을 수 없습니다.", null);
+            return ApiResponse.error(HttpStatus.FORBIDDEN, e.getMessage(), null);
         } catch (Exception e) {
             return ApiResponse.error(HttpStatus.UNAUTHORIZED, "JWT 토큰이 유효하지 않습니다.", null);
         }
@@ -191,29 +209,40 @@ public class StudyController {
      * JWT 토큰에서 user_id를 추출하여 권한을 확인합니다.
      * 
      * @param studyProjectId 상태를 변경할 스터디/프로젝트의 ID
-     * @param status 변경할 상태 (recruitment, complete, end)
+     * @param status 변경할 상태 (recruitment: 모집중, complete: 모집종료, end: 종료) - 소문자로 전송
      * @param authorization JWT 토큰 (Bearer 형식)
      * @return 상태가 변경된 스터디/프로젝트 정보 (태그, 선호 요일 포함)
      */
     @PatchMapping("/{studyProjectId}/status")
-    @Operation(summary = "스터디/프로젝트 상태 변경", description = "스터디/프로젝트의 모집 상태를 변경합니다 (모집중/모집종료/종료). JWT 토큰으로 권한을 확인합니다.")
+    @Operation(summary = "스터디/프로젝트 상태 변경", 
+              description = "스터디/프로젝트의 모집 상태를 변경합니다. **권한: 해당 스터디/프로젝트의 리더만 변경 가능**\n\n" +
+                           "**사용법:**\n" +
+                           "1. Authorization 헤더에 JWT 토큰 입력 (Bearer 형식)\n" +
+                           "2. status 파라미터에 변경할 상태 입력\n" +
+                           "3. 변경 가능한 상태: recruitment(모집중), complete(모집종료), end(종료)")
     @SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<ApiResponse<StudyResponse>> updateStudyProjectStatus(
             @PathVariable Long studyProjectId,
+            @Parameter(description = "변경할 상태 값", 
+                      example = "complete", 
+                      schema = @io.swagger.v3.oas.annotations.media.Schema(
+                          type = "string", 
+                          allowableValues = {"recruitment", "complete", "end"},
+                          description = "recruitment: 모집중, complete: 모집종료, end: 종료"))
             @RequestParam String status,
-            @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+            @Parameter(description = "JWT 토큰 (Bearer 형식)", 
+                      example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                      required = true)
             @RequestHeader(name = "Authorization", required = true) String authorization) {
         try {
             // JWT 토큰에서 user_id 추출하여 권한 확인
             String token = authorization.replace("Bearer ", "");
             String userId = jwtUtil.extractUserId(token);
             
-            // TODO: 해당 스터디/프로젝트의 리더인지 확인하는 로직 추가 필요
-            
-            StudyResponse response = studyService.updateStudyStatus(studyProjectId, status);
+            StudyResponse response = studyService.updateStudyStatus(studyProjectId, status, userId);
             return ApiResponse.success("스터디/프로젝트 상태가 성공적으로 변경되었습니다.", response);
         } catch (IllegalArgumentException e) {
-            return ApiResponse.error(HttpStatus.BAD_REQUEST, "스터디/프로젝트 상태 변경에 실패했습니다.", null);
+            return ApiResponse.error(HttpStatus.FORBIDDEN, e.getMessage(), null);
         } catch (Exception e) {
             return ApiResponse.error(HttpStatus.UNAUTHORIZED, "JWT 토큰이 유효하지 않습니다.", null);
         }
@@ -229,25 +258,180 @@ public class StudyController {
      * @return 삭제 성공 메시지
      */
     @DeleteMapping("/{studyProjectId}")
-    @Operation(summary = "스터디/프로젝트 삭제", description = "특정 스터디/프로젝트와 관련된 모든 태그 정보와 선호 요일을 함께 삭제합니다. JWT 토큰으로 권한을 확인합니다.")
+    @Operation(summary = "스터디/프로젝트 삭제", 
+              description = "특정 스터디/프로젝트와 관련된 모든 태그 정보와 선호 요일을 함께 삭제합니다. **권한: 해당 스터디/프로젝트의 리더만 삭제 가능**\n\n" +
+                           "**사용법:**\n" +
+                           "1. Authorization 헤더에 JWT 토큰 입력 (Bearer 형식)\n" +
+                           "2. 리더만 삭제 가능")
     @SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<ApiResponse<String>> deleteStudyProject(
             @PathVariable Long studyProjectId,
-            @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+            @Parameter(description = "JWT 토큰 (Bearer 형식)", 
+                      example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                      required = true)
             @RequestHeader(name = "Authorization", required = true) String authorization) {
         try {
             // JWT 토큰에서 user_id 추출하여 권한 확인
             String token = authorization.replace("Bearer ", "");
             String userId = jwtUtil.extractUserId(token);
             
-            // TODO: 해당 스터디/프로젝트의 리더인지 확인하는 로직 추가 필요
-            
-            studyService.deleteStudy(studyProjectId);
+            studyService.deleteStudy(studyProjectId, userId);
             return ApiResponse.success("스터디/프로젝트가 성공적으로 삭제되었습니다.", "삭제 완료");
         } catch (IllegalArgumentException e) {
-            return ApiResponse.error(HttpStatus.NOT_FOUND, "스터디/프로젝트를 찾을 수 없습니다.", null);
+            return ApiResponse.error(HttpStatus.FORBIDDEN, e.getMessage(), null);
         } catch (Exception e) {
             return ApiResponse.error(HttpStatus.UNAUTHORIZED, "JWT 토큰이 유효하지 않습니다.", null);
+        }
+    }
+
+    /**
+     * 로그인한 사용자의 참여 스터디/프로젝트 목록 조회
+     * 현재 로그인한 사용자가 참여하고 있는 모든 스터디/프로젝트 정보를 조회합니다.
+     * 
+     * @param authorization JWT 토큰 (Bearer 형식)
+     * @return 사용자가 참여하고 있는 스터디/프로젝트 목록
+     */
+    @GetMapping("/my-participations")
+    @Operation(summary = "내 참여 스터디/프로젝트 목록", 
+              description = "현재 로그인한 사용자가 참여하고 있는 모든 스터디/프로젝트 정보를 조회합니다.\n\n" +
+                           "**반환 정보:**\n" +
+                           "• 기본 정보: 이름, 제목, 설명, 레벨, 타입 등\n" +
+                           "• 태그 정보: 관심 분야 태그 목록\n" +
+                           "• 선호 요일: 가능한 요일 목록\n" +
+                           "• 인원 정보: 총 인원수와 현재 인원수\n" +
+                           "• 멤버 정보: 현재 가입된 멤버들의 상세 정보\n" +
+                           "• 내 역할: 해당 스터디/프로젝트에서의 역할 (리더/멤버)")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<ApiResponse<List<StudyResponse>>> getMyParticipations(
+            @Parameter(description = "JWT 토큰 (Bearer 형식)", 
+                      example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                      required = true)
+            @RequestHeader(name = "Authorization", required = true) String authorization) {
+        try {
+            // JWT 토큰에서 user_id 추출
+            String token = authorization.replace("Bearer ", "");
+            String userId = jwtUtil.extractUserId(token);
+            
+            List<StudyResponse> participations = studyService.getStudiesByParticipant(userId);
+            return ApiResponse.success("내 참여 스터디/프로젝트 목록 조회가 성공했습니다.", participations);
+        } catch (Exception e) {
+            return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "참여 목록 조회에 실패했습니다.", null);
+        }
+    }
+
+    /**
+     * 로그인한 사용자의 신청 스터디/프로젝트 목록 조회
+     * 현재 로그인한 사용자가 신청한 모든 스터디/프로젝트 정보를 조회합니다.
+     * 
+     * @param authorization JWT 토큰 (Bearer 형식)
+     * @return 사용자가 신청한 스터디/프로젝트 목록
+     */
+    @GetMapping("/my-applications")
+    @Operation(summary = "내 신청 스터디/프로젝트 목록", 
+              description = "현재 로그인한 사용자가 신청한 모든 스터디/프로젝트 정보를 조회합니다.\n\n" +
+                           "**반환 정보:**\n" +
+                           "• 기본 정보: 이름, 제목, 설명, 레벨, 타입 등\n" +
+                           "• 태그 정보: 관심 분야 태그 목록\n" +
+                           "• 선호 요일: 가능한 요일 목록\n" +
+                           "• 인원 정보: 총 인원수와 현재 인원수\n" +
+                           "• 신청 상태: PENDING(대기중), APPROVED(승인됨), REJECTED(거부됨)\n" +
+                           "• 신청 메시지: 신청 시 작성한 메시지")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<ApiResponse<List<StudyResponse>>> getMyApplications(
+            @Parameter(description = "JWT 토큰 (Bearer 형식)", 
+                      example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                      required = true)
+            @RequestHeader(name = "Authorization", required = true) String authorization) {
+        try {
+            // JWT 토큰에서 user_id 추출
+            String token = authorization.replace("Bearer ", "");
+            String userId = jwtUtil.extractUserId(token);
+            
+            List<StudyResponse> applications = studyService.getStudiesByApplicant(userId);
+            return ApiResponse.success("내 신청 스터디/프로젝트 목록 조회가 성공했습니다.", applications);
+        } catch (Exception e) {
+            return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "신청 목록 조회에 실패했습니다.", null);
+        }
+    }
+
+    /**
+     * 로그인한 사용자의 스터디/프로젝트 관리 대시보드
+     * 참여 중인 스터디/프로젝트와 신청한 스터디/프로젝트 정보를 통합하여 조회합니다.
+     * 
+     * @param authorization JWT 토큰 (Bearer 형식)
+     * @return 사용자의 스터디/프로젝트 관리 정보 (통합 목록 + 개별 목록 + 통계)
+     */
+    @GetMapping("/my-dashboard")
+    @Operation(summary = "내 스터디/프로젝트 관리 대시보드", 
+              description = "현재 로그인한 사용자의 스터디/프로젝트 관리 정보를 통합하여 조회합니다.\n\n" +
+                           "**반환 정보:**\n" +
+                           "• `allStudies`: 참여중이거나 신청한 모든 스터디/프로젝트 통합 목록\n" +
+                           "• `participations`: 참여 중인 스터디/프로젝트 목록\n" +
+                           "• `applications`: 신청한 스터디/프로젝트 목록\n" +
+                           "• `totalCount`: 전체 스터디/프로젝트 수\n" +
+                           "• `participationCount`: 참여 중인 스터디/프로젝트 수\n" +
+                           "• `applicationCount`: 신청한 스터디/프로젝트 수\n" +
+                           "• 각 스터디/프로젝트의 상세 정보와 참여 상태")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getMyDashboard(
+            @Parameter(description = "JWT 토큰 (Bearer 형식)", 
+                      example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                      required = true)
+            @RequestHeader(name = "Authorization", required = true) String authorization) {
+        try {
+            System.out.println("=== /my-dashboard 엔드포인트 호출 ===");
+            System.out.println("Authorization 헤더: " + authorization);
+            
+            // JWT 토큰에서 user_id 추출
+            String token = authorization.replace("Bearer ", "");
+            System.out.println("JWT 토큰 (Bearer 제거): " + token);
+            
+            String userId = jwtUtil.extractUserId(token);
+            System.out.println("추출된 user_id: " + userId);
+            
+            // StudyService를 통해 대시보드 정보 조회
+            Map<String, Object> dashboard = studyService.getUserDashboard(userId);
+            
+            System.out.println("=== /my-dashboard 응답 생성 완료 ===");
+            return ApiResponse.success("내 스터디/프로젝트 대시보드 조회가 성공했습니다.", dashboard);
+        } catch (Exception e) {
+            System.err.println("=== /my-dashboard 오류 발생 ===");
+            System.err.println("오류 메시지: " + e.getMessage());
+            e.printStackTrace();
+            return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "대시보드 조회에 실패했습니다.", null);
+        }
+    }
+
+    /**
+     * 내 스터디/프로젝트 상태별 상세 정보 조회
+     * 현재 로그인한 사용자의 스터디/프로젝트를 상태별로 구분하여 조회합니다.
+     * 
+     * @param authorization JWT 토큰 (Bearer 형식)
+     * @return 참여중, 승인대기중, 종료된 스터디/프로젝트 정보
+     */
+    @GetMapping("/my-status-details")
+    @Operation(summary = "내 스터디/프로젝트 상태별 상세 정보", 
+              description = "현재 로그인한 사용자의 스터디/프로젝트를 상태별로 구분하여 조회합니다.\n\n" +
+                           "**반환 정보:**\n" +
+                           "• `activeStudies`: 참여중인 활성 스터디/프로젝트 목록 (진행중)\n" +
+                           "• `pendingStudies`: 승인대기중인 스터디/프로젝트 목록\n" +
+                           "• `completedStudies`: 종료된 스터디/프로젝트 목록 (참여했던 것들)\n" +
+                           "• `completedAppliedStudies`: 종료된 스터디/프로젝트 목록 (신청했던 것들)\n" +
+                           "• 각 카테고리별 개수와 전체 개수")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getMyStudyStatusDetails(
+            @Parameter(description = "JWT 토큰 (Bearer 형식)", 
+                      example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                      required = true)
+            @RequestHeader(name = "Authorization", required = true) String authorization) {
+        try {
+            String token = authorization.replace("Bearer ", "");
+            String userId = jwtUtil.extractUserId(token);
+            
+            Map<String, Object> statusDetails = studyService.getUserStudyStatusDetails(userId);
+            return ApiResponse.success("내 스터디/프로젝트 상태별 상세 정보 조회가 성공했습니다.", statusDetails);
+        } catch (Exception e) {
+            return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "상태별 상세 정보 조회에 실패했습니다.", null);
         }
     }
 }
