@@ -16,6 +16,17 @@ interface StudyDetailSideBarProps {
     isLoggedIn: boolean;
     isStudyMember: boolean;
     isProject?: boolean;
+    isStudyLeader?: boolean;
+    userMemberType?: string | null;
+    maxMembers?: number;
+    members?: Array<{
+        memberId: number;
+        userId: string;
+        nick: string;
+        memberType: string;
+        memberStatus: string;
+        joinedAt: string;
+    }>;
 }
 
 // 스터디원 데이터 타입 정의
@@ -39,6 +50,10 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
     isLoggedIn,
     isStudyMember,
     isProject = false,
+    isStudyLeader = false,
+    userMemberType = null,
+    maxMembers = 10,
+    members = [],
 }) => {
     const [selectedMember, setSelectedMember] = useState<StudyMember | null>(null);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -57,53 +72,14 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
             { name: "과제 / 일정 관리", requiresAuth: true, requiresMembership: true },
         ];
 
-    // 스터디원 데이터 (실제로는 API에서 가져올 예정)
-    const studyMembers: StudyMember[] = [
-        {
-            nickname: "김개발",
-            githubUrl: "github.com/kimdev",
-            score: 1250,
-            interests: [
-                { id: 15, name: "React", category: "framework", difficulty: "중급" },
-                { id: 2, name: "JavaScript", category: "language", difficulty: "중급" },
-                { id: 16, name: "Node.js", category: "framework", difficulty: "초급" },
-            ],
-            introduction: "안녕하세요! 프론트엔드 개발에 열정을 가진 개발자입니다. React와 JavaScript를 주로 사용하며, 새로운 기술을 배우는 것을 좋아합니다."
-        },
-        {
-            nickname: "이코딩",
-            githubUrl: "github.com/leecoding",
-            score: 980,
-            interests: [
-                { id: 1, name: "Python", category: "language", difficulty: "고급" },
-                { id: 8, name: "Django", category: "framework", difficulty: "중급" },
-                { id: 12, name: "MySQL", category: "database", difficulty: "중급" },
-            ],
-            introduction: "백엔드 개발을 전공하고 있습니다. Python과 Django를 주로 사용하며, 데이터베이스 설계에도 관심이 많습니다."
-        },
-        {
-            nickname: "박스터디",
-            githubUrl: "github.com/parkstudy",
-            score: 750,
-            interests: [
-                { id: 3, name: "Java", category: "language", difficulty: "중급" },
-                { id: 9, name: "Spring", category: "framework", difficulty: "초급" },
-                { id: 4, name: "C++", category: "language", difficulty: "중급" },
-            ],
-            introduction: "Java와 Spring을 공부하고 있는 개발자입니다. 알고리즘 문제 풀이도 즐기며, 체계적인 학습을 추구합니다."
-        },
-        {
-            nickname: "정알고",
-            githubUrl: "github.com/jungalgo",
-            score: 2100,
-            interests: [
-                { id: 4, name: "C++", category: "language", difficulty: "고급" },
-                { id: 5, name: "Python", category: "language", difficulty: "고급" },
-                { id: 6, name: "Algorithm", category: "cs", difficulty: "고급" },
-            ],
-            introduction: "알고리즘과 자료구조에 특화된 개발자입니다. 백준 플래티넘 등급이며, 코딩 테스트 준비를 도와드릴 수 있습니다."
-        }
-    ];
+    // 백엔드에서 받아온 멤버 데이터를 사용
+    const studyMembers = members.map(member => ({
+        nickname: member.nick || member.userId,
+        githubUrl: "", // TODO: 백엔드에서 GitHub URL 정보 추가 필요
+        score: 0, // TODO: 백엔드에서 점수 정보 추가 필요
+        interests: [], // TODO: 백엔드에서 관심사 정보 추가 필요
+        introduction: `${member.memberType === 'leader' ? '리더' : '멤버'}입니다.` // TODO: 백엔드에서 소개 정보 추가 필요
+    }));
 
     const handleMemberClick = (member: StudyMember) => {
         setSelectedMember(member);
@@ -123,21 +99,21 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
             >
                 <div className="space-y-2">
                     {sideMenuItems.map((item) => {
-                        // 권한 체크
-                        const hasAuth = !item.requiresAuth || isLoggedIn;
-                        const hasMembership = !item.requiresMembership || isStudyMember;
-                        const canAccess = hasAuth && hasMembership;
+                        // 권한 체크 - leader 또는 member는 모든 메뉴에 접근 가능
+                        // const hasAuth = !item.requiresAuth || isLoggedIn;
+                        // const hasMembership = !item.requiresMembership || (userMemberType === 'leader' || userMemberType === 'member');
+                        // const canAccess = hasAuth && hasMembership;
 
                         // 클릭 핸들러 함수
                         const handleClick = () => {
-                            if (item.requiresAuth && !isLoggedIn) {
-                                alert('로그인 후 이용해주세요.');
-                                return;
-                            }
-                            if (item.requiresMembership && !isStudyMember) {
-                                alert('스터디원만 확인할 수 있습니다.');
-                                return;
-                            }
+                            // if (item.requiresAuth && !isLoggedIn) {
+                            //     alert('로그인 후 이용해주세요.');
+                            //     return;
+                            // }
+                            // if (item.requiresMembership && !(userMemberType === 'leader' || userMemberType === 'member')) {
+                            //     alert('스터디원만 확인할 수 있습니다.');
+                            //     return;
+                            // }
                             onTabChange(item.name);
                         };
 
@@ -164,12 +140,17 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
 
             {/* 스터디/프로젝트 멤버 섹션 */}
             <div className="p-3 sm:p-4">
-                <h3
-                    className="font-bold mb-3 text-sm sm:text-base"
-                    style={{ color: "#8B85E9" }}
-                >
-                    {isProject ? "프로젝트 멤버" : "스터디 멤버"}
-                </h3>
+                <div className="flex items-center justify-between mb-3">
+                    <h3
+                        className="font-bold text-sm sm:text-base"
+                        style={{ color: "#8B85E9" }}
+                    >
+                        {isProject ? "프로젝트 멤버" : "스터디 멤버"}
+                    </h3>
+                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                        {members.length}/{maxMembers}
+                    </span>
+                </div>
                 <hr className="mb-3 border-gray-200" />
                 <div className="bg-gray-50 rounded-lg p-3 pl-6 space-y-3">
                     {studyMembers.map((member, index) => (
