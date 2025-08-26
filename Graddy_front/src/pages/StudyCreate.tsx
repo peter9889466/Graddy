@@ -343,14 +343,13 @@ const StudyCreate: React.FC = () => {
                 .filter(([_, isSelected]) => isSelected)
                 .map(([dayKey, _]) => dayMapping[dayKey as keyof typeof dayMapping]);
             
-            // 선택된 태그에서 interestIds와 tagNames 추출
+            // 선택된 태그에서 interestIds 추출
             const interestIds = studyData.tags.map(tag => tag.interestId);
-            const tagNames = studyData.tags.map(tag => tag.name);
             
             // 새로운 스터디 프로젝트 생성 요청 데이터
             const createStudyProjectRequest: CreateStudyProjectRequest = {
                 studyProjectName: studyData.title,
-                studyProjectTitle: studyData.title,
+                studyProjectTitle: studyData.introduction,
                 studyProjectDesc: studyData.description,
                 studyLevel: selectedStudyLevel || 1, // 선택되지 않으면 기본값 1
                 typeCheck: studyType, // "study" 또는 "project"

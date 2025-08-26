@@ -11,9 +11,11 @@ const getHeaders = (): HeadersInit => {
     // 토큰이 있을 때만 Authorization 헤더 추가
     if (token && token !== 'null' && token.trim() !== '') {
         headers['Authorization'] = `Bearer ${token}`;
+        console.log('Authorization 헤더 추가됨:', `Bearer ${token.substring(0, 20)}...`);
     } else {
         // 임시: 토큰이 없을 때는 헤더를 포함하지 않음
         console.log('토큰이 없어서 Authorization 헤더를 포함하지 않습니다.');
+        console.log('저장된 토큰:', token);
     }
     
     return headers;

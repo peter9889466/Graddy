@@ -23,18 +23,18 @@ const DraggableChatWidget: React.FC = () => {
 			const settings = JSON.parse(saved);
 			const maxX = window.innerWidth - (settings.width || 320);
 			const maxY = window.innerHeight - (settings.height || 384);
-			return {
-				position: {
-					x: Math.min(settings.position?.x || window.innerWidth - 80, maxX),
-					y: Math.min(settings.position?.y || window.innerHeight - 80, maxY),
-				},
+					return {
+			position: {
+				x: Math.min(settings.position?.x || window.innerWidth - 340, maxX),
+				y: Math.min(settings.position?.y || window.innerHeight / 2 - 192, maxY),
+			},
 				width: settings.width || 320,
 				height: settings.height || 384,
 				opacity: settings.opacity || 1,
 			};
 		}
 		return {
-			position: { x: window.innerWidth - 80, y: window.innerHeight - 80 },
+			position: { x: window.innerWidth - 340, y: window.innerHeight / 2 - 192 },
 			width: 320,
 			height: 384,
 			opacity: 1,
