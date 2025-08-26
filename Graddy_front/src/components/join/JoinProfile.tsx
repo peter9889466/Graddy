@@ -31,8 +31,8 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location, onNext })
     const [notificationPreference, setNotificationPreference] = useState<"email" | "phone" | "">("");
     const [hintMessage, setHintMessage] = useState<string>("");
     const [showHint, setShowHint] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     
-
     // 컴포넌트 내부에 ref 선언
     const phoneMiddleRef = useRef<HTMLInputElement>(null);
     const phoneLastRef = useRef<HTMLInputElement>(null);
@@ -186,40 +186,114 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location, onNext })
         const numericValue = value.replace(/[^\d]/g, "").slice(0, 4);
         setPhoneMiddle(numericValue);
         
-        // 4자리 입력 완료 시 다음 입력칸으로 이동
+        // 에러 메시지 초기화
+        if (telError) setTelError("");
+        
         if (numericValue.length === 4 && phoneLastRef.current) {
             phoneLastRef.current.focus();
         }
     };
-    
+
     const handlePhoneLastChange = (value: string) => {
         const numericValue = value.replace(/[^\d]/g, "").slice(0, 4);
         setPhoneLast(numericValue);
+        
+        // 에러 메시지 초기화
+        if (telError) setTelError("");
     };
 
-    const handleSendVerification = () => {
+    const handlePhoneKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (validatePhoneNumber(phonePrefix, phoneMiddle, phoneLast) && !isVerified) {
+                handleSendVerification();
+            }
+        }
+    };
+
+    const handleSendVerification = async () => {
+        if (isLoading) return; // 이미 처리 중이면 리턴
+    
         if (!validatePhoneNumber(phonePrefix, phoneMiddle, phoneLast)) {
             setHintMessage("올바른 전화번호를 입력해주세요!");
             return;
         }
         
-        setShowVerificationInput(true);
-        setVerificationTimer(180); // 3분
-        setHintMessage("인증번호가 발송되었습니다!");
+        setIsLoading(true);
+        
+        const phoneNumber = phonePrefix + phoneMiddle + phoneLast;
+        
+        try {
+            // 전화번호 중복 확인 및 인증번호 발송 (통합)
+            const unifiedResponse = await axios.post('http://localhost:8080/api/api/phone-verification/unified', {
+                tel: phoneNumber,
+                purpose: "JOIN"
+            }, {
+                validateStatus: () => true
+            });
+
+            if (unifiedResponse.data.status === 400) {
+                // 중복된 전화번호
+                setTelError("이미 사용 중인 전화번호입니다.");
+                setHintMessage("이미 사용 중인 전화번호입니다.");
+                return;
+            } else if (unifiedResponse.data.status === 200 && 
+                    unifiedResponse.data.data.phoneAvailable && 
+                    unifiedResponse.data.data.smsSent) {
+                // 새 전화번호이고 인증번호 발송 완료
+                setTelError(""); // 기존 에러 메시지 제거
+                setShowVerificationInput(true);
+                setVerificationTimer(300); // 5분
+                setHintMessage("인증번호가 발송되었습니다!");
+            } else {
+                // 예상치 못한 응답
+                setHintMessage("전화번호 확인 중 오류가 발생했습니다.");
+            }
+            
+        } catch (error: any) {
+            console.error('전화번호 검증 오류:', error);
+            setHintMessage("처리 중 오류가 발생했습니다.");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    const handleVerifyCode = () => {
+    const handleVerifyCode = async () => {
         if (verificationCode.trim() === "") {
             setHintMessage("인증번호를 입력해주세요!");
             return;
         }
         
-        // 실제로는 서버에서 확인해야 함
-        if (verificationCode === "123456") {
-            setIsVerified(true);
-            setHintMessage("전화번호 인증이 완료되었습니다!");
-        } else {
-            setHintMessage("인증번호가 올바르지 않습니다!");
+        const phoneNumber = phonePrefix + phoneMiddle + phoneLast;
+        
+        try {
+            const response = await axios.post('http://localhost:8080/api/auth/verify-code', {
+                phoneNumber: phoneNumber,
+                code: verificationCode
+            }, {
+                validateStatus: () => true // HTTP 상태와 상관없이 항상 then으로 처리
+            });
+
+            if (response.data.status === 200) {
+                setIsVerified(true);
+                setVerificationTimer(0); // 타이머 중지
+                setHintMessage("전화번호 인증이 완료되었습니다!");
+            } else {
+                // 인증 실패
+                setHintMessage(response.data.message || "인증번호가 올바르지 않거나 만료되었습니다.");
+            }
+        } catch (error: any) {
+            console.error('인증 코드 확인 오류:', error);
+            setHintMessage("인증 확인 중 오류가 발생했습니다.");
+        }
+    };
+
+    const handleVerificationCodeKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (verificationCode.length === 6) {
+                handleVerifyCode();
+            }
         }
     };
 
@@ -643,7 +717,7 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location, onNext })
                                             type="tel"
                                             value={phoneMiddle}
                                             onChange={(e) => handlePhoneMiddleChange(e.target.value)}
-                                            onKeyDown={handleKeyDown}
+                                            onKeyDown={handlePhoneKeyDown}
                                             placeholder="0000"
                                             className={`w-full px-4 py-3 border rounded-xl transition-all duration-200 text-center ${
                                                 phoneMiddle && phoneMiddle.length === 4 ? 
@@ -652,7 +726,6 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location, onNext })
                                             }`}
                                             onFocus={(e) => (e.target as HTMLInputElement).style.boxShadow = `0 0 0 2px rgba(139, 133, 233, 0.2)`}
                                             onBlur={(e) => (e.target as HTMLInputElement).style.boxShadow = 'none'}
-                                            // disabled={isVerified}
                                             maxLength={4}
                                         />
                                     </div>
@@ -667,7 +740,7 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location, onNext })
                                             type="tel"
                                             value={phoneLast}
                                             onChange={(e) => handlePhoneLastChange(e.target.value)}
-                                            onKeyDown={handleKeyDown}
+                                            onKeyDown={handlePhoneKeyDown}
                                             placeholder="0000"
                                             className={`w-full px-4 py-3 border rounded-xl transition-all duration-200 text-center ${
                                                 phoneLast && phoneLast.length === 4 ? 
@@ -676,7 +749,6 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location, onNext })
                                             }`}
                                             onFocus={(e) => (e.target as HTMLInputElement).style.boxShadow = `0 0 0 2px rgba(139, 133, 233, 0.2)`}
                                             onBlur={(e) => (e.target as HTMLInputElement).style.boxShadow = 'none'}
-                                            // disabled={isVerified}
                                             maxLength={4}
                                         />
                                         {validatePhoneNumber(phonePrefix, phoneMiddle, phoneLast) && (
@@ -684,16 +756,16 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location, onNext })
                                                 <Check className="w-5 h-5 text-green-500" />
                                             </div>
                                         )}
-                                        {/* {isVerified && (
-                                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                                <CheckCircle className="w-5 h-5 text-green-500" />
-                                            </div>
-                                        )} */}
                                     </div>
                                 </div>
-                                <p className="text-sm text-gray-500 mt-1">
-                                    형식: 010-0000-0000
-                                </p>
+
+                                {/* 전화번호 입력 필드들 다음에 에러 메시지 추가 */}
+                                {telError && (
+                                    <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                                        <X className="w-4 h-4" />
+                                        {telError}
+                                    </p>
+                                )}
                                 
                                 {/* 인증 버튼 - 수정된 유효성 검사 함수 사용 */}
                                 <div className="mt-3">
@@ -733,6 +805,7 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location, onNext })
                                                 type="text"
                                                 value={verificationCode}
                                                 onChange={(e) => setVerificationCode(e.target.value.replace(/[^\d]/g, "").slice(0, 6))}
+                                                onKeyDown={handleVerificationCodeKeyDown}
                                                 placeholder="6자리 인증번호"
                                                 className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:border-transparent transition-all duration-200"
                                                 onFocus={(e) => (e.target as HTMLInputElement).style.boxShadow = `0 0 0 2px rgba(139, 133, 233, 0.2)`}
@@ -741,7 +814,7 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location, onNext })
                                             />
                                             <button
                                                 onClick={handleVerifyCode}
-                                                disabled={verificationCode.length !== 6}
+                                                disabled={!validatePhoneNumber(phonePrefix, phoneMiddle, phoneLast) || isVerified || isLoading}
                                                 className={`px-6 py-3 rounded-xl font-semibold transition-all duration-200 ${
                                                     verificationCode.length === 6
                                                         ? "text-white hover:opacity-90"
@@ -749,7 +822,7 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location, onNext })
                                                 }`}
                                                 style={verificationCode.length === 6 ? { backgroundColor: "#8B85E9" } : {}}
                                             >
-                                                확인
+                                                {isLoading ? "처리중..." : isVerified ? "인증 완료" : showVerificationInput ? "인증번호 재발송" : "인증번호 발송"}
                                             </button>
                                         </div>
                                     </div>
