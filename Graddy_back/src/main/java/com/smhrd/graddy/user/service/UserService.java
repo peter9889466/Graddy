@@ -17,6 +17,7 @@ import com.smhrd.graddy.user.repository.UserAvailableDaysRepository;
 import com.smhrd.graddy.user.repository.DaysRepository;
 import com.smhrd.graddy.user.repository.UserScoreRepository;
 import com.smhrd.graddy.interest.repository.InterestRepository;
+import com.smhrd.graddy.auth.VerificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 import java.util.ArrayList;
+import com.smhrd.graddy.auth.dto.UnifiedPhoneVerificationResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +40,7 @@ public class UserService {
     private final InterestRepository interestRepository;
     private final PasswordEncoder passwordEncoder;
     private final DaysRepository daysRepository;
+    private final VerificationService verificationService;
 
     /**
      * [추가] 사용자 아이디 중복 확인 메서드
@@ -341,5 +344,47 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(newPassword));
         
         return userRepository.save(user);
+    }
+
+    /**
+     * [추가] 통합 전화번호 인증 메서드
+     * 회원가입 시 전화번호 중복 확인과 SMS 인증을 동시에 처리
+     * @param tel 전화번호
+     * @param purpose 사용 목적 (JOIN: 회원가입, PASSWORD_FIND: 비밀번호 찾기)
+     * @return 통합 전화번호 인증 응답
+     */
+    public UnifiedPhoneVerificationResponse unifiedPhoneVerification(String tel, String purpose) {
+        // 1. 전화번호 중복 확인
+        boolean isPhoneAvailable = !userRepository.findByTel(tel).isPresent();
+        
+        if (!isPhoneAvailable) {
+            // 전화번호가 이미 사용 중인 경우
+            if ("JOIN".equals(purpose)) {
+                return new UnifiedPhoneVerificationResponse(
+                    false, false, 
+                    "이미 사용 중인 전화번호입니다.", tel
+                );
+            } else if ("PASSWORD_FIND".equals(purpose)) {
+                // 비밀번호 찾기의 경우 전화번호가 존재해야 함
+                isPhoneAvailable = true;
+            }
+        }
+        
+        // 2. SMS 인증번호 발송
+        try {
+            verificationService.sendVerificationCode(tel);
+            return new UnifiedPhoneVerificationResponse(
+                isPhoneAvailable, true,
+                isPhoneAvailable ? 
+                    "전화번호 사용 가능하며 인증번호가 발송되었습니다." :
+                    "인증번호가 발송되었습니다. (비밀번호 찾기용)",
+                tel
+            );
+        } catch (Exception e) {
+            return new UnifiedPhoneVerificationResponse(
+                isPhoneAvailable, false,
+                "인증번호 발송에 실패했습니다: " + e.getMessage(), tel
+            );
+        }
     }
 }

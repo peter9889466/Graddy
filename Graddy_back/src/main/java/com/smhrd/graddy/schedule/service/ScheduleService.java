@@ -79,22 +79,7 @@ public class ScheduleService {
         log.info("과제 제출일 일정 자동 생성: userId={}, studyProjectId={}, assignmentTitle={}, deadline={}", 
                 userId, studyProjectId, assignmentTitle, deadline);
         
-        // 과제 제출일 하루 전에 리마인더 일정 생성
-        LocalDateTime reminderTime = deadline.minusDays(1);
-        String reminderContent = String.format("[과제 제출일 하루 전] %s - %s", 
-                getStudyProjectName(studyProjectId), assignmentTitle);
-        
-        Schedule reminderSchedule = Schedule.builder()
-                .userId(userId)
-                .studyProjectId(studyProjectId)
-                .content(reminderContent)
-                .schTime(localDateTimeToTimestamp(reminderTime))
-                .build();
-        
-        Schedule savedReminderSchedule = scheduleRepository.save(reminderSchedule);
-        log.info("과제 리마인더 일정 생성 완료: schId={}", savedReminderSchedule.getSchId());
-        
-        // 과제 제출일 당일 일정 생성
+        // 과제 제출일 당일 일정만 생성
         String submissionContent = String.format("[과제 제출일] %s - %s", 
                 getStudyProjectName(studyProjectId), assignmentTitle);
         

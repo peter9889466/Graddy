@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
  * 비밀번호 찾기 컨트롤러
  * 로그인하지 않은 사용자를 위한 비밀번호 찾기 API
  */
-@Tag(name = "Password Find", description = "비밀번호 찾기 API (로그인 불필요)")
+@Tag(name = "비밀번호 찾기 API", description = "비밀번호 찾기 API (로그인 불필요)")
 @RestController
 @RequestMapping("/password-find")
 @RequiredArgsConstructor

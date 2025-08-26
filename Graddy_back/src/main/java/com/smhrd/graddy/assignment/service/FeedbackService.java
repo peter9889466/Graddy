@@ -3,7 +3,11 @@ package com.smhrd.graddy.assignment.service;
 import com.smhrd.graddy.assignment.dto.FeedbackRequest;
 import com.smhrd.graddy.assignment.dto.FeedbackResponse;
 import com.smhrd.graddy.assignment.entity.Feedback;
+import com.smhrd.graddy.assignment.entity.Assignment;
+import com.smhrd.graddy.assignment.entity.Submission;
 import com.smhrd.graddy.assignment.repository.FeedbackRepository;
+import com.smhrd.graddy.assignment.repository.AssignmentRepository;
+import com.smhrd.graddy.assignment.repository.SubmissionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,6 +20,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,20 +32,85 @@ import java.util.Map;
 public class FeedbackService {
 
     private final FeedbackRepository feedbackRepository;
+    private final AssignmentRepository assignmentRepository;
+    private final SubmissionRepository submissionRepository;
     private final RestTemplate restTemplate;
 
     @Value("${fastapi.server.url:http://localhost:8000}")
     private String fastApiServerUrl;
 
     /**
-     * GPT를 사용하여 과제 제출에 대한 피드백 생성
+     * 과제 ID를 통해 과제 정보와 제출 정보를 가져와서 AI 피드백 생성
      */
     @Transactional
     public FeedbackResponse generateFeedback(FeedbackRequest request) {
         try {
-            log.info("GPT 피드백 생성 시작: assignment={}, member={}", 
-                    request.getAssignmentId(), request.getMemberId());
+            log.info("AI 피드백 생성 시작: assignmentId={}", request.getAssignmentId());
 
+            // 1. 과제 정보 조회
+            Assignment assignment = assignmentRepository.findById(request.getAssignmentId())
+                    .orElseThrow(() -> new IllegalArgumentException("과제를 찾을 수 없습니다: " + request.getAssignmentId()));
+
+            // 2. 해당 과제의 제출 정보 조회
+            List<Submission> submissions = submissionRepository.findByAssignmentIdOrderByCreatedAtDesc(request.getAssignmentId());
+            if (submissions.isEmpty()) {
+                throw new IllegalArgumentException("해당 과제에 제출된 내용이 없습니다.");
+            }
+
+            // 3. 각 제출에 대해 AI 피드백 생성
+            List<Feedback> generatedFeedbacks = new ArrayList<>();
+            
+            for (Submission submission : submissions) {
+                // 이미 피드백이 있는지 확인
+                if (feedbackRepository.findBySubmissionIdAndMemberId(submission.getSubmissionId(), submission.getMemberId()).isPresent()) {
+                    log.info("제출 {}에 대한 피드백이 이미 존재합니다. 건너뜁니다.", submission.getSubmissionId());
+                    continue;
+                }
+
+                // AI 피드백 생성
+                Map<String, Object> aiFeedback = generateAiFeedback(assignment, submission);
+                
+                // 피드백을 데이터베이스에 저장
+                Feedback feedback = new Feedback();
+                feedback.setMemberId(submission.getMemberId());
+                feedback.setSubmissionId(submission.getSubmissionId());
+                feedback.setScore((Integer) aiFeedback.get("score"));
+                feedback.setComment((String) aiFeedback.get("comment"));
+                feedback.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
+
+                Feedback savedFeedback = feedbackRepository.save(feedback);
+                generatedFeedbacks.add(savedFeedback);
+                
+                log.info("제출 {}에 대한 피드백 생성 완료: feedId={}, score={}", 
+                        submission.getSubmissionId(), savedFeedback.getFeedId(), savedFeedback.getScore());
+            }
+
+            if (generatedFeedbacks.isEmpty()) {
+                throw new IllegalArgumentException("모든 제출에 대해 이미 피드백이 존재합니다.");
+            }
+
+            // 4. 첫 번째 피드백을 응답으로 반환
+            Feedback firstFeedback = generatedFeedbacks.get(0);
+            return new FeedbackResponse(
+                    firstFeedback.getFeedId(),
+                    firstFeedback.getMemberId(),
+                    firstFeedback.getSubmissionId(),
+                    firstFeedback.getScore(),
+                    firstFeedback.getComment(),
+                    firstFeedback.getCreatedAt()
+            );
+
+        } catch (Exception e) {
+            log.error("AI 피드백 생성 중 오류 발생", e);
+            throw new RuntimeException("피드백 생성에 실패했습니다: " + e.getMessage());
+        }
+    }
+
+    /**
+     * OpenAI API를 사용하여 AI 피드백 생성
+     */
+    private Map<String, Object> generateAiFeedback(Assignment assignment, Submission submission) {
+        try {
             // FastAPI 서버에 피드백 생성 요청
             String url = fastApiServerUrl + "/generate-feedback";
             
@@ -49,10 +119,10 @@ public class FeedbackService {
             headers.set("Accept-Charset", "UTF-8");
 
             Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("assignment_title", request.getAssignmentTitle());
-            requestBody.put("assignment_description", request.getAssignmentDescription());
-            requestBody.put("submission_content", request.getSubmissionContent());
-            requestBody.put("submission_file_url", request.getSubmissionFileUrl());
+            requestBody.put("assignment_title", assignment.getTitle());
+            requestBody.put("assignment_description", assignment.getDescription());
+            requestBody.put("submission_content", submission.getContent());
+            requestBody.put("submission_file_url", submission.getFileUrl());
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
@@ -65,32 +135,24 @@ public class FeedbackService {
                 String comment = (String) response.get("comment");
                 String detailedFeedback = (String) response.get("detailed_feedback");
 
-                // 피드백을 데이터베이스에 저장
-                Feedback feedback = new Feedback();
-                feedback.setMemberId(request.getMemberId());
-                feedback.setSubmissionId(request.getSubmissionId());
-                feedback.setScore(score != null ? score : 5);
-                feedback.setComment(comment != null ? comment : "피드백이 생성되었습니다.");
-                feedback.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
+                Map<String, Object> result = new HashMap<>();
+                result.put("score", score != null ? score : 5);
+                result.put("comment", comment != null ? comment : "피드백이 생성되었습니다.");
+                result.put("detailed_feedback", detailedFeedback);
 
-                Feedback savedFeedback = feedbackRepository.save(feedback);
-                log.info("피드백 저장 완료: feedId={}", savedFeedback.getFeedId());
-
-                return new FeedbackResponse(
-                        savedFeedback.getFeedId(),
-                        savedFeedback.getMemberId(),
-                        savedFeedback.getSubmissionId(),
-                        savedFeedback.getScore(),
-                        savedFeedback.getComment(),
-                        savedFeedback.getCreatedAt()
-                );
+                return result;
             } else {
                 throw new RuntimeException("FastAPI 서버로부터 응답을 받지 못했습니다.");
             }
 
         } catch (Exception e) {
-            log.error("GPT 피드백 생성 중 오류 발생", e);
-            throw new RuntimeException("피드백 생성에 실패했습니다: " + e.getMessage());
+            log.error("AI 피드백 생성 중 오류 발생", e);
+            // 기본 피드백 반환
+            Map<String, Object> defaultFeedback = new HashMap<>();
+            defaultFeedback.put("score", 5);
+            defaultFeedback.put("comment", "AI 피드백 생성에 실패하여 기본 피드백을 제공합니다.");
+            defaultFeedback.put("detailed_feedback", "과제 제출이 확인되었습니다.");
+            return defaultFeedback;
         }
     }
 
