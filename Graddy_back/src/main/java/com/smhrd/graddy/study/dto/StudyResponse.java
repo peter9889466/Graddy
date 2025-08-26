@@ -42,4 +42,7 @@ public class StudyResponse {
     // 신청 상태 정보 (study_project_status 테이블에서 가져온 정보)
     private String applicationStatus;  // PENDING, REJECTED, null
     private LocalDateTime applicationDate;  // 신청 일시
+    
+    // 스터디 상태 ("active": 진행중, "recruitment_completed": 모집완료, "completed": 종료됨)
+    private String studyStatus;
 }

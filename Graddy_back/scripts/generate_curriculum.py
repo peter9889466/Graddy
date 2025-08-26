@@ -81,7 +81,7 @@ def generate_curriculum(study_id, study_name, study_title, study_desc, study_lev
     try:
         # OpenAI GPT API 호출
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "당신은 교육 전문가이자 커리큘럼 설계 전문가입니다. 체계적이고 실용적인 학습 커리큘럼을 설계하는 것이 특기입니다."},
                 {"role": "user", "content": prompt}

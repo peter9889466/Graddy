@@ -379,13 +379,25 @@ public class StudyController {
                       required = true)
             @RequestHeader(name = "Authorization", required = true) String authorization) {
         try {
+            System.out.println("=== /my-dashboard 엔드포인트 호출 ===");
+            System.out.println("Authorization 헤더: " + authorization);
+            
             // JWT 토큰에서 user_id 추출
             String token = authorization.replace("Bearer ", "");
-            String userId = jwtUtil.extractUserId(token);
+            System.out.println("JWT 토큰 (Bearer 제거): " + token);
             
+            String userId = jwtUtil.extractUserId(token);
+            System.out.println("추출된 user_id: " + userId);
+            
+            // StudyService를 통해 대시보드 정보 조회
             Map<String, Object> dashboard = studyService.getUserDashboard(userId);
+            
+            System.out.println("=== /my-dashboard 응답 생성 완료 ===");
             return ApiResponse.success("내 스터디/프로젝트 대시보드 조회가 성공했습니다.", dashboard);
         } catch (Exception e) {
+            System.err.println("=== /my-dashboard 오류 발생 ===");
+            System.err.println("오류 메시지: " + e.getMessage());
+            e.printStackTrace();
             return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "대시보드 조회에 실패했습니다.", null);
         }
     }
