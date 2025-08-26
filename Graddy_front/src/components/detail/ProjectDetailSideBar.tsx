@@ -76,7 +76,7 @@ const ProjectDetailSideBar: React.FC<ProjectDetailSideBarProps> = ({
             </div>
 
             {/* 프로젝트 멤버 섹션 */}
-            <div className="p-3 sm:p-4">
+            {/* <div className="p-3 sm:p-4">
                 <h3
                     className="font-bold mb-3 text-sm sm:text-base"
                     style={{ color: "#8B85E9" }}
@@ -90,7 +90,7 @@ const ProjectDetailSideBar: React.FC<ProjectDetailSideBarProps> = ({
                     <div className="text-sm text-gray-700">박스터디</div>
                     <div className="text-sm text-gray-700">정알고</div>
                 </div>
-            </div>
+            </div> */}
         </>
     );
 };

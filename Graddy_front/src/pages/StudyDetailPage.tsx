@@ -9,6 +9,7 @@ import Assignment from "../components/detail/Assignment";
 import { studyList } from "../data/studyData";
 import { AuthContext } from "../contexts/AuthContext";
 import PageLayout from "../components/layout/PageLayout";
+import { StudyApiService } from "../services/studyApi";
 import FeedBack from "@/components/detail/FeedBack";
 import Schedule from "@/components/detail/Schedule";
 import Curriculum from "@/components/detail/Curriculum";
@@ -25,6 +26,7 @@ const StudyDetailPage = () => {
 	const authContext = useContext(AuthContext);
 	const location = useLocation();
 	const state = location.state as {
+		name:string;
 		title:string; 
 		description:string
 		leader:string;
@@ -34,8 +36,11 @@ const StudyDetailPage = () => {
 		studyLevel?: number;
 	} | null;
 	
+	const [studyName, setStudyName] = useState<string>(
+		state?.name || `스터디#${id}`
+	);
 	const [studyTitle, setStudyTitle] = useState<string>(
-		state?.title || `스터디#${id}`
+		state?.title || `스터디#${id} 소개가 없습니다.`
 	);
 	const [studyDescription, setStudyDescription] = useState<String>(
 		state?.description || `스터디#${id}의 설명이 없습니다.`
@@ -116,24 +121,141 @@ const StudyDetailPage = () => {
 		}
 	}, [id, state]);
 
-	// 현재 사용자가 스터디장인지 확인
-	const isStudyLeader = authContext?.user?.nickname === studyLeader;
+	// 백엔드에서 받아온 멤버 정보를 기반으로 사용자 권한 확인
+	const [userMemberType, setUserMemberType] = useState<string | null>(null);
+	const [isStudyMember, setIsStudyMember] = useState(false);
+	const [members, setMembers] = useState<Array<{
+		memberId: number;
+		userId: string;
+		nick: string;
+		memberType: string;
+		memberStatus: string;
+		joinedAt: string;
+	}>>([]);
+	const [maxMembers, setMaxMembers] = useState<number>(10);
+	const [isLoading, setIsLoading] = useState(true);
 	
-	// 임시 테스트용 (실제 사용자 닉네임으로 변경해보세요)
-	// const isStudyLeader = "test" === studyLeader;
-	
-
-
 	// 사용자 권한 확인
 	const isLoggedIn = authContext?.isLoggedIn || false;
-	const isStudyMember = isStudyLeader || isApplied; // 스터디장이거나 가입 신청한 사용자
+	
+	// 백엔드에서 스터디 정보와 멤버 정보를 받아와서 설정
+	useEffect(() => {
+		const fetchStudyInfo = async () => {
+			if (!id) return;
+			
+			setIsLoading(true);
+			
+			try {
+				const studyProjectId = parseInt(id, 10);
+				const studyData = await StudyApiService.getStudyProject(studyProjectId);
+				
+				if (studyData) {
+					// 스터디 기본 정보 설정
+					setStudyName(studyData.studyProjectName || `스터디#${id}`);
+					setStudyTitle(studyData.studyProjectTitle || `스터디#${id} 소개가 없습니다.`);
+					setStudyDescription(studyData.studyProjectDesc || `스터디#${id}의 설명이 없습니다.`);
+					setStudyLevel(studyData.studyLevel || 1);
+					setStudyTags(studyData.tagNames || []);
+					setMaxMembers(studyData.studyProjectTotal || 10);
+					
+					// 기간 설정
+					if (studyData.studyProjectStart && studyData.studyProjectEnd) {
+						const startDate = new Date(studyData.studyProjectStart).toISOString().split('T')[0];
+						const endDate = new Date(studyData.studyProjectEnd).toISOString().split('T')[0];
+						setStudyPeriod(`${startDate} ~ ${endDate}`);
+					}
+					
+					// 멤버 정보 설정
+					if (studyData.members) {
+						setMembers(studyData.members);
+						
+						// 디버깅을 위한 로그
+						console.log('백엔드에서 받은 멤버 데이터:', studyData.members);
+						console.log('현재 로그인한 사용자 이메일:', authContext?.user?.email);
+						console.log('스터디 생성자 ID:', studyData.userId);
+						
+						// 현재 사용자의 멤버 정보 찾기
+						if (authContext?.user?.email) {
+							console.log('이메일 비교 - 현재 사용자:', authContext?.user?.email);
+							console.log('이메일 비교 - 멤버들:', studyData.members.map(m => ({ userId: m.userId, memberType: m.memberType, nick: m.nick })));
+							
+							// 더 유연한 비교를 위해 여러 방법으로 시도
+							const currentUser = studyData.members.find((member: { userId: string; memberType: string; nick: string }) => {
+								// 정확한 매치
+								const exactMatch = member.userId === authContext?.user?.email;
+								// 대소문자 무시 매치
+								const caseInsensitiveMatch = member.userId.toLowerCase() === authContext?.user?.email.toLowerCase();
+								// 공백 제거 후 매치
+								const trimmedMatch = member.userId.trim() === authContext?.user?.email.trim();
+								// 닉네임으로도 매치 시도
+								const nicknameMatch = member.nick === authContext?.user?.nickname;
+								
+								console.log(`비교: ${member.userId} === ${authContext?.user?.email} = ${exactMatch}`);
+								console.log(`대소문자 무시: ${member.userId.toLowerCase()} === ${authContext?.user?.email.toLowerCase()} = ${caseInsensitiveMatch}`);
+								console.log(`공백 제거: ${member.userId.trim()} === ${authContext?.user?.email.trim()} = ${trimmedMatch}`);
+								console.log(`닉네임 매치: ${member.nick} === ${authContext?.user?.nickname} = ${nicknameMatch}`);
+								
+								return exactMatch || caseInsensitiveMatch || trimmedMatch || nicknameMatch;
+							});
+							console.log('찾은 현재 사용자:', currentUser);
+							
+							if (currentUser) {
+								console.log('멤버로 인식됨:', currentUser.memberType);
+								setUserMemberType(currentUser.memberType);
+								setIsStudyMember(true);
+							} else {
+								console.log('멤버 목록에서 찾을 수 없음');
+								setUserMemberType(null);
+								setIsStudyMember(false);
+							}
+						}
+						
+						// 리더의 닉네임 설정
+						const leader = studyData.members.find((member: { memberType: string; nick: string }) => member.memberType === "leader");
+						if (leader && leader.nick && leader.nick.trim() !== "") {
+							setStudyLeader(leader.nick);
+						} else {
+							setStudyLeader(studyData.userId || "리더가 지정되지 않았습니다.");
+						}
+					} else {
+						setMembers([]);
+						console.log('멤버 목록이 비어있음');
+						setUserMemberType(null);
+						setIsStudyMember(false);
+						setStudyLeader(studyData.userId || "리더가 지정되지 않았습니다.");
+					}
+				}
+			} catch (error) {
+				console.error('스터디 정보 조회 실패:', error);
+				setUserMemberType(null);
+				setIsStudyMember(false);
+			} finally {
+				setIsLoading(false);
+			}
+		};
+		
+		fetchStudyInfo();
+	}, [id, authContext?.user?.email]);
+	
+	// 권한 체크 (로딩 중이 아닐 때만)
+	const isStudyLeader = !isLoading && userMemberType === 'leader';
+	const isStudyMemberUser = !isLoading && userMemberType === 'member';
+	const canAccessMemberFeatures = !isLoading && ((userMemberType === 'leader' || userMemberType === 'member') || isApplied);
 	
 	// 디버깅을 위한 콘솔 로그
+	console.log('=== 디버깅 정보 ===');
+	console.log('userMemberType:', userMemberType);
+	console.log('isStudyLeader:', isStudyLeader);
+	console.log('canAccessMemberFeatures:', canAccessMemberFeatures);
 	console.log('현재 사용자 닉네임:', authContext?.user?.nickname);
+	console.log('현재 사용자 이메일:', authContext?.user?.email);
 	console.log('스터디장:', studyLeader);
 	console.log('스터디장 여부:', isStudyLeader);
 	console.log('로그인 여부:', isLoggedIn);
 	console.log('스터디 멤버 여부:', isStudyMember);
+	console.log('로딩 상태:', isLoading);
+	console.log('전체 authContext:', authContext);
+	console.log('==================');
 
 	const handleApplyClick = async () => {
 		if (!authContext?.isLoggedIn) {
@@ -156,6 +278,12 @@ const StudyDetailPage = () => {
 		}
 	};
 
+	const handleEditStudy = () => {
+		alert("스터디 수정 기능은 현재 개발 중입니다.");
+		// 여기에 스터디 수정 페이지로 이동하는 로직 추가
+		// navigate(`/study/edit/${id}`);
+	};
+
 	// 메인 콘텐츠 렌더링 함수
 	const renderMainContent = () => {
 		switch (activeTab) {
@@ -164,28 +292,43 @@ const StudyDetailPage = () => {
 			default:
 				return (
 					<div className="space-y-2 p-4 pr-10">
-						<h3 className="text-2xl font-bold">{studyTitle}</h3>
-						<p className="text-gray-700">
+						{/* 헤더 영역 - 제목과 수정 버튼 */}
+						<div className="flex justify-between items-start mb-4">
+							<h3 className="text-2xl font-bold">{studyName}</h3>
+							{/* 리더만 수정 버튼 표시 */}
+							{!isLoading && isStudyLeader && (
+								<button
+									onClick={handleEditStudy}
+									className="px-4 py-2 bg-[#8B85E9] text-white rounded-lg text-sm font-medium hover:bg-[#7C76D8] transition-colors duration-200 flex items-center gap-2"
+								>
+									<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+									</svg>
+									수정
+								</button>
+							)}
+						</div>
+						<div className="text-gray-700">
 							<div className="flex items-center gap-2">
 								<Info className="w-4 h-4 text-gray-600" />
 								<span>스터디 소개</span>
 							</div>
-							<span className="text-gray-800 block mt-1">{studyDescription}</span>
-						</p>
-						<p className="text-gray-700">
+							<span className="text-gray-800 block mt-1">{studyTitle}</span>
+						</div>
+						<div className="text-gray-700">
 							<div className="flex items-center gap-2">
 								<Crown className="w-4 h-4 text-gray-600" />
 								<span>리더</span>
 							</div>
 							<span className="text-gray-800 block mt-1">{studyLeader}</span>
-						</p>
-						<p className="text-gray-700">
+						</div>
+						<div className="text-gray-700">
 							<div className="flex items-center gap-2">
 								<Calendar className="w-4 h-4 text-gray-600" />
 								<span>스터디 기간</span>
 							</div>
 							<span className="text-gray-800 block mt-1">{formatPeriod(studyPeriod)}</span>
-						</p>
+						</div>
 						<div className="text-gray-700 inline-block">
 							<div className="flex items-center gap-2">
 								<Tag className="w-4 h-4 text-gray-600" />
@@ -220,7 +363,7 @@ const StudyDetailPage = () => {
 							<p className="text-gray-700 text-sm sm:text-base leading-relaxed">{studyDescription}</p>
 						</div>
 						{/* 버튼 영역 */}
-						{isStudyLeader ? (
+						{!isLoading && isStudyLeader ? (
 							// 스터디장인 경우
 							<div className="flex gap-2 mt-3">
 								<button
@@ -240,8 +383,8 @@ const StudyDetailPage = () => {
 									스터디 종료
 								</button>
 							</div>
-						) : (
-							// 일반 사용자인 경우
+						) : !isLoading && (userMemberType === 'member' || userMemberType === null) ? (
+							// 일반 사용자이거나 멤버인 경우
 							<button
 								type="button"
 								onClick={handleApplyClick}
@@ -251,59 +394,58 @@ const StudyDetailPage = () => {
 							>
 								{isApplied ? "가입 신청됨" : "스터디 가입 신청"}
 							</button>
-						)}
+						) : null}
 					</div>
 				);
 			case "과제 제출":
-				if (!isLoggedIn || !isStudyMember) {
-					return (
-						<div className="flex items-center justify-center h-64">
-							<div className="text-center">
-								<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
-								<p className="text-sm text-gray-400">스터디에 가입한 멤버만 접근할 수 있습니다.</p>
-							</div>
-						</div>
-					);
-				}
+				// if (!isLoggedIn || !(userMemberType === 'leader' || userMemberType === 'member')) {
+				// 	return (
+				// 		<div className="flex items-center justify-center h-64">
+				// 			<div className="text-center">
+				// 				<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
+				// 				<p className="text-sm text-gray-400">스터디에 가입한 멤버만 접근할 수 있습니다.</p>
+				// 			</div>
+				// 		</div>
+				// 	);
+				// }
 				return <Assignment />;
 
 			case "과제 피드백":
-				if (!isLoggedIn || !isStudyMember) {
-					return (
-						<div className="flex items-center justify-center h-64">
-							<div className="text-center">
-								<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
-								<p className="text-sm text-gray-400">스터디에 가입한 멤버만 접근할 수 있습니다.</p>
-							</div>
-						</div>
-					);
-				}
+				// if (!isLoggedIn || !(userMemberType === 'leader' || userMemberType === 'member')) {
+				// 	return (
+				// 		<div className="flex items-center justify-center h-64">
+				// 			<div className="text-center">
+				// 			<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
+				// 			<p className="text-sm text-gray-400">스터디에 가입한 멤버만 접근할 수 있습니다.</p>
+				// 		</div>
+				// 	);
+				// }
 				return <FeedBack />;
 			case "과제 / 일정 관리":
-				if (!isLoggedIn || !isStudyMember) {
-					return (
-						<div className="flex items-center justify-center h-64">
-							<div className="text-center">
-								<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
-								<p className="text-sm text-gray-400">스터디에 가입한 멤버만 접근할 수 있습니다.</p>
-							</div>
-						</div>
-					);
-				}
+				// if (!isLoggedIn || !(userMemberType === 'leader' || userMemberType === 'member')) {
+				// 	return (
+				// 		<div className="flex items-center justify-center h-64">
+				// 			<div className="text-center">
+				// 				<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
+				// 				<p className="text-sm text-gray-400">스터디에 가입한 멤버만 접근할 수 있습니다.</p>
+				// 			</div>
+				// 		</div>
+				// 	);
+				// }
 				return <Schedule isStudyLeader={isStudyLeader} />;
 			case "커리큘럼":
 				return <Curriculum />;
 			case "커뮤니티":
-				if (!isLoggedIn || !isStudyMember) {
-					return (
-						<div className="flex items-center justify-center h-64">
-							<div className="text-center">
-								<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
-								<p className="text-sm text-gray-400">스터디에 가입한 멤버만 접근할 수 있습니다.</p>
-							</div>
-						</div>
-					);
-				}
+				// if (!isLoggedIn || !(userMemberType === 'leader' || userMemberType === 'member')) {
+				// 	return (
+				// 		<div className="flex items-center justify-center h-64">
+				// 			<div className="text-center">
+				// 				<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
+				// 				<p className="text-sm text-gray-400">스터디에 가입한 멤버만 접근할 수 있습니다.</p>
+				// 			</div>
+				// 		</div>
+				// 	);
+				// }
 				return <Community />;
 		}
 	};
@@ -317,8 +459,12 @@ const StudyDetailPage = () => {
 						activeTab={activeTab}
 						onTabChange={(tab) => setActiveTab(tab)}
 						isLoggedIn={isLoggedIn}
-						isStudyMember={isStudyMember}
+						isStudyMember={!isLoading && (userMemberType === 'leader' || userMemberType === 'member')}
 						isProject={false}
+						isStudyLeader={isStudyLeader}
+						userMemberType={userMemberType}
+						maxMembers={maxMembers}
+						members={members}
 					/>
 				</ResponsiveSidebar>
 

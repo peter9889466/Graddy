@@ -150,33 +150,15 @@ export class StudyApiService {
         return response.data;
     }
 
-    // 스터디/프로젝트 목록 조회 (백엔드 API와 직접 통신)
+    // 스터디/프로젝트 목록 조회
     static async getStudiesProjects(): Promise<BackendStudyProjectData[]> {
         try {
             console.log('getStudiesProjects 호출 시작');
             
-            const response = await fetch('http://localhost:8080/api/studies-projects', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
+            const response = await apiGet<BackendStudyProjectData[]>('/studies-projects');
+            console.log('getStudiesProjects 응답:', response);
             
-            console.log('HTTP 응답 상태:', response.status);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            const responseData = await response.json();
-            console.log('getStudiesProjects 응답:', responseData);
-            
-            if (!responseData || !responseData.data) {
-                console.warn('getStudiesProjects API data 필드가 없습니다.');
-                return [];
-            }
-            
-            return responseData.data;
+            return response.data;
         } catch (error) {
             console.error('getStudiesProjects 실패:', error);
             throw error;
@@ -188,35 +170,17 @@ export class StudyApiService {
         try {
             console.log('getStudyProject 호출 시작:', studyProjectId);
             
-            const response = await fetch(`http://localhost:8080/api/studies-projects/${studyProjectId}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
+            const response = await apiGet<BackendStudyProjectData>(`/studies-projects/${studyProjectId}`);
+            console.log('getStudyProject 응답:', response);
             
-            console.log('HTTP 응답 상태:', response.status);
-            
-            if (!response.ok) {
-                if (response.status === 404) {
-                    console.log('스터디/프로젝트를 찾을 수 없습니다.');
-                    return null;
-                }
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            const responseData = await response.json();
-            console.log('getStudyProject 응답:', responseData);
-            
-            if (!responseData || !responseData.data) {
-                console.warn('getStudyProject API data 필드가 없습니다.');
-                return null;
-            }
-            
-            return responseData.data;
+            return response.data;
         } catch (error) {
             console.error('getStudyProject 실패:', error);
-            return null;
+            if (error instanceof Error && error.message.includes('404')) {
+                console.log('스터디/프로젝트를 찾을 수 없습니다.');
+                return null;
+            }
+            throw error;
         }
     }
 
