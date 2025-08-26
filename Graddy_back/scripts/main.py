@@ -154,7 +154,7 @@ async def generate_curriculum(request: CurriculumRequest):
         
         # OpenAI GPT API 호출
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "당신은 교육 전문가이자 커리큘럼 설계 전문가입니다. 체계적이고 실용적인 학습 커리큘럼을 설계하는 것이 특기입니다."},
                 {"role": "user", "content": prompt}
@@ -242,7 +242,7 @@ async def generate_assignments(request: AssignmentGenerationRequest):
         
         # OpenAI GPT API 호출
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "당신은 교육 전문가이자 과제 설계 전문가입니다. 체계적이고 실용적인 학습 과제를 설계하는 것이 특기입니다."},
                 {"role": "user", "content": prompt}
@@ -344,7 +344,7 @@ async def generate_feedback(request: FeedbackRequest):
         
         # OpenAI GPT API 호출
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "당신은 교육 전문가이자 과제 평가자입니다. 공정하고 건설적인 피드백을 제공하며, 학생의 성장을 돕는 것이 목표입니다."},
                 {"role": "user", "content": prompt}
