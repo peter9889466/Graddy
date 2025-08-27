@@ -26,7 +26,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 import java.util.ArrayList;
+import java.util.stream.Collectors;
 import com.smhrd.graddy.auth.dto.UnifiedPhoneVerificationResponse;
+import com.smhrd.graddy.user.dto.MyPageResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -386,5 +388,42 @@ public class UserService {
                 "인증번호 발송에 실패했습니다: " + e.getMessage(), tel
             );
         }
+    }
+    
+    /**
+     * 현재 로그인한 사용자의 마이페이지 정보를 조회
+     * 
+     * @param userId 사용자 ID
+     * @return 마이페이지 응답 DTO
+     * @throws IllegalArgumentException 사용자를 찾을 수 없는 경우
+     */
+    public MyPageResponse getMyPageInfo(String userId) {
+        System.out.println("마이페이지 정보 조회 시작: userId=" + userId);
+        
+        // 사용자 정보와 관심분야를 함께 조회
+        User user = userRepository.findByIdWithInterests(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + userId));
+        
+        // 사용자 점수 조회
+        UserScore userScore = userScoreRepository.findByUserId(userId)
+                .orElse(new UserScore()); // 점수가 없으면 빈 객체로 설정
+        
+        // 관심분야 목록 추출
+        List<String> interests = user.getUserInterests().stream()
+                .map(userInterest -> userInterest.getInterest().getInterestName())
+                .collect(Collectors.toList());
+        
+        // 마이페이지 응답 생성
+        MyPageResponse response = MyPageResponse.builder()
+                .nick(user.getNick())
+                .gitUrl(user.getGitUrl())
+                .userScore(userScore.getUserScore() != null ? userScore.getUserScore() : 0)
+                .interests(interests)
+                .userRefer(user.getUserRefer())
+                .build();
+        
+        System.out.println("마이페이지 정보 조회 완료: userId=" + userId + ", nick=" + user.getNick() + ", score=" + (userScore.getUserScore() != null ? userScore.getUserScore() : 0) + ", interests=" + interests);
+        
+        return response;
     }
 }
