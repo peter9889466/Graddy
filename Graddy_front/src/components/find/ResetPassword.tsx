@@ -24,8 +24,7 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ userId, phone, onBack, on
     // 비밀번호 유효성 검사 규칙
     const [passwordRules, setPasswordRules] = useState({
         length: false, // 8자 이상
-        uppercase: false, // 대문자 포함
-        lowercase: false, // 소문자 포함
+        letter: false, // 소문자 포함
         number: false, // 숫자 포함
         special: false // 특수문자 포함
     });
@@ -46,8 +45,7 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ userId, phone, onBack, on
     useEffect(() => {
         setPasswordRules({
             length: newPassword.length >= 8,
-            uppercase: /[A-Z]/.test(newPassword),
-            lowercase: /[a-z]/.test(newPassword),
+            letter: /[a-zA-Z]/.test(newPassword), // 대문자 또는 소문자 포함
             number: /[0-9]/.test(newPassword),
             special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword)
         });
@@ -59,8 +57,7 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ userId, phone, onBack, on
 
     const validatePassword = (password: string) => {
         if (password.length < 8) return false;
-        if (!/[A-Z]/.test(password)) return false;
-        if (!/[a-z]/.test(password)) return false;
+        if (!/[a-zA-Z]/.test(password)) return false;
         if (!/[0-9]/.test(password)) return false;
         if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) return false;
         return true;
@@ -73,7 +70,7 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ userId, phone, onBack, on
         if (!newPassword.trim()) {
             newErrors.newPassword = "새 비밀번호를 입력하세요.";
         } else if (!validatePassword(newPassword)) {
-            newErrors.newPassword = "비밀번호는 8자 이상, 대소문자, 숫자, 특수문자를 포함해야 합니다.";
+            newErrors.newPassword = "비밀번호는 8자 이상, 영문자, 숫자, 특수문자를 포함해야 합니다.";
         }
 
         if (!confirmPassword.trim()) {
@@ -257,13 +254,9 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ userId, phone, onBack, on
                                 {getRuleIcon(passwordRules.length)}
                                 <span>8자 이상</span>
                             </div>
-                            <div className={`flex items-center gap-2 ${getRuleColor(passwordRules.uppercase)}`}>
-                                {getRuleIcon(passwordRules.uppercase)}
-                                <span>대문자 포함</span>
-                            </div>
-                            <div className={`flex items-center gap-2 ${getRuleColor(passwordRules.lowercase)}`}>
-                                {getRuleIcon(passwordRules.lowercase)}
-                                <span>소문자 포함</span>
+                            <div className={`flex items-center gap-2 ${getRuleColor(passwordRules.letter)}`}>
+                                {getRuleIcon(passwordRules.letter)}
+                                <span>영문자 포함</span>
                             </div>
                             <div className={`flex items-center gap-2 ${getRuleColor(passwordRules.number)}`}>
                                 {getRuleIcon(passwordRules.number)}
