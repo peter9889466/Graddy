@@ -11,6 +11,7 @@ import com.smhrd.graddy.user.dto.UserProfileUpdateRequest;
 import com.smhrd.graddy.user.dto.UserProfileUpdateResponse;
 import com.smhrd.graddy.user.dto.UserWithdrawalRequest;
 import com.smhrd.graddy.user.dto.MyPageResponse;
+import com.smhrd.graddy.user.dto.StudyProjectListResponse;
 import com.smhrd.graddy.user.entity.User;
 import com.smhrd.graddy.user.service.UserService;
 import com.smhrd.graddy.security.jwt.JwtUtil;
@@ -420,6 +421,52 @@ public class UserController {
             MyPageResponse myPageInfo = userService.getMyPageInfo(currentUserId);
             
             return ApiResponse.success("마이페이지 정보 조회가 완료되었습니다.", myPageInfo);
+            
+        } catch (IllegalArgumentException e) {
+            // 예외 발생 시 400 Bad Request 응답
+            return ApiResponse.error(HttpStatus.BAD_REQUEST, e.getMessage(), null);
+        } catch (Exception e) {
+            // JWT 토큰 관련 오류 등 기타 예외 발생 시 401 Unauthorized 응답
+            return ApiResponse.error(HttpStatus.UNAUTHORIZED, "인증에 실패했습니다: " + e.getMessage(), null);
+        }
+    }
+
+    @Operation(
+        summary = "스터디/프로젝트 목록 조회",
+        description = "현재 로그인한 사용자가 참여한 스터디/프로젝트 목록을 조회합니다. 상태별 필터링이 가능합니다."
+    )
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200", 
+            description = "스터디/프로젝트 목록 조회 성공",
+            content = @Content(schema = @Schema(implementation = StudyProjectListResponse.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "400", 
+            description = "잘못된 요청",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "401", 
+            description = "인증 실패",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        )
+    })
+    @GetMapping("/me/study-projects")
+    public ResponseEntity<ApiResponse<List<StudyProjectListResponse>>> getStudyProjectList(
+        @Parameter(description = "필터링할 상태 (ALL, RECRUITING, COMPLETE, END)", example = "ALL") 
+        @RequestParam(value = "status", defaultValue = "ALL") String status,
+        @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiJ9...") 
+        @RequestHeader("Authorization") String authorizationHeader) {
+        try {
+            // JWT 토큰에서 현재 사용자 아이디 추출
+            String token = authorizationHeader.replace("Bearer ", "");
+            String currentUserId = jwtUtil.extractUserId(token);
+            
+            // UserService를 통해 스터디/프로젝트 목록 조회
+            List<StudyProjectListResponse> studyProjectList = userService.getStudyProjectList(currentUserId, status);
+            
+            return ApiResponse.success("스터디/프로젝트 목록 조회가 완료되었습니다.", studyProjectList);
             
         } catch (IllegalArgumentException e) {
             // 예외 발생 시 400 Bad Request 응답

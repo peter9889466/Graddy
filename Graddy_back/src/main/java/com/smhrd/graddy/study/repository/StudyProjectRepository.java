@@ -1,6 +1,7 @@
 package com.smhrd.graddy.study.repository;
 
 import com.smhrd.graddy.study.entity.StudyProject;
+import com.smhrd.graddy.member.entity.Member;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -76,4 +77,33 @@ public interface StudyProjectRepository extends JpaRepository<StudyProject, Long
            "AND sp.isRecruiting != 'end' " +
            "ORDER BY sp.studyProjectEnd ASC")
     List<StudyProject> findExpiredStudies(@Param("date") java.time.LocalDateTime date);
+    
+    /**
+     * 특정 사용자가 참여한 스터디/프로젝트 목록 조회
+     * study_project_member 테이블과 조인하여 사용자가 멤버로 등록된 스터디/프로젝트를 반환
+     * 
+     * @param userId 사용자 ID
+     * @return 사용자가 참여한 스터디/프로젝트 목록
+     */
+    @Query("SELECT DISTINCT sp FROM StudyProject sp " +
+           "JOIN Member m ON sp.studyProjectId = m.studyProjectId " +
+           "WHERE m.userId = :userId " +
+           "ORDER BY sp.createdAt DESC")
+    List<StudyProject> findStudyProjectsByUserId(@Param("userId") String userId);
+    
+    /**
+     * 특정 사용자가 참여한 스터디/프로젝트를 모집 상태별로 조회
+     * 
+     * @param userId 사용자 ID
+     * @param recruitingStatus 모집 상태 (RECRUITING/COMPLETE/END)
+     * @return 해당 상태의 스터디/프로젝트 목록
+     */
+    @Query("SELECT DISTINCT sp FROM StudyProject sp " +
+           "JOIN Member m ON sp.studyProjectId = m.studyProjectId " +
+           "WHERE m.userId = :userId AND sp.isRecruiting = :recruitingStatus " +
+           "ORDER BY sp.createdAt DESC")
+    List<StudyProject> findStudyProjectsByUserIdAndRecruitingStatus(
+            @Param("userId") String userId, 
+            @Param("recruitingStatus") StudyProject.RecruitingStatus recruitingStatus
+    );
 }
