@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { User, Settings, Trash2 } from "lucide-react";
 import ProfileModal from "../modal/ProfileModal";
+import axios from "axios";
 
 interface SideMenuItem {
     name: string;
@@ -35,6 +36,8 @@ interface StudyDetailSideBarProps {
         appliedAt: string;
     }>;
     onProcessApplication?: (userId: string, status: 'PENDING' | 'REJECTED', reason?: string) => void;
+    studyProjectId?: number; // 스터디 프로젝트 ID 추가
+    onApplyToStudy?: () => void; // 가입 신청 콜백 함수 추가
 }
 
 // 스터디원 데이터 타입 정의
@@ -64,6 +67,8 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
     members = [],
     applications = [],
     onProcessApplication,
+    onApplyToStudy,
+    studyProjectId,
 }) => {
     const [selectedMember, setSelectedMember] = useState<StudyMember | null>(null);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -100,6 +105,38 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
         setIsProfileModalOpen(false);
         setSelectedMember(null);
     };
+
+    const handleProcessApplication = async (
+    userId: string,
+    status: 'APPROVED' | 'REJECTED',
+    reason?: string
+) => {
+    if (!studyProjectId) {
+        console.error("studyProjectId가 없습니다.");
+        return;
+    }
+
+    try {
+        const response = await axios.post(
+            `http://localhost:8080/api/study-applications/${studyProjectId}/process`,
+            {
+                userId,
+                status,
+                reason: reason || ""
+            }
+        );
+
+        if (response.data.status === 200) {
+            alert(response.data.message);
+            // TODO: 처리 후 UI 업데이트 필요 시, 예: applications 목록 갱신
+        } else {
+            alert("처리에 실패했습니다.");
+        }
+    } catch (error) {
+        console.error(error);
+        alert("요청 중 오류가 발생했습니다.");
+    }
+};
 
     return (
         <>
@@ -165,37 +202,37 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
                     <hr className="mb-3 border-gray-200" />
                     <div className="bg-yellow-50 rounded-lg p-3 space-y-3">
                         {applications.map((application, index) => (
-                            <div key={index} className="border border-yellow-200 rounded-lg p-3 bg-white">
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="text-sm font-medium text-gray-800">
-                                        {application.userId}
-                                    </span>
-                                    <span className="text-xs text-gray-500">
-                                        {new Date(application.appliedAt).toLocaleDateString()}
-                                    </span>
-                                </div>
-                                <p className="text-xs text-gray-600 mb-3 line-clamp-2">
-                                    {application.message}
-                                </p>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => onProcessApplication?.(application.userId, 'PENDING')}
-                                        className="flex-1 px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
-                                    >
-                                        수락
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            const reason = prompt('거절 사유를 입력하세요 (선택사항):');
-                                            onProcessApplication?.(application.userId, 'REJECTED', reason || undefined);
-                                        }}
-                                        className="flex-1 px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-                                    >
-                                        거절
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
+    <div key={index} className="border border-yellow-200 rounded-lg p-3 bg-white">
+        <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-800">
+                {application.userId}
+            </span>
+            <span className="text-xs text-gray-500">
+                {new Date(application.appliedAt).toLocaleDateString()}
+            </span>
+        </div>
+        <p className="text-xs text-gray-600 mb-3 line-clamp-2">
+            {application.message}
+        </p>
+        <div className="flex gap-2">
+            <button
+                onClick={() => handleProcessApplication(application.userId, 'APPROVED')}
+                className="flex-1 px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+            >
+                수락
+            </button>
+            <button
+                onClick={() => {
+                    const reason = prompt('거절 사유를 입력하세요 (선택사항):');
+                    handleProcessApplication(application.userId, 'REJECTED', reason || undefined);
+                }}
+                className="flex-1 px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+            >
+                거절
+            </button>
+        </div>
+    </div>
+))}
                     </div>
                 </div>
             )}
@@ -203,10 +240,7 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
             {/* 스터디/프로젝트 멤버 섹션 */}
             <div className="p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-3">
-                    <h3
-                        className="font-bold text-sm sm:text-base"
-                        style={{ color: "#8B85E9" }}
-                    >
+                    <h3 className="font-bold text-sm sm:text-base" style={{ color: "#8B85E9" }}>
                         {isProject ? "프로젝트 멤버" : "스터디 멤버"}
                     </h3>
                     <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
@@ -214,6 +248,8 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
                     </span>
                 </div>
                 <hr className="mb-3 border-gray-200" />
+                
+                {/* 멤버 목록 */}
                 <div className="bg-gray-50 rounded-lg p-3 pl-6 space-y-3">
                     {studyMembers.map((member, index) => (
                         <button
@@ -225,6 +261,18 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
                         </button>
                     ))}
                 </div>
+                
+                {/* 가입 신청 버튼 - 로그인했고 멤버가 아닌 경우만 표시 */}
+                {isLoggedIn && !isStudyMember && userMemberType !== 'leader' && (
+                    <div className="mt-3">
+                        <button
+                            onClick={onApplyToStudy}   // ✅ Page에서 내려주는 함수 사용
+                            className="w-full px-3 py-2 bg-[#8B85E9] text-white rounded-lg text-sm font-medium hover:bg-[#7C76D8] transition-colors duration-200"
+                        >
+                            {isProject ? "프로젝트 가입 신청" : "스터디 가입 신청"}
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* 프로필 모달 */}
