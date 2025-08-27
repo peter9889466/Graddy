@@ -220,3 +220,55 @@ export class StudyApiService {
     }
 }
 
+// 가입 신청 관련 타입 정의
+export interface StudyApplicationRequest {
+	studyProjectId: number;
+	message: string;
+}
+
+export interface StudyApplicationResponse {
+	userId: string;
+	studyProjectId: number;
+	status: 'PENDING' | 'APPROVED' | 'REJECTED';
+	message: string;
+	appliedAt: string;
+}
+
+export interface ProcessApplicationRequest {
+	userId: string;
+	status: 'PENDING' | 'REJECTED';
+	reason?: string;
+}
+
+// 가입 신청 API
+export const applyToStudyProject = async (request: StudyApplicationRequest): Promise<StudyApplicationResponse> => {
+	const response = await apiPost<StudyApplicationResponse>('/study-applications/apply', request);
+	return response.data;
+};
+
+// 가입 신청 목록 조회 API
+export const getStudyApplications = async (studyProjectId: number): Promise<StudyApplicationResponse[]> => {
+	const response = await apiGet<StudyApplicationResponse[]>(`/study-applications/${studyProjectId}`);
+	return response.data;
+};
+
+// 가입 신청 처리 API (승인/거절)
+export const processStudyApplication = async (
+	studyProjectId: number, 
+	request: ProcessApplicationRequest
+): Promise<string> => {
+	const response = await apiPut<string>(`/study-applications/${studyProjectId}/process`, request);
+	return response.data;
+};
+
+// 사용자의 가입 신청 상태 조회 API
+export const getUserApplicationStatus = async (studyProjectId: number): Promise<StudyApplicationResponse | null> => {
+	try {
+		const response = await apiGet<StudyApplicationResponse>(`/study-applications/${studyProjectId}/user-status`);
+		return response.data;
+	} catch (error) {
+		// 가입 신청이 없는 경우 404 에러가 발생할 수 있음
+		return null;
+	}
+};
+
