@@ -307,15 +307,33 @@ const ProjectDetailPage = () => {
 		alert("가입 신청 기능은 현재 개발 중입니다.");
 	};
 
-	const handleRecruitmentToggle = () => {
-		setIsRecruiting(!isRecruiting);
-		alert(isRecruiting ? "모집이 마감되었습니다." : "모집이 다시 시작되었습니다.");
+	const handleRecruitmentToggle = async () => {
+		if (!id) return;
+		
+		try {
+			const newStatus = isRecruiting ? "closed" : "recruitment";
+			await StudyApiService.updateStudyProjectStatus(parseInt(id, 10), newStatus);
+			
+			setIsRecruiting(!isRecruiting);
+			alert(isRecruiting ? "모집이 마감되었습니다." : "모집이 다시 시작되었습니다.");
+		} catch (error) {
+			console.error('모집 상태 변경 실패:', error);
+			alert('모집 상태 변경에 실패했습니다.');
+		}
 	};
 
-	const handleStudyEnd = () => {
+	const handleStudyEnd = async () => {
+		if (!id) return;
+		
 		if (confirm("프로젝트를 종료하시겠습니까?")) {
-			alert("프로젝트가 종료되었습니다.");
-			// 여기에 프로젝트 종료 로직 추가
+			try {
+				await StudyApiService.updateStudyProjectStatus(parseInt(id, 10), "end");
+				alert("프로젝트가 종료되었습니다.");
+				// 프로젝트 종료 후 페이지 이동 또는 상태 업데이트
+			} catch (error) {
+				console.error('프로젝트 종료 실패:', error);
+				alert('프로젝트 종료에 실패했습니다.');
+			}
 		}
 	};
 
@@ -427,14 +445,22 @@ const ProjectDetailPage = () => {
 
 			const response = await applyToStudyProject(request);
 			alert('가입 신청이 완료되었습니다!');
+			setIsApplied(true);
 			
 			// 가입 신청 목록 새로고침 (리더인 경우)
 			if (userMemberType === 'leader') {
 				loadApplications();
 			}
-		} catch (error) {
+		} catch (error: any) {
 			console.error('가입 신청 실패:', error);
-			alert('가입 신청에 실패했습니다. 다시 시도해주세요.');
+			
+			// 이미 신청한 경우의 에러 처리
+			if (error.message && error.message.includes('이미 신청한')) {
+				alert('이미 가입 신청을 하셨습니다.');
+				setIsApplied(true);
+			} else {
+				alert('가입 신청에 실패했습니다. 다시 시도해주세요.');
+			}
 		} finally {
 			setIsApplying(false);
 		}
@@ -473,8 +499,15 @@ const ProjectDetailPage = () => {
 			// 가입 신청 목록 새로고침
 			loadApplications();
 			
-			// 멤버 목록 새로고침
-			fetchProjectInfo();
+			// 승인된 경우 멤버 목록도 새로고침
+			if (status === 'PENDING') {
+				// 스터디 정보를 다시 불러와서 멤버 목록 업데이트
+				const studyProjectId = parseInt(id, 10);
+				const studyData = await StudyApiService.getStudyProject(studyProjectId);
+				if (studyData && studyData.members) {
+					setMembers(studyData.members);
+				}
+			}
 		} catch (error) {
 			console.error('가입 신청 처리 실패:', error);
 			alert('가입 신청 처리에 실패했습니다.');
@@ -484,19 +517,31 @@ const ProjectDetailPage = () => {
 	// 사용자의 가입 신청 상태 확인
 	const checkUserApplicationStatus = async () => {
 		if (!id || !authContext?.user?.nickname || userMemberType === 'leader' || userMemberType === 'member') {
+			console.log('가입 신청 상태 확인 건너뜀:', {
+				id,
+				nickname: authContext?.user?.nickname,
+				userMemberType,
+				reason: !id ? 'id 없음' : !authContext?.user?.nickname ? '로그인 안됨' : '이미 멤버'
+			});
 			return;
 		}
 
 		try {
+			console.log('가입 신청 상태 확인 시작:', { studyProjectId: id, userId: authContext?.user?.nickname });
 			const studyProjectId = parseInt(id, 10);
 			const applicationStatus = await getUserApplicationStatus(studyProjectId);
 			
-			if (applicationStatus) {
+			if (applicationStatus && applicationStatus.status === 'PENDING') {
 				setIsApplied(true);
-				console.log('사용자 가입 신청 상태:', applicationStatus);
+				console.log('✅ 사용자 가입 신청 상태: 승인 대기 중', applicationStatus);
+			} else {
+				setIsApplied(false);
+				console.log('❌ 사용자 가입 신청 상태: 신청하지 않음 또는 처리됨', applicationStatus);
 			}
 		} catch (error) {
-			console.error('가입 신청 상태 확인 실패:', error);
+			console.error('❌ 가입 신청 상태 확인 실패:', error);
+			// 에러 발생 시 신청하지 않은 상태로 설정
+			setIsApplied(false);
 		}
 	};
 
@@ -564,10 +609,16 @@ const ProjectDetailPage = () => {
 
 	// 사용자 가입 신청 상태 확인
 	useEffect(() => {
-		if (id && authContext?.user?.nickname && !isLoading) {
+		if (id && authContext?.user?.nickname && !isLoading && !isStudyMember) {
 			checkUserApplicationStatus();
+		} else if (isStudyMember) {
+			// 스터디 멤버인 경우 신청 상태를 false로 설정
+			setIsApplied(false);
+		} else if (!authContext?.user?.nickname) {
+			// 로그인하지 않은 경우 신청 상태를 false로 설정
+			setIsApplied(false);
 		}
-	}, [id, authContext?.user?.nickname, isLoading, userMemberType]);
+	}, [id, authContext?.user?.nickname, isLoading, userMemberType, isStudyMember]);
 
 
 
@@ -828,8 +879,8 @@ const ProjectDetailPage = () => {
 									프로젝트 종료
 								</button>
 							</div>
-						) : !isEditing ? (
-							// 일반 사용자인 경우 (수정 모드가 아닐 때만 표시)
+						) : !isEditing && !isLoading && (userMemberType === 'member' || userMemberType === null) ? (
+							// 일반 사용자이거나 멤버인 경우 (수정 모드가 아닐 때만 표시)
 							<div className="w-full mt-3">
 								{!isApplied ? (
 									<button
@@ -848,7 +899,7 @@ const ProjectDetailPage = () => {
 										style={{ backgroundColor: "#6B7280" }}
 										disabled
 									>
-										가입 신청됨
+										승인 대기 중
 									</button>
 								)}
 							</div>

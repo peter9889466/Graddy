@@ -19,7 +19,6 @@ export interface BackendStudyProjectData {
     curText: string | null;
     tagNames: string[];
     availableDays: string[];
-    githubUrl?: string; // GitHub URL 필드 추가
     currentMemberCount?: number;
     members?: Array<{
         memberId: number;
@@ -84,7 +83,6 @@ export interface CreateStudyProjectRequest {
     soltEnd: string; // ISO 8601 형식: "2025-08-22T11:27:56.603Z"
     interestIds: number[];
     dayIds: string[]; // 백엔드에서는 Byte[]이지만 프론트엔드에서는 string[]로 처리
-    githubUrl?: string; // GitHub URL (프로젝트 전용)
 }
 
 // 스터디 수정 요청 타입
@@ -152,15 +150,33 @@ export class StudyApiService {
         return response.data;
     }
 
-    // 스터디/프로젝트 목록 조회
+    // 스터디/프로젝트 목록 조회 (백엔드 API와 직접 통신)
     static async getStudiesProjects(): Promise<BackendStudyProjectData[]> {
         try {
             console.log('getStudiesProjects 호출 시작');
             
-            const response = await apiGet<BackendStudyProjectData[]>('/studies-projects');
-            console.log('getStudiesProjects 응답:', response);
+            const response = await fetch('http://localhost:8080/api/studies-projects', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
             
-            return response.data;
+            console.log('HTTP 응답 상태:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const responseData = await response.json();
+            console.log('getStudiesProjects 응답:', responseData);
+            
+            if (!responseData || !responseData.data) {
+                console.warn('getStudiesProjects API data 필드가 없습니다.');
+                return [];
+            }
+            
+            return responseData.data;
         } catch (error) {
             console.error('getStudiesProjects 실패:', error);
             throw error;
@@ -172,23 +188,53 @@ export class StudyApiService {
         try {
             console.log('getStudyProject 호출 시작:', studyProjectId);
             
-            const response = await apiGet<BackendStudyProjectData>(`/studies-projects/${studyProjectId}`);
-            console.log('getStudyProject 응답:', response);
+            const response = await fetch(`http://localhost:8080/api/studies-projects/${studyProjectId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
             
-            return response.data;
-        } catch (error) {
-            console.error('getStudyProject 실패:', error);
-            if (error instanceof Error && error.message.includes('404')) {
-                console.log('스터디/프로젝트를 찾을 수 없습니다.');
+            console.log('HTTP 응답 상태:', response.status);
+            
+            if (!response.ok) {
+                if (response.status === 404) {
+                    console.log('스터디/프로젝트를 찾을 수 없습니다.');
+                    return null;
+                }
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const responseData = await response.json();
+            console.log('getStudyProject 응답:', responseData);
+            
+            if (!responseData || !responseData.data) {
+                console.warn('getStudyProject API data 필드가 없습니다.');
                 return null;
             }
-            throw error;
+            
+            return responseData.data;
+        } catch (error) {
+            console.error('getStudyProject 실패:', error);
+            return null;
         }
     }
 
     // 스터디 수정
     static async updateStudy(studyId: number, studyData: UpdateStudyRequest): Promise<StudyData> {
         const response = await apiPut<StudyData>(`/studies/${studyId}`, studyData);
+        return response.data;
+    }
+
+    // 스터디 상태 변경
+    static async updateStudyStatus(studyId: number, status: string): Promise<StudyData> {
+        const response = await apiPatch<StudyData>(`/studies/${studyId}/status?status=${status}`);
+        return response.data;
+    }
+
+    // 스터디 삭제
+    static async deleteStudy(studyId: number): Promise<string> {
+        const response = await apiDelete<string>(`/studies/${studyId}`);
         return response.data;
     }
 
@@ -207,16 +253,19 @@ export class StudyApiService {
         }
     }
 
-    // 스터디 상태 변경
-    static async updateStudyStatus(studyId: number, status: string): Promise<StudyData> {
-        const response = await apiPatch<StudyData>(`/studies/${studyId}/status?status=${status}`);
-        return response.data;
-    }
-
-    // 스터디 삭제
-    static async deleteStudy(studyId: number): Promise<string> {
-        const response = await apiDelete<string>(`/studies/${studyId}`);
-        return response.data;
+    // 스터디/프로젝트 상태 변경 (모집 마감/재시작/종료)
+    static async updateStudyProjectStatus(studyProjectId: number, status: string): Promise<BackendStudyProjectData> {
+        try {
+            console.log('updateStudyProjectStatus 호출 시작:', { studyProjectId, status });
+            
+            const response = await apiPatch<BackendStudyProjectData>(`/studies-projects/${studyProjectId}/status`, { status });
+            console.log('updateStudyProjectStatus 응답:', response);
+            
+            return response.data;
+        } catch (error) {
+            console.error('updateStudyProjectStatus 실패:', error);
+            throw error;
+        }
     }
 }
 
@@ -248,7 +297,7 @@ export const applyToStudyProject = async (request: StudyApplicationRequest): Pro
 
 // 가입 신청 목록 조회 API
 export const getStudyApplications = async (studyProjectId: number): Promise<StudyApplicationResponse[]> => {
-	const response = await apiGet<StudyApplicationResponse[]>(`/study-applications/${studyProjectId}`);
+	const response = await apiGet<StudyApplicationResponse[]>(`/study-applications/${studyProjectId}/applications`);
 	return response.data;
 };
 
@@ -264,8 +313,14 @@ export const processStudyApplication = async (
 // 사용자의 가입 신청 상태 조회 API
 export const getUserApplicationStatus = async (studyProjectId: number): Promise<StudyApplicationResponse | null> => {
 	try {
-		const response = await apiGet<StudyApplicationResponse>(`/study-applications/${studyProjectId}/user-status`);
-		return response.data;
+		// 내 신청 목록을 가져와서 해당 스터디/프로젝트의 신청 상태를 찾기
+		const response = await apiGet<StudyApplicationResponse[]>('/study-applications/my-applications');
+		const myApplications = response.data;
+		
+		// 해당 스터디/프로젝트의 신청을 찾기
+		const application = myApplications.find(app => app.studyProjectId === studyProjectId);
+		
+		return application || null;
 	} catch (error) {
 		// 가입 신청이 없는 경우 404 에러가 발생할 수 있음
 		return null;
