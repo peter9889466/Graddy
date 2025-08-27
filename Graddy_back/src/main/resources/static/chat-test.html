@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스터디 채팅 테스트</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .connected {
+            background-color: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+        .disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+        .input-group {
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        input, button {
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        input {
+            flex: 1;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            min-width: 100px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .chat-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .chat-window {
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            background: #fafafa;
+        }
+        .chat-window h3 {
+            margin-top: 0;
+            color: #495057;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .message-log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        .message-input {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .message-input input {
+            flex: 1;
+        }
+        .file-input {
+            margin-top: 10px;
+        }
+        .file-input input {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .message {
+            background-color: #e9ecef;
+            border: 1px solid #dee2e6;
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+        .message.enter {
+            border-left-color: #28a745;
+            background-color: #d4edda;
+        }
+        .message.leave {
+            border-left-color: #dc3545;
+            background-color: #f8d7da;
+        }
+        .message.file {
+            border-left-color: #ffc107;
+            background-color: #fff3cd;
+        }
+        .message.system {
+            border-left-color: #6c757d;
+            background-color: #f8f9fa;
+            font-style: italic;
+        }
+        .timestamp {
+            color: #6c757d;
+            font-size: 0.8em;
+        }
+        .sender {
+            font-weight: bold;
+            color: #007bff;
+        }
+        .file-info {
+            color: #28a745;
+            font-style: italic;
+        }
+        .connection-log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 스터디 채팅 실시간 테스트</h1>
+        <p><strong>WebSocket Endpoint:</strong> /api/ws-stomp | <strong>STOMP Protocol</strong></p>
+        
+        <div id="status" class="status disconnected">
+            연결 상태: 연결 안됨 ❌
+        </div>
+        
+        <div class="input-group">
+            <label><strong>스터디 ID:</strong></label>
+            <input type="number" id="studyId" value="1" min="1">
+            <label><strong>멤버 ID:</strong></label>
+            <input type="number" id="memberId" value="1" min="1">
+        </div>
+        
+        <div class="input-group">
+            <button onclick="connect()" id="connectBtn">🔌 STOMP 연결</button>
+            <button onclick="disconnect()" id="disconnectBtn" disabled>❌ 연결 해제</button>
+            <button onclick="enterRoom()" id="enterBtn" disabled>🚪 입장</button>
+            <button onclick="leaveRoom()" id="leaveBtn" disabled>🚪 퇴장</button>
+        </div>
+        
+        <div class="chat-container">
+            <!-- 채팅방 1 -->
+            <div class="chat-window">
+                <h3>💬 스터디방 1 (ID: 1)</h3>
+                <div id="messageLog1" class="message-log"></div>
+                <div class="message-input">
+                    <input type="text" id="messageInput1" placeholder="메시지를 입력하세요" onkeypress="handleKeyPress(event, 1)">
+                    <button onclick="sendMessage(1)">📤 전송</button>
+                </div>
+                <div class="file-input">
+                    <input type="text" id="fileUrl1" placeholder="https://s3.amazonaws.com/file.pdf">
+                    <button onclick="sendFileMessage(1)">📎 파일 전송</button>
+                </div>
+            </div>
+            
+            <!-- 채팅방 2 -->
+            <div class="chat-window">
+                <h3>💬 스터디방 2 (ID: 2)</h3>
+                <div id="messageLog1" class="message-log"></div>
+                <div class="message-input">
+                    <input type="text" id="messageInput2" placeholder="메시지를 입력하세요" onkeypress="handleKeyPress(event, 2)">
+                    <button onclick="sendMessage(2)">📤 전송</button>
+                </div>
+                <div class="file-input">
+                    <input type="text" id="fileUrl2" placeholder="https://s3.amazonaws.com/file.pdf">
+                    <button onclick="sendFileMessage(2)">📎 파일 전송</button>
+                </div>
+            </div>
+        </div>
+        
+        <h3>📋 연결 로그</h3>
+        <div id="connectionLog" class="connection-log"></div>
+        
+        <div style="margin-top: 20px; padding: 15px; background: #e9ecef; border-radius: 5px;">
+            <h4>💡 사용법</h4>
+            <ol>
+                <li><strong>연결</strong>: 🔌 STOMP 연결 버튼 클릭</li>
+                <li><strong>입장</strong>: 🚪 입장 버튼 클릭 (자동으로 됨)</li>
+                <li><strong>채팅</strong>: 두 개의 채팅방에서 각각 메시지 전송</li>
+                <li><strong>실시간 확인</strong>: 다른 브라우저 탭에서 같은 URL 접속하여 실시간 통신 확인</li>
+                                 <li><strong>STOMP 프로토콜</strong>: /app/chat.sendMessage/{studyId}로 메시지 전송, /topic/chat/room/{studyId}로 구독</li>
+                 <li><strong>Context-Path</strong>: /api (WebSocket: /api/ws-stomp)</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        let stompClient = null;
+        let isConnected = false;
+        let currentStudyId = 1;
+        let currentMemberId = 1;
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logDiv = document.getElementById('connectionLog');
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        function updateStatus(connected) {
+            isConnected = connected;
+            const statusDiv = document.getElementById('status');
+            const connectBtn = document.getElementById('connectBtn');
+            const disconnectBtn = document.getElementById('disconnectBtn');
+            const enterBtn = document.getElementById('enterBtn');
+            const leaveBtn = document.getElementById('leaveBtn');
+            
+            if (connected) {
+                statusDiv.className = 'status connected';
+                statusDiv.textContent = '연결 상태: STOMP 연결됨 ✅';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+                enterBtn.disabled = false;
+                leaveBtn.disabled = false;
+            } else {
+                statusDiv.className = 'status disconnected';
+                statusDiv.textContent = '연결 상태: 연결 안됨 ❌';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+                enterBtn.disabled = true;
+                leaveBtn.disabled = true;
+            }
+        }
+        
+        function connect() {
+            currentStudyId = parseInt(document.getElementById('studyId').value);
+            currentMemberId = parseInt(document.getElementById('memberId').value);
+            
+            log(`STOMP WebSocket 연결 시도: ws://localhost:8080/api/ws-stomp`);
+            log(`연결 시도 시간: ${new Date().toLocaleString()}`);
+            
+            try {
+                                 const socket = new SockJS('/api/ws-stomp');
+                stompClient = Stomp.over(socket);
+                
+                const connectHeaders = {
+                    'accept-version': '1.1,1.0'
+                };
+                
+                log(`📡 STOMP 연결 시도...`);
+                
+                stompClient.connect(connectHeaders, function(frame) {
+                    log(`✅ STOMP WebSocket 연결 성공!`, 'success');
+                    log(`Frame: ${frame}`, 'info');
+                    updateStatus(true);
+                    
+                    // 자동으로 입장
+                    enterRoom();
+                    
+                }, function(error) {
+                    log(`❌ STOMP WebSocket 연결 실패: ${error}`, 'error');
+                    updateStatus(false);
+                });
+                
+            } catch (error) {
+                log(`❌ WebSocket 생성 실패: ${error.message}`, 'error');
+                updateStatus(false);
+            }
+        }
+        
+        function disconnect() {
+            if (stompClient) {
+                stompClient.disconnect();
+                log('🔌 STOMP WebSocket 연결 해제됨', 'info');
+                updateStatus(false);
+            }
+        }
+        
+        function enterRoom() {
+            if (!stompClient || !isConnected) {
+                log('❌ STOMP WebSocket이 연결되지 않았습니다.', 'error');
+                return;
+            }
+            
+            // 스터디방 1번 구독
+            const topic1 = `/topic/chat/room/1`;
+            log(`📡 STOMP 구독 시작: ${topic1}`);
+            
+            stompClient.subscribe(topic1, function(message) {
+                const messageData = JSON.parse(message.body);
+                log(`📨 스터디 1 메시지 수신: ${JSON.stringify(messageData, null, 2)}`, 'message');
+                addMessageToChat(1, messageData);
+            });
+            
+            // 스터디방 2번 구독
+            const topic2 = `/topic/chat/room/2`;
+            log(`📡 STOMP 구독 시작: ${topic2}`);
+            
+            stompClient.subscribe(topic2, function(message) {
+                const messageData = JSON.parse(message.body);
+                log(`📨 스터디 2 메시지 수신: ${JSON.stringify(messageData, null, 2)}`, 'message');
+                addMessageToChat(2, messageData);
+            });
+            
+            log(`✅ 모든 스터디방 STOMP 구독 완료`);
+            
+            // 입장 메시지 전송
+            sendEnterMessage(1);
+            sendEnterMessage(2);
+        }
+        
+        function leaveRoom() {
+            if (!stompClient || !isConnected) {
+                log('❌ STOMP WebSocket이 연결되지 않았습니다.', 'error');
+                return;
+            }
+            
+            // 퇴장 메시지 전송
+            sendLeaveMessage(1);
+            sendLeaveMessage(2);
+        }
+        
+        function sendMessage(studyId) {
+            if (!stompClient || !isConnected) {
+                log('❌ STOMP WebSocket이 연결되지 않았습니다.', 'error');
+                return;
+            }
+            
+            const content = document.getElementById(`messageInput${studyId}`).value;
+            
+            if (!content.trim()) {
+                log('❌ 메시지를 입력해주세요.', 'error');
+                return;
+            }
+            
+            const message = {
+                memberId: currentMemberId,
+                studyProjectId: studyId,
+                content: content,
+                fileUrl: null,
+                messageType: 'TEXT'
+            };
+            
+            log(`📤 STOMP 메시지 전송: /app/chat.sendMessage/${studyId}`);
+            log(`메시지 내용: ${JSON.stringify(message)}`);
+            
+            stompClient.send(`/app/chat.sendMessage/${studyId}`, {}, JSON.stringify(message));
+            
+            document.getElementById(`messageInput${studyId}`).value = '';
+        }
+        
+        function sendFileMessage(studyId) {
+            if (!stompClient || !isConnected) {
+                log('❌ STOMP WebSocket이 연결되지 않았습니다.', 'error');
+                return;
+            }
+            
+            const content = document.getElementById(`messageInput${studyId}`).value || '파일 공유';
+            const fileUrl = document.getElementById(`fileUrl${studyId}`).value;
+            
+            if (!fileUrl.trim()) {
+                log('❌ 파일 URL을 입력해주세요.', 'error');
+                return;
+            }
+            
+            const message = {
+                memberId: currentMemberId,
+                studyProjectId: studyId,
+                content: content,
+                fileUrl: fileUrl,
+                messageType: 'FILE'
+            };
+            
+            log(`📎 STOMP 파일 메시지 전송: /app/chat.sendFileMessage/${studyId}`);
+            log(`메시지 내용: ${JSON.stringify(message)}`);
+            
+            stompClient.send(`/app/chat.sendMessage/${studyId}`, {}, JSON.stringify(message));
+            
+            document.getElementById(`messageInput${studyId}`).value = '';
+            document.getElementById(`fileUrl${studyId}`).value = '';
+        }
+        
+        function sendEnterMessage(studyId) {
+            if (!stompClient || !isConnected) return;
+            
+            const message = {
+                memberId: currentMemberId,
+                studyProjectId: studyId,
+                content: '님이 스터디방에 입장했습니다.',
+                fileUrl: null,
+                messageType: 'ENTER'
+            };
+            
+            stompClient.send(`/app/chat.enter/${studyId}`, {}, JSON.stringify(message));
+        }
+        
+        function sendLeaveMessage(studyId) {
+            if (!stompClient || !isConnected) return;
+            
+            const message = {
+                memberId: currentMemberId,
+                studyProjectId: studyId,
+                content: '님이 스터디방을 나갔습니다.',
+                fileUrl: null,
+                messageType: 'LEAVE'
+            };
+            
+            stompClient.send(`/app/chat.leave/${studyId}`, {}, JSON.stringify(message));
+        }
+        
+        function addMessageToChat(studyId, messageData) {
+            const messageLog = document.getElementById(`messageLog${studyId}`);
+            const timestamp = new Date(messageData.createdAt).toLocaleTimeString();
+            
+            let messageClass = 'message';
+            let fileInfo = '';
+            
+            // 메시지 타입에 따른 스타일 적용
+            switch(messageData.messageType) {
+                case 'ENTER':
+                    messageClass = 'message enter';
+                    break;
+                case 'LEAVE':
+                    messageClass = 'message leave';
+                    break;
+                case 'FILE':
+                    messageClass = 'message file';
+                    fileInfo = `<div class="file-info">📎 파일: ${messageData.fileUrl}</div>`;
+                    break;
+                case 'SYSTEM':
+                    messageClass = 'message system';
+                    break;
+                default:
+                    messageClass = 'message';
+            }
+            
+            messageLog.innerHTML += `
+                <div class="${messageClass}">
+                    <div class="timestamp">[${timestamp}]</div>
+                    <div class="sender">${messageData.senderNick}</div>
+                    <div>${messageData.content}</div>
+                    ${fileInfo}
+                </div>
+            `;
+            messageLog.scrollTop = messageLog.scrollHeight;
+        }
+        
+        function handleKeyPress(event, studyId) {
+            if (event.key === 'Enter') {
+                sendMessage(studyId);
+            }
+        }
+        
+        // 페이지 로드 시 초기화
+        window.onload = function() {
+            log('🧪 스터디 채팅 테스트 페이지 로드됨');
+            log('WebSocket Endpoint: /api/ws-stomp');
+            log('STOMP Protocol: /app (전송), /topic (구독)');
+            log('사용법: 1. STOMP 연결 → 2. 입장 → 3. 메시지 전송');
+            log('💡 실시간 테스트: 다른 브라우저 탭에서 같은 URL 접속');
+        };
+    </script>
+</body>
+</html>
