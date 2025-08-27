@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import java.net.URI;
 import java.util.List;
 import com.smhrd.graddy.member.service.MemberService;
+import com.smhrd.graddy.assignment.dto.AssignmentDetailResponse;
 
 /**
  * 과제 관리 API 컨트롤러
@@ -278,6 +279,22 @@ public class AssignmentController {
             return ApiResponse.error(HttpStatus.BAD_REQUEST, e.getMessage(), null);
         } catch (Exception e) {
             return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "과제 삭제에 실패했습니다: " + e.getMessage(), null);
+        }
+    }
+    
+    /**
+     * 스터디 ID로 과제 전체 정보 조회 (과제, 제출물, 피드백 포함)
+     */
+    @GetMapping("/study/{studyProjectId}/details")
+    @Operation(summary = "스터디 과제 전체 정보(과제, 제풀물, 피드백) 조회", 
+              description = "스터디 ID로 과제, 제출물, 피드백 정보를 모두 조회합니다.")
+    public ResponseEntity<ApiResponse<List<AssignmentDetailResponse>>> getAssignmentsWithDetailsByStudyProject(
+            @PathVariable Long studyProjectId) {
+        try {
+            List<AssignmentDetailResponse> responses = assignmentService.getAssignmentsWithDetailsByStudyProject(studyProjectId);
+            return ApiResponse.success("스터디 과제 전체 정보 조회가 성공했습니다.", responses);
+        } catch (Exception e) {
+            return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "스터디 과제 전체 정보 조회에 실패했습니다.", null);
         }
     }
 }

@@ -52,7 +52,7 @@ dependencies {
     // [추가] 솔라피 SMS SDK
     implementation 'net.nurigo:sdk:4.2.7'
 
-
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
 }
 
 tasks.named('test') {

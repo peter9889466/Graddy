@@ -43,6 +43,7 @@ public class StudyProjectStatus {
     // 상태 enum
     public enum Status {
         PENDING,    // 보류중
+        APPROVED,   // 승인됨
         REJECTED    // 거부됨
     }
 

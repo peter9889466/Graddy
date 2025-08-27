@@ -37,10 +37,8 @@ public class UserScore {
     @UpdateTimestamp
     private Timestamp lastUpdated;
 
-    // User와의 OneToOne 관계
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", insertable = false, updatable = false)
-    private User user;
+    // User와의 관계는 제거 (무한루프 방지)
+    // User 정보가 필요한 경우 UserRepository를 통해 별도 조회
 
     /**
      * 점수 증가

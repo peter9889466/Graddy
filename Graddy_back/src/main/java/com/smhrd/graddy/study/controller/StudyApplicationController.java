@@ -64,7 +64,7 @@ public class StudyApplicationController {
               description = "스터디/프로젝트 신청을 승인하거나 거부합니다.\n\n" +
                            "**권한:** 해당 스터디/프로젝트의 리더만 가능\n" +
                            "**상태 옵션:**\n" +
-                           "• PENDING: 승인 (자동으로 멤버로 추가하고 신청 상태 삭제)\n" +
+                           "• APPROVED: 승인 (자동으로 멤버로 추가하고 신청 상태 삭제)\n" +
                            "• REJECTED: 거부 (신청 상태를 REJECTED로 변경)\n\n" +
                            "**사용법:**\n" +
                            "1. Authorization 헤더에 JWT 토큰 입력 (Bearer 형식)\n" +
@@ -84,7 +84,7 @@ public class StudyApplicationController {
             
             applicationService.processApplication(studyProjectId, request, leaderId);
             
-            String message = "PENDING".equals(request.getStatus()) ? 
+            String message = "APPROVED".equals(request.getStatus()) ? 
                 "신청이 승인되었습니다." : "신청이 거부되었습니다.";
             return ApiResponse.success(message, "SUCCESS");
         } catch (IllegalArgumentException e) {

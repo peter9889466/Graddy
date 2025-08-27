@@ -88,6 +88,10 @@ public class StudyProject {
     @Schema(description = "커리큘럼 내용")
     private String curText;
 
+    @Column(name = "git_url", length = 200)
+    @Schema(description = "Git 저장소 URL", example = "https://github.com/username/project-name")
+    private String gitUrl;
+
     // 타입 구분 enum
     public enum TypeCheck {
         study, project

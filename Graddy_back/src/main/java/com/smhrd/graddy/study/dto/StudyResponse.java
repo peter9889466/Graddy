@@ -8,6 +8,8 @@ import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.List;
 import com.smhrd.graddy.member.dto.MemberInfo;
+import com.smhrd.graddy.study.dto.StudyProjectStatusInfo;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @Getter
 @Setter
@@ -30,6 +32,7 @@ public class StudyResponse {
     private LocalDateTime soltEnd;
     private LocalDateTime createdAt;
     private String curText;
+    private String gitUrl;
     private List<String> tagNames;
     private List<Byte> availableDays;
     private Integer currentMemberCount;
@@ -44,5 +47,9 @@ public class StudyResponse {
     private LocalDateTime applicationDate;  // 신청 일시
     
     // 스터디 상태 ("active": 진행중, "recruitment_completed": 모집완료, "completed": 종료됨)
+    @Schema(description = "스터디 상태", example = "active")
     private String studyStatus;
+    
+    @Schema(description = "스터디 프로젝트 상태 정보")
+    private StudyProjectStatusInfo studyProjectStatus;
 }

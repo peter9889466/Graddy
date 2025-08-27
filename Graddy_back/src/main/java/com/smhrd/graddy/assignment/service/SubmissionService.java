@@ -2,7 +2,6 @@ package com.smhrd.graddy.assignment.service;
 
 import com.smhrd.graddy.assignment.dto.SubmissionRequest;
 import com.smhrd.graddy.assignment.dto.SubmissionResponse;
-import com.smhrd.graddy.assignment.dto.FeedbackRequest;
 import com.smhrd.graddy.assignment.entity.Submission;
 import com.smhrd.graddy.assignment.repository.SubmissionRepository;
 import lombok.RequiredArgsConstructor;
@@ -43,12 +42,12 @@ public class SubmissionService {
             Submission savedSubmission = submissionRepository.save(submission);
             log.info("과제 제출 완료: submissionId={}", savedSubmission.getSubmissionId());
 
-            // 2. 자동으로 AI 피드백 생성 (비동기로 처리하여 제출 응답 지연 방지)
+            // 2. 새로 제출된 과제에 대해서만 AI 피드백 생성 (비동기로 처리하여 제출 응답 지연 방지)
             try {
-                generateAiFeedbackAsync(request.getAssignmentId());
+                generateAiFeedbackAsync(savedSubmission);
             } catch (Exception e) {
-                log.warn("자동 AI 피드백 생성 실패: assignmentId={}, error={}", 
-                        request.getAssignmentId(), e.getMessage());
+                log.warn("자동 AI 피드백 생성 실패: submissionId={}, error={}", 
+                        savedSubmission.getSubmissionId(), e.getMessage());
             }
 
             return convertToResponse(savedSubmission);
@@ -62,22 +61,20 @@ public class SubmissionService {
     /**
      * 비동기로 AI 피드백 생성 (제출 응답 지연 방지)
      */
-    private void generateAiFeedbackAsync(Long assignmentId) {
+    private void generateAiFeedbackAsync(Submission submission) {
         // 별도 스레드에서 AI 피드백 생성
         new Thread(() -> {
             try {
-                log.info("AI 피드백 자동 생성 시작: assignmentId={}", assignmentId);
+                log.info("AI 피드백 자동 생성 시작: submissionId={}", submission.getSubmissionId());
                 
-                FeedbackRequest feedbackRequest = new FeedbackRequest();
-                feedbackRequest.setAssignmentId(assignmentId);
+                // FeedbackService를 통해 AI 피드백 생성 및 저장
+                feedbackService.generateFeedbackForSubmission(submission);
                 
-                feedbackService.generateFeedback(feedbackRequest);
-                
-                log.info("AI 피드백 자동 생성 완료: assignmentId={}", assignmentId);
+                log.info("AI 피드백 자동 생성 완료: submissionId={}", submission.getSubmissionId());
                 
             } catch (Exception e) {
-                log.error("AI 피드백 자동 생성 실패: assignmentId={}, error={}", 
-                        assignmentId, e.getMessage());
+                log.error("AI 피드백 자동 생성 실패: submissionId={}, error={}", 
+                        submission.getSubmissionId(), e.getMessage());
             }
         }).start();
     }
