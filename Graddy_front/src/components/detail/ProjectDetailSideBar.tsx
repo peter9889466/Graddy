@@ -23,6 +23,14 @@ interface ProjectDetailSideBarProps {
         memberStatus: string;
         joinedAt: string;
     }>;
+    applications?: Array<{
+        userId: string;
+        studyProjectId: number;
+        status: 'PENDING' | 'APPROVED' | 'REJECTED';
+        message: string;
+        appliedAt: string;
+    }>;
+    onProcessApplication?: (userId: string, status: 'PENDING' | 'REJECTED', reason?: string) => void;
 }
 
 const ProjectDetailSideBar: React.FC<ProjectDetailSideBarProps> = ({
@@ -32,6 +40,8 @@ const ProjectDetailSideBar: React.FC<ProjectDetailSideBarProps> = ({
     isStudyMember,
     maxMembers = 10,
     members = [],
+    applications = [],
+    onProcessApplication,
 }) => {
     const sideMenuItems: SideMenuItem[] = [
         { name: "프로젝트 메인" },
@@ -84,6 +94,58 @@ const ProjectDetailSideBar: React.FC<ProjectDetailSideBarProps> = ({
                     })}
                 </div>
             </div>
+
+            {/* 가입 신청 목록 (리더만 볼 수 있음) */}
+            {applications.length > 0 && (
+                <div className="p-3 sm:p-4">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3
+                            className="font-bold text-sm sm:text-base"
+                            style={{ color: "#8B85E9" }}
+                        >
+                            가입 신청
+                        </h3>
+                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                            {applications.length}건
+                        </span>
+                    </div>
+                    <hr className="mb-3 border-gray-200" />
+                    <div className="bg-yellow-50 rounded-lg p-3 space-y-3">
+                        {applications.map((application, index) => (
+                            <div key={index} className="border border-yellow-200 rounded-lg p-3 bg-white">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-sm font-medium text-gray-800">
+                                        {application.userId}
+                                    </span>
+                                    <span className="text-xs text-gray-500">
+                                        {new Date(application.appliedAt).toLocaleDateString()}
+                                    </span>
+                                </div>
+                                <p className="text-xs text-gray-600 mb-3 line-clamp-2">
+                                    {application.message}
+                                </p>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => onProcessApplication?.(application.userId, 'PENDING')}
+                                        className="flex-1 px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+                                    >
+                                        수락
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            const reason = prompt('거절 사유를 입력하세요 (선택사항):');
+                                            onProcessApplication?.(application.userId, 'REJECTED', reason || undefined);
+                                        }}
+                                        className="flex-1 px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                                    >
+                                        거절
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* 프로젝트 멤버 섹션 */}
             <div className="p-3 sm:p-4">

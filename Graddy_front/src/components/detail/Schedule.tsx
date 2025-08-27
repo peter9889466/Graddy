@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, BookOpen, Calendar } from 'lucide-react';
-import { apiPost, apiGet } from '../../services/api';
+import { apiPost, apiGet, apiDelete } from '../../services/api';
 
 interface ScheduleItem {
     id: string;
@@ -40,26 +40,31 @@ const Schedule: React.FC<ScheduleProps> = ({
     // 빈 배열로 시작 (백엔드에서 데이터 로드 예정)
     const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    
+    // AI 과제 생성 관련 상태
+    const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+    const [aiGeneratedAssignment, setAiGeneratedAssignment] = useState<any>(null);
+    const [showAIPreview, setShowAIPreview] = useState(false);
 
-    // 과제 목록 로드
+    // 과제 및 일정 목록 로드
     useEffect(() => {
+        console.log('Schedule 컴포넌트 마운트 - studyProjectId:', studyProjectId);
         if (studyProjectId > 0) {
             loadAssignments();
+            // TODO: 일정 목록 조회 API 구현 후 활성화
+            // loadSchedules();
+        } else {
+            console.log('studyProjectId가 0 이하입니다:', studyProjectId);
         }
     }, [studyProjectId]);
 
         const loadAssignments = async () => {
         setIsLoading(true);
         try {
-            // 백엔드 API가 준비되지 않았으므로 임시로 하드코딩된 데이터 사용
             console.log('과제 목록 로드 시도 - studyProjectId:', studyProjectId);
             
-            // 빈 배열로 설정 (백엔드 API 준비 후 실제 데이터 로드)
-            setScheduleItems([]);
-            
-            // 백엔드 API가 준비되면 아래 코드로 교체
-            /*
-            const response = await apiGet(`/assignments?studyProjectId=${studyProjectId}`);
+            // DB에서 과제 목록 가져오기
+            const response = await apiGet(`/assignments/study-project/${studyProjectId}`);
             console.log('과제 목록 응답:', response);
             
             if (response.data && Array.isArray(response.data)) {
@@ -69,21 +74,62 @@ const Schedule: React.FC<ScheduleProps> = ({
                     type: 'assignment' as const,
                     date: new Date(assignment.deadline).toISOString().split('T')[0],
                     description: assignment.description,
-                    fileUrl: assignment.fileUrl,
+                    fileUrl: assignment.fileUrl || '',
                     createdAt: assignment.createdAt,
                     isExpanded: false
                 }));
                 setScheduleItems(assignments);
+            } else {
+                console.log('과제 데이터가 없거나 배열이 아닙니다:', response.data);
+                setScheduleItems([]);
             }
-            */
+
         } catch (error) {
-            console.error('과제 목록 로드 실패:', error);
+            console.log('백엔드 API 호출 실패, 빈 목록으로 설정:', error);
+            setScheduleItems([]);
         } finally {
             setIsLoading(false);
         }
     };
 
+    const loadSchedules = async () => {
+        try {
+            console.log('일정 목록 로드 시도 - studyProjectId:', studyProjectId);
+            
+            // DB에서 일정 목록 가져오기
+            const response = await apiGet(`/schedules/study-project/${studyProjectId}`);
+            console.log('일정 목록 응답:', response);
+            
+            if (response.data && Array.isArray(response.data)) {
+                const schedules = response.data.map((schedule: any) => ({
+                    id: schedule.schId.toString(),
+                    title: schedule.content,
+                    type: 'schedule' as const,
+                    date: new Date(schedule.schTime).toISOString().split('T')[0],
+                    time: new Date(schedule.schTime).toISOString().split('T')[1].substring(0, 5),
+                    description: schedule.content,
+                    createdAt: schedule.schTime,
+                    isExpanded: false
+                }));
+                
+                // 기존 과제 목록에 일정 추가
+                setScheduleItems(prevItems => {
+                    const existingAssignments = prevItems.filter(item => item.type === 'assignment');
+                    return [...existingAssignments, ...schedules];
+                });
+            } else {
+                console.log('일정 데이터가 없거나 배열이 아닙니다:', response.data);
+            }
+        } catch (error) {
+            console.log('일정 목록 로드 실패:', error);
+        }
+    };
+
     const handleAddItem = async () => {
+        console.log('handleAddItem 함수 호출됨');
+        console.log('newItem:', newItem);
+        console.log('activeTab:', activeTab);
+        
         if (newItem.title && newItem.date) {
             try {
                 if (activeTab === 'assignment') {
@@ -104,7 +150,7 @@ const Schedule: React.FC<ScheduleProps> = ({
                         title: newItem.title,
                         description: newItem.description || '',
                         deadline: new Date(newItem.date).toISOString(),
-                        fileUrl: '' // TODO: 파일 업로드 기능 추가 시 사용
+                        fileUrl: selectedFile ? selectedFile.name : '' // 임시로 파일명 저장
                     };
 
                     console.log('과제 추가 데이터:', assignmentData);
@@ -113,26 +159,39 @@ const Schedule: React.FC<ScheduleProps> = ({
                         const response = await apiPost('/assignments', assignmentData);
                         console.log('과제 추가 응답:', response);
 
+                        console.log('response.data 확인:', response.data);
+                        console.log('response.data 타입:', typeof response.data);
+                        console.log('response.data가 truthy인가?', !!response.data);
+                        
                         if (response.data) {
-                            alert('과제가 성공적으로 추가되었습니다.');
-                            // 목록 새로고침
-                            loadAssignments();
+                            alert('과제가 추가되었습니다!');
+                            
+                            // 새로 생성된 과제를 목록에 추가
+                            const newAssignment: ScheduleItem = {
+                                id: (response.data as any).assignmentId?.toString() || Date.now().toString(),
+                                title: newItem.title,
+                                type: 'assignment',
+                                date: newItem.date,
+                                description: newItem.description,
+                                fileUrl: selectedFile ? selectedFile.name : '',
+                                createdAt: new Date().toISOString(),
+                                isExpanded: false
+                            };
+                            
+                            // 목록에 새 과제 추가
+                            setScheduleItems([...scheduleItems, newAssignment]);
+                            
+                            // 폼 초기화
+                            setNewItem({ title: '', description: '', date: '', time: '' });
+                            setSelectedFile(null);
+                            setIsAdding(false);
+                            
+                            return; // 성공 시 여기서 종료
                         }
                     } catch (apiError) {
-                        console.log('백엔드 API 호출 실패, 로컬에 추가:', apiError);
-                        // 백엔드 API가 준비되지 않았으므로 로컬에 추가
-                        const newAssignment: ScheduleItem = {
-                            id: Date.now().toString(),
-                            title: newItem.title,
-                            type: 'assignment',
-                            date: newItem.date,
-                            description: newItem.description,
-                            fileUrl: selectedFile ? URL.createObjectURL(selectedFile) : '',
-                            createdAt: new Date().toISOString(),
-                            isExpanded: false
-                        };
-                        setScheduleItems([...scheduleItems, newAssignment]);
-                        alert('과제가 성공적으로 추가되었습니다.');
+                        console.error('과제 추가 API 호출 실패:', apiError);
+                        alert('과제 추가에 실패했습니다. 다시 시도해주세요.');
+                        return; // 실패 시 여기서 종료
                     }
                 } else {
                     // 일정 추가 API 호출
@@ -150,29 +209,38 @@ const Schedule: React.FC<ScheduleProps> = ({
                         console.log('일정 추가 응답:', response);
 
                         if (response.data) {
-                            alert('일정이 성공적으로 추가되었습니다.');
-                            // 목록 새로고침 (일정도 과제와 같은 방식으로 처리)
-                            loadAssignments();
+                            alert('일정이 추가되었습니다!');
+                            
+                            // 새로 생성된 일정을 목록에 추가
+                            const newSchedule: ScheduleItem = {
+                                id: Date.now().toString(),
+                                title: newItem.title,
+                                type: 'schedule',
+                                date: newItem.date,
+                                time: newItem.time,
+                                description: newItem.description,
+                                createdAt: new Date().toISOString(),
+                                isExpanded: false
+                            };
+                            
+                            // 목록에 새 일정 추가
+                            setScheduleItems([...scheduleItems, newSchedule]);
+                            
+                            // 폼 초기화
+                            setNewItem({ title: '', description: '', date: '', time: '' });
+                            setSelectedFile(null);
+                            setIsAdding(false);
+                            
+                            return; // 성공 시 여기서 종료
                         }
                     } catch (apiError) {
-                        console.log('백엔드 API 호출 실패, 로컬에 추가:', apiError);
-                        // 백엔드 API가 준비되지 않았으므로 로컬에 추가
-                        const newSchedule: ScheduleItem = {
-                            id: Date.now().toString(),
-                            title: newItem.title,
-                            type: 'schedule',
-                            date: newItem.date,
-                            time: newItem.time,
-                            description: newItem.description,
-                            createdAt: new Date().toISOString(),
-                            isExpanded: false
-                        };
-                        setScheduleItems([...scheduleItems, newSchedule]);
-                        alert('일정이 성공적으로 추가되었습니다.');
+                        console.error('일정 추가 API 호출 실패:', apiError);
+                        alert('일정 추가에 실패했습니다. 다시 시도해주세요.');
+                        return; // 실패 시 여기서 종료
                     }
                 }
 
-                // 폼 초기화
+                // API 호출이 성공하지 않았을 때만 폼 초기화
                 setNewItem({ title: '', description: '', date: '', time: '' });
                 setSelectedFile(null);
                 setIsAdding(false);
@@ -185,8 +253,68 @@ const Schedule: React.FC<ScheduleProps> = ({
         }
     };
 
-    const handleDeleteItem = (id: string) => {
-        setScheduleItems(scheduleItems.filter(item => item.id !== id));
+    const handleDeleteItem = async (id: string) => {
+        // 확인 창 띄우기
+        const isConfirmed = window.confirm('정말 삭제하시겠습니까?');
+        
+        if (!isConfirmed) {
+            return;
+        }
+
+        try {
+            console.log('과제 삭제 요청 - assignmentId:', id);
+            const response = await apiDelete(`/assignments/${id}`);
+            console.log('과제 삭제 응답:', response);
+
+            if (response.data) {
+                alert('과제가 성공적으로 삭제되었습니다.');
+                // 목록에서 삭제된 과제 제거
+                setScheduleItems(scheduleItems.filter(item => item.id !== id));
+            }
+        } catch (error) {
+            console.error('과제 삭제 실패:', error);
+            alert('과제 삭제에 실패했습니다. 다시 시도해주세요.');
+        }
+    };
+
+    const handleGenerateAIAssignment = async () => {
+        console.log('AI 과제 생성 함수 호출됨');
+        setIsGeneratingAI(true);
+        try {
+            const aiRequestData = {
+                studyProjectId: studyProjectId,
+                assignmentType: "일반", // 기본값 또는 사용자 선택 가능
+                deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7일 후
+            };
+
+            console.log('AI 과제 생성 요청:', aiRequestData);
+            const response = await apiPost('/assignments/ai/generate', aiRequestData);
+            console.log('AI 과제 생성 응답:', response);
+
+            if (response.data) {
+                setAiGeneratedAssignment(response.data);
+                setShowAIPreview(true);
+                // AI 생성된 내용을 폼에 미리보기로 채우기
+                setNewItem({
+                    title: (response.data as any).title || '',
+                    description: (response.data as any).description || '',
+                    date: new Date((response.data as any).deadline).toISOString().split('T')[0],
+                    time: ''
+                });
+            }
+        } catch (error) {
+            console.error('AI 과제 생성 실패:', error);
+            alert('AI 과제 생성에 실패했습니다. 다시 시도해주세요.');
+        } finally {
+            setIsGeneratingAI(false);
+        }
+    };
+
+    const handleCancelAIAssignment = () => {
+        setShowAIPreview(false);
+        setAiGeneratedAssignment(null);
+        // 폼 초기화
+        setNewItem({ title: '', description: '', date: '', time: '' });
     };
 
     const toggleItemExpansion = (id: string) => {
@@ -196,6 +324,7 @@ const Schedule: React.FC<ScheduleProps> = ({
     };
 
     const filteredItems = scheduleItems.filter(item => item.type === activeTab);
+    console.log('필터링된 아이템:', filteredItems, 'activeTab:', activeTab, '전체 아이템:', scheduleItems);
 
     return (
         <div className="space-y-6 p-4 pr-10">
@@ -214,7 +343,7 @@ const Schedule: React.FC<ScheduleProps> = ({
                     </div>
                 ) : (
                     <div className="space-y-3">
-                        {filteredItems.map((item) => {
+                                                {filteredItems.map((item) => {
                             // 과제 마감일이 지났는지 확인
                             const isOverdue = item.type === 'assignment' && new Date(item.date) < new Date();
 
@@ -222,83 +351,112 @@ const Schedule: React.FC<ScheduleProps> = ({
                                 <div
                                     key={item.id}
                                     className={`bg-white border rounded-lg hover:shadow-md transition-shadow duration-200 ${isOverdue
-                                        ? 'border-red-300 bg-red-50'
-                                        : 'border-gray-200'
+                                            ? 'border-red-300 bg-red-50'
+                                            : 'border-gray-200'
                                         }`}
                                 >
-                                    {/* 헤더 (항상 표시) */}
-                                    <div
-                                        className="flex items-center justify-between p-4 cursor-pointer"
-                                        onClick={() => toggleItemExpansion(item.id)}
-                                    >
-                                        <div className="flex items-center gap-3 flex-1">
-                                            {item.type === 'assignment' ? (
-                                                <BookOpen className="w-4 h-4 text-purple-600" />
-                                            ) : (
-                                                <Calendar className="w-4 h-4 text-blue-600" />
-                                            )}
-                                            <div className="flex-1">
-                                                <h4 className="font-medium text-gray-800">{item.title}</h4>
-                                                <p className={`text-sm ${isOverdue ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
-                                                    {item.type === 'assignment' ? '마감일: ' : ''}{item.date}
-                                                    {item.time && ` ${item.time}`}
-                                                    {isOverdue && ' (마감됨)'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            {item.type === 'assignment' && (
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        // TODO: 수정 기능 구현
-                                                        alert('수정 기능은 추후 구현 예정입니다.');
-                                                    }}
-                                                    className="text-blue-500 hover:text-blue-700 transition-colors duration-200 text-sm"
-                                                >
-                                                    수정
-                                                </button>
-                                            )}
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleDeleteItem(item.id);
-                                                }}
-                                                className="text-red-500 hover:text-red-700 transition-colors duration-200 text-sm"
+                                    {item.type === 'assignment' ? (
+                                        // 과제: 토글 형태
+                                        <>
+                                            {/* 헤더 (항상 표시) */}
+                                            <div 
+                                                className="flex items-center justify-between p-4 cursor-pointer"
+                                                onClick={() => toggleItemExpansion(item.id)}
                                             >
-                                                삭제
-                                            </button>
-                                            <div className={`transform transition-transform duration-200 text-gray-400 ${item.isExpanded ? 'rotate-180' : ''}`}>
-                                                ▼
+                                                <div className="flex items-center gap-3 flex-1">
+                                                    <BookOpen className="w-4 h-4 text-purple-600" />
+                                                    <div className="flex-1">
+                                                        <h4 className="font-medium text-gray-800">{item.title}</h4>
+                                                        <p className={`text-sm ${isOverdue ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
+                                                            마감일: {item.date}
+                                                            {isOverdue && ' (마감됨)'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            // TODO: 수정 기능 구현
+                                                            alert('수정 기능은 추후 구현 예정입니다.');
+                                                        }}
+                                                        className="text-blue-500 hover:text-blue-700 transition-colors duration-200 text-sm"
+                                                    >
+                                                        수정
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDeleteItem(item.id);
+                                                        }}
+                                                        className="text-red-500 hover:text-red-700 transition-colors duration-200 text-sm"
+                                                    >
+                                                        삭제
+                                                    </button>
+                                                    <div className={`transform transition-transform duration-200 text-gray-400 ${item.isExpanded ? 'rotate-180' : ''}`}>
+                                                        ▼
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </div>
-
-                                    {/* 상세 내용 (토글) */}
-                                    {item.isExpanded && (
-                                        <div className="px-4 pb-4 border-t border-gray-100">
-                                            {item.description && (
-                                                <div className="mt-3">
-                                                    <p className="text-gray-600 text-sm whitespace-pre-wrap">{item.description}</p>
+                                            
+                                            {/* 상세 내용 (토글) */}
+                                            {item.isExpanded && (
+                                                <div className="px-4 pb-4 border-t border-gray-100">
+                                                    {item.description && (
+                                                        <div className="mt-3">
+                                                            <p className="text-gray-600 text-sm whitespace-pre-wrap">{item.description}</p>
+                                                        </div>
+                                                    )}
+                                                    {item.fileUrl && item.fileUrl.trim() !== '' && (
+                                                        <div className="mt-3">
+                                                            <p className="text-sm text-gray-500">
+                                                                <span className="font-medium">첨부파일:</span>
+                                                                {item.fileUrl.startsWith('blob:') || item.fileUrl.startsWith('http') ? (
+                                                                    <a
+                                                                        href={item.fileUrl}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="text-blue-500 hover:text-blue-700 ml-1"
+                                                                    >
+                                                                        파일 다운로드
+                                                                    </a>
+                                                                ) : (
+                                                                    <span className="text-gray-600 ml-1">{item.fileUrl}</span>
+                                                                )}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                    {item.createdAt && (
+                                                        <div className="mt-2">
+                                                            <p className="text-xs text-gray-400">
+                                                                생성일: {new Date(item.createdAt).toLocaleDateString()}
+                                                            </p>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
-                                            {item.fileUrl && item.fileUrl.trim() !== '' && (
-                                                <div className="mt-3">
+                                        </>
+                                    ) : (
+                                        // 일정: 토글 없이 바로 내용 표시
+                                        <div className="p-4">
+                                            <div className="flex items-center gap-3 mb-3">
+                                                <Calendar className="w-4 h-4 text-blue-600" />
+                                                <div className="flex-1">
+                                                    <h4 className="font-medium text-gray-800">{item.title}</h4>
                                                     <p className="text-sm text-gray-500">
-                                                        <span className="font-medium">첨부파일:</span>
-                                                        {item.fileUrl.startsWith('blob:') || item.fileUrl.startsWith('http') ? (
-                                                            <a
-                                                                href={item.fileUrl}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="text-blue-500 hover:text-blue-700 ml-1"
-                                                            >
-                                                                파일 다운로드
-                                                            </a>
-                                                        ) : (
-                                                            <span className="text-gray-400 ml-1">파일 없음</span>
-                                                        )}
+                                                        일정: {item.date} {item.time}
                                                     </p>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleDeleteItem(item.id)}
+                                                    className="text-red-500 hover:text-red-700 transition-colors duration-200 text-sm"
+                                                >
+                                                    삭제
+                                                </button>
+                                            </div>
+                                            {item.description && (
+                                                <div className="mt-2">
+                                                    <p className="text-gray-600 text-sm whitespace-pre-wrap">{item.description}</p>
                                                 </div>
                                             )}
                                             {item.createdAt && (
@@ -372,16 +530,18 @@ const Schedule: React.FC<ScheduleProps> = ({
                             </h3>
                             {activeTab === 'assignment' && (
                                 <button
-                                    onClick={() => {
-                                        // AI로 과제 추가 기능 구현 예정
-                                        alert('AI로 과제 추가 기능이 준비 중입니다.');
-                                    }}
-                                    className="px-3 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-medium rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all duration-200 flex items-center gap-2"
+                                    onClick={handleGenerateAIAssignment}
+                                    disabled={isGeneratingAI}
+                                    className={`px-3 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2 ${
+                                        isGeneratingAI 
+                                            ? 'opacity-50 cursor-not-allowed' 
+                                            : 'hover:from-purple-600 hover:to-pink-600'
+                                    }`}
                                 >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                                     </svg>
-                                    AI로 과제 추가
+                                    {isGeneratingAI ? 'AI 생성 중...' : 'AI로 과제 추가'}
                                 </button>
                             )}
                         </div>
@@ -415,24 +575,33 @@ const Schedule: React.FC<ScheduleProps> = ({
                             ) : (
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        날짜 및 시간
+                                        일정 날짜 및 시간
                                     </label>
-                                    <input
-                                        type="datetime-local"
-                                        value={newItem.date && newItem.time ? `${newItem.date}T${newItem.time}` : ''}
-                                        onChange={(e) => {
-                                            const datetime = e.target.value;
-                                            if (datetime) {
-                                                const [date, time] = datetime.split('T');
-                                                setNewItem({ ...newItem, date: date, time: time });
-                                            } else {
-                                                setNewItem({ ...newItem, date: '', time: '' });
-                                            }
-                                        }}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
-                                        placeholder="일정 날짜 및 시간을 선택하세요"
-                                        min={new Date().toISOString().slice(0, 16)}
-                                    />
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="date"
+                                            value={newItem.date}
+                                            onChange={(e) => setNewItem({ ...newItem, date: e.target.value })}
+                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
+                                            placeholder="날짜 선택"
+                                            min={new Date().toISOString().split('T')[0]}
+                                        />
+                                        <select
+                                            value={newItem.time}
+                                            onChange={(e) => setNewItem({ ...newItem, time: e.target.value })}
+                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
+                                        >
+                                            <option value="">시간 선택</option>
+                                            {Array.from({ length: 24 }, (_, i) => {
+                                                const hour = i.toString().padStart(2, '0');
+                                                return (
+                                                    <option key={hour} value={`${hour}:00`}>
+                                                        {hour}:00
+                                                    </option>
+                                                );
+                                            })}
+                                        </select>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -455,6 +624,7 @@ const Schedule: React.FC<ScheduleProps> = ({
                                         첨부 파일
                                     </p>
                                     <input
+                                        key={isAdding ? 'adding' : 'not-adding'}
                                         type="file"
                                         onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                                         className="block w-full text-sm file:mr-4 file:py-2 file:px-4
@@ -465,6 +635,24 @@ const Schedule: React.FC<ScheduleProps> = ({
                                 </div>
                             </>
                         )}
+                        {/* AI 생성 알림 */}
+                        {showAIPreview && aiGeneratedAssignment && (
+                            <div className="mt-4 p-3 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg">
+                                <div className="flex items-center gap-2">
+                                    <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                                    </svg>
+                                    <span className="text-sm font-medium text-purple-800">AI가 과제 내용을 생성했습니다. 아래 폼에서 내용을 확인하고 수정할 수 있습니다.</span>
+                                    <button
+                                        onClick={handleCancelAIAssignment}
+                                        className="ml-auto text-purple-600 hover:text-purple-800 text-sm"
+                                    >
+                                        초기화
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="flex gap-3">
                             <button
                                 onClick={handleAddItem}
@@ -487,6 +675,13 @@ const Schedule: React.FC<ScheduleProps> = ({
                                     setIsAdding(false);
                                     setNewItem({ title: '', description: '', date: '', time: '' });
                                     setSelectedFile(null);
+                                    setShowAIPreview(false);
+                                    setAiGeneratedAssignment(null);
+                                    // 파일 입력 필드 초기화
+                                    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+                                    if (fileInput) {
+                                        fileInput.value = '';
+                                    }
                                 }}
                                 className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors duration-200"
                             >

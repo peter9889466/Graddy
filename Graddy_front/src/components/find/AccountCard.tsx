@@ -3,7 +3,11 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { User, Phone, Lock, AlertCircle, Check, ArrowLeft } from "lucide-react";
 
-const AccountCard: React.FC = () => {
+interface AccountCardProps {
+    onVerificationSuccess?: (userId: string, phone: string) => void;
+}
+
+const AccountCard: React.FC<AccountCardProps> = ({ onVerificationSuccess }) => {
     const [activeTab, setActiveTab] = useState<'id' | 'password'>('id');
     
     // 아이디 찾기 상태
@@ -118,7 +122,7 @@ const AccountCard: React.FC = () => {
 
     const handleSendVerification = async () => {
         clearErrors();
-        const newErrors: {[key: string]: string} = {};
+        const newErrors: { [key: string]: string } = {};
 
         if (!pwUserId.trim()) {
             newErrors.pwUserId = "아이디를 입력하세요.";
@@ -137,53 +141,82 @@ const AccountCard: React.FC = () => {
         }
 
         setIsLoading(true);
-        
+
         try {
-            // 실제 API 호출 로직을 여기에 구현하세요
-            await new Promise(resolve => setTimeout(resolve, 2000)); // 임시 로딩
-            
-            // 성공 시 인증번호 발송 단계로 전환
-            setIsVerificationSent(true);
-            setVerificationTimer(300); // 5분 타이머
-            setHintMessage("인증번호를 발송했습니다. 6자리 숫자를 입력해주세요. 📱");
+            // 1️⃣ 사용자 존재 여부 확인
+            const verifyResponse = await fetch("http://localhost:8080/api/password-find/verify-user", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    userId: pwUserId.trim(),
+                    tel: pwPhone.trim(),
+                }),
+            });
+
+            const verifyResult = await verifyResponse.json();
+
+            if (verifyResult.status === 200 && verifyResult.data === true) {
+                // 2️⃣ 인증번호 발송
+                const sendResponse = await fetch("http://localhost:8080/api/auth/send-code", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        phoneNumber: pwPhone.trim(),
+                    }),
+                });
+
+                const sendResult = await sendResponse.json();
+
+                if (sendResult.status === 200) {
+                    setIsVerificationSent(true);
+                    setVerificationTimer(300); // 5분 타이머
+                    setHintMessage("인증번호를 발송했습니다. 6자리 숫자를 입력해주세요. 📱");
+                } else {
+                    setHintMessage(sendResult.message || "인증번호 발송에 실패했습니다.");
+                }
+            } else {
+                setHintMessage(verifyResult.message || "아이디 또는 전화번호가 일치하지 않습니다.");
+            }
         } catch (error) {
-            setHintMessage("인증번호 발송에 실패했습니다. 입력하신 정보를 확인해주세요.");
+            console.error("handleSendVerification 오류:", error);
+            setHintMessage("서버 연결에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.");
         } finally {
             setIsLoading(false);
         }
     };
 
+    // 인증번호 입력
     const handleVerifyCode = async () => {
-        clearErrors();
-        const newErrors: {[key: string]: string} = {};
-
         if (!verificationCode.trim()) {
-            newErrors.verificationCode = "인증번호를 입력하세요.";
-        } else if (verificationCode.length !== 6) {
-            newErrors.verificationCode = "6자리 인증번호를 입력하세요.";
-        }
-
-        if (Object.keys(newErrors).length > 0) {
-            setErrors(newErrors);
-            setHintMessage("6자리 인증번호를 정확히 입력해주세요.");
+            setHintMessage("⚠️ 인증번호를 입력해주세요.");
             return;
         }
 
-        setIsLoading(true);
-        
         try {
-            // 실제 인증번호 확인 API 호출 로직을 여기에 구현하세요
-            await new Promise(resolve => setTimeout(resolve, 2000)); // 임시 로딩
-            
-            setHintMessage("휴대폰으로 임시 비밀번호를 발송했습니다. 📱");
-            // 성공 시 초기화
-            setIsVerificationSent(false);
-            setVerificationCode("");
-            setVerificationTimer(0);
+            const response = await fetch("http://localhost:8080/api/auth/verify-code", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    phoneNumber: pwPhone.trim(),
+                    code: verificationCode.trim(),
+                }),
+            });
+
+            const result = await response.json();
+
+            if (result.status === 200 && result.data === "인증 성공") {
+                setHintMessage("✅ 인증이 완료되었습니다.");
+                onVerificationSuccess?.(pwUserId.trim(), pwPhone.trim()); // FindAccount로 전달
+            } else {
+                setHintMessage(`❌ ${result.message || "인증 실패"}`);
+            }
         } catch (error) {
-            setHintMessage("인증번호가 일치하지 않습니다. 다시 확인해주세요.");
-        } finally {
-            setIsLoading(false);
+            console.error("인증번호 확인 오류:", error);
+            setHintMessage("⚠️ 인증 확인 중 오류가 발생했습니다.");
         }
     };
 

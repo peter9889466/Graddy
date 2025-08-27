@@ -90,11 +90,13 @@ public class StudyApplicationService {
             // 거부된 경우 상태만 변경
             application.setStatus(newStatus);
             statusRepository.save(application);
-        } else {
-            // 승인된 경우 (APPROVED가 아닌 다른 상태로 처리)
-            // 멤버로 추가하고 신청 상태 삭제
+        } else if (newStatus == StudyProjectStatus.Status.APPROVED) {
+            // 승인된 경우 멤버로 추가하고 신청 상태 삭제
             memberService.addMember(studyProjectId, request.getUserId());
             statusRepository.delete(application);
+        } else {
+            // PENDING 상태는 처리하지 않음
+            throw new IllegalArgumentException("PENDING 상태는 처리할 수 없습니다. APPROVED 또는 REJECTED 상태를 사용해주세요.");
         }
     }
 
