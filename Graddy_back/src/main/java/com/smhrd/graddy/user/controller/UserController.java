@@ -10,6 +10,7 @@ import com.smhrd.graddy.user.dto.UserInterestsUpdateRequest;
 import com.smhrd.graddy.user.dto.UserProfileUpdateRequest;
 import com.smhrd.graddy.user.dto.UserProfileUpdateResponse;
 import com.smhrd.graddy.user.dto.UserWithdrawalRequest;
+import com.smhrd.graddy.user.dto.MyPageResponse;
 import com.smhrd.graddy.user.entity.User;
 import com.smhrd.graddy.user.service.UserService;
 import com.smhrd.graddy.security.jwt.JwtUtil;
@@ -375,6 +376,50 @@ public class UserController {
             );
             
             return ApiResponse.success("회원탈퇴가 성공적으로 처리되었습니다.", data);
+            
+        } catch (IllegalArgumentException e) {
+            // 예외 발생 시 400 Bad Request 응답
+            return ApiResponse.error(HttpStatus.BAD_REQUEST, e.getMessage(), null);
+        } catch (Exception e) {
+            // JWT 토큰 관련 오류 등 기타 예외 발생 시 401 Unauthorized 응답
+            return ApiResponse.error(HttpStatus.UNAUTHORIZED, "인증에 실패했습니다: " + e.getMessage(), null);
+        }
+    }
+
+    @Operation(
+        summary = "마이페이지 조회",
+        description = "현재 로그인한 사용자의 마이페이지 정보를 조회합니다. 닉네임, 깃허브 URL, 사용자 점수, 관심분야, 추천인 정보를 포함합니다."
+    )
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200", 
+            description = "마이페이지 정보 조회 성공",
+            content = @Content(schema = @Schema(implementation = MyPageResponse.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "400", 
+            description = "잘못된 요청 (사용자를 찾을 수 없음)",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "401", 
+            description = "인증 실패",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        )
+    })
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<MyPageResponse>> getMyPageInfo(
+        @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiJ9...") 
+        @RequestHeader("Authorization") String authorizationHeader) {
+        try {
+            // JWT 토큰에서 현재 사용자 아이디 추출
+            String token = authorizationHeader.replace("Bearer ", "");
+            String currentUserId = jwtUtil.extractUserId(token);
+            
+            // UserService를 통해 마이페이지 정보 조회
+            MyPageResponse myPageInfo = userService.getMyPageInfo(currentUserId);
+            
+            return ApiResponse.success("마이페이지 정보 조회가 완료되었습니다.", myPageInfo);
             
         } catch (IllegalArgumentException e) {
             // 예외 발생 시 400 Bad Request 응답

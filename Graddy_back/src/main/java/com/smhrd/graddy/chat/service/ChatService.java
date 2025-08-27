@@ -130,6 +130,7 @@ public class ChatService {
 
     /**
      * 특정 스터디방의 메시지 개수를 조회
+     * 파티셔닝된 테이블에서 효율적으로 조회
      * 
      * @param studyProjectId 스터디/프로젝트 ID
      * @return 메시지 개수
