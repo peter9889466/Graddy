@@ -12,12 +12,12 @@ import org.springframework.stereotype.Controller;
 
 /**
  * WebSocket을 통해 들어오는 채팅 메시지를 처리하는 컨트롤러
- * 
+ *
  * 주요 기능:
  * - STOMP 메시지 수신 및 처리
  * - 스터디방별 메시지 브로드캐스팅
  * - 실시간 채팅 지원
- * 
+ *
  * 메시지 흐름:
  * 1. 클라이언트 → 서버: /app/chat.sendMessage/{studyProjectId}
  * 2. 서버 → 모든 구독자: /topic/chat/room/{studyProjectId}
@@ -44,7 +44,7 @@ public class ChatController {
     @MessageMapping("/chat.sendMessage/{studyProjectId}")
     @SendTo("/topic/chat/room/{studyProjectId}")
     public ChatMessageResponse sendMessage(
-            @DestinationVariable Long studyProjectId, 
+            @DestinationVariable Long studyProjectId,
             ChatMessageRequest request) {
         
         log.info("채팅 메시지 수신: studyProjectId={}, memberId={}, type={}", 
@@ -77,47 +77,47 @@ public class ChatController {
         }
     }
 
-    /**
+        /**
      * 스터디방 입장 메시지 처리
-     * 
+     *
      * @param studyProjectId 스터디/프로젝트 ID
      * @param request 입장 메시지 요청
      * @return 입장 메시지 응답
      */
-    @MessageMapping("/chat.enter/{studyProjectId}")
-    @SendTo("/topic/chat/room/{studyProjectId}")
-    public ChatMessageResponse enterRoom(
-            @DestinationVariable Long studyProjectId, 
-            ChatMessageRequest request) {
-        
-        log.info("스터디방 입장: studyProjectId={}, memberId={}", studyProjectId, request.getMemberId());
-        
-        // 입장 메시지 타입으로 설정
-        request.setMessageType(ChatMessageRequest.MessageType.ENTER);
-        request.setContent("님이 스터디방에 입장했습니다.");
-        
-        return sendMessage(studyProjectId, request);
-    }
+//    @MessageMapping("/chat.enter/{studyProjectId}")
+//    @SendTo("/topic/chat/room/{studyProjectId}")
+//    public ChatMessageResponse enterRoom(
+//            @DestinationVariable Long studyProjectId,
+//            ChatMessageRequest request) {
+//
+//        log.info("스터디방 입장: studyProjectId={}, memberId={}", studyProjectId, request.getMemberId());
+//
+//        // 입장 메시지 타입으로 설정
+//        request.setMessageType(ChatMessageRequest.MessageType.ENTER);
+//        request.setContent("님이 스터디방에 입장했습니다.");
+//
+//        return sendMessage(studyProjectId, request);
+//    }
 
     /**
      * 스터디방 퇴장 메시지 처리
-     * 
+     *
      * @param studyProjectId 스터디/프로젝트 ID
      * @param request 퇴장 메시지 요청
      * @return 퇴장 메시지 응답
      */
-    @MessageMapping("/chat.leave/{studyProjectId}")
-    @SendTo("/topic/chat/room/{studyProjectId}")
-    public ChatMessageResponse leaveRoom(
-            @DestinationVariable Long studyProjectId, 
-            ChatMessageRequest request) {
-        
-        log.info("스터디방 퇴장: studyProjectId={}, memberId={}", studyProjectId, request.getMemberId());
-        
-        // 퇴장 메시지 타입으로 설정
-        request.setMessageType(ChatMessageRequest.MessageType.LEAVE);
-        request.setContent("님이 스터디방을 나갔습니다.");
-        
-        return sendMessage(studyProjectId, request);
-    }
+//    @MessageMapping("/chat.leave/{studyProjectId}")
+//    @SendTo("/topic/chat/room/{studyProjectId}")
+//    public ChatMessageResponse leaveRoom(
+//            @DestinationVariable Long studyProjectId,
+//            ChatMessageRequest request) {
+//
+//        log.info("스터디방 퇴장: studyProjectId={}, memberId={}", studyProjectId, request.getMemberId());
+//
+//        // 퇴장 메시지 타입으로 설정
+//        request.setMessageType(ChatMessageRequest.MessageType.LEAVE);
+//        request.setContent("님이 스터디방을 나갔습니다.");
+//
+//        return sendMessage(studyProjectId, request);
+//    }
 }
