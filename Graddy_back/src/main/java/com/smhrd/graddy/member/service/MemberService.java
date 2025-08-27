@@ -71,6 +71,12 @@ public class MemberService {
         return member.map(Member::getMemberId).orElse(null);
     }
 
+    // member_id로 userId 조회
+    public String getUserIdByMemberId(Long memberId) {
+        Optional<Member> member = memberRepository.findById(memberId);
+        return member.map(Member::getUserId).orElse(null);
+    }
+
     // 스터디/프로젝트의 리더 memberId 조회
     public Long getLeaderMemberId(Long studyProjectId) {
         Optional<Member> leaderMember = memberRepository.findByStudyProjectIdAndMemberType(studyProjectId, Member.MemberType.leader);

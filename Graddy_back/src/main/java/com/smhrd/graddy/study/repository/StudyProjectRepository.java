@@ -64,4 +64,16 @@ public interface StudyProjectRepository extends JpaRepository<StudyProject, Long
            "(SELECT m.studyProjectId FROM Member m WHERE m.userId = :userId) " +
            "ORDER BY sp.createdAt DESC")
     List<StudyProject> findAvailableStudiesForUser(@Param("userId") String userId);
+    
+    /**
+     * 종료일이 지난 스터디/프로젝트 조회
+     * study_project_end가 지정된 날짜보다 이전이고, 아직 모집 상태가 'end'가 아닌 스터디/프로젝트를 반환
+     * @param date 기준 날짜
+     * @return 종료일이 지난 스터디/프로젝트 목록
+     */
+    @Query("SELECT sp FROM StudyProject sp " +
+           "WHERE sp.studyProjectEnd < :date " +
+           "AND sp.isRecruiting != 'end' " +
+           "ORDER BY sp.studyProjectEnd ASC")
+    List<StudyProject> findExpiredStudies(@Param("date") java.time.LocalDateTime date);
 }

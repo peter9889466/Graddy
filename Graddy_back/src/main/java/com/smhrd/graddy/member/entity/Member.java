@@ -58,3 +58,4 @@ public class Member {
         member       // 일반 멤버
     }
 }
+

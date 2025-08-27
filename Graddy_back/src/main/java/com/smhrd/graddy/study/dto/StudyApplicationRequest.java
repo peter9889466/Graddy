@@ -17,3 +17,4 @@ public class StudyApplicationRequest {
     @Schema(description = "신청 메시지 (선택사항)", example = "열심히 참여하겠습니다!")
     private String message;
 }
+
