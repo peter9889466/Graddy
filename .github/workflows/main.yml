@@ -71,7 +71,9 @@ jobs:
             # 7. 배포 패키지를 zip으로 압축
             # deploy/ 디렉토리 내부의 파일들을 압축합니다.
             - name: Make zip file
-              run: zip -r deploy.zip . -i deploy/*
+              run: |
+                  # 루트 디렉토리에서 필요한 파일들을 직접 zip에 포함
+                  zip -r deploy.zip docker-compose.yml appspec.yml scripts/ deploy/deploy.env
 
             # 8. S3에 zip 파일 업로드
             - name: Upload zip to S3
