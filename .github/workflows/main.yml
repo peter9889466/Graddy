@@ -61,9 +61,9 @@ jobs:
                   cp docker-compose.yml deploy/
                   cp appspec.yml deploy/
                   echo "DOCKER_HUB_ID=${{ secrets.DOCKER_HUB_USERNAME }}" > deploy/deploy.env
-                  # [수정] Graddy_back 내부에 있는 scripts 폴더를 복사하도록 경로를 수정합니다.
-                  if [ -d "./Graddy_back/scripts" ]; then
-                    cp -r ./Graddy_back/scripts deploy/
+                  # [수정] 루트의 scripts 폴더를 복사하도록 경로를 수정합니다.
+                  if [ -d "./scripts" ]; then
+                    cp -r ./scripts deploy/
                   fi
 
             # 7. 배포 패키지를 zip으로 압축
