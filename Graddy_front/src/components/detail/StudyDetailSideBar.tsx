@@ -187,7 +187,7 @@ const handleProcessApplication = async (userId: string, status: 'APPROVED' | 'RE
                                     </span> */}
                                     <div className="flex gap-2">
                                     <button
-                                        onClick={() => onProcessApplication?.(application.userId, 'PENDING')}
+                                        onClick={() => onProcessApplication?.(application.userId, 'APPROVED')}
                                         className="flex-1 px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
                                     >
                                         V
