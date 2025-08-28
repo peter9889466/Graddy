@@ -1,12 +1,18 @@
-# GitHub Actions 워크플로우의 이름을 지정합니다.
-name: AWS EC2 CI/CD with Docker
+# .github/workflows/main.yml
 
-# 워크플로우가 언제 실행될지를 정의합니다.
+name: Graddy Production CI/CD
+
 on:
     push:
         branches: ["main"]
 
-# 워크플로우에 포함될 작업(job)들을 정의합니다.
+# 워크플로우에서 사용할 환경 변수를 중앙에서 관리합니다.
+env:
+    AWS_REGION: ap-northeast-1
+    S3_BUCKET_NAME: mygraddybucket # 본인의 S3 버킷 이름
+    CODE_DEPLOY_APP_NAME: graddy # CodeDeploy 애플리케이션 이름
+    CODE_DEPLOY_GROUP_NAME: graddy # CodeDeploy 배포 그룹 이름
+
 jobs:
     build-and-deploy:
         runs-on: ubuntu-latest
@@ -46,27 +52,35 @@ jobs:
               with:
                   aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
                   aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-                  aws-region: ap-northeast-1
+                  aws-region: ${{ env.AWS_REGION }}
 
-            # 6. [추가된 부분] 배포 환경변수 파일 생성
-            # start.sh 스크립트가 사용할 DOCKER_HUB_ID를 파일로 생성하여 zip에 포함시킵니다.
-            - name: Make Environment file
+            # 6. [개선] 배포 패키지 생성
+            # S3에 업로드할 deploy.zip 파일에 포함될 파일들만 deploy/ 디렉토리에 복사합니다.
+            - name: Create deployment package
               run: |
-                  echo "DOCKER_HUB_ID=${{ secrets.DOCKER_HUB_USERNAME }}" > deploy.env
+                  mkdir -p deploy
+                  cp docker-compose.yml deploy/
+                  cp appspec.yml deploy/
+                  # deploy.env 파일 생성하여 deploy/ 디렉토리에 추가
+                  echo "DOCKER_HUB_ID=${{ secrets.DOCKER_HUB_USERNAME }}" > deploy/deploy.env
+                  # 스크립트 폴더가 있다면 통째로 복사
+                  if [ -d "./scripts" ]; then
+                    cp -r ./scripts deploy/
+                  fi
 
-            # 7. 배포 파일을 zip으로 압축
-            # deploy.env 파일을 포함하여 모든 배포 관련 파일을 압축합니다.
+            # 7. 배포 패키지를 zip으로 압축
+            # deploy/ 디렉토리 내부의 파일들을 압축합니다.
             - name: Make zip file
-              run: zip -r deploy.zip . -x ".git/*" ".github/*"
+              run: zip -r deploy.zip . -i deploy/*
 
             # 8. S3에 zip 파일 업로드
             - name: Upload zip to S3
-              run: aws s3 cp deploy.zip s3://mygraddybucket/deploy.zip
+              run: aws s3 cp deploy.zip s3://${{ env.S3_BUCKET_NAME }}/deploy.zip
 
             # 9. CodeDeploy 배포 트리거
             - name: Deploy to EC2 instance
               run: |
                   aws deploy create-deployment \
-                    --application-name graddy \
-                    --deployment-group-name graddy \
-                    --s3-location bucket=mygraddybucket,bundleType=zip,key=deploy.zip
+                    --application-name ${{ env.CODE_DEPLOY_APP_NAME }} \
+                    --deployment-group-name ${{ env.CODE_DEPLOY_GROUP_NAME }} \
+                    --s3-location bucket=${{ env.S3_BUCKET_NAME }},bundleType=zip,key=deploy.zip

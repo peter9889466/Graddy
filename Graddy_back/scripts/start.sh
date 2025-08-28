@@ -1,32 +1,31 @@
 #!/bin/bash
+# scripts/start.sh
 
 # ===================================================================
-# Spring Boot & FastAPI Application Deployment Script (Revised)
-# - Added exit-on-error, removed hardcoded values, and added checks.
+# Application Deployment Script (Best Practice Version)
 # ===================================================================
 
 # --- 0. 오류 발생 시 스크립트 즉시 중단 ---
-# 어느 한 명령어라도 실패하면 전체 스크립트 실행을 중단하여 예기치 않은 오류를 방지합니다.
 set -e
 
 echo "### Deployment script started ###"
 
 # --- 1. 프로젝트 폴더로 이동 ---
+# CodeDeploy에 의해 파일들이 /home/ubuntu/app에 위치하게 됩니다.
 cd /home/ubuntu/app
 
 # --- 2. 배포 환경변수 파일 로드 ---
-# GitHub Actions에서 전달한 Docker Hub ID를 환경변수로 로드합니다.
+# GitHub Actions에서 생성한 deploy.env 파일을 로드하여 DOCKER_HUB_ID를 export 합니다.
 if [ -f ./deploy.env ]; then
     echo "Loading environment variables from deploy.env..."
-    source ./deploy.env
+    export $(cat ./deploy.env | xargs)
 else
     echo "> deploy.env file not found. Exiting."
     exit 1
 fi
 
-# DOCKER_HUB_ID 변수가 정상적으로 로드되었는지 확인
 if [ -z "$DOCKER_HUB_ID" ]; then
-    echo "> DOCKER_HUB_ID is not set. Please check deploy.env and GitHub Actions workflow. Exiting."
+    echo "> DOCKER_HUB_ID is not set. Exiting."
     exit 1
 fi
 echo "Docker Hub ID is set to: ${DOCKER_HUB_ID}"
@@ -36,6 +35,7 @@ AWS_REGION="ap-northeast-1"
 echo "Target Region is set to: ${AWS_REGION}"
 
 # --- 4. AWS Parameter Store에서 환경 변수 값 가져오기 ---
+# 애플리케이션 컨테이너가 사용할 .env 파일을 생성합니다.
 echo "Fetching parameters from AWS Parameter Store and creating .env file..."
 {
     echo "SPRING_DATASOURCE_URL=$(aws ssm get-parameter --name "/graddy/prod/SPRING_DATASOURCE_URL" --with-decryption --query "Parameter.Value" --output text --region $AWS_REGION)"
@@ -47,17 +47,14 @@ echo "Fetching parameters from AWS Parameter Store and creating .env file..."
     echo "OPENAI_API_KEY=$(aws ssm get-parameter --name "/graddy/prod/OPENAI_API_KEY" --with-decryption --query "Parameter.Value" --output text --region $AWS_REGION)"
 } > .env
 
-# .env 파일이 정상적으로 생성되었는지 확인
 if [ ! -s .env ]; then
-    echo "> .env file is empty or not created. Check AWS SSM permissions or parameter names. Exiting."
+    echo "> .env file is empty or not created. Check AWS SSM permissions. Exiting."
     exit 1
 fi
 echo ".env file created successfully."
 
-# --- 5. Docker Compose 파일에 Docker Hub 사용자 이름 설정 ---
-# 하드코딩된 ID 대신, deploy.env에서 로드한 변수를 사용합니다.
-echo "Replacing placeholder in docker-compose.yml..."
-sed -i "s/DOCKER_HUB_USERNAME_PLACEHOLDER/${DOCKER_HUB_ID}/g" docker-compose.yml
+# --- 5. [삭제] Docker Compose 파일 수정 단계 불필요 ---
+# docker-compose.yml이 환경변수를 직접 사용하므로 sed 명령어는 필요 없습니다.
 
 # --- 6. Docker Compose를 사용하여 애플리케이션 실행 ---
 echo "Stopping existing services using docker-compose down..."
@@ -68,5 +65,10 @@ docker-compose pull
 
 echo "Starting services with docker-compose up..."
 docker-compose up -d
+
+# --- 7. [추가] 불필요한 도커 리소스 정리 ---
+# 배포 후 사용되지 않는 이전 버전의 이미지 등을 삭제하여 디스크 공간을 확보합니다.
+echo "Pruning unused docker resources..."
+docker system prune -af
 
 echo "### Deployment completed successfully! ###"
