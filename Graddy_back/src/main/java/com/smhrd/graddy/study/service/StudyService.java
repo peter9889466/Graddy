@@ -36,6 +36,7 @@ import java.util.HashSet;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import com.smhrd.graddy.study.dto.StudyProjectStatusInfo;
+import com.smhrd.graddy.study.service.AICurriculumService;
 
 @Service
 @RequiredArgsConstructor
@@ -51,6 +52,7 @@ public class StudyService {
     private final MemberRepository memberRepository;
     private final StudyApplicationService studyApplicationRepository;
     private final ScheduleService scheduleService;
+    private final AICurriculumService aiCurriculumService;
 
     // 스터디/프로젝트 생성
     @Transactional
@@ -88,6 +90,15 @@ public class StudyService {
         } catch (Exception e) {
             System.err.println("스터디 기간 일정 자동 생성 실패: " + e.getMessage());
             // 일정 생성 실패해도 스터디 생성은 성공으로 처리
+        }
+        
+        // AI 커리큘럼 자동 생성
+        try {
+            aiCurriculumService.createAICurriculum(savedStudyProject.getStudyProjectId(), savedStudyProject.getStudyProjectName());
+            System.out.println("AI 커리큘럼 자동 생성 완료: " + savedStudyProject.getStudyProjectName());
+        } catch (Exception e) {
+            System.err.println("AI 커리큘럼 자동 생성 실패: " + e.getMessage());
+            // AI 커리큘럼 생성 실패해도 스터디 생성은 성공으로 처리
         }
         
         // 관심 항목 태그 저장

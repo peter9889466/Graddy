@@ -8,6 +8,8 @@ import com.smhrd.graddy.assignment.entity.Submission;
 import com.smhrd.graddy.assignment.repository.FeedbackRepository;
 import com.smhrd.graddy.assignment.repository.AssignmentRepository;
 import com.smhrd.graddy.assignment.repository.SubmissionRepository;
+import com.smhrd.graddy.member.service.MemberService;
+import com.smhrd.graddy.score.service.ScoreService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,6 +36,8 @@ public class FeedbackService {
     private final FeedbackRepository feedbackRepository;
     private final AssignmentRepository assignmentRepository;
     private final SubmissionRepository submissionRepository;
+    private final MemberService memberService;
+    private final ScoreService scoreService;
     private final RestTemplate restTemplate;
 
     @Value("${fastapi.server.url:http://localhost:8000}")
@@ -133,8 +137,18 @@ public class FeedbackService {
             log.info("제출에 대한 AI 피드백 생성 및 저장 시작: submissionId={}", submission.getSubmissionId());
 
             // 1. 과제 정보 조회
-            Assignment assignment = assignmentRepository.findById(submission.getAssignmentId())
-                    .orElseThrow(() -> new IllegalArgumentException("과제를 찾을 수 없습니다: " + submission.getAssignmentId()));
+            Assignment assignment = assignmentRepository.findById(submission.getAssignmentId()).orElse(null);
+            if (assignment == null) {
+                log.warn("과제를 찾을 수 없습니다: assignmentId={}, submissionId={}. AI 피드백 생성을 건너뜁니다.", 
+                        submission.getAssignmentId(), submission.getSubmissionId());
+                
+                // 추가 디버깅 정보 로깅
+                log.warn("제출 정보: submissionId={}, assignmentId={}, memberId={}, content={}", 
+                        submission.getSubmissionId(), submission.getAssignmentId(), 
+                        submission.getMemberId(), submission.getContent());
+                
+                return; // 과제가 존재하지 않으면 AI 피드백 생성을 건너뜀
+            }
 
             // 2. 이미 피드백이 있는지 확인
             if (feedbackRepository.findBySubmissionIdAndMemberId(submission.getSubmissionId(), submission.getMemberId()).isPresent()) {
@@ -158,9 +172,13 @@ public class FeedbackService {
             log.info("제출 {}에 대한 AI 피드백 생성 및 저장 완료: feedId={}, score={}", 
                     submission.getSubmissionId(), savedFeedback.getFeedId(), savedFeedback.getScore());
             
+            // 5. AI 피드백 점수를 사용자의 총 점수에 반영 (가중치 없이 그대로 반영)
+            updateUserScoreFromFeedback(submission.getMemberId(), savedFeedback.getScore());
+            
         } catch (Exception e) {
-            log.error("제출에 대한 AI 피드백 생성 및 저장 중 오류 발생: submissionId={}", submission.getSubmissionId(), e);
-            throw new RuntimeException("AI 피드백 생성 및 저장에 실패했습니다: " + e.getMessage());
+            log.error("제출에 대한 AI 피드백 생성 및 저장 중 오류 발생: submissionId={}, error={}", submission.getSubmissionId(), e.getMessage());
+            // AI 피드백 생성 실패는 과제 제출에 영향을 주지 않음
+            // RuntimeException을 던지지 않고 로그만 남김
         }
     }
 
@@ -262,5 +280,31 @@ public class FeedbackService {
                 feedback.getComment(),
                 feedback.getCreatedAt()
         );
+    }
+
+    /**
+     * AI 피드백 점수를 사용자의 총 점수에 반영 (가중치 없이 그대로 반영)
+     */
+    private void updateUserScoreFromFeedback(Long memberId, Integer feedbackScore) {
+        try {
+            log.info("AI 피드백 점수를 사용자 점수에 반영 시작: memberId={}, feedbackScore={}", memberId, feedbackScore);
+            
+            // 1. memberId로 userId 조회
+            String userId = memberService.getUserIdByMemberId(memberId);
+            if (userId == null) {
+                log.warn("memberId {}에 해당하는 userId를 찾을 수 없습니다.", memberId);
+                return;
+            }
+            
+            // 2. AI 피드백 점수를 그대로 사용자 점수에 반영 (가중치 없음)
+            scoreService.increaseUserScore(userId, feedbackScore);
+            
+            log.info("AI 피드백 점수 반영 완료: userId={}, 피드백점수={}, 총 점수에 그대로 반영됨", 
+                    userId, feedbackScore);
+            
+        } catch (Exception e) {
+            log.error("AI 피드백 점수를 사용자 점수에 반영 중 오류 발생: memberId={}, error={}", memberId, e.getMessage());
+            // 점수 반영 실패해도 피드백 생성은 성공으로 처리
+        }
     }
 }

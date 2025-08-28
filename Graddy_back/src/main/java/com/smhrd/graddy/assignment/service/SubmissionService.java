@@ -3,7 +3,9 @@ package com.smhrd.graddy.assignment.service;
 import com.smhrd.graddy.assignment.dto.SubmissionRequest;
 import com.smhrd.graddy.assignment.dto.SubmissionResponse;
 import com.smhrd.graddy.assignment.entity.Submission;
+import com.smhrd.graddy.assignment.entity.Assignment;
 import com.smhrd.graddy.assignment.repository.SubmissionRepository;
+import com.smhrd.graddy.assignment.repository.AssignmentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,7 @@ import java.util.List;
 public class SubmissionService {
 
     private final SubmissionRepository submissionRepository;
+    private final AssignmentRepository assignmentRepository;
     private final FeedbackService feedbackService;
 
     /**
@@ -30,6 +33,12 @@ public class SubmissionService {
         try {
             log.info("과제 제출 시작: assignmentId={}, memberId={}", 
                     request.getAssignmentId(), request.getMemberId());
+
+            // 0. 과제 존재 여부 미리 확인
+            if (!assignmentRepository.existsById(request.getAssignmentId())) {
+                log.error("과제 제출 실패: 존재하지 않는 과제입니다. assignmentId={}", request.getAssignmentId());
+                throw new IllegalArgumentException("존재하지 않는 과제입니다: " + request.getAssignmentId());
+            }
 
             // 1. 과제 제출 저장
             Submission submission = new Submission();
@@ -42,14 +51,23 @@ public class SubmissionService {
             Submission savedSubmission = submissionRepository.save(submission);
             log.info("과제 제출 완료: submissionId={}", savedSubmission.getSubmissionId());
 
-            // 2. 새로 제출된 과제에 대해서만 AI 피드백 생성 (비동기로 처리하여 제출 응답 지연 방지)
-            try {
-                generateAiFeedbackAsync(savedSubmission);
-            } catch (Exception e) {
-                log.warn("자동 AI 피드백 생성 실패: submissionId={}, error={}", 
-                        savedSubmission.getSubmissionId(), e.getMessage());
+            // 2. 과제 제출이 성공적으로 저장되었는지 확인
+            if (savedSubmission.getSubmissionId() == null) {
+                log.error("과제 제출 저장 실패: submissionId가 null입니다.");
+                throw new RuntimeException("과제 제출 저장에 실패했습니다.");
             }
 
+            // 3. 과제 제출 완료 후 AI 피드백 생성 (비동기로 처리하여 제출 응답 지연 방지)
+            try {
+                log.info("과제 제출 완료 확인됨. AI 피드백 생성 시작: submissionId={}", savedSubmission.getSubmissionId());
+                generateAiFeedbackAsync(savedSubmission);
+            } catch (Exception e) {
+                log.warn("자동 AI 피드백 생성 실패: submissionId={}, error={}. 과제 제출은 성공했습니다.", 
+                        savedSubmission.getSubmissionId(), e.getMessage());
+                // AI 피드백 생성 실패는 과제 제출 실패로 처리하지 않음
+            }
+
+            log.info("과제 제출 프로세스 완료: submissionId={}", savedSubmission.getSubmissionId());
             return convertToResponse(savedSubmission);
 
         } catch (Exception e) {
@@ -59,22 +77,31 @@ public class SubmissionService {
     }
 
     /**
-     * 비동기로 AI 피드백 생성 (제출 응답 지연 방지)
+     * 과제 제출 완료 후 AI 피드백 생성 (비동기 처리)
+     * 과제 제출이 성공적으로 완료된 후에만 호출됩니다.
      */
     private void generateAiFeedbackAsync(Submission submission) {
-        // 별도 스레드에서 AI 피드백 생성
+        // 과제 제출이 완료된 후에만 AI 피드백 생성
+        if (submission == null || submission.getSubmissionId() == null) {
+            log.error("AI 피드백 생성 실패: 유효하지 않은 submission 정보");
+            return;
+        }
+
+        // 별도 스레드에서 AI 피드백 생성 (과제 제출 응답 지연 방지)
         new Thread(() -> {
             try {
-                log.info("AI 피드백 자동 생성 시작: submissionId={}", submission.getSubmissionId());
+                log.info("과제 제출 완료 확인됨. AI 피드백 생성 시작: submissionId={}", submission.getSubmissionId());
                 
-                // FeedbackService를 통해 AI 피드백 생성 및 저장
+                // 과제 제출 완료 후 AI 피드백 생성 및 저장
                 feedbackService.generateFeedbackForSubmission(submission);
                 
-                log.info("AI 피드백 자동 생성 완료: submissionId={}", submission.getSubmissionId());
+                log.info("AI 피드백 생성 완료: submissionId={}", submission.getSubmissionId());
                 
             } catch (Exception e) {
-                log.error("AI 피드백 자동 생성 실패: submissionId={}, error={}", 
+                log.error("AI 피드백 생성 실패: submissionId={}, error={}. 과제 제출은 이미 완료되었습니다.", 
                         submission.getSubmissionId(), e.getMessage());
+                // AI 피드백 생성 실패는 과제 제출에 영향을 주지 않음
+                // 과제 제출은 성공적으로 완료되었으므로 사용자에게는 정상적으로 응답됨
             }
         }).start();
     }

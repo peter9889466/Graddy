@@ -3,6 +3,7 @@ package com.smhrd.graddy.chat.controller;
 import com.smhrd.graddy.chat.dto.ChatMessageRequest;
 import com.smhrd.graddy.chat.dto.ChatMessageResponse;
 import com.smhrd.graddy.chat.service.ChatService;
+import com.smhrd.graddy.security.jwt.JwtUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -20,11 +21,14 @@ import org.springframework.web.bind.annotation.*;
  * - WebSocket을 통한 실시간 브로드캐스팅
  * - 스터디 멤버십 검증
  * - 파일 메시지 지원
+ * - JWT 토큰을 통한 사용자 인증
  * 
  * 사용 목적:
  * - WebSocket 연결 없이도 채팅 기능 테스트 가능
  * - 모바일 앱이나 다른 클라이언트에서 채팅 API 호출
  * - 채팅 히스토리 조회 및 관리
+ * 
+ * 보안: JWT 토큰을 통해 userId를 추출하여 클라이언트가 임의로 설정할 수 없도록 함
  */
 @RestController
 @RequestMapping("/chat")
@@ -35,17 +39,20 @@ public class ChatRestController {
 
     private final ChatService chatService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final JwtUtil jwtUtil;
 
     /**
      * REST API를 통해 채팅 메시지를 전송하고 WebSocket으로 브로드캐스팅
      * 
      * 처리 과정:
      * 1. HTTP POST 요청으로 메시지 수신
-     * 2. ChatService를 통해 메시지 처리 및 저장
-     * 3. SimpMessagingTemplate으로 WebSocket 구독자들에게 브로드캐스팅
+     * 2. JWT 토큰에서 userId 추출
+     * 3. ChatService를 통해 메시지 처리 및 저장
+     * 4. SimpMessagingTemplate으로 WebSocket 구독자들에게 브로드캐스팅
      * 
      * @param studyProjectId 스터디/프로젝트 ID (URL 경로에서 추출)
      * @param request 채팅 메시지 요청 DTO
+     * @param authorization JWT 토큰 (Authorization 헤더)
      * @return 처리된 메시지 응답
      */
     @PostMapping("/send/{studyProjectId}")
@@ -58,14 +65,21 @@ public class ChatRestController {
             @PathVariable Long studyProjectId,
             
             @Parameter(description = "채팅 메시지 요청 정보")
-            @RequestBody ChatMessageRequest request) {
-        
-        log.info("REST API 채팅 메시지 수신: studyProjectId={}, memberId={}, type={}", 
-                studyProjectId, request.getMemberId(), request.getMessageType());
+            @RequestBody ChatMessageRequest request,
+            
+            @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiJ9...")
+            @RequestHeader("Authorization") String authorization) {
         
         try {
+            // JWT 토큰에서 userId 추출
+            String token = authorization.replace("Bearer ", "");
+            String userId = jwtUtil.extractUserId(token);
+            
+            log.info("REST API 채팅 메시지 수신: studyProjectId={}, userId={}, type={}", 
+                    studyProjectId, userId, request.getMessageType());
+            
             // 1. ChatService를 통해 메시지 처리 및 저장
-            ChatMessageResponse response = chatService.processAndSaveMessage(studyProjectId, request);
+            ChatMessageResponse response = chatService.processAndSaveMessage(studyProjectId, userId, request);
             
             log.info("REST API 채팅 메시지 처리 완료: messageId={}, sender={}", 
                     response.getMessageId(), response.getSenderNick());
@@ -83,8 +97,8 @@ public class ChatRestController {
             return ResponseEntity.badRequest().build();
             
         } catch (Exception e) {
-            log.error("채팅 메시지 처리 중 오류 발생: studyProjectId={}, memberId={}", 
-                    studyProjectId, request.getMemberId(), e);
+            log.error("채팅 메시지 처리 중 오류 발생: studyProjectId={}, authorization={}", 
+                    studyProjectId, authorization, e);
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -94,6 +108,7 @@ public class ChatRestController {
      * 
      * @param studyProjectId 스터디/프로젝트 ID
      * @param request 입장 메시지 요청
+     * @param authorization JWT 토큰
      * @return 입장 메시지 응답
      */
     @PostMapping("/enter/{studyProjectId}")
@@ -106,16 +121,28 @@ public class ChatRestController {
             @PathVariable Long studyProjectId,
             
             @Parameter(description = "입장 메시지 요청 정보")
-            @RequestBody ChatMessageRequest request) {
+            @RequestBody ChatMessageRequest request,
+            
+            @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiJ9...")
+            @RequestHeader("Authorization") String authorization) {
         
-        log.info("스터디방 입장 메시지 전송: studyProjectId={}, memberId={}", 
-                studyProjectId, request.getMemberId());
-        
-        // 입장 메시지 타입으로 설정
-        request.setMessageType(ChatMessageRequest.MessageType.ENTER);
-        request.setContent("님이 스터디방에 입장했습니다.");
-        
-        return sendMessage(studyProjectId, request);
+        try {
+            // JWT 토큰에서 userId 추출
+            String token = authorization.replace("Bearer ", "");
+            String userId = jwtUtil.extractUserId(token);
+            
+            log.info("스터디방 입장 메시지 전송: studyProjectId={}, userId={}", 
+                    studyProjectId, userId);
+            
+            // 입장 메시지 타입으로 설정
+            request.setMessageType(ChatMessageRequest.MessageType.ENTER);
+            request.setContent("님이 스터디방에 입장했습니다.");
+            
+            return sendMessage(studyProjectId, request, authorization);
+        } catch (Exception e) {
+            log.error("입장 메시지 처리 중 오류 발생: studyProjectId={}", studyProjectId, e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     /**
@@ -123,6 +150,7 @@ public class ChatRestController {
      * 
      * @param studyProjectId 스터디/프로젝트 ID
      * @param request 퇴장 메시지 요청
+     * @param authorization JWT 토큰
      * @return 퇴장 메시지 응답
      */
     @PostMapping("/leave/{studyProjectId}")
@@ -135,16 +163,28 @@ public class ChatRestController {
             @PathVariable Long studyProjectId,
             
             @Parameter(description = "퇴장 메시지 요청 정보")
-            @RequestBody ChatMessageRequest request) {
+            @RequestBody ChatMessageRequest request,
+            
+            @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiJ9...")
+            @RequestHeader("Authorization") String authorization) {
         
-        log.info("스터디방 퇴장 메시지 전송: studyProjectId={}, memberId={}", 
-                studyProjectId, request.getMemberId());
-        
-        // 퇴장 메시지 타입으로 설정
-        request.setMessageType(ChatMessageRequest.MessageType.LEAVE);
-        request.setContent("님이 스터디방을 나갔습니다.");
-        
-        return sendMessage(studyProjectId, request);
+        try {
+            // JWT 토큰에서 userId 추출
+            String token = authorization.replace("Bearer ", "");
+            String userId = jwtUtil.extractUserId(token);
+            
+            log.info("스터디방 퇴장 메시지 전송: studyProjectId={}, userId={}", 
+                    studyProjectId, userId);
+            
+            // 퇴장 메시지 타입으로 설정
+            request.setMessageType(ChatMessageRequest.MessageType.LEAVE);
+            request.setContent("님이 스터디방을 나갔습니다.");
+            
+            return sendMessage(studyProjectId, request, authorization);
+        } catch (Exception e) {
+            log.error("퇴장 메시지 처리 중 오류 발생: studyProjectId={}", studyProjectId, e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     /**
@@ -152,6 +192,7 @@ public class ChatRestController {
      * 
      * @param studyProjectId 스터디/프로젝트 ID
      * @param request 파일 메시지 요청
+     * @param authorization JWT 토큰
      * @return 파일 메시지 응답
      */
     @PostMapping("/file/{studyProjectId}")
@@ -164,15 +205,27 @@ public class ChatRestController {
             @PathVariable Long studyProjectId,
             
             @Parameter(description = "파일 메시지 요청 정보")
-            @RequestBody ChatMessageRequest request) {
+            @RequestBody ChatMessageRequest request,
+            
+            @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiJ9...")
+            @RequestHeader("Authorization") String authorization) {
         
-        log.info("파일 공유 메시지 전송: studyProjectId={}, memberId={}, fileUrl={}", 
-                studyProjectId, request.getMemberId(), request.getFileUrl());
-        
-        // 파일 메시지 타입으로 설정
-        request.setMessageType(ChatMessageRequest.MessageType.FILE);
-        
-        return sendMessage(studyProjectId, request);
+        try {
+            // JWT 토큰에서 userId 추출
+            String token = authorization.replace("Bearer ", "");
+            String userId = jwtUtil.extractUserId(token);
+            
+            log.info("파일 공유 메시지 전송: studyProjectId={}, userId={}, fileUrl={}", 
+                    studyProjectId, userId, request.getFileUrl());
+            
+            // 파일 메시지 타입으로 설정
+            request.setMessageType(ChatMessageRequest.MessageType.FILE);
+            
+            return sendMessage(studyProjectId, request, authorization);
+        } catch (Exception e) {
+            log.error("파일 메시지 처리 중 오류 발생: studyProjectId={}", studyProjectId, e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     /**

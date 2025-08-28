@@ -91,7 +91,7 @@ public class AICurriculumService {
             // FastAPI 서버로 POST 요청
             ResponseEntity<Map> response = restTemplate.postForEntity(
                     aiApiUrl + "/generate-curriculum",
-                    requestEntity,
+                    requestData,
                     Map.class
             );
 
@@ -99,60 +99,45 @@ public class AICurriculumService {
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 Map<String, Object> responseBody = response.getBody();
                 
-                logger.info("Received response from FastAPI server: {}", responseBody);
+                // 응답 데이터를 AICurriculumResponse로 변환
+                AICurriculumResponse aiCurriculumResponse = new AICurriculumResponse();
+                aiCurriculumResponse.setStudyId(studyProjectId);
+                aiCurriculumResponse.setCurriculum((String) responseBody.get("curriculum"));
+                aiCurriculumResponse.setMessage((String) responseBody.get("message"));
+                aiCurriculumResponse.setSuccess((Boolean) responseBody.get("success"));
                 
-                // 성공 응답
-                if (Boolean.TRUE.equals(responseBody.get("success"))) {
-                    String curriculum = (String) responseBody.get("curriculum");
-                    
-                    // 한글 인코딩 확인 및 로깅
-                    logger.info("Generated curriculum length: {}", curriculum != null ? curriculum.length() : 0);
-                    if (curriculum != null) {
-                        logger.info("Curriculum preview: {}", curriculum.substring(0, Math.min(100, curriculum.length())));
-                    }
-                    
-                    // 생성된 커리큘럼을 StudyProject에 저장
-                    studyProject.setCurText(curriculum);
-                    studyProjectRepository.save(studyProject);
-
-                    logger.info("Curriculum saved to database successfully");
-
-                    return AICurriculumResponse.builder()
-                            .studyId(studyProjectId)
-                            .curriculum(curriculum)
-                            .message("AI 커리큘럼이 성공적으로 생성되었습니다.")
-                            .success(true)
-                            .build();
-                } else {
-                    // AI 서버에서 실패 응답
-                    logger.error("AI server returned failure: {}", responseBody.get("message"));
-                    return AICurriculumResponse.builder()
-                            .studyId(studyProjectId)
-                            .curriculum("")
-                            .message("AI 커리큘럼 생성에 실패했습니다: " + responseBody.get("message"))
-                            .success(false)
-                            .build();
-                }
+                logger.info("AI curriculum generated successfully for study project ID: {}", studyProjectId);
+                return aiCurriculumResponse;
             } else {
-                // HTTP 응답 실패
-                logger.error("HTTP response error: {}", response.getStatusCode());
-                return AICurriculumResponse.builder()
-                        .studyId(studyProjectId)
-                        .curriculum("")
-                        .message("AI 서버 응답 오류: " + response.getStatusCode())
-                        .success(false)
-                        .build();
+                logger.error("Failed to generate AI curriculum. Response status: {}", response.getStatusCode());
+                throw new RuntimeException("AI 커리큘럼 생성에 실패했습니다.");
             }
-
+            
         } catch (Exception e) {
-            // 예외 발생 시
-            logger.error("Error during curriculum generation: ", e);
-            return AICurriculumResponse.builder()
-                    .studyId(studyProjectId)
-                    .curriculum("")
-                    .message("커리큘럼 생성 중 오류가 발생했습니다: " + e.getMessage())
-                    .success(false)
-                    .build();
+            logger.error("Error generating AI curriculum for study project ID: {}", studyProjectId, e);
+            throw new RuntimeException("AI 커리큘럼 생성 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 스터디/프로젝트 생성 후 자동으로 AI 커리큘럼을 생성합니다.
+     * 이 메서드는 StudyService에서 호출되어 스터디 생성과 함께 자동으로 실행됩니다.
+     */
+    public void createAICurriculum(Long studyProjectId, String studyProjectName) {
+        try {
+            logger.info("Auto-creating AI curriculum for study project: {} (ID: {})", studyProjectName, studyProjectId);
+            
+            // AI 커리큘럼 생성
+            AICurriculumResponse curriculumResponse = generateCurriculum(studyProjectId);
+            
+            // 생성된 커리큘럼을 데이터베이스에 저장 (필요시)
+            // TODO: 커리큘럼 저장 로직 구현
+            
+            logger.info("AI curriculum auto-created successfully for study project: {} (ID: {})", studyProjectName, studyProjectId);
+            
+        } catch (Exception e) {
+            logger.error("Failed to auto-create AI curriculum for study project: {} (ID: {})", studyProjectName, studyProjectId, e);
+            // 에러가 발생해도 스터디 생성에는 영향을 주지 않도록 예외를 던지지 않음
         }
     }
 

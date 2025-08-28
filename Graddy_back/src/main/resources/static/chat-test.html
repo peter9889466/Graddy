@@ -181,35 +181,21 @@
             <button onclick="leaveRoom()" id="leaveBtn" disabled>🚪 퇴장</button>
         </div>
         
-        <div class="chat-container">
-            <!-- 채팅방 1 -->
-            <div class="chat-window">
-                <h3>💬 스터디방 1 (ID: 1)</h3>
-                <div id="messageLog1" class="message-log"></div>
-                <div class="message-input">
-                    <input type="text" id="messageInput1" placeholder="메시지를 입력하세요" onkeypress="handleKeyPress(event, 1)">
-                    <button onclick="sendMessage(1)">📤 전송</button>
-                </div>
-                <div class="file-input">
-                    <input type="text" id="fileUrl1" placeholder="https://s3.amazonaws.com/file.pdf">
-                    <button onclick="sendFileMessage(1)">📎 파일 전송</button>
-                </div>
-            </div>
-            
-            <!-- 채팅방 2 -->
-            <div class="chat-window">
-                <h3>💬 스터디방 2 (ID: 2)</h3>
-                <div id="messageLog1" class="message-log"></div>
-                <div class="message-input">
-                    <input type="text" id="messageInput2" placeholder="메시지를 입력하세요" onkeypress="handleKeyPress(event, 2)">
-                    <button onclick="sendMessage(2)">📤 전송</button>
-                </div>
-                <div class="file-input">
-                    <input type="text" id="fileUrl2" placeholder="https://s3.amazonaws.com/file.pdf">
-                    <button onclick="sendFileMessage(2)">📎 파일 전송</button>
-                </div>
-            </div>
-        </div>
+                 <div class="chat-container">
+             <!-- 동적 채팅방 -->
+             <div class="chat-window">
+                 <h3>💬 스터디방 (ID: <span id="currentStudyIdDisplay">-</span>)</h3>
+                 <div id="messageLog" class="message-log"></div>
+                 <div class="message-input">
+                     <input type="text" id="messageInput" placeholder="메시지를 입력하세요" onkeypress="handleKeyPress(event)">
+                     <button onclick="sendMessage()">📤 전송</button>
+                 </div>
+                 <div class="file-input">
+                     <input type="text" id="fileUrl" placeholder="https://s3.amazonaws.com/file.pdf">
+                     <button onclick="sendFileMessage()">📎 파일 전송</button>
+                 </div>
+             </div>
+         </div>
         
         <h3>📋 연결 로그</h3>
         <div id="connectionLog" class="connection-log"></div>
@@ -223,6 +209,7 @@
                 <li><strong>실시간 확인</strong>: 다른 브라우저 탭에서 같은 URL 접속하여 실시간 통신 확인</li>
                                  <li><strong>STOMP 프로토콜</strong>: /app/chat.sendMessage/{studyId}로 메시지 전송, /topic/chat/room/{studyId}로 구독</li>
                  <li><strong>Context-Path</strong>: /api (WebSocket: /api/ws-stomp)</li>
+                 <li><strong>데이터베이스</strong>: 단일 기본키 + 파티셔닝 지원</li>
             </ol>
         </div>
     </div>
@@ -266,41 +253,45 @@
             }
         }
         
-        function connect() {
-            currentStudyId = parseInt(document.getElementById('studyId').value);
-            currentMemberId = parseInt(document.getElementById('memberId').value);
-            
-            log(`STOMP WebSocket 연결 시도: ws://localhost:8080/api/ws-stomp`);
-            log(`연결 시도 시간: ${new Date().toLocaleString()}`);
-            
-            try {
-                                 const socket = new SockJS('/api/ws-stomp');
-                stompClient = Stomp.over(socket);
-                
-                const connectHeaders = {
-                    'accept-version': '1.1,1.0'
-                };
-                
-                log(`📡 STOMP 연결 시도...`);
-                
-                stompClient.connect(connectHeaders, function(frame) {
-                    log(`✅ STOMP WebSocket 연결 성공!`, 'success');
-                    log(`Frame: ${frame}`, 'info');
-                    updateStatus(true);
-                    
-                    // 자동으로 입장
-                    enterRoom();
-                    
-                }, function(error) {
-                    log(`❌ STOMP WebSocket 연결 실패: ${error}`, 'error');
-                    updateStatus(false);
-                });
-                
-            } catch (error) {
-                log(`❌ WebSocket 생성 실패: ${error.message}`, 'error');
-                updateStatus(false);
-            }
-        }
+                 function connect() {
+             currentStudyId = parseInt(document.getElementById('studyId').value);
+             currentMemberId = parseInt(document.getElementById('memberId').value);
+             
+             // 화면에 현재 스터디 ID 표시
+             document.getElementById('currentStudyIdDisplay').textContent = currentStudyId;
+             
+             log(`STOMP WebSocket 연결 시도: ws://localhost:8080/api/ws-stomp`);
+             log(`연결 시도 시간: ${new Date().toLocaleString()}`);
+             log(`스터디 ID: ${currentStudyId}, 멤버 ID: ${currentMemberId}`);
+             
+             try {
+                 const socket = new SockJS('/api/ws-stomp');
+                 stompClient = Stomp.over(socket);
+                 
+                 const connectHeaders = {
+                     'accept-version': '1.1,1.0'
+                 };
+                 
+                 log(`📡 STOMP 연결 시도...`);
+                 
+                 stompClient.connect(connectHeaders, function(frame) {
+                     log(`✅ STOMP WebSocket 연결 성공!`, 'success');
+                     log(`Frame: ${frame}`, 'info');
+                     updateStatus(true);
+                     
+                     // 자동으로 입장
+                     enterRoom();
+                     
+                 }, function(error) {
+                     log(`❌ STOMP WebSocket 연결 실패: ${error}`, 'error');
+                     updateStatus(false);
+                 });
+                 
+             } catch (error) {
+                 log(`❌ WebSocket 생성 실패: ${error.message}`, 'error');
+                 updateStatus(false);
+             }
+         }
         
         function disconnect() {
             if (stompClient) {
@@ -310,180 +301,168 @@
             }
         }
         
-        function enterRoom() {
-            if (!stompClient || !isConnected) {
-                log('❌ STOMP WebSocket이 연결되지 않았습니다.', 'error');
-                return;
-            }
-            
-            // 스터디방 1번 구독
-            const topic1 = `/topic/chat/room/1`;
-            log(`📡 STOMP 구독 시작: ${topic1}`);
-            
-            stompClient.subscribe(topic1, function(message) {
-                const messageData = JSON.parse(message.body);
-                log(`📨 스터디 1 메시지 수신: ${JSON.stringify(messageData, null, 2)}`, 'message');
-                addMessageToChat(1, messageData);
-            });
-            
-            // 스터디방 2번 구독
-            const topic2 = `/topic/chat/room/2`;
-            log(`📡 STOMP 구독 시작: ${topic2}`);
-            
-            stompClient.subscribe(topic2, function(message) {
-                const messageData = JSON.parse(message.body);
-                log(`📨 스터디 2 메시지 수신: ${JSON.stringify(messageData, null, 2)}`, 'message');
-                addMessageToChat(2, messageData);
-            });
-            
-            log(`✅ 모든 스터디방 STOMP 구독 완료`);
-            
-            // 입장 메시지 전송
-            sendEnterMessage(1);
-            sendEnterMessage(2);
-        }
+                 function enterRoom() {
+             if (!stompClient || !isConnected) {
+                 log('❌ STOMP WebSocket이 연결되지 않았습니다.', 'error');
+                 return;
+             }
+             
+             // 현재 입력된 스터디 ID로 구독
+             const topic = `/topic/chat/room/${currentStudyId}`;
+             log(`📡 STOMP 구독 시작: ${topic}`);
+             
+             stompClient.subscribe(topic, function(message) {
+                 const messageData = JSON.parse(message.body);
+                 log(`📨 스터디 ${currentStudyId} 메시지 수신: ${JSON.stringify(messageData, null, 2)}`, 'message');
+                 addMessageToChat(messageData);
+             });
+             
+             log(`✅ 스터디방 ${currentStudyId} STOMP 구독 완료`);
+             
+             // 입장 메시지 전송
+             sendEnterMessage();
+         }
         
-        function leaveRoom() {
-            if (!stompClient || !isConnected) {
-                log('❌ STOMP WebSocket이 연결되지 않았습니다.', 'error');
-                return;
-            }
-            
-            // 퇴장 메시지 전송
-            sendLeaveMessage(1);
-            sendLeaveMessage(2);
-        }
+                 function leaveRoom() {
+             if (!stompClient || !isConnected) {
+                 log('❌ STOMP WebSocket이 연결되지 않았습니다.', 'error');
+                 return;
+             }
+             
+             // 퇴장 메시지 전송
+             sendLeaveMessage();
+         }
         
-        function sendMessage(studyId) {
-            if (!stompClient || !isConnected) {
-                log('❌ STOMP WebSocket이 연결되지 않았습니다.', 'error');
-                return;
-            }
-            
-            const content = document.getElementById(`messageInput${studyId}`).value;
-            
-            if (!content.trim()) {
-                log('❌ 메시지를 입력해주세요.', 'error');
-                return;
-            }
-            
-            const message = {
-                memberId: currentMemberId,
-                studyProjectId: studyId,
-                content: content,
-                fileUrl: null,
-                messageType: 'TEXT'
-            };
-            
-            log(`📤 STOMP 메시지 전송: /app/chat.sendMessage/${studyId}`);
-            log(`메시지 내용: ${JSON.stringify(message)}`);
-            
-            stompClient.send(`/app/chat.sendMessage/${studyId}`, {}, JSON.stringify(message));
-            
-            document.getElementById(`messageInput${studyId}`).value = '';
-        }
+                 function sendMessage() {
+             if (!stompClient || !isConnected) {
+                 log('❌ STOMP WebSocket이 연결되지 않았습니다.', 'error');
+                 return;
+             }
+             
+             const content = document.getElementById('messageInput').value;
+             
+             if (!content.trim()) {
+                 log('❌ 메시지를 입력해주세요.', 'error');
+                 return;
+             }
+             
+             const message = {
+                 memberId: currentMemberId,
+                 studyProjectId: currentStudyId,
+                 content: content,
+                 fileUrl: null,
+                 messageType: 'TEXT'
+             };
+             
+             log(`📤 STOMP 메시지 전송: /app/chat.sendMessage/${currentStudyId}`);
+             log(`메시지 내용: ${JSON.stringify(message)}`);
+             
+             stompClient.send(`/app/chat.sendMessage/${currentStudyId}`, {}, JSON.stringify(message));
+             
+             document.getElementById('messageInput').value = '';
+         }
         
-        function sendFileMessage(studyId) {
-            if (!stompClient || !isConnected) {
-                log('❌ STOMP WebSocket이 연결되지 않았습니다.', 'error');
-                return;
-            }
-            
-            const content = document.getElementById(`messageInput${studyId}`).value || '파일 공유';
-            const fileUrl = document.getElementById(`fileUrl${studyId}`).value;
-            
-            if (!fileUrl.trim()) {
-                log('❌ 파일 URL을 입력해주세요.', 'error');
-                return;
-            }
-            
-            const message = {
-                memberId: currentMemberId,
-                studyProjectId: studyId,
-                content: content,
-                fileUrl: fileUrl,
-                messageType: 'FILE'
-            };
-            
-            log(`📎 STOMP 파일 메시지 전송: /app/chat.sendFileMessage/${studyId}`);
-            log(`메시지 내용: ${JSON.stringify(message)}`);
-            
-            stompClient.send(`/app/chat.sendMessage/${studyId}`, {}, JSON.stringify(message));
-            
-            document.getElementById(`messageInput${studyId}`).value = '';
-            document.getElementById(`fileUrl${studyId}`).value = '';
-        }
+                 function sendFileMessage() {
+             if (!stompClient || !isConnected) {
+                 log('❌ STOMP WebSocket이 연결되지 않았습니다.', 'error');
+                 return;
+             }
+             
+             const content = document.getElementById('messageInput').value || '파일 공유';
+             const fileUrl = document.getElementById('fileUrl').value;
+             
+             if (!fileUrl.trim()) {
+                 log('❌ 파일 URL을 입력해주세요.', 'error');
+                 return;
+             }
+             
+             const message = {
+                 memberId: currentMemberId,
+                 studyProjectId: currentStudyId,
+                 content: content,
+                 fileUrl: fileUrl,
+                 messageType: 'FILE'
+             };
+             
+             log(`📎 STOMP 파일 메시지 전송: /app/chat.sendFileMessage/${currentStudyId}`);
+             log(`메시지 내용: ${JSON.stringify(message)}`);
+             
+             stompClient.send(`/app/chat.sendMessage/${currentStudyId}`, {}, JSON.stringify(message));
+             
+             document.getElementById('messageInput').value = '';
+             document.getElementById('fileUrl').value = '';
+         }
         
-        function sendEnterMessage(studyId) {
-            if (!stompClient || !isConnected) return;
-            
-            const message = {
-                memberId: currentMemberId,
-                studyProjectId: studyId,
-                content: '님이 스터디방에 입장했습니다.',
-                fileUrl: null,
-                messageType: 'ENTER'
-            };
-            
-            stompClient.send(`/app/chat.enter/${studyId}`, {}, JSON.stringify(message));
-        }
+                 function sendEnterMessage() {
+             if (!stompClient || !isConnected) return;
+             
+             const message = {
+                 memberId: currentMemberId,
+                 studyProjectId: currentStudyId,
+                 content: '님이 스터디방에 입장했습니다.',
+                 fileUrl: null,
+                 messageType: 'ENTER'
+             };
+             
+             stompClient.send(`/app/chat.enter/${currentStudyId}`, {}, JSON.stringify(message));
+         }
         
-        function sendLeaveMessage(studyId) {
-            if (!stompClient || !isConnected) return;
-            
-            const message = {
-                memberId: currentMemberId,
-                studyProjectId: studyId,
-                content: '님이 스터디방을 나갔습니다.',
-                fileUrl: null,
-                messageType: 'LEAVE'
-            };
-            
-            stompClient.send(`/app/chat.leave/${studyId}`, {}, JSON.stringify(message));
-        }
+                 function sendLeaveMessage() {
+             if (!stompClient || !isConnected) return;
+             
+             const message = {
+                 memberId: currentMemberId,
+                 studyProjectId: currentStudyId,
+                 content: '님이 스터디방을 나갔습니다.',
+                 fileUrl: null,
+                 messageType: 'LEAVE'
+             };
+             
+             stompClient.send(`/app/chat.leave/${currentStudyId}`, {}, JSON.stringify(message));
+         }
         
-        function addMessageToChat(studyId, messageData) {
-            const messageLog = document.getElementById(`messageLog${studyId}`);
-            const timestamp = new Date(messageData.createdAt).toLocaleTimeString();
-            
-            let messageClass = 'message';
-            let fileInfo = '';
-            
-            // 메시지 타입에 따른 스타일 적용
-            switch(messageData.messageType) {
-                case 'ENTER':
-                    messageClass = 'message enter';
-                    break;
-                case 'LEAVE':
-                    messageClass = 'message leave';
-                    break;
-                case 'FILE':
-                    messageClass = 'message file';
-                    fileInfo = `<div class="file-info">📎 파일: ${messageData.fileUrl}</div>`;
-                    break;
-                case 'SYSTEM':
-                    messageClass = 'message system';
-                    break;
-                default:
-                    messageClass = 'message';
-            }
-            
-            messageLog.innerHTML += `
-                <div class="${messageClass}">
-                    <div class="timestamp">[${timestamp}]</div>
-                    <div class="sender">${messageData.senderNick}</div>
-                    <div>${messageData.content}</div>
-                    ${fileInfo}
-                </div>
-            `;
-            messageLog.scrollTop = messageLog.scrollHeight;
-        }
+                 function addMessageToChat(messageData) {
+             const messageLog = document.getElementById('messageLog');
+             const timestamp = new Date(messageData.createdAt).toLocaleTimeString();
+             
+             let messageClass = 'message';
+             let fileInfo = '';
+             
+             // 메시지 타입에 따른 스타일 적용
+             switch(messageData.messageType) {
+                 case 'ENTER':
+                     messageClass = 'message enter';
+                     break;
+                 case 'LEAVE':
+                     messageClass = 'message leave';
+                     break;
+                 case 'FILE':
+                     messageClass = 'message file';
+                     fileInfo = `<div class="file-info">📎 파일: ${messageData.fileUrl}</div>`;
+                     break;
+                 case 'SYSTEM':
+                     messageClass = 'message system';
+                     break;
+                 default:
+                     messageClass = 'message';
+             }
+             
+             messageLog.innerHTML += `
+                 <div class="${messageClass}">
+                     <div class="timestamp">[${timestamp}]</div>
+                     <div class="sender">${messageData.senderNick}</div>
+                     <div>${messageData.content}</div>
+                     ${fileInfo}
+                 </div>
+             `;
+             messageLog.scrollTop = messageLog.scrollHeight;
+         }
         
-        function handleKeyPress(event, studyId) {
-            if (event.key === 'Enter') {
-                sendMessage(studyId);
-            }
-        }
+                 function handleKeyPress(event) {
+             if (event.key === 'Enter') {
+                 sendMessage();
+             }
+         }
         
         // 페이지 로드 시 초기화
         window.onload = function() {
@@ -496,3 +475,5 @@
     </script>
 </body>
 </html>
+
+

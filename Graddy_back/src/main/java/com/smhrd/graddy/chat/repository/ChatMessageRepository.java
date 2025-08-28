@@ -22,7 +22,7 @@ import java.util.List;
  * - 파일 메시지 조회
  */
 @Repository
-public interface ChatMessageRepository extends JpaRepository<ChatMessage, ChatMessage.ChatMessageId> {
+public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> {
     
     /**
      * 특정 스터디방의 최근 메시지들을 생성 시간 역순으로 조회

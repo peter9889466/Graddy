@@ -7,23 +7,18 @@ import lombok.Setter;
  * 클라이언트가 서버로 채팅 메시지를 보낼 때 사용하는 DTO
  * 
  * 필수 정보:
- * - memberId: 스터디 멤버 ID (study_project_member 테이블의 member_id)
  * - studyProjectId: 스터디/프로젝트 ID
  * - content: 메시지 내용
  * 
  * 선택 정보:
  * - fileUrl: 첨부 파일 S3 URL (파일 공유 시)
  * - messageType: 메시지 타입 (일반 텍스트, 파일, 입장/퇴장 등)
+ * 
+ * 보안: memberId는 JWT 토큰에서 추출하여 서버에서 설정
  */
 @Getter
 @Setter
 public class ChatMessageRequest {
-    
-    /**
-     * 스터디 멤버 ID (study_project_member 테이블의 member_id)
-     * 이 ID로 해당 사용자가 스터디 멤버인지 검증
-     */
-    private Long memberId;
     
     /**
      * 스터디/프로젝트 ID

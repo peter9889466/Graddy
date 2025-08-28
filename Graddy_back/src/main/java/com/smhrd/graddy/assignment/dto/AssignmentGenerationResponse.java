@@ -20,3 +20,5 @@ public class AssignmentGenerationResponse {
     private Boolean success;
     private String generatedAt;
 }
+
+

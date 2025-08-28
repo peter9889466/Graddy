@@ -30,3 +30,4 @@ public class StudyApplicationResponse {
     @Schema(description = "신청일시")
     private LocalDateTime appliedAt;
 }
+
