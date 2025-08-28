@@ -30,22 +30,22 @@ jobs:
                   password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
             # 3. 백엔드(Backend) Docker 이미지 빌드 및 푸시 (수정된 부분)
-            # graddy_back 폴더의 Dockerfile을 사용하여 백엔드 이미지를 빌드하고 푸시합니다.
+            # Graddy_back 폴더의 Dockerfile을 사용하여 백엔드 이미지를 빌드하고 푸시합니다.
             - name: Build and push Backend image
               uses: docker/build-push-action@v5
               with:
-                  context: ./graddy_back # 백엔드 서비스의 폴더 경로
-                  file: ./graddy_back/Dockerfile # 백엔드 Dockerfile의 정확한 경로
+                  context: ./Graddy_back # 백엔드 서비스의 폴더 경로
+                  file: ./Graddy_back/Dockerfile # 백엔드 Dockerfile의 정확한 경로
                   push: true
                   tags: ${{ secrets.DOCKER_HUB_USERNAME }}/graddy-back:latest # 백엔드 이미지 태그
 
             # 4. 프론트엔드(Frontend) Docker 이미지 빌드 및 푸시 (수정된 부분)
-            # graddy_front 폴더의 Dockerfile을 사용하여 프론트엔드 이미지를 빌드하고 푸시합니다.
+            # Graddy_front 폴더의 Dockerfile을 사용하여 프론트엔드 이미지를 빌드하고 푸시합니다.
             - name: Build and push Frontend image
               uses: docker/build-push-action@v5
               with:
-                  context: ./graddy_front # 프론트엔드 서비스의 폴더 경로
-                  file: ./graddy_front/Dockerfile # 프론트엔드 Dockerfile의 정확한 경로
+                  context: ./Graddy_front # 프론트엔드 서비스의 폴더 경로
+                  file: ./Graddy_front/Dockerfile # 프론트엔드 Dockerfile의 정확한 경로
                   push: true
                   tags: ${{ secrets.DOCKER_HUB_USERNAME }}/graddy-front:latest # 프론트엔드 이미지 태그
 
