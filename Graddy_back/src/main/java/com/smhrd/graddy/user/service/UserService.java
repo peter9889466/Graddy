@@ -32,6 +32,7 @@ import com.smhrd.graddy.user.dto.MyPageResponse;
 import com.smhrd.graddy.study.repository.StudyProjectRepository;
 import com.smhrd.graddy.study.entity.StudyProject;
 import com.smhrd.graddy.user.dto.StudyProjectListResponse;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -484,5 +485,33 @@ public class UserService {
         System.out.println("스터디/프로젝트 목록 조회 완료: userId=" + userId + ", count=" + responseList.size());
         
         return responseList;
+    }
+    
+    /**
+     * 현재 로그인한 사용자의 회원 정보 수정 페이지에 필요한 기본 정보를 조회
+     * 
+     * @param userId 사용자 ID
+     * @return 이름, 아이디, 전화번호, 닉네임을 포함한 Map
+     * @throws IllegalArgumentException 사용자를 찾을 수 없는 경우
+     */
+    public Map<String, String> getUpdatePageInfo(String userId) {
+        System.out.println("회원 정보 수정 페이지 데이터 조회 시작: userId=" + userId);
+        
+        // 사용자 정보 조회
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + userId));
+        
+        // 필요한 정보만 포함하여 Map 생성 (닉네임 추가)
+        Map<String, String> updatePageInfo = Map.of(
+            "name", user.getName(),
+            "userId", user.getUserId(),
+            "tel", user.getTel(),
+            "nick", user.getNick()
+        );
+        
+        System.out.println("회원 정보 수정 페이지 데이터 조회 완료: userId=" + userId + 
+                          ", name=" + user.getName() + ", tel=" + user.getTel() + ", nick=" + user.getNick());
+        
+        return updatePageInfo;
     }
 }
