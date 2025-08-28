@@ -22,11 +22,7 @@ import { InterestApiService, InterestForFrontend } from "../services/interestApi
 const StudyDetailPage = () => {
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
-	const [activeTab, setActiveTab] = useState(() => {
-		// localStorage에서 저장된 탭 상태 복원
-		const savedTab = localStorage.getItem(`studyDetailTab_${id}`);
-		return savedTab || "스터디 정보";
-	});
+	const [activeTab, setActiveTab] = useState("스터디 정보");
 	const [isApplied, setIsApplied] = useState(false);
 	const [isRecruiting, setIsRecruiting] = useState(true); // 모집 상태 관리
 	const authContext = useContext(AuthContext);
@@ -61,10 +57,7 @@ const StudyDetailPage = () => {
 		state?.studyLevel || 1
 	);
 	
-	// 탭 상태를 localStorage에 저장
-	useEffect(() => {
-		localStorage.setItem(`studyDetailTab_${id}`, activeTab);
-	}, [activeTab, id]);
+
 
 	// 기간 포맷팅 함수
 	const formatPeriod = (period: string): string => {
@@ -323,8 +316,8 @@ const StudyDetailPage = () => {
 	console.log('스터디장 여부:', isStudyLeader);
 	console.log('로그인 여부:', isLoggedIn);
 	console.log('스터디 멤버 여부:', isStudyMember);
+	console.log('가입 신청 상태 (isApplied):', isApplied);
 	console.log('로딩 상태:', isLoading);
-	console.log('전체 authContext:', authContext);
 	console.log('==================');
 
 	const handleApplyClick = async () => {
@@ -336,15 +329,40 @@ const StudyDetailPage = () => {
 		alert("가입 신청 기능은 현재 개발 중입니다.");
 	};
 
-	const handleRecruitmentToggle = () => {
-		setIsRecruiting(!isRecruiting);
-		alert(isRecruiting ? "모집이 마감되었습니다." : "모집이 다시 시작되었습니다.");
+	const handleRecruitmentToggle = async () => {
+		if (!id) return;
+		
+		try {
+			const newStatus = isRecruiting ? "closed" : "recruitment";
+			await StudyApiService.updateStudyProjectStatus(parseInt(id, 10), newStatus);
+			
+			setIsRecruiting(!isRecruiting);
+			alert(isRecruiting ? "모집이 마감되었습니다." : "모집이 다시 시작되었습니다.");
+		} catch (error) {
+			console.error('모집 상태 변경 실패:', error);
+			alert('모집 상태 변경에 실패했습니다.');
+		}
 	};
 
-	const handleStudyEnd = () => {
+	const handleStudyEnd = async () => {
+		if (!id) return;
+		
 		if (confirm("스터디를 종료하시겠습니까?")) {
-			alert("스터디가 종료되었습니다.");
-			// 여기에 스터디 종료 로직 추가
+			try {
+				console.log('스터디 종료 요청 시작:', id);
+				await StudyApiService.updateStudyProjectStatus(parseInt(id, 10), "end");
+				alert("스터디가 종료되었습니다.");
+				// 페이지 새로고침 또는 상태 업데이트
+				window.location.reload();
+			} catch (error) {
+				console.error('스터디 종료 실패:', error);
+				// 더 자세한 오류 정보 표시
+				if (error instanceof Error) {
+					alert(`스터디 종료에 실패했습니다: ${error.message}`);
+				} else {
+					alert('스터디 종료에 실패했습니다.');
+				}
+			}
 		}
 	};
 
@@ -439,33 +457,44 @@ const StudyDetailPage = () => {
 
 	// 가입 신청 관련 함수들
 	const handleApplyToStudy = async () => {
-		if (!id || !authContext?.user?.nickname) {
-			alert('로그인이 필요합니다.');
-			return;
-		}
+    if (!id || !authContext?.user?.nickname) {
+        alert('로그인이 필요합니다.');
+        return;
+    }
 
-		setIsApplying(true);
-		try {
-			const request = {
-				studyProjectId: parseInt(id, 10),
-				message: "열심히 참여하겠습니다!"
-			};
+    setIsApplying(true);
+    try {
+        const request = {
+            studyProjectId: parseInt(id, 10),
+            message: "열심히 참여하겠습니다!"
+        };
 
-			const response = await applyToStudyProject(request);
-			alert('가입 신청이 완료되었습니다!');
-			setIsApplied(true);
-			
-			// 가입 신청 목록 새로고침 (리더인 경우)
-			if (userMemberType === 'leader') {
-				loadApplications();
-			}
-		} catch (error) {
-			console.error('가입 신청 실패:', error);
-			alert('가입 신청에 실패했습니다. 다시 시도해주세요.');
-		} finally {
-			setIsApplying(false);
-		}
-	};
+        await applyToStudyProject(request);
+        
+        alert('가입 신청이 완료되었습니다!');
+        setIsApplied(true);
+        
+        if (userMemberType === 'leader') {
+            loadApplications();
+        }
+    } catch (error: any) {
+        console.error('가입 신청 실패:', error);
+        
+        // 에러 객체의 message 속성을 먼저 확인
+        const errorMessage = error.message;
+
+        // 서버의 응답 메시지가 아닌, Axios(또는 Fetch)에서 발생한 에러 메시지를 기반으로 판단
+        if (errorMessage.includes("400")) {
+            alert('이미 해당 스터디/프로젝트의 멤버입니다.');
+            setUserMemberType('member');
+        } else {
+            alert('가입 신청에 실패했습니다. 다시 시도해주세요.');
+        }
+
+    } finally {
+        setIsApplying(false);
+    }
+};
 
 	const loadApplications = async () => {
 		if (!id || userMemberType !== 'leader') return;
@@ -479,51 +508,70 @@ const StudyDetailPage = () => {
 		}
 	};
 
-	const handleProcessApplication = async (userId: string, status: 'PENDING' | 'REJECTED', reason?: string) => {
-		if (!id) return;
+	const handleProcessApplication = async (userId: string, status: 'APPROVED' | 'REJECTED', reason?: string) => {
+	if (!id) return;
 
-		try {
-			const request = {
-				userId,
-				status,
-				...(reason && { reason })
-			};
+	try {
+		const request = {
+			userId,
+			status,
+			...(reason && { reason })
+		};
 
-			await processStudyApplication(parseInt(id, 10), request);
-			
-			if (status === 'PENDING') {
-				alert('가입 신청이 승인되었습니다.');
-			} else {
-				alert('가입 신청이 거절되었습니다.');
-			}
-
-			// 가입 신청 목록 새로고침
-			loadApplications();
-			
-			// 멤버 목록 새로고침
-			fetchStudyInfo();
-		} catch (error) {
-			console.error('가입 신청 처리 실패:', error);
-			alert('가입 신청 처리에 실패했습니다.');
+		await processStudyApplication(parseInt(id, 10), request);
+		
+		if (status === 'APPROVED') {
+			alert('가입 신청이 승인되었습니다.');
+		} else {
+			alert('가입 신청이 거절되었습니다.');
 		}
-	};
+
+		// 가입 신청 목록 새로고침
+		loadApplications();
+		
+		// 승인된 경우 멤버 목록도 새로고침
+		if (status === 'APPROVED') {
+			// 스터디 정보를 다시 불러와서 멤버 목록 업데이트
+			const studyProjectId = parseInt(id, 10);
+			const studyData = await StudyApiService.getStudyProject(studyProjectId);
+			if (studyData && studyData.members) {
+				setMembers(studyData.members);
+			}
+		}
+	} catch (error) {
+		console.error('가입 신청 처리 실패:', error);
+		alert('가입 신청 처리에 실패했습니다.');
+	}
+};
 
 	// 사용자의 가입 신청 상태 확인
 	const checkUserApplicationStatus = async () => {
 		if (!id || !authContext?.user?.nickname || userMemberType === 'leader' || userMemberType === 'member') {
+			console.log('가입 신청 상태 확인 건너뜀:', {
+				id,
+				nickname: authContext?.user?.nickname,
+				userMemberType,
+				reason: !id ? 'id 없음' : !authContext?.user?.nickname ? '로그인 안됨' : '이미 멤버'
+			});
 			return;
 		}
 
 		try {
+			console.log('가입 신청 상태 확인 시작:', { studyProjectId: id, userId: authContext?.user?.nickname });
 			const studyProjectId = parseInt(id, 10);
 			const applicationStatus = await getUserApplicationStatus(studyProjectId);
 			
-			if (applicationStatus) {
+			if (applicationStatus && applicationStatus.status === 'PENDING') {
 				setIsApplied(true);
-				console.log('사용자 가입 신청 상태:', applicationStatus);
+				console.log('✅ 사용자 가입 신청 상태: 승인 대기 중', applicationStatus);
+			} else {
+				setIsApplied(false);
+				console.log('❌ 사용자 가입 신청 상태: 신청하지 않음 또는 처리됨', applicationStatus);
 			}
 		} catch (error) {
-			console.error('가입 신청 상태 확인 실패:', error);
+			console.error('❌ 가입 신청 상태 확인 실패:', error);
+			// 에러 발생 시 신청하지 않은 상태로 설정
+			setIsApplied(false);
 		}
 	};
 
@@ -586,10 +634,16 @@ const StudyDetailPage = () => {
 
 	// 사용자 가입 신청 상태 확인
 	useEffect(() => {
-		if (id && authContext?.user?.nickname && !isLoading) {
+		if (id && authContext?.user?.nickname && !isLoading && !isStudyMember) {
 			checkUserApplicationStatus();
+		} else if (isStudyMember) {
+			// 스터디 멤버인 경우 신청 상태를 false로 설정
+			setIsApplied(false);
+		} else if (!authContext?.user?.nickname) {
+			// 로그인하지 않은 경우 신청 상태를 false로 설정
+			setIsApplied(false);
 		}
-	}, [id, authContext?.user?.nickname, isLoading, userMemberType]);
+	}, [id, authContext?.user?.nickname, isLoading, userMemberType, isStudyMember]);
 
 
 
@@ -950,7 +1004,7 @@ const StudyDetailPage = () => {
 										style={{ backgroundColor: "#6B7280" }}
 										disabled
 									>
-										가입 신청됨
+										승인 대기 중
 									</button>
 								)}
 							</div>
@@ -1033,6 +1087,8 @@ const StudyDetailPage = () => {
 						members={members}
 						applications={applications}
 						onProcessApplication={handleProcessApplication}
+						studyProjectId={parseInt(id!, 10)} // 추가
+						onApplyToStudy={handleApplyToStudy} // 추가
 					/>
 				</ResponsiveSidebar>
 

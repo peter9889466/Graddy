@@ -23,7 +23,6 @@ const JoinProfile: React.FC<JoinProfileProps> = ({ navigate, location, onNext })
     const [nickname, setNickname] = useState("");
     const [nicknameError, setNicknameError] = useState("");
     const [nicknameChecked, setNicknameChecked] = useState(false);
-    const [email, setEmail] = useState("");
     const [phonePrefix, setPhonePrefix] = useState("010");
     const [phoneMiddle, setPhoneMiddle] = useState("");
     const [phoneLast, setPhoneLast] = useState("");

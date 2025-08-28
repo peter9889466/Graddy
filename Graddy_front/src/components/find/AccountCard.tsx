@@ -1,5 +1,5 @@
 // 아이디, 비밀번호 찾기 컴포넌트
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { User, Phone, Lock, AlertCircle, Check, ArrowLeft } from "lucide-react";
 
@@ -13,10 +13,24 @@ const AccountCard: React.FC<AccountCardProps> = ({ onVerificationSuccess }) => {
     // 아이디 찾기 상태
     const [idName, setIdName] = useState("");
     const [idPhone, setIdPhone] = useState("");
-    
+    // 아이디 찾기용 전화번호 상태
+    const [idPhonePrefix, setIdPhonePrefix] = useState("010");
+    const [idPhoneMiddle, setIdPhoneMiddle] = useState("");
+    const [idPhoneLast, setIdPhoneLast] = useState("");
+        
     // 비밀번호 찾기 상태
     const [pwUserId, setPwUserId] = useState("");
     const [pwPhone, setPwPhone] = useState("");
+    // 비밀번호 찾기용 전화번호 상태  
+    const [pwPhonePrefix, setPwPhonePrefix] = useState("010");
+    const [pwPhoneMiddle, setPwPhoneMiddle] = useState("");
+    const [pwPhoneLast, setPwPhoneLast] = useState("");
+
+    // ref도 분리
+    const idPhoneMiddleRef = useRef<HTMLInputElement>(null);
+    const idPhoneLastRef = useRef<HTMLInputElement>(null);
+    const pwPhoneMiddleRef = useRef<HTMLInputElement>(null);
+    const pwPhoneLastRef = useRef<HTMLInputElement>(null);
     
     // 비밀번호 찾기 인증 관련 상태
     const [verificationCode, setVerificationCode] = useState("");
@@ -59,8 +73,62 @@ const AccountCard: React.FC<AccountCardProps> = ({ onVerificationSuccess }) => {
         setErrors({});
     };
 
-    const validatePhone = (phone: string) => {
-        return /^[0-9]{10,11}$/.test(phone.replace(/-/g, ''));
+    const handleIdPhoneMiddleChange = (value: string) => {
+        const numericValue = value.replace(/[^\d]/g, "").slice(0, 4);
+        setIdPhoneMiddle(numericValue);
+        
+        if (errors.idPhone) {
+            const newErrors = { ...errors };
+            delete newErrors.idPhone;
+            setErrors(newErrors);
+        }
+        
+        if (numericValue.length === 4 && idPhoneLastRef.current) {
+            idPhoneLastRef.current.focus();
+        }
+    };
+
+    const handleIdPhoneLastChange = (value: string) => {
+        const numericValue = value.replace(/[^\d]/g, "").slice(0, 4);
+        setIdPhoneLast(numericValue);
+        
+        if (errors.idPhone) {
+            const newErrors = { ...errors };
+            delete newErrors.idPhone;
+            setErrors(newErrors);
+        }
+    };
+
+    const handlePwPhoneMiddleChange = (value: string) => {
+        const numericValue = value.replace(/[^\d]/g, "").slice(0, 4);
+        setPwPhoneMiddle(numericValue);
+        
+        if (errors.pwPhone) {
+            const newErrors = { ...errors };
+            delete newErrors.pwPhone;
+            setErrors(newErrors);
+        }
+        
+        if (numericValue.length === 4 && pwPhoneLastRef.current) {
+            pwPhoneLastRef.current.focus();
+        }
+    };
+
+    const handlePwPhoneLastChange = (value: string) => {
+        const numericValue = value.replace(/[^\d]/g, "").slice(0, 4);
+        setPwPhoneLast(numericValue);
+        
+        if (errors.pwPhone) {
+            const newErrors = { ...errors };
+            delete newErrors.pwPhone;
+            setErrors(newErrors);
+        }
+    };
+
+    const validatePhone = (prefix: string, middle: string, last: string) => {
+        const middleValid = /^\d{4}$/.test(middle);
+        const lastValid = /^\d{4}$/.test(last);
+        return middleValid && lastValid && ["010", "011", "012", "017"].includes(prefix);
     };
 
     const handleFindId = async () => {
@@ -71,9 +139,7 @@ const AccountCard: React.FC<AccountCardProps> = ({ onVerificationSuccess }) => {
             newErrors.idName = "이름을 입력하세요.";
         }
 
-        if (!idPhone.trim()) {
-            newErrors.idPhone = "전화번호를 입력하세요.";
-        } else if (!validatePhone(idPhone)) {
+        if (!validatePhone(idPhonePrefix, idPhoneMiddle, idPhoneLast)) {
             newErrors.idPhone = "올바른 전화번호 형식이 아닙니다.";
         }
 
@@ -88,7 +154,7 @@ const AccountCard: React.FC<AccountCardProps> = ({ onVerificationSuccess }) => {
         try {
             const requestData = {
                 name: idName.trim(),
-                tel: idPhone.trim()
+                tel: idPhonePrefix + idPhoneMiddle + idPhoneLast
             };
             
             console.log('전송할 데이터:', requestData); // 디버깅용
@@ -118,6 +184,8 @@ const AccountCard: React.FC<AccountCardProps> = ({ onVerificationSuccess }) => {
         } finally {
             setIsLoading(false);
         }
+
+        const phoneNumber = idPhonePrefix + idPhoneMiddle + idPhoneLast;
     };
 
     const handleSendVerification = async () => {
@@ -128,9 +196,7 @@ const AccountCard: React.FC<AccountCardProps> = ({ onVerificationSuccess }) => {
             newErrors.pwUserId = "아이디를 입력하세요.";
         }
 
-        if (!pwPhone.trim()) {
-            newErrors.pwPhone = "전화번호를 입력하세요.";
-        } else if (!validatePhone(pwPhone)) {
+        if (!validatePhone(pwPhonePrefix, pwPhoneMiddle, pwPhoneLast)) {
             newErrors.pwPhone = "올바른 전화번호 형식이 아닙니다.";
         }
 
@@ -143,7 +209,7 @@ const AccountCard: React.FC<AccountCardProps> = ({ onVerificationSuccess }) => {
         setIsLoading(true);
 
         try {
-            // 1️⃣ 사용자 존재 여부 확인
+            // 사용자 존재 여부 확인
             const verifyResponse = await fetch("http://localhost:8080/api/password-find/verify-user", {
                 method: "POST",
                 headers: {
@@ -151,21 +217,21 @@ const AccountCard: React.FC<AccountCardProps> = ({ onVerificationSuccess }) => {
                 },
                 body: JSON.stringify({
                     userId: pwUserId.trim(),
-                    tel: pwPhone.trim(),
+                    tel: pwPhonePrefix + pwPhoneMiddle + pwPhoneLast
                 }),
             });
 
             const verifyResult = await verifyResponse.json();
 
             if (verifyResult.status === 200 && verifyResult.data === true) {
-                // 2️⃣ 인증번호 발송
+                // 인증번호 발송
                 const sendResponse = await fetch("http://localhost:8080/api/auth/send-code", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                        phoneNumber: pwPhone.trim(),
+                        phoneNumber: pwPhonePrefix + pwPhoneMiddle + pwPhoneLast
                     }),
                 });
 
@@ -187,6 +253,8 @@ const AccountCard: React.FC<AccountCardProps> = ({ onVerificationSuccess }) => {
         } finally {
             setIsLoading(false);
         }
+
+        const phoneNumber = pwPhonePrefix + pwPhoneMiddle + pwPhoneLast;
     };
 
     // 인증번호 입력
@@ -201,7 +269,7 @@ const AccountCard: React.FC<AccountCardProps> = ({ onVerificationSuccess }) => {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    phoneNumber: pwPhone.trim(),
+                    phoneNumber: pwPhonePrefix + pwPhoneMiddle + pwPhoneLast,
                     code: verificationCode.trim(),
                 }),
             });
@@ -233,14 +301,8 @@ const AccountCard: React.FC<AccountCardProps> = ({ onVerificationSuccess }) => {
             case 'idName':
                 setIdName(value);
                 break;
-            case 'idPhone':
-                setIdPhone(value);
-                break;
             case 'pwUserId':
                 setPwUserId(value);
-                break;
-            case 'pwPhone':
-                setPwPhone(value);
                 break;
             case 'verificationCode':
                 setVerificationCode(value.replace(/\D/g, '').slice(0, 6)); // 숫자만, 최대 6자리
@@ -394,24 +456,55 @@ const AccountCard: React.FC<AccountCardProps> = ({ onVerificationSuccess }) => {
                                 <div>
                                     <div className="flex items-center gap-2 mb-2">
                                         <div className="w-1 h-6 bg-indigo-600 rounded-full"></div>
-                                        <h3 className="text-xl font-bold text-gray-800">전화번호 </h3>
+                                        <h3 className="text-xl font-bold text-gray-800">전화번호</h3>
                                     </div>
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <Phone className="h-5 w-5 text-gray-400" />
+                                    <div className="flex gap-2">
+                                        <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <Phone className="h-5 w-5 text-gray-400" />
+                                    </div>
+                                    <select
+                                        value={idPhonePrefix}
+                                        onChange={(e) => setIdPhonePrefix(e.target.value)}
+                                        className="w-28 pl-10 pr-8 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:border-transparent transition-all duration-200 appearance-none bg-white"
+                                    >
+                                        <option value="010">010</option>
+                                        <option value="011">011</option>
+                                        <option value="012">012</option>
+                                        <option value="017">017</option>
+                                    </select>
+                                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                        <div className="flex items-center text-gray-400 font-bold text-lg">-</div>
+                                        <div className="relative flex-1">
+                                            <input
+                                                ref={idPhoneMiddleRef}
+                                                type="tel"
+                                                value={idPhoneMiddle}
+                                                onChange={(e) => handleIdPhoneMiddleChange(e.target.value)}
+                                                onKeyDown={handleIdFormKeyDown}
+                                                placeholder="0000"
+                                                className="w-full px-4 py-3 border border-gray-200 rounded-xl transition-all duration-200 text-center"
+                                                maxLength={4}
+                                            />
                                         </div>
-                                        <input
-                                            type="tel"
-                                            value={idPhone}
-                                            onChange={(e) => handleInputChange('idPhone', e.target.value)}
-                                            placeholder="전화번호를 입력하세요 (예: 01012345678)"
-                                            className={`w-full pl-10 pr-4 py-3 border rounded-xl transition-all duration-200 ${
-                                                errors.idPhone
-                                                    ? "border-red-300 focus:ring-red-200"
-                                                    : "border-gray-200 focus:ring-2 focus:border-transparent"
-                                            }`}
-                                            onKeyDown={handleIdFormKeyDown}
-                                        />
+                                        <div className="flex items-center text-gray-400 font-bold text-lg">-</div>
+                                        <div className="relative flex-1">
+                                            <input
+                                                ref={idPhoneLastRef}
+                                                type="tel"
+                                                value={idPhoneLast}
+                                                onChange={(e) => handleIdPhoneLastChange(e.target.value)}
+                                                onKeyDown={handleIdFormKeyDown}
+                                                placeholder="0000"
+                                                className="w-full px-4 py-3 border border-gray-200 rounded-xl transition-all duration-200 text-center"
+                                                maxLength={4}
+                                            />
+                                        </div>
                                     </div>
                                     {errors.idPhone && (
                                         <p className="text-red-500 text-sm mt-1">{errors.idPhone}</p>
@@ -482,28 +575,64 @@ const AccountCard: React.FC<AccountCardProps> = ({ onVerificationSuccess }) => {
                                         <div className="w-1 h-6 bg-indigo-600 rounded-full"></div>
                                         <h3 className="text-xl font-bold text-gray-800">전화번호</h3>
                                     </div>
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <Phone className="h-5 w-5 text-gray-400" />
-                                        </div>
+                                    <div className="flex gap-2">
+                                        <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <Phone className="h-5 w-5 text-gray-400" />
+                                    </div>
+                                    <select
+                                        value={idPhonePrefix}
+                                        onChange={(e) => setIdPhonePrefix(e.target.value)}
+                                        className="w-28 pl-10 pr-8 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:border-transparent transition-all duration-200 appearance-none bg-white"
+                                    >
+                                        <option value="010">010</option>
+                                        <option value="011">011</option>
+                                        <option value="012">012</option>
+                                        <option value="017">017</option>
+                                    </select>
+                                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                    <div className="flex items-center text-gray-400 font-bold text-lg">-</div>
+                                    <div className="relative flex-1">
                                         <input
+                                            ref={pwPhoneMiddleRef}
                                             type="tel"
-                                            value={pwPhone}
-                                            onChange={(e) => handleInputChange('pwPhone', e.target.value)}
-                                            placeholder="전화번호를 입력하세요 (예: 01012345678)"
-                                            disabled={isVerificationSent}
-                                            className={`w-full pl-10 pr-4 py-3 border rounded-xl transition-all duration-200 ${
-                                                errors.pwPhone
-                                                    ? "border-red-300 focus:ring-red-200"
-                                                    : "border-gray-200 focus:ring-2 focus:border-transparent"
-                                            } ${isVerificationSent ? "bg-gray-100 cursor-not-allowed" : ""}`}
+                                            value={pwPhoneMiddle}
+                                            onChange={(e) => handlePwPhoneMiddleChange(e.target.value)}
                                             onKeyDown={handlePasswordFormKeyDown}
+                                            placeholder="0000"
+                                            disabled={isVerificationSent}
+                                            className={`w-full px-4 py-3 border border-gray-200 rounded-xl transition-all duration-200 text-center ${
+                                                isVerificationSent ? "bg-gray-100 cursor-not-allowed" : ""
+                                            }`}
+                                            maxLength={4}
                                         />
                                     </div>
-                                    {errors.pwPhone && (
-                                        <p className="text-red-500 text-sm mt-1">{errors.pwPhone}</p>
-                                    )}
+                                    <div className="flex items-center text-gray-400 font-bold text-lg">-</div>
+                                    <div className="relative flex-1">
+                                        <input
+                                            ref={pwPhoneLastRef}
+                                            type="tel"
+                                            value={pwPhoneLast}
+                                            onChange={(e) => handlePwPhoneLastChange(e.target.value)}
+                                            onKeyDown={handlePasswordFormKeyDown}
+                                            placeholder="0000"
+                                            disabled={isVerificationSent}
+                                            className={`w-full px-4 py-3 border border-gray-200 rounded-xl transition-all duration-200 text-center ${
+                                                isVerificationSent ? "bg-gray-100 cursor-not-allowed" : ""
+                                            }`}
+                                            maxLength={4}
+                                        />
+                                    </div>
                                 </div>
+                                {errors.pwPhone && (
+                                    <p className="text-red-500 text-sm mt-1">{errors.pwPhone}</p>
+                                )}
+                            </div>
 
                                 {/* 인증번호 입력 (인증번호 발송 후에만 표시) */}
                                 {isVerificationSent && (
@@ -578,6 +707,9 @@ const AccountCard: React.FC<AccountCardProps> = ({ onVerificationSuccess }) => {
                                                 setVerificationCode("");
                                                 setVerificationTimer(0);
                                                 clearErrors();
+                                                setPwPhonePrefix("010");
+                                                setPwPhoneMiddle("");
+                                                setPwPhoneLast("");
                                             }}
                                             className="w-full py-3 px-6 rounded-xl font-medium text-gray-600 border border-gray-300 hover:bg-gray-50 transition-all duration-200"
                                         >

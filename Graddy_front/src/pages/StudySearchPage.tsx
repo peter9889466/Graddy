@@ -211,11 +211,20 @@ export const StudySearchPage = () => {
             console.log("모집중 필터 적용 후:", filtered.length);
         } else if (selectedStatus === "모집 완료") {
             filtered = filtered.filter(
-                (study) =>
-                    study.recruitmentStatus === "모집 완료" ||
-                    study.recruitmentStatus === "스터디 종료"
+                (study) => study.recruitmentStatus === "모집 완료"
             );
             console.log("모집완료 필터 적용 후:", filtered.length);
+        } else if (selectedStatus === "종료됨") {
+            filtered = filtered.filter(
+                (study) => study.recruitmentStatus === "스터디 종료"
+            );
+            console.log("종료됨 필터 적용 후:", filtered.length);
+        } else {
+            // "전체" 선택 시: 모집중, 모집완료만 표시 (종료된 것은 제외)
+            filtered = filtered.filter(
+                (study) => study.recruitmentStatus !== "스터디 종료"
+            );
+            console.log("전체 필터 적용 후:", filtered.length);
         }
 
         // 타입 필터링 (스터디/프로젝트)
@@ -267,6 +276,7 @@ export const StudySearchPage = () => {
         { value: "전체", label: "전체" },
         { value: "모집중", label: "모집중" },
         { value: "모집 완료", label: "모집완료" },
+        { value: "종료됨", label: "종료됨" },
     ];
 
     const typeOptions = [
