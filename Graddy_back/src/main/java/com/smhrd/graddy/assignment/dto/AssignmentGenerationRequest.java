@@ -23,3 +23,5 @@ public class AssignmentGenerationRequest {
     private String studyProjectEnd;
     private String typeCheck = "study";
 }
+
+

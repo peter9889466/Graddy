@@ -26,7 +26,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 import java.util.ArrayList;
+import java.util.stream.Collectors;
 import com.smhrd.graddy.auth.dto.UnifiedPhoneVerificationResponse;
+import com.smhrd.graddy.user.dto.MyPageResponse;
+import com.smhrd.graddy.study.repository.StudyProjectRepository;
+import com.smhrd.graddy.study.entity.StudyProject;
+import com.smhrd.graddy.user.dto.StudyProjectListResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -41,6 +46,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final DaysRepository daysRepository;
     private final VerificationService verificationService;
+    private final StudyProjectRepository studyProjectRepository;
 
     /**
      * [추가] 사용자 아이디 중복 확인 메서드
@@ -386,5 +392,97 @@ public class UserService {
                 "인증번호 발송에 실패했습니다: " + e.getMessage(), tel
             );
         }
+    }
+    
+    /**
+     * 현재 로그인한 사용자의 마이페이지 정보를 조회
+     * 
+     * @param userId 사용자 ID
+     * @return 마이페이지 응답 DTO
+     * @throws IllegalArgumentException 사용자를 찾을 수 없는 경우
+     */
+    public MyPageResponse getMyPageInfo(String userId) {
+        System.out.println("마이페이지 정보 조회 시작: userId=" + userId);
+        
+        // 사용자 정보와 관심분야를 함께 조회
+        User user = userRepository.findByIdWithInterests(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + userId));
+        
+        // 사용자 점수 조회
+        UserScore userScore = userScoreRepository.findByUserId(userId)
+                .orElse(new UserScore()); // 점수가 없으면 빈 객체로 설정
+        
+        // 관심분야 목록 추출
+        List<String> interests = user.getUserInterests().stream()
+                .map(userInterest -> userInterest.getInterest().getInterestName())
+                .collect(Collectors.toList());
+        
+        // 마이페이지 응답 생성
+        MyPageResponse response = MyPageResponse.builder()
+                .nick(user.getNick())
+                .gitUrl(user.getGitUrl())
+                .userScore(userScore.getUserScore() != null ? userScore.getUserScore() : 0)
+                .interests(interests)
+                .userRefer(user.getUserRefer())
+                .build();
+        
+        System.out.println("마이페이지 정보 조회 완료: userId=" + userId + ", nick=" + user.getNick() + ", score=" + (userScore.getUserScore() != null ? userScore.getUserScore() : 0) + ", interests=" + interests);
+        
+        return response;
+    }
+    
+    /**
+     * 현재 로그인한 사용자의 스터디/프로젝트 목록을 조회
+     * 
+     * @param userId 사용자 ID
+     * @param status 필터링할 상태 (ALL, RECRUITING, COMPLETE, END)
+     * @return 스터디/프로젝트 목록 응답 DTO 리스트
+     */
+    public List<StudyProjectListResponse> getStudyProjectList(String userId, String status) {
+        System.out.println("스터디/프로젝트 목록 조회 시작: userId=" + userId + ", status=" + status);
+        
+        List<StudyProject> studyProjects;
+        
+        // 상태에 따른 필터링
+        switch (status.toUpperCase()) {
+            case "RECRUITING":
+                studyProjects = studyProjectRepository.findStudyProjectsByUserIdAndRecruitingStatus(
+                    userId, StudyProject.RecruitingStatus.recruitment);
+                break;
+            case "COMPLETE":
+                studyProjects = studyProjectRepository.findStudyProjectsByUserIdAndRecruitingStatus(
+                    userId, StudyProject.RecruitingStatus.complete);
+                break;
+            case "END":
+                studyProjects = studyProjectRepository.findStudyProjectsByUserIdAndRecruitingStatus(
+                    userId, StudyProject.RecruitingStatus.end);
+                break;
+            case "ALL":
+            default:
+                studyProjects = studyProjectRepository.findStudyProjectsByUserId(userId);
+                break;
+        }
+        
+        // DTO로 변환
+        List<StudyProjectListResponse> responseList = studyProjects.stream()
+                .map(sp -> StudyProjectListResponse.builder()
+                        .studyProjectId(sp.getStudyProjectId())
+                        .studyProjectName(sp.getStudyProjectName())
+                        .studyProjectTitle(sp.getStudyProjectTitle())
+                        .studyProjectDesc(sp.getStudyProjectDesc())
+                        .typeCheck(sp.getTypeCheck().name())
+                        .userId(sp.getUserId())
+                        .isRecruiting(sp.getIsRecruiting().name())
+                        .studyProjectStart(sp.getStudyProjectStart())
+                        .studyProjectEnd(sp.getStudyProjectEnd())
+                        .studyProjectTotal(sp.getStudyProjectTotal())
+                        .soltStart(sp.getSoltStart() != null ? sp.getSoltStart().toString() : null)
+                        .soltEnd(sp.getSoltEnd() != null ? sp.getSoltEnd().toString() : null)
+                        .build())
+                .collect(Collectors.toList());
+        
+        System.out.println("스터디/프로젝트 목록 조회 완료: userId=" + userId + ", count=" + responseList.size());
+        
+        return responseList;
     }
 }

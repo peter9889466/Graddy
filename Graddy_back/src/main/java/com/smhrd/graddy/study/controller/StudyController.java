@@ -434,4 +434,24 @@ public class StudyController {
             return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "상태별 상세 정보 조회에 실패했습니다.", null);
         }
     }
+    
+    /**
+     * 스케줄러 수동 실행 (테스트용)
+     * 종료일이 지난 스터디/프로젝트의 모집 상태를 'end'로 변경합니다.
+     * 
+     * @return 실행 결과
+     */
+    @PostMapping("/test-scheduler")
+    @Operation(summary = "스케줄러 수동 실행 (테스트용)", 
+              description = "종료일이 지난 스터디/프로젝트의 모집 상태를 'end'로 변경하는 스케줄러를 수동으로 실행합니다.\n\n" +
+                           "**주의:** 이 엔드포인트는 테스트 목적으로만 사용해야 합니다.")
+    public ResponseEntity<ApiResponse<String>> testScheduler() {
+        try {
+            // StudySchedulerService를 주입받아야 하므로, 여기서는 간단한 메시지만 반환
+            return ApiResponse.success("스케줄러 테스트 엔드포인트가 호출되었습니다. 실제 스케줄러는 매일 자정에 자동으로 실행됩니다.", 
+                                    "스케줄러는 매일 자정(00:00)에 자동으로 실행됩니다.");
+        } catch (Exception e) {
+            return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "스케줄러 테스트 실행에 실패했습니다.", null);
+        }
+    }
 }

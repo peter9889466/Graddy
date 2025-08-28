@@ -349,12 +349,19 @@ const StudyDetailPage = () => {
 		
 		if (confirm("스터디를 종료하시겠습니까?")) {
 			try {
+				console.log('스터디 종료 요청 시작:', id);
 				await StudyApiService.updateStudyProjectStatus(parseInt(id, 10), "end");
 				alert("스터디가 종료되었습니다.");
-				// 스터디 종료 후 페이지 이동 또는 상태 업데이트
+				// 페이지 새로고침 또는 상태 업데이트
+				window.location.reload();
 			} catch (error) {
 				console.error('스터디 종료 실패:', error);
-				alert('스터디 종료에 실패했습니다.');
+				// 더 자세한 오류 정보 표시
+				if (error instanceof Error) {
+					alert(`스터디 종료에 실패했습니다: ${error.message}`);
+				} else {
+					alert('스터디 종료에 실패했습니다.');
+				}
 			}
 		}
 	};
@@ -450,40 +457,44 @@ const StudyDetailPage = () => {
 
 	// 가입 신청 관련 함수들
 	const handleApplyToStudy = async () => {
-		if (!id || !authContext?.user?.nickname) {
-			alert('로그인이 필요합니다.');
-			return;
-		}
+    if (!id || !authContext?.user?.nickname) {
+        alert('로그인이 필요합니다.');
+        return;
+    }
 
-		setIsApplying(true);
-		try {
-			const request = {
-				studyProjectId: parseInt(id, 10),
-				message: "열심히 참여하겠습니다!"
-			};
+    setIsApplying(true);
+    try {
+        const request = {
+            studyProjectId: parseInt(id, 10),
+            message: "열심히 참여하겠습니다!"
+        };
 
-			const response = await applyToStudyProject(request);
-			alert('가입 신청이 완료되었습니다!');
-			setIsApplied(true);
-			
-			// 가입 신청 목록 새로고침 (리더인 경우)
-			if (userMemberType === 'leader') {
-				loadApplications();
-			}
-		} catch (error: any) {
-			console.error('가입 신청 실패:', error);
-			
-			// 이미 신청한 경우의 에러 처리
-			if (error.message && error.message.includes('이미 신청한')) {
-				alert('이미 가입 신청을 하셨습니다.');
-				setIsApplied(true);
-			} else {
-				alert('가입 신청에 실패했습니다. 다시 시도해주세요.');
-			}
-		} finally {
-			setIsApplying(false);
-		}
-	};
+        await applyToStudyProject(request);
+        
+        alert('가입 신청이 완료되었습니다!');
+        setIsApplied(true);
+        
+        if (userMemberType === 'leader') {
+            loadApplications();
+        }
+    } catch (error: any) {
+        console.error('가입 신청 실패:', error);
+        
+        // 에러 객체의 message 속성을 먼저 확인
+        const errorMessage = error.message;
+
+        // 서버의 응답 메시지가 아닌, Axios(또는 Fetch)에서 발생한 에러 메시지를 기반으로 판단
+        if (errorMessage.includes("400")) {
+            alert('이미 해당 스터디/프로젝트의 멤버입니다.');
+            setUserMemberType('member');
+        } else {
+            alert('가입 신청에 실패했습니다. 다시 시도해주세요.');
+        }
+
+    } finally {
+        setIsApplying(false);
+    }
+};
 
 	const loadApplications = async () => {
 		if (!id || userMemberType !== 'leader') return;
@@ -497,41 +508,41 @@ const StudyDetailPage = () => {
 		}
 	};
 
-	const handleProcessApplication = async (userId: string, status: 'PENDING' | 'REJECTED', reason?: string) => {
-		if (!id) return;
+	const handleProcessApplication = async (userId: string, status: 'APPROVED' | 'REJECTED', reason?: string) => {
+	if (!id) return;
 
-		try {
-			const request = {
-				userId,
-				status,
-				...(reason && { reason })
-			};
+	try {
+		const request = {
+			userId,
+			status,
+			...(reason && { reason })
+		};
 
-			await processStudyApplication(parseInt(id, 10), request);
-			
-			if (status === 'PENDING') {
-				alert('가입 신청이 승인되었습니다.');
-			} else {
-				alert('가입 신청이 거절되었습니다.');
-			}
-
-			// 가입 신청 목록 새로고침
-			loadApplications();
-			
-			// 승인된 경우 멤버 목록도 새로고침
-			if (status === 'PENDING') {
-				// 스터디 정보를 다시 불러와서 멤버 목록 업데이트
-				const studyProjectId = parseInt(id, 10);
-				const studyData = await StudyApiService.getStudyProject(studyProjectId);
-				if (studyData && studyData.members) {
-					setMembers(studyData.members);
-				}
-			}
-		} catch (error) {
-			console.error('가입 신청 처리 실패:', error);
-			alert('가입 신청 처리에 실패했습니다.');
+		await processStudyApplication(parseInt(id, 10), request);
+		
+		if (status === 'APPROVED') {
+			alert('가입 신청이 승인되었습니다.');
+		} else {
+			alert('가입 신청이 거절되었습니다.');
 		}
-	};
+
+		// 가입 신청 목록 새로고침
+		loadApplications();
+		
+		// 승인된 경우 멤버 목록도 새로고침
+		if (status === 'APPROVED') {
+			// 스터디 정보를 다시 불러와서 멤버 목록 업데이트
+			const studyProjectId = parseInt(id, 10);
+			const studyData = await StudyApiService.getStudyProject(studyProjectId);
+			if (studyData && studyData.members) {
+				setMembers(studyData.members);
+			}
+		}
+	} catch (error) {
+		console.error('가입 신청 처리 실패:', error);
+		alert('가입 신청 처리에 실패했습니다.');
+	}
+};
 
 	// 사용자의 가입 신청 상태 확인
 	const checkUserApplicationStatus = async () => {
@@ -1076,6 +1087,8 @@ const StudyDetailPage = () => {
 						members={members}
 						applications={applications}
 						onProcessApplication={handleProcessApplication}
+						studyProjectId={parseInt(id!, 10)} // 추가
+						onApplyToStudy={handleApplyToStudy} // 추가
 					/>
 				</ResponsiveSidebar>
 
