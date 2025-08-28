@@ -11,7 +11,7 @@ services:
             - graddy-net
         restart: always # 항상 재시작 옵션 추가
 
-    # 2. Spring Boot 백엔드 서비스
+    # 2. Spring Boot 백엔드 서비스 (Python 스크립트 포함)
     graddy-back:
         container_name: graddy-back
         # [수정] build 대신 Docker Hub의 image를 사용하도록 변경
@@ -24,23 +24,6 @@ services:
         networks:
             - graddy-net
         restart: always # 항상 재시작 옵션 추가
-
-    # 3. FastAPI 파이썬 서비스
-    graddy-python:
-        container_name: graddy-python
-        # [수정] build 대신 Docker Hub의 image를 사용하도록 변경
-        image: DOCKER_HUB_USERNAME_PLACEHOLDER/graddy-python:latest
-        ports:
-            - "8000:8000" # EC2의 8000번 포트를 컨테이너의 8000번 포트와 연결
-        # [추가] .env 파일에 있는 환경 변수들을 컨테이너 내부로 주입
-        env_file:
-            - .env
-        networks:
-            - graddy-net
-        restart: always # 항상 재시작 옵션 추가
-        # [추가] 백엔드 서비스가 먼저 실행된 후 실행되도록 의존성 설정
-        depends_on:
-            - graddy-back
 
 # 서비스들이 사용할 네트워크를 정의합니다.
 networks:
