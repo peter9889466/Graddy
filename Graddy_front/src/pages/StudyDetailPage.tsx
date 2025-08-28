@@ -349,12 +349,19 @@ const StudyDetailPage = () => {
 		
 		if (confirm("스터디를 종료하시겠습니까?")) {
 			try {
+				console.log('스터디 종료 요청 시작:', id);
 				await StudyApiService.updateStudyProjectStatus(parseInt(id, 10), "end");
 				alert("스터디가 종료되었습니다.");
-				// 스터디 종료 후 페이지 이동 또는 상태 업데이트
+				// 페이지 새로고침 또는 상태 업데이트
+				window.location.reload();
 			} catch (error) {
 				console.error('스터디 종료 실패:', error);
-				alert('스터디 종료에 실패했습니다.');
+				// 더 자세한 오류 정보 표시
+				if (error instanceof Error) {
+					alert(`스터디 종료에 실패했습니다: ${error.message}`);
+				} else {
+					alert('스터디 종료에 실패했습니다.');
+				}
 			}
 		}
 	};
@@ -501,41 +508,41 @@ const StudyDetailPage = () => {
 		}
 	};
 
-	const handleProcessApplication = async (userId: string, status: 'PENDING' | 'REJECTED', reason?: string) => {
-		if (!id) return;
+	const handleProcessApplication = async (userId: string, status: 'APPROVED' | 'REJECTED', reason?: string) => {
+	if (!id) return;
 
-		try {
-			const request = {
-				userId,
-				status,
-				...(reason && { reason })
-			};
+	try {
+		const request = {
+			userId,
+			status,
+			...(reason && { reason })
+		};
 
-			await processStudyApplication(parseInt(id, 10), request);
-			
-			if (status === 'PENDING') {
-				alert('가입 신청이 승인되었습니다.');
-			} else {
-				alert('가입 신청이 거절되었습니다.');
-			}
-
-			// 가입 신청 목록 새로고침
-			loadApplications();
-			
-			// 승인된 경우 멤버 목록도 새로고침
-			if (status === 'PENDING') {
-				// 스터디 정보를 다시 불러와서 멤버 목록 업데이트
-				const studyProjectId = parseInt(id, 10);
-				const studyData = await StudyApiService.getStudyProject(studyProjectId);
-				if (studyData && studyData.members) {
-					setMembers(studyData.members);
-				}
-			}
-		} catch (error) {
-			console.error('가입 신청 처리 실패:', error);
-			alert('가입 신청 처리에 실패했습니다.');
+		await processStudyApplication(parseInt(id, 10), request);
+		
+		if (status === 'APPROVED') {
+			alert('가입 신청이 승인되었습니다.');
+		} else {
+			alert('가입 신청이 거절되었습니다.');
 		}
-	};
+
+		// 가입 신청 목록 새로고침
+		loadApplications();
+		
+		// 승인된 경우 멤버 목록도 새로고침
+		if (status === 'APPROVED') {
+			// 스터디 정보를 다시 불러와서 멤버 목록 업데이트
+			const studyProjectId = parseInt(id, 10);
+			const studyData = await StudyApiService.getStudyProject(studyProjectId);
+			if (studyData && studyData.members) {
+				setMembers(studyData.members);
+			}
+		}
+	} catch (error) {
+		console.error('가입 신청 처리 실패:', error);
+		alert('가입 신청 처리에 실패했습니다.');
+	}
+};
 
 	// 사용자의 가입 신청 상태 확인
 	const checkUserApplicationStatus = async () => {

@@ -35,7 +35,7 @@ interface StudyDetailSideBarProps {
         message: string;
         appliedAt: string;
     }>;
-    onProcessApplication?: (userId: string, status: 'PENDING' | 'REJECTED', reason?: string) => void;
+    onProcessApplication?: (userId: string, status: 'APPROVED' | 'REJECTED', reason?: string) => void;
     studyProjectId?: number; // 스터디 프로젝트 ID 추가
     onApplyToStudy?: () => void; // 가입 신청 콜백 함수 추가
 }
@@ -106,35 +106,10 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
         setSelectedMember(null);
     };
 
-    const handleProcessApplication = async (
-    userId: string,
-    status: 'APPROVED' | 'REJECTED',
-    reason?: string
-) => {
-    if (!studyProjectId) {
-        console.error("studyProjectId가 없습니다.");
-        return;
-    }
-
-    try {
-        const response = await axios.post(
-            `http://localhost:8080/api/study-applications/${studyProjectId}/process`,
-            {
-                userId,
-                status,
-                reason: reason || ""
-            }
-        );
-
-        if (response.data.status === 200) {
-            alert(response.data.message);
-            // TODO: 처리 후 UI 업데이트 필요 시, 예: applications 목록 갱신
-        } else {
-            alert("처리에 실패했습니다.");
-        }
-    } catch (error) {
-        console.error(error);
-        alert("요청 중 오류가 발생했습니다.");
+    
+const handleProcessApplication = async (userId: string, status: 'APPROVED' | 'REJECTED', reason?: string) => {
+    if (onProcessApplication) {
+        onProcessApplication(userId, status, reason);
     }
 };
 
@@ -216,20 +191,20 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
         </p>
         <div className="flex gap-2">
             <button
-                onClick={() => handleProcessApplication(application.userId, 'APPROVED')}
-                className="flex-1 px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
-            >
-                수락
-            </button>
-            <button
-                onClick={() => {
-                    const reason = prompt('거절 사유를 입력하세요 (선택사항):');
-                    handleProcessApplication(application.userId, 'REJECTED', reason || undefined);
-                }}
-                className="flex-1 px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-            >
-                거절
-            </button>
+    onClick={() => handleProcessApplication(application.userId, 'APPROVED')}
+    className="flex-1 px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+>
+    수락
+</button>
+<button
+    onClick={() => {
+        const reason = prompt('거절 사유를 입력하세요 (선택사항):');
+        handleProcessApplication(application.userId, 'REJECTED', reason || undefined);
+    }}
+    className="flex-1 px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+>
+    거절
+</button>
         </div>
     </div>
 ))}

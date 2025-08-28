@@ -17,9 +17,10 @@ export interface BackendStudyProjectData {
     soltEnd: string;
     createdAt: string;
     curText: string | null;
+    gitUrl: string | null;  // 추가
     tagNames: string[];
-    availableDays: string[];
-    currentMemberCount?: number;
+    availableDays: number[];  // string[]에서 number[]로 변경
+    currentMemberCount: number;  // 추가
     members?: Array<{
         memberId: number;
         userId: string;
@@ -28,7 +29,16 @@ export interface BackendStudyProjectData {
         memberStatus: string;
         joinedAt: string;
     }>;
-    userParticipationStatus?: string;
+    userParticipationStatus: string;  // 추가
+    applicationStatus: string | null;  // 추가
+    applicationDate: string | null;  // 추가
+    studyStatus: string;  // 추가
+    studyProjectStatus?: {  // 추가
+        userId: string;
+        studyProjectId: number;
+        status: string;
+        joinedAt: string;
+    };
 }
 
 // 스터디 데이터 타입 정의
@@ -258,7 +268,8 @@ export class StudyApiService {
         try {
             console.log('updateStudyProjectStatus 호출 시작:', { studyProjectId, status });
             
-            const response = await apiPatch<BackendStudyProjectData>(`/studies-projects/${studyProjectId}/status`, { status });
+            // body가 아닌 쿼리 파라미터로 status 전달
+            const response = await apiPatch<BackendStudyProjectData>(`/studies-projects/${studyProjectId}/status?status=${status}`);
             console.log('updateStudyProjectStatus 응답:', response);
             
             return response.data;
@@ -284,9 +295,9 @@ export interface StudyApplicationResponse {
 }
 
 export interface ProcessApplicationRequest {
-	userId: string;
-	status: 'PENDING' | 'REJECTED';
-	reason?: string;
+    userId: string;
+    status: 'APPROVED' | 'REJECTED';  // 백엔드 API와 일치
+    reason?: string;
 }
 
 // 가입 신청 API
