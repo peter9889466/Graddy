@@ -6,6 +6,11 @@ on:
     push:
         branches: ["main"]
 
+# 동시 실행 제한 (무한 빌드 방지)
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
 # 워크플로우에서 사용할 환경 변수를 중앙에서 관리합니다.
 env:
     AWS_REGION: ap-northeast-1
