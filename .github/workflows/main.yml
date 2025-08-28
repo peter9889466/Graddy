@@ -55,17 +55,15 @@ jobs:
                   aws-region: ${{ env.AWS_REGION }}
 
             # 6. [개선] 배포 패키지 생성
-            # S3에 업로드할 deploy.zip 파일에 포함될 파일들만 deploy/ 디렉토리에 복사합니다.
             - name: Create deployment package
               run: |
                   mkdir -p deploy
                   cp docker-compose.yml deploy/
                   cp appspec.yml deploy/
-                  # deploy.env 파일 생성하여 deploy/ 디렉토리에 추가
                   echo "DOCKER_HUB_ID=${{ secrets.DOCKER_HUB_USERNAME }}" > deploy/deploy.env
-                  # 스크립트 폴더가 있다면 통째로 복사
-                  if [ -d "./scripts" ]; then
-                    cp -r ./scripts deploy/
+                  # [수정] Graddy_back 내부에 있는 scripts 폴더를 복사하도록 경로를 수정합니다.
+                  if [ -d "./Graddy_back/scripts" ]; then
+                    cp -r ./Graddy_back/scripts deploy/
                   fi
 
             # 7. 배포 패키지를 zip으로 압축
