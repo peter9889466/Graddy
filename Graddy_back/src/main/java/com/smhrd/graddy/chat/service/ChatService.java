@@ -36,34 +36,34 @@ public class ChatService {
      * 클라이언트로부터 받은 채팅 메시지를 처리하고 저장
      * 
      * 처리 과정:
-     * 1. 멤버십 검증: 요청한 memberId가 해당 스터디의 멤버인지 확인
+     * 1. 멤버십 검증: 요청한 userId가 해당 스터디의 멤버인지 확인
      * 2. 메시지 저장: 검증된 메시지를 데이터베이스에 저장
      * 3. 응답 생성: 클라이언트에게 브로드캐스팅할 응답 DTO 생성
      * 
      * @param studyProjectId 메시지를 보낼 스터디/프로젝트 ID
+     * @param userId JWT 토큰에서 추출한 사용자 ID
      * @param request 클라이언트가 보낸 메시지 요청 DTO
      * @return 클라이언트들에게 브로드캐스팅될 메시지 응답 DTO
      * @throws IllegalArgumentException 멤버가 아닌 경우 또는 유효하지 않은 요청
      */
     @Transactional
-    public ChatMessageResponse processAndSaveMessage(Long studyProjectId, ChatMessageRequest request) {
-        log.info("채팅 메시지 처리 시작: studyProjectId={}, memberId={}, type={}", 
-                studyProjectId, request.getMemberId(), request.getMessageType());
+    public ChatMessageResponse processAndSaveMessage(Long studyProjectId, String userId, ChatMessageRequest request) {
+        log.info("채팅 메시지 처리 시작: studyProjectId={}, userId={}, type={}", 
+                studyProjectId, userId, request.getMessageType());
         
-        // 1. 멤버십 검증: 요청한 memberId가 해당 스터디의 멤버인지 확인
-        boolean isMember = memberRepository.existsByStudyProjectIdAndMemberId(
-                studyProjectId, request.getMemberId());
-        
-        if (!isMember) {
-            log.warn("채팅 권한 없음: studyProjectId={}, memberId={}", studyProjectId, request.getMemberId());
+        // 1. userId를 통해 memberId 조회
+        Optional<Member> memberOpt = memberRepository.findByUserIdAndStudyProjectId(userId, studyProjectId);
+        if (memberOpt.isEmpty()) {
+            log.warn("채팅 권한 없음: studyProjectId={}, userId={}", studyProjectId, userId);
             throw new IllegalArgumentException("해당 스터디의 멤버가 아니므로 메시지를 보낼 수 없습니다.");
         }
         
-        log.info("멤버십 검증 완료: studyProjectId={}, memberId={}", studyProjectId, request.getMemberId());
+        Long memberId = memberOpt.get().getMemberId();
+        log.info("멤버십 검증 완료: studyProjectId={}, userId={}, memberId={}", studyProjectId, userId, memberId);
 
         // 2. 메시지 엔티티 생성 및 저장
         ChatMessage chatMessage = ChatMessage.builder()
-                .memberId(request.getMemberId())
+                .memberId(memberId)
                 .studyProjectId(studyProjectId)
                 .content(request.getContent())
                 .fileUrl(request.getFileUrl())
@@ -73,8 +73,8 @@ public class ChatService {
         log.info("메시지 저장 완료: messageId={}", savedMessage.getMessageId());
 
         // 3. 발신자 정보 조회 (닉네임 등)
-        String senderNick = getSenderNickname(request.getMemberId());
-        log.info("발신자 정보 조회 완료: memberId={}, nickname={}", request.getMemberId(), senderNick);
+        String senderNick = getSenderNickname(memberId);
+        log.info("발신자 정보 조회 완료: memberId={}, nickname={}", memberId, senderNick);
 
         // 4. 응답 DTO 생성 및 반환
         ChatMessageResponse response = ChatMessageResponse.from(
