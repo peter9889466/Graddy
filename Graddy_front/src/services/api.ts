@@ -69,7 +69,7 @@ export const apiRequest = async <T>(
             if (errorData.message && errorData.message.includes('JWT expired')) {
                 console.log('JWT 토큰이 만료되었습니다. 로그아웃 처리합니다.');
                 // localStorage에서 토큰 제거
-                localStorage.removeItem('token');
+                localStorage.removeItem('userToken');
                 // 로그인 페이지로 리다이렉트
                 window.location.href = '/login';
                 return;
@@ -86,7 +86,7 @@ export const apiRequest = async <T>(
         // JWT 만료 에러 처리 (catch 블록에서도)
         if (error instanceof Error && error.message.includes('JWT expired')) {
             console.log('JWT 토큰이 만료되었습니다. 로그아웃 처리합니다.');
-            localStorage.removeItem('token');
+            localStorage.removeItem('userToken');
             window.location.href = '/login';
             return;
         }

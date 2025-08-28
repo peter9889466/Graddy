@@ -338,3 +338,7 @@ export const getUserApplicationStatus = async (studyProjectId: number): Promise<
 	}
 };
 
+// 커리큘럼 텍스트 업데이트 함수
+export const updateCurriculumText = async (studyProjectId: number, curText: string): Promise<void> => {
+    await apiPatch(`/studies-projects/${studyProjectId}/curriculum`, { curText });
+};
