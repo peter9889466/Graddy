@@ -112,38 +112,40 @@ const Community: React.FC<CommunityProps> = ({
     };
 
     const createPost = async (title: string, content: string) => {
-        if (!studyProjectId || !title.trim() || !content.trim()) return;
-        
-        setIsSubmitting(true);
-        
-        try {
-            const response = await fetch('http://localhost:8080/api/posts', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    studyProjectId: studyProjectId,
-                    title: title.trim(),
-                    content: content.trim()
-                })
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            // 게시글 작성 성공 후 목록 새로고침
-            await fetchPosts();
-            setNewPost('');
-            setNewPostTitle('');
-        } catch (error) {
-            console.error('게시글 작성 실패:', error);
-            alert('게시글 작성에 실패했습니다.');
-        } finally {
-            setIsSubmitting(false);
+    // studyProjectId와 사용자의 nickname이 모두 존재하는지 확인합니다.
+    if (!studyProjectId || !user?.nickname || !title.trim() || !content.trim()) return;
+
+    setIsSubmitting(true);
+
+    try {
+        const response = await fetch('http://localhost:8080/api/posts', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                studyProjectId: studyProjectId,
+                memberId: user.nickname, // ✅ AuthContext에서 가져온 nickname을 memberId로 사용
+                title: title.trim(),
+                content: content.trim()
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-    };
+
+        // 성공적으로 게시글을 작성한 후 목록을 새로고침합니다.
+        await fetchPosts();
+        setNewPost('');
+        setNewPostTitle('');
+    } catch (error) {
+        console.error('게시글 작성 실패:', error);
+        alert('게시글 작성에 실패했습니다.');
+    } finally {
+        setIsSubmitting(false);
+    }
+};
 
     const updatePost = async (postId: string, title: string, content: string) => {
         try {
