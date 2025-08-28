@@ -54,17 +54,19 @@ jobs:
                   aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
                   aws-region: ${{ env.AWS_REGION }}
 
-            # 6. [개선] 배포 패키지 생성
+            # 6. 배포 패키지 생성
             - name: Create deployment package
               run: |
                   mkdir -p deploy
                   cp docker-compose.yml deploy/
                   cp appspec.yml deploy/
                   echo "DOCKER_HUB_ID=${{ secrets.DOCKER_HUB_USERNAME }}" > deploy/deploy.env
-                  # [수정] 루트의 scripts 폴더를 복사하도록 경로를 수정합니다.
-                  if [ -d "./scripts" ]; then
-                    cp -r ./scripts deploy/
-                  fi
+                  # [수정] scripts 폴더 복사를 확실하게
+                  cp -r scripts deploy/
+                  # 배포 패키지 내용 확인
+                  echo "=== Deploy package contents ==="
+                  ls -la deploy/
+                  ls -la deploy/scripts/
 
             # 7. 배포 패키지를 zip으로 압축
             # deploy/ 디렉토리 내부의 파일들을 압축합니다.
