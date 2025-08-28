@@ -4,67 +4,76 @@ name: AWS EC2 CI/CD with Docker
 # 워크플로우가 언제 실행될지를 정의합니다.
 # 여기서는 'main' 브랜치에 push 이벤트가 발생했을 때 실행됩니다.
 on:
-  push:
-    branches: [ "main" ]
+    push:
+        branches: ["main"]
 
 # 워크플로우에 포함될 작업(job)들을 정의합니다.
 jobs:
-  # 'build-and-deploy'라는 이름의 작업을 정의합니다.
-  build-and-deploy:
-    # 이 작업이 실행될 가상 환경을 지정합니다. 최신 우분투 환경을 사용합니다.
-    runs-on: ubuntu-latest
-    
-    # 이 작업에서 수행할 단계(step)들을 순서대로 정의합니다.
-    steps:
-    # 1. 코드 체크아웃 (Checkout)
-    # 현재 저장소의 코드를 가상 환경으로 가져옵니다.
-    - name: Checkout source code
-      uses: actions/checkout@v4
+    # 'build-and-deploy'라는 이름의 작업을 정의합니다.
+    build-and-deploy:
+        # 이 작업이 실행될 가상 환경을 지정합니다. 최신 우분투 환경을 사용합니다.
+        runs-on: ubuntu-latest
 
-    # 2. Docker Hub 로그인 (Login to Docker Hub)
-    # GitHub Secrets에 저장된 정보를 사용하여 Docker Hub에 로그인합니다.
-    - name: Login to Docker Hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKER_HUB_USERNAME }}
-        password: ${{ secrets.DOCKER_HUB_TOKEN }}
+        # 이 작업에서 수행할 단계(step)들을 순서대로 정의합니다.
+        steps:
+            # 1. 코드 체크아웃 (Checkout)
+            # 현재 저장소의 코드를 가상 환경으로 가져옵니다.
+            - name: Checkout source code
+              uses: actions/checkout@v4
 
-    # 3. Docker 이미지 빌드 및 푸시 (Build and push Docker image)
-    # Dockerfile을 사용하여 이미지를 빌드하고, Docker Hub에 푸시합니다.
-    # 태그는 '아이디/이미지이름:latest' 형식으로 지정합니다.
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        push: true
-        tags: ${{ secrets.DOCKER_HUB_USERNAME }}/graddy:latest # ⚠️ 'your-image-name'을 실제 이미지 이름으로 변경하세요.
+            # 2. Docker Hub 로그인 (Login to Docker Hub)
+            # GitHub Secrets에 저장된 정보를 사용하여 Docker Hub에 로그인합니다.
+            - name: Login to Docker Hub
+              uses: docker/login-action@v3
+              with:
+                  username: ${{ secrets.DOCKER_HUB_USERNAME }}
+                  password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-    # 4. AWS 자격 증명 설정 (Configure AWS credentials)
-    # GitHub Secrets를 사용하여 AWS CLI가 EC2, S3, CodeDeploy에 접근할 수 있도록 인증합니다.
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ap-northeast-2 # 서울 리전을 사용하고 있다면 이 값은 그대로 두시면 됩니다.
+            # 3. 백엔드(Backend) Docker 이미지 빌드 및 푸시 (수정된 부분)
+            # graddy_back 폴더의 Dockerfile을 사용하여 백엔드 이미지를 빌드하고 푸시합니다.
+            - name: Build and push Backend image
+              uses: docker/build-push-action@v5
+              with:
+                  context: ./graddy_back # 백엔드 서비스의 폴더 경로
+                  file: ./graddy_back/Dockerfile # 백엔드 Dockerfile의 정확한 경로
+                  push: true
+                  tags: ${{ secrets.DOCKER_HUB_USERNAME }}/graddy-back:latest # 백엔드 이미지 태그
 
-    # 5. 배포 파일을 zip으로 압축 (Make zip file for deployment)
-    # CodeDeploy는 소스 코드를 zip 파일 형태로 S3에 업로드해야 합니다.
-    # .git 폴더, .github 폴더 등 배포에 불필요한 파일은 제외하고 압축합니다.
-    - name: Make zip file
-      run: zip -r deploy.zip . -x ".git/*" ".github/*"
+            # 4. 프론트엔드(Frontend) Docker 이미지 빌드 및 푸시 (수정된 부분)
+            # graddy_front 폴더의 Dockerfile을 사용하여 프론트엔드 이미지를 빌드하고 푸시합니다.
+            - name: Build and push Frontend image
+              uses: docker/build-push-action@v5
+              with:
+                  context: ./graddy_front # 프론트엔드 서비스의 폴더 경로
+                  file: ./graddy_front/Dockerfile # 프론트엔드 Dockerfile의 정확한 경로
+                  push: true
+                  tags: ${{ secrets.DOCKER_HUB_USERNAME }}/graddy-front:latest # 프론트엔드 이미지 태그
 
-    # 6. S3에 zip 파일 업로드 (Upload to S3)
-    # 압축한 deploy.zip 파일을 지정된 S3 버킷에 업로드합니다.
-    - name: Upload zip to S3
-      run: aws s3 cp deploy.zip s3://mygraddybucket/deploy.zip # ⚠️ 'your-s3-bucket-name'을 실제 S3 버킷 이름으로 변경하세요.
+            # 5. AWS 자격 증명 설정 (Configure AWS credentials)
+            # GitHub Secrets를 사용하여 AWS CLI가 EC2, S3, CodeDeploy에 접근할 수 있도록 인증합니다.
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                  aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                  aws-region: ap-northeast-1 # 서울 리전을 사용하고 있다면 이 값은 그대로 두시면 됩니다.
 
-    # 7. CodeDeploy 배포 트리거 (Deploy to EC2 with CodeDeploy)
-    # S3에 업로드된 zip 파일을 사용하여 CodeDeploy 배포를 시작하도록 명령합니다.
-    - name: Deploy to EC2 instance
-      run: |
-        aws deploy create-deployment \
-          --application-name graddy \
-          --deployment-group-name graddy \
-          --s3-location bucket=mygraddybucket ,bundleType=zip,key=deploy.zip
-      #위 3개의 'your-...' 부분을 실제 AWS CodeDeploy 애플리케이션, 배포 그룹, S3 버킷 이름으로 변경하세요.
+            # 6. 배포 파일을 zip으로 압축 (Make zip file for deployment)
+            # CodeDeploy는 소스 코드를 zip 파일 형태로 S3에 업로드해야 합니다.
+            # .git 폴더, .github 폴더 등 배포에 불필요한 파일은 제외하고 압축합니다.
+            - name: Make zip file
+              run: zip -r deploy.zip . -x ".git/*" ".github/*"
+
+            # 7. S3에 zip 파일 업로드 (Upload to S3)
+            # 압축한 deploy.zip 파일을 지정된 S3 버킷에 업로드합니다.
+            - name: Upload zip to S3
+              run: aws s3 cp deploy.zip s3://mygraddybucket/deploy.zip
+
+            # 8. CodeDeploy 배포 트리거 (Deploy to EC2 with CodeDeploy)
+            # S3에 업로드된 zip 파일을 사용하여 CodeDeploy 배포를 시작하도록 명령합니다.
+            - name: Deploy to EC2 instance
+              run: |
+                  aws deploy create-deployment \
+                    --application-name graddy \
+                    --deployment-group-name graddy \
+                    --s3-location bucket=mygraddybucket,bundleType=zip,key=deploy.zip
