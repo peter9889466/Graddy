@@ -1,5 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { MessageCircle, MoreHorizontal, Send, Edit, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
+import { MessageCircle, MoreHorizontal, Send, Edit, Trash2, AlertCircle } from 'lucide-react';
+import { AuthContext } from '@/contexts/AuthContext';
+interface BackendPost {
+    stPrPostId: number;
+    studyProjectId: number;
+    memberId: string;
+    title: string;
+    content: string;
+    createdAt: string;
+}
 
 interface Comment {
     id: string;
@@ -12,60 +21,34 @@ interface Comment {
 interface Post {
     id: string;
     author: string;
+    title?: string;
     content: string;
     timestamp: string;
     comments: Comment[];
+    canEdit?: boolean;
 }
 
-const Community: React.FC = () => {
-    const [posts, setPosts] = useState<Post[]>([
-        {
-            id: '1',
-            author: '김개발',
-            content: '오늘 알고리즘 스터디에서 배운 내용을 정리해봤어요. 정말 유용한 팁들이 많았습니다!',
-            timestamp: '2024-01-15 14:30',
-            comments: [
-                {
-                    id: '1-1',
-                    author: '이코딩',
-                    content: '정말 도움이 되는 내용이네요! 감사합니다.',
-                    timestamp: '2024-01-15 15:00'
-                },
-                {
-                    id: '1-2',
-                    author: '나',
-                    content: '저도 비슷한 경험이 있어서 공감됩니다.',
-                    timestamp: '2024-01-15 15:30'
-                }
-            ]
-        },
-        {
-            id: '2',
-            author: '이코딩',
-            content: '프로젝트 기획서 작성 중인데, 혹시 좋은 아이디어 있으시면 댓글로 공유해주세요!',
-            timestamp: '2024-01-15 13:45',
-            comments: [
-                {
-                    id: '2-1',
-                    author: '박스터디',
-                    content: '사용자 중심의 디자인을 고려해보세요!',
-                    timestamp: '2024-01-15 14:00'
-                }
-            ]
-        },
-        {
-            id: '3',
-            author: '박스터디',
-            content: '다음 주 발표 준비하시는 분들 화이팅! 우리 모두 잘할 수 있을 거예요 💪',
-            timestamp: '2024-01-15 12:20',
-            comments: []
-        }
-    ]);
+interface CommunityProps {
+    studyProjectId?: number;
+    currentUserId?: string;
+}
 
+const Community: React.FC<CommunityProps> = ({ 
+    studyProjectId = 55, // 기본값으로 55 사용
+    currentUserId = '나'  // 기본값
+}) => {
+    const [posts, setPosts] = useState<Post[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    
     const [newPost, setNewPost] = useState('');
+    const [newPostTitle, setNewPostTitle] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const [editingPostId, setEditingPostId] = useState<string | null>(null);
     const [editContent, setEditContent] = useState('');
+    const [editTitle, setEditTitle] = useState('');
 
     // 댓글 관련 상태
     const [showComments, setShowComments] = useState<string | null>(null);
@@ -73,50 +56,181 @@ const Community: React.FC = () => {
     const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
     const [editCommentContent, setEditCommentContent] = useState('');
 
-    const handleSubmitPost = () => {
-        if (!newPost.trim()) return;
+    const menuRef = useRef<HTMLDivElement>(null);
 
-        const post: Post = {
-            id: Date.now().toString(),
-            author: '나',
-            content: newPost,
-            timestamp: new Date().toLocaleString('ko-KR'),
-            comments: []
-        };
+    const { user } = useContext(AuthContext)!;
 
-        setPosts(prev => [post, ...prev]);
-        setNewPost('');
-    };
-
-    const handleEditPost = (postId: string) => {
-        const post = posts.find(p => p.id === postId);
-        if (post) {
-            setEditingPostId(postId);
-            setEditContent(post.content);
-            setOpenMenuId(null);
+    // API 함수들
+    const fetchPosts = async () => {
+        if (!studyProjectId) return;
+        
+        setLoading(true);
+        setError(null);
+        
+        try {
+            const response = await fetch(`http://localhost:8080/api/posts/study-project/${studyProjectId}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            
+            if (result.status === 200 && result.data) {
+                // 백엔드 데이터를 프론트엔드 형식으로 변환
+                const transformedPosts: Post[] = result.data.map((backendPost: BackendPost) => ({
+                    id: backendPost.stPrPostId.toString(),
+                    author: backendPost.memberId,
+                    title: backendPost.title,
+                    content: backendPost.content,
+                    timestamp: formatTimestamp(backendPost.createdAt),
+                    comments: [], // 현재는 댓글 API가 없으므로 빈 배열
+                    canEdit: backendPost.memberId === currentUserId
+                }));
+                
+                setPosts(transformedPosts);
+            } else {
+                throw new Error(result.message || '게시글을 불러오는데 실패했습니다.');
+            }
+        } catch (error) {
+            console.error('게시글 로드 실패:', error);
+            setError(error instanceof Error ? error.message : '게시글을 불러오는데 실패했습니다.');
+        } finally {
+            setLoading(false);
         }
     };
 
-    const handleSaveEdit = () => {
-        if (!editingPostId || !editContent.trim()) return;
+    const formatTimestamp = (isoString: string) => {
+        const date = new Date(isoString);
+        return date.toLocaleString('ko-KR', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
 
-        setPosts(prev => prev.map(post =>
-            post.id === editingPostId
-                ? { ...post, content: editContent }
-                : post
-        ));
+    const createPost = async (title: string, content: string) => {
+        if (!studyProjectId || !title.trim() || !content.trim()) return;
+        
+        setIsSubmitting(true);
+        
+        try {
+            const response = await fetch('http://localhost:8080/api/posts', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    studyProjectId: studyProjectId,
+                    title: title.trim(),
+                    content: content.trim()
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            // 게시글 작성 성공 후 목록 새로고침
+            await fetchPosts();
+            setNewPost('');
+            setNewPostTitle('');
+        } catch (error) {
+            console.error('게시글 작성 실패:', error);
+            alert('게시글 작성에 실패했습니다.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const updatePost = async (postId: string, title: string, content: string) => {
+        try {
+            const response = await fetch(`http://localhost:8080/api/posts/${postId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title: title.trim(),
+                    content: content.trim()
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            // 게시글 수정 성공 후 목록 새로고침
+            await fetchPosts();
+        } catch (error) {
+            console.error('게시글 수정 실패:', error);
+            alert('게시글 수정에 실패했습니다.');
+        }
+    };
+
+    const deletePost = async (postId: string) => {
+        try {
+            const response = await fetch(`http://localhost:8080/api/posts/${postId}`, {
+                method: 'DELETE'
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            // 게시글 삭제 성공 후 목록 새로고침
+            await fetchPosts();
+        } catch (error) {
+            console.error('게시글 삭제 실패:', error);
+            alert('게시글 삭제에 실패했습니다.');
+        }
+    };
+
+    // 컴포넌트 마운트 시 게시글 목록 로드
+    useEffect(() => {
+        fetchPosts();
+    }, [studyProjectId]);
+
+    // 이벤트 핸들러들
+    const handleSubmitPost = async () => {
+        if (!newPostTitle.trim() || !newPost.trim()) {
+            alert('제목과 내용을 모두 입력해주세요.');
+            return;
+        }
+        
+        await createPost(newPostTitle, newPost);
+    };
+
+    const handleEditPost = (post: Post) => {
+        setEditingPostId(post.id);
+        setEditTitle(post.title || '');
+        setEditContent(post.content);
+        setOpenMenuId(null);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingPostId || !editTitle.trim() || !editContent.trim()) {
+            alert('제목과 내용을 모두 입력해주세요.');
+            return;
+        }
+
+        await updatePost(editingPostId, editTitle, editContent);
         setEditingPostId(null);
+        setEditTitle('');
         setEditContent('');
     };
 
     const handleCancelEdit = () => {
         setEditingPostId(null);
+        setEditTitle('');
         setEditContent('');
     };
 
-    const handleDeletePost = (postId: string) => {
+    const handleDeletePost = async (postId: string) => {
         if (confirm('정말로 이 게시글을 삭제하시겠습니까?')) {
-            setPosts(prev => prev.filter(post => post.id !== postId));
+            await deletePost(postId);
             setOpenMenuId(null);
         }
     };
@@ -125,13 +239,13 @@ const Community: React.FC = () => {
         setOpenMenuId(openMenuId === postId ? null : postId);
     };
 
-    // 댓글 관련 함수들
+    // 댓글 관련 함수들 (현재는 로컬 상태만 사용)
     const handleAddComment = (postId: string) => {
         if (!newComment.trim()) return;
 
         const comment: Comment = {
             id: Date.now().toString(),
-            author: '나',
+            author: currentUserId,
             content: newComment,
             timestamp: new Date().toLocaleString('ko-KR')
         };
@@ -142,7 +256,6 @@ const Community: React.FC = () => {
                 : post
         ));
         setNewComment('');
-        //test
     };
 
     const handleEditComment = (postId: string, commentId: string) => {
@@ -163,10 +276,7 @@ const Community: React.FC = () => {
                     ...post,
                     comments: post.comments.map(comment =>
                         comment.id === editingCommentId
-                            ? {
-                                ...comment,
-                                content: editCommentContent
-                            }
+                            ? { ...comment, content: editCommentContent }
                             : comment
                     )
                 }
@@ -196,8 +306,6 @@ const Community: React.FC = () => {
     };
 
     // 외부 클릭 감지
-    const menuRef = useRef<HTMLDivElement>(null);
-
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -211,34 +319,83 @@ const Community: React.FC = () => {
         };
     }, []);
 
+    // 로딩 상태
+    if (loading) {
+        return (
+            <div className="space-y-4 p-4 pr-10">
+                <h2 className="text-xl font-bold mb-6 -mt-4 -ml-4" style={{ color: "#8B85E9" }}>
+                    커뮤니티
+                </h2>
+                <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8B85E9]"></div>
+                    <span className="ml-2 text-gray-600">게시글을 불러오는 중...</span>
+                </div>
+            </div>
+        );
+    }
+
+    // 에러 상태
+    if (error) {
+        return (
+            <div className="space-y-4 p-4 pr-10">
+                <h2 className="text-xl font-bold mb-6 -mt-4 -ml-4" style={{ color: "#8B85E9" }}>
+                    커뮤니티
+                </h2>
+                <div className="flex items-center justify-center py-12">
+                    <div className="text-center">
+                        <AlertCircle className="w-16 h-16 mx-auto mb-4 text-red-400" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">오류가 발생했습니다</h3>
+                        <p className="text-gray-500 mb-4">{error}</p>
+                        <button
+                            onClick={() => fetchPosts()}
+                            className="px-4 py-2 bg-[#8B85E9] hover:bg-[#7A75D8] text-white rounded-lg transition-colors"
+                        >
+                            다시 시도
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        		<div className="space-y-4 p-4 pr-10">
+        <div className="space-y-4 p-4 pr-10">
             {/* 커뮤니티 제목 */}
-            <h2 className="text-xl font-bold mb-6 -mt-4 -ml-4"
-                style={{ color: "#8B85E9" }}>커뮤니티</h2>
+            <h2 className="text-xl font-bold mb-6 -mt-4 -ml-4" style={{ color: "#8B85E9" }}>
+                커뮤니티
+            </h2>
 
             {/* 새 게시글 작성 */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                 <div className="flex items-start space-x-3">
                     <div className="w-10 h-10 bg-[#8B85E9] rounded-full flex items-center justify-center">
-                        <span className="text-white font-medium text-sm">나</span>
+                        <span className="text-white font-medium text-sm">{currentUserId[0]}</span>
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 space-y-3">
+                        <input
+                            type="text"
+                            value={newPostTitle}
+                            onChange={(e) => setNewPostTitle(e.target.value)}
+                            placeholder="제목을 입력하세요..."
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
+                            disabled={isSubmitting}
+                        />
                         <textarea
                             value={newPost}
                             onChange={(e) => setNewPost(e.target.value)}
                             placeholder="스터디원들과 공유하고 싶은 내용을 작성해보세요..."
                             className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
                             rows={3}
+                            disabled={isSubmitting}
                         />
-                        <div className="flex justify-end mt-2">
+                        <div className="flex justify-end">
                             <button
                                 onClick={handleSubmitPost}
-                                disabled={!newPost.trim()}
+                                disabled={!newPostTitle.trim() || !newPost.trim() || isSubmitting}
                                 className="px-4 py-2 bg-[#8B85E9] hover:bg-[#7A75D8] disabled:bg-gray-300 text-white rounded-lg transition-colors disabled:cursor-not-allowed flex items-center space-x-2"
                             >
                                 <Send className="w-4 h-4" />
-                                <span>게시</span>
+                                <span>{isSubmitting ? '게시 중...' : '게시'}</span>
                             </button>
                         </div>
                     </div>
@@ -260,45 +417,55 @@ const Community: React.FC = () => {
                                     <p className="text-sm text-gray-500">{post.timestamp}</p>
                                 </div>
                             </div>
-                            <div className="relative" ref={menuRef}>
-                                <button
-                                    onClick={() => toggleMenu(post.id)}
-                                    className="p-1 hover:bg-gray-100 rounded-full"
-                                >
-                                    <MoreHorizontal className="w-4 h-4 text-gray-500" />
-                                </button>
+                            {/* 본인 게시글만 수정/삭제 가능 */}
+                            {post.canEdit && (
+                                <div className="relative" ref={menuRef}>
+                                    <button
+                                        onClick={() => toggleMenu(post.id)}
+                                        className="p-1 hover:bg-gray-100 rounded-full"
+                                    >
+                                        <MoreHorizontal className="w-4 h-4 text-gray-500" />
+                                    </button>
 
-                                {/* 드롭다운 메뉴 */}
-                                {openMenuId === post.id && (
-                                    <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[120px]">
-                                        <button
-                                            onClick={() => handleEditPost(post.id)}
-                                            className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
-                                        >
-                                            <Edit className="w-4 h-4" />
-                                            <span>수정</span>
-                                        </button>
-                                        <button
-                                            onClick={() => handleDeletePost(post.id)}
-                                            className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                            <span>삭제</span>
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
+                                    {openMenuId === post.id && (
+                                        <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[120px]">
+                                            <button
+                                                onClick={() => handleEditPost(post)}
+                                                className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                                            >
+                                                <Edit className="w-4 h-4" />
+                                                <span>수정</span>
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeletePost(post.id)}
+                                                className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                                <span>삭제</span>
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         {/* 게시글 내용 */}
                         <div className="mb-4">
                             {editingPostId === post.id ? (
-                                <div className="space-y-2">
+                                <div className="space-y-3">
+                                    <input
+                                        type="text"
+                                        value={editTitle}
+                                        onChange={(e) => setEditTitle(e.target.value)}
+                                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] font-medium"
+                                        placeholder="제목을 입력하세요..."
+                                    />
                                     <textarea
                                         value={editContent}
                                         onChange={(e) => setEditContent(e.target.value)}
                                         className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
                                         rows={3}
+                                        placeholder="내용을 입력하세요..."
                                     />
                                     <div className="flex justify-end space-x-2">
                                         <button
@@ -309,7 +476,7 @@ const Community: React.FC = () => {
                                         </button>
                                         <button
                                             onClick={handleSaveEdit}
-                                            disabled={!editContent.trim()}
+                                            disabled={!editTitle.trim() || !editContent.trim()}
                                             className="px-3 py-1 text-sm bg-[#8B85E9] hover:bg-[#7A75D8] disabled:bg-gray-300 text-white rounded transition-colors disabled:cursor-not-allowed"
                                         >
                                             저장
@@ -317,7 +484,12 @@ const Community: React.FC = () => {
                                     </div>
                                 </div>
                             ) : (
-                                <p className="text-gray-800 leading-relaxed">{post.content}</p>
+                                <div>
+                                    {post.title && (
+                                        <h3 className="text-lg font-semibold text-gray-900 mb-2">{post.title}</h3>
+                                    )}
+                                    <p className="text-gray-800 leading-relaxed">{post.content}</p>
+                                </div>
                             )}
                         </div>
 
@@ -376,7 +548,7 @@ const Community: React.FC = () => {
                                                 ) : (
                                                     <div className="flex items-start justify-between">
                                                         <p className="text-sm text-gray-800 leading-relaxed">{comment.content}</p>
-                                                        {comment.author === '나' && (
+                                                        {comment.author === currentUserId && (
                                                             <div className="flex items-center space-x-1 ml-2">
                                                                 <button
                                                                     onClick={() => handleEditComment(post.id, comment.id)}
@@ -402,7 +574,7 @@ const Community: React.FC = () => {
                                 {/* 새 댓글 작성 */}
                                 <div className="flex items-start space-x-3">
                                     <div className="w-8 h-8 bg-[#8B85E9] rounded-full flex items-center justify-center flex-shrink-0">
-                                        <span className="text-white font-medium text-xs">나</span>
+                                        <span className="text-white font-medium text-xs">{currentUserId[0]}</span>
                                     </div>
                                     <div className="flex-1">
                                         <textarea
@@ -430,7 +602,7 @@ const Community: React.FC = () => {
             </div>
 
             {/* 게시글이 없을 때 */}
-            {posts.length === 0 && (
+            {posts.length === 0 && !loading && !error && (
                 <div className="text-center py-12">
                     <MessageCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">아직 게시글이 없습니다</h3>

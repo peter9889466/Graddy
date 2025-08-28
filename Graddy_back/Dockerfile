@@ -1,31 +1,36 @@
-# 멀티 스테이지 빌드를 사용한 Spring Boot Dockerfile
+# Dockerfile for Spring Boot (Gradle & Java 21)
 
-# 1. 빌드 환경: Gradle을 사용하여 소스코드를 .jar 파일로 빌드
-FROM gradle:8.5-jdk17-alpine AS build
-WORKDIR /app
+# =============================================
+# 1. 빌드(Build) 스테이지
+# JDK 21이 포함된 Gradle 이미지로 프로젝트를 빌드합니다.
+# =============================================
+FROM gradle:jdk17 AS builder
 
-# Gradle 설정 파일들을 먼저 복사 (캐싱 최적화)
+# 작업 디렉토리 설정
+WORKDIR /build
+
+# 빌드에 필요한 파일들을 복사합니다.
 COPY build.gradle settings.gradle ./
-COPY gradle gradle
-
-# 의존성 다운로드 (캐싱 최적화)
-RUN gradle dependencies --no-daemon
-
-# 소스코드 복사
 COPY src ./src
 
-# 애플리케이션 빌드
-RUN gradle bootJar --no-daemon
+# Gradle을 사용하여 빌드를 실행합니다.
+RUN gradle build --no-daemon -x test
 
-# 2. 실행 환경: 빌드된 .jar 파일을 최소한의 Java 런타임 환경에서 실행
-FROM amazoncorretto:17-alpine-jdk
+
+# =============================================
+# 2. 실행(Runtime) 스테이지
+# JRE 21만 포함된 경량 이미지로 애플리케이션을 실행합니다.
+# =============================================
+FROM eclipse-temurin:21-jre-alpine
+
+# 작업 디렉토리 설정
 WORKDIR /app
 
-# 빌드 스테이지에서 생성된 .jar 파일을 복사
-COPY --from=build /app/build/libs/*.jar app.jar
+# builder 스테이지에서 생성된 .jar 파일을 app.jar 라는 이름으로 복사합니다.
+COPY --from=builder /build/build/libs/*.jar app.jar
 
-# 컨테이너가 시작될 때 8080 포트를 외부에 노출
+# 8080 포트를 외부에 노출합니다. (application.properties에서 포트를 변경했다면 여기도 수정하세요.)
 EXPOSE 8080
 
-# 컨테이너 시작 시 실행할 명령어
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# 애플리케이션을 실행합니다.
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]

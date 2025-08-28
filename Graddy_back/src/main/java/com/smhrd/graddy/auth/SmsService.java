@@ -1,34 +1,33 @@
 package com.smhrd.graddy.auth;
 
-import io.github.cdimascio.dotenv.Dotenv;
-
 import net.nurigo.sdk.message.model.Message;
 import net.nurigo.sdk.message.request.SingleMessageSendingRequest;
 import net.nurigo.sdk.message.service.DefaultMessageService;
 import org.springframework.stereotype.Service;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 // Dotenv import는 제거합니다.
 // import io.github.cdimascio.dotenv.Dotenv;
 
 @Service
 public class SmsService {
 
-    private final String senderNumber;
-    private final String apiKey;
-    private final String apiSecret;
+    @Value("${SOLAPI_SENDER_NUMBER}")
+    private String solapiSenderNumber;
+    @Value("${SOLAPI_API_KEY}")
+    private String apiKey;
+    @Value("${SOLAPI_API_SECRET}")
+    private String apiSecret;
 
     // @Value 어노테이션을 사용하여 생성자로 값을 주입받습니다.
     // 이 방식이 Spring에서 권장하는 '생성자 주입(Constructor Injection)' 방식입니다.
-    public SmsService(
-            @Value("${solapi.sender.number}") String senderNumber,
-            @Value("${solapi.api.key}") String apiKey,
-            @Value("${solapi.api.secret}") String apiSecret) {
-        this.senderNumber = senderNumber;
-        this.apiKey = apiKey;
-        this.apiSecret = apiSecret;
-    }
+    // public SmsService(
+
+    // @Value("${solapi.api.key}") String apiKey,
+    // @Value("${solapi.api.secret}") String apiSecret) {
+    // this.apiKey = apiKey;
+    // this.apiSecret = apiSecret;
+    // }
 
     public void sendVerificationCode(String phoneNumber, String verificationCode) {
         // TODO: 솔라피 SDK 의존성 설치 후 실제 SMS 발송 구현
@@ -39,7 +38,7 @@ public class SmsService {
         DefaultMessageService messageService = new DefaultMessageService(apiKey, apiSecret, "https://api.solapi.com");
 
         Message message = new Message();
-        message.setFrom(senderNumber);
+        message.setFrom(solapiSenderNumber);
         message.setTo(phoneNumber);
         message.setText("Graddy 인증번호: " + verificationCode + "\n5분 내에 입력해주세요.");
 

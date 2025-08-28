@@ -1,21 +1,39 @@
-version: "3.8"
-
+# 실행하려는 서비스(컨테이너)들을 정의합니다.
 services:
-    # 백엔드 서비스
-    backend:
+    # 1. React 프론트엔드 서비스
+    graddy-front:
+        container_name: graddy-front
         build:
-            context: ./Graddy_back
+            context: ./graddy_front # Dockerfile이 있는 경로
             dockerfile: Dockerfile
-        container_name: graddy-backend
         ports:
-            - "8080:8080"
-        environment:
-            - DB_PASSWORD=${DB_PASSWORD}
-            - SPRING_PROFILES_ACTIVE=prod
+            - "3000:80" # 로컬 PC의 3000번 포트를 컨테이너의 80번 포트와 연결
         networks:
-            - graddy-network
-        restart: unless-stopped
+            - graddy-net
 
+    # 2. Spring Boot 백엔드 서비스
+    graddy-back:
+        container_name: graddy-back
+        build:
+            context: ./graddy_back
+            dockerfile: Dockerfile
+        ports:
+            - "8080:8080" # 로컬 PC의 8080번 포트를 컨테이너의 8080번 포트와 연결
+        networks:
+            - graddy-net
+
+    # 3. FastAPI 파이썬 서비스
+    graddy-python:
+        container_name: graddy-python
+        build:
+            context: ./graddy_back/scripts # Python 코드가 있는 scripts 폴더를 context로 지정
+            dockerfile: Dockerfile
+        ports:
+            - "8000:8000" # 로컬 PC의 8000번 포트를 컨테이너의 8000번 포트와 연결
+        networks:
+            - graddy-net
+
+# 서비스들이 사용할 네트워크를 정의합니다.
 networks:
-    graddy-network:
+    graddy-net:
         driver: bridge
