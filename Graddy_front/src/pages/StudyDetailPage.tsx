@@ -25,6 +25,9 @@ const StudyDetailPage = () => {
 	const [activeTab, setActiveTab] = useState("스터디 정보");
 	const [isApplied, setIsApplied] = useState(false);
 	const [isRecruiting, setIsRecruiting] = useState(true); // 모집 상태 관리
+	const [isStudyEnd, setIsStudyEnd] = useState(false);
+	const [curriculumText, setCurriculumText] = useState<string>('');
+
 	const authContext = useContext(AuthContext);
 	const location = useLocation();
 	const state = location.state as {
@@ -207,6 +210,7 @@ const StudyDetailPage = () => {
 						
 						console.log('변환된 날짜:', startDateStr, endDateStr);
 						setStudyPeriod(`${startDateStr} ~ ${endDateStr}`);
+						
 					}
 					
 					// JWT 토큰에서 사용자 ID 가져오기
@@ -287,6 +291,9 @@ const StudyDetailPage = () => {
 						
 						setStudyLeader(studyData.userId || "리더가 지정되지 않았습니다.");
 					}
+
+					// curText 설정
+					setCurriculumText(studyData.curText || '');
 				}
 			} catch (error) {
 				console.error('스터디 정보 조회 실패:', error);
@@ -333,7 +340,7 @@ const StudyDetailPage = () => {
 		if (!id) return;
 		
 		try {
-			const newStatus = isRecruiting ? "closed" : "recruitment";
+			const newStatus = isRecruiting ? "complete" : "recruitment";
 			await StudyApiService.updateStudyProjectStatus(parseInt(id, 10), newStatus);
 			
 			setIsRecruiting(!isRecruiting);
@@ -351,12 +358,11 @@ const StudyDetailPage = () => {
 			try {
 				console.log('스터디 종료 요청 시작:', id);
 				await StudyApiService.updateStudyProjectStatus(parseInt(id, 10), "end");
+				setIsStudyEnd(true);
 				alert("스터디가 종료되었습니다.");
-				// 페이지 새로고침 또는 상태 업데이트
-				window.location.reload();
+				// window.location.reload(); // 이 줄 제거
 			} catch (error) {
 				console.error('스터디 종료 실패:', error);
-				// 더 자세한 오류 정보 표시
 				if (error instanceof Error) {
 					alert(`스터디 종료에 실패했습니다: ${error.message}`);
 				} else {
@@ -457,44 +463,41 @@ const StudyDetailPage = () => {
 
 	// 가입 신청 관련 함수들
 	const handleApplyToStudy = async () => {
-    if (!id || !authContext?.user?.nickname) {
-        alert('로그인이 필요합니다.');
-        return;
-    }
+		if (!id || !authContext?.user?.nickname) {
+			alert('로그인이 필요합니다.');
+			return;
+		}
 
-    setIsApplying(true);
-    try {
-        const request = {
-            studyProjectId: parseInt(id, 10),
-            message: "열심히 참여하겠습니다!"
-        };
+		setIsApplying(true);
+		try {
+			const request = {
+				studyProjectId: parseInt(id, 10),
+				message: "열심히 참여하겠습니다!"
+			};
 
-        await applyToStudyProject(request);
-        
-        alert('가입 신청이 완료되었습니다!');
-        setIsApplied(true);
-        
-        if (userMemberType === 'leader') {
-            loadApplications();
-        }
-    } catch (error: any) {
-        console.error('가입 신청 실패:', error);
-        
-        // 에러 객체의 message 속성을 먼저 확인
-        const errorMessage = error.message;
+			await applyToStudyProject(request);
+			
+			alert('가입 신청이 완료되었습니다!');
+			setIsApplied(true);
+			
+			if (userMemberType === 'leader') {
+				loadApplications();
+			}
+		} catch (error: any) {
+			console.error('가입 신청 실패:', error);
+			
+			// 에러 메시지 텍스트를 직접 확인
+			if (error.message.includes("이미 해당 스터디/프로젝트의 멤버입니다.")) {
+				alert('이미 해당 스터디/프로젝트의 멤버입니다.');
+				setUserMemberType('member');
+			} else {
+				alert('가입 신청에 실패했습니다. 다시 시도해주세요.');
+			}
 
-        // 서버의 응답 메시지가 아닌, Axios(또는 Fetch)에서 발생한 에러 메시지를 기반으로 판단
-        if (errorMessage.includes("400")) {
-            alert('이미 해당 스터디/프로젝트의 멤버입니다.');
-            setUserMemberType('member');
-        } else {
-            alert('가입 신청에 실패했습니다. 다시 시도해주세요.');
-        }
-
-    } finally {
-        setIsApplying(false);
-    }
-};
+		} finally {
+			setIsApplying(false);
+		}
+	};
 
 	const loadApplications = async () => {
 		if (!id || userMemberType !== 'leader') return;
@@ -964,7 +967,7 @@ const StudyDetailPage = () => {
 							</div>
 						</div>
 						{/* 버튼 영역 */}
-						{!isEditing && !isLoading && isStudyLeader ? (
+						{!isEditing && !isLoading && isStudyLeader && !isStudyEnd ? (
 							// 스터디장인 경우 (수정 모드가 아닐 때만 표시)
 							<div className="flex gap-2 mt-3">
 								<button
@@ -1054,7 +1057,12 @@ const StudyDetailPage = () => {
 					memberId={0} // TODO: 실제 멤버 ID로 변경 필요
 				/>;
 			case "커리큘럼":
-				return <Curriculum />;
+				return <Curriculum 
+					curriculumText={curriculumText}
+					isStudyLeader={isStudyLeader}
+					studyProjectId={parseInt(id!, 10)}
+					onCurriculumUpdate={handleCurriculumUpdate} // 업데이트 함수도 전달
+				/>;
 			case "커뮤니티":
 				if (!isLoggedIn || !(userMemberType === 'leader' || userMemberType === 'member')) {
 					return (
@@ -1066,8 +1074,15 @@ const StudyDetailPage = () => {
 						</div>
 					);
 				}
-				return <Community />;
+				return <Community 
+					studyProjectId={parseInt(id!, 10)}
+					currentUserId={authContext?.user?.nickname || authContext?.user?.email || '사용자'}
+				/>;
 		}
+	};
+
+	const handleCurriculumUpdate = (newText: string) => {
+		setCurriculumText(newText);
 	};
 
 	return (
