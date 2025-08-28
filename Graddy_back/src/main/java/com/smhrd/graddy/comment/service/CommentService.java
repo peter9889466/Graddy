@@ -4,12 +4,15 @@ import com.smhrd.graddy.comment.dto.CommentRequest;
 import com.smhrd.graddy.comment.dto.CommentResponse;
 import com.smhrd.graddy.comment.entity.Comment;
 import com.smhrd.graddy.comment.repository.CommentRepository;
+import com.smhrd.graddy.user.repository.UserRepository;
+import com.smhrd.graddy.chat.repository.StudyProjectMemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -23,88 +26,149 @@ import java.util.stream.Collectors;
 public class CommentService {
 
     private final CommentRepository commentRepository;
+    private final UserRepository userRepository;
+    private final StudyProjectMemberRepository studyProjectMemberRepository;
 
     /**
      * 과제 댓글 작성
-     * @param memberId 멤버 ID
+     * @param userId 사용자 ID
+     * @param assignmentId 과제 ID (URL 경로에서 추출)
      * @param request 댓글 요청 DTO
      * @return 작성된 댓글 응답 DTO
+     * @throws IllegalArgumentException 해당 스터디의 멤버가 아닌 경우
      */
     @Transactional
-    public CommentResponse createAssignmentComment(Long memberId, CommentRequest request) {
-        log.info("과제 댓글 작성 시작: memberId={}, assignmentId={}", memberId, request.getAssignmentId());
+    public CommentResponse createAssignmentComment(String userId, Long assignmentId, CommentRequest request) {
+        log.info("과제 댓글 작성 시작: userId={}, assignmentId={}, studyProjectId={}", 
+                userId, assignmentId, request.getStudyProjectId());
+        
+        // 과제 댓글 작성 시 스터디 멤버십 검증
+        if (request.getStudyProjectId() != null) {
+            validateStudyMembership(userId, request.getStudyProjectId());
+            log.info("과제 댓글 작성 - 스터디 멤버십 검증 완료: userId={}, studyProjectId={}", 
+                    userId, request.getStudyProjectId());
+        } else {
+            log.warn("과제 댓글 작성 시 studyProjectId가 제공되지 않음: userId={}, assignmentId={}", 
+                    userId, assignmentId);
+            throw new IllegalArgumentException("과제 댓글 작성 시 스터디/프로젝트 ID가 필요합니다.");
+        }
         
         Comment comment = Comment.builder()
-                .memberId(memberId)
-                .assignmentId(request.getAssignmentId())
+                .userId(userId)
+                .assignmentId(assignmentId)
                 .content(request.getContent())
-                .parentId(request.getParentId())
                 .build();
         
         Comment savedComment = commentRepository.save(comment);
         log.info("과제 댓글 작성 완료: commentId={}", savedComment.getCommentId());
         
-        return CommentResponse.from(savedComment);
+        // 닉네임 조회하여 응답 생성
+        String nickname = getNicknameByUserId(userId);
+        return CommentResponse.from(savedComment, nickname);
     }
 
     /**
      * 자유게시판 댓글 작성
-     * @param memberId 멤버 ID
+     * @param userId 사용자 ID
+     * @param frPostId 자유게시판 ID (URL 경로에서 추출)
      * @param request 댓글 요청 DTO
      * @return 작성된 댓글 응답 DTO
      */
     @Transactional
-    public CommentResponse createFreePostComment(Long memberId, CommentRequest request) {
-        log.info("자유게시판 댓글 작성 시작: memberId={}, frPostId={}", memberId, request.getFrPostId());
+    public CommentResponse createFreePostComment(String userId, Long frPostId, CommentRequest request) {
+        log.info("자유게시판 댓글 작성 시작: userId={}, frPostId={}", userId, frPostId);
         
         Comment comment = Comment.builder()
-                .memberId(memberId)
-                .frPostId(request.getFrPostId())
+                .userId(userId)
+                .frPostId(frPostId)
                 .content(request.getContent())
-                .parentId(request.getParentId())
                 .build();
         
         Comment savedComment = commentRepository.save(comment);
         log.info("자유게시판 댓글 작성 완료: commentId={}", savedComment.getCommentId());
         
-        return CommentResponse.from(savedComment);
+        // 닉네임 조회하여 응답 생성
+        String nickname = getNicknameByUserId(userId);
+        return CommentResponse.from(savedComment, nickname);
     }
 
     /**
-     * 스터디게시판 댓글 작성
-     * @param memberId 멤버 ID
+     * 스터디게시판 댓글 작성 (멤버십 검증 포함)
+     * @param userId 사용자 ID
+     * @param stPrPostId 스터디 커뮤니티 ID (URL 경로에서 추출)
      * @param request 댓글 요청 DTO
      * @return 작성된 댓글 응답 DTO
+     * @throws IllegalArgumentException 해당 스터디의 멤버가 아닌 경우
      */
     @Transactional
-    public CommentResponse createStudyPostComment(Long memberId, CommentRequest request) {
-        log.info("스터디게시판 댓글 작성 시작: memberId={}, stPrPostId={}", memberId, request.getStPrPostId());
+    public CommentResponse createStudyPostComment(String userId, Long stPrPostId, CommentRequest request) {
+        log.info("스터디게시판 댓글 작성 시작: userId={}, stPrPostId={}", userId, stPrPostId);
+        
+        // 1. 스터디 멤버십 검증
+        validateStudyMembership(userId, stPrPostId);
         
         Comment comment = Comment.builder()
-                .memberId(memberId)
-                .stPrPostId(request.getStPrPostId())
+                .userId(userId)
+                .stPrPostId(stPrPostId)
                 .content(request.getContent())
-                .parentId(request.getParentId())
                 .build();
         
         Comment savedComment = commentRepository.save(comment);
         log.info("스터디게시판 댓글 작성 완료: commentId={}", savedComment.getCommentId());
         
-        return CommentResponse.from(savedComment);
+        // 닉네임 조회하여 응답 생성
+        String nickname = getNicknameByUserId(userId);
+        return CommentResponse.from(savedComment, nickname);
     }
 
     /**
-     * 과제 댓글 목록 조회 (계층 구조 포함)
+     * 스터디 멤버십 검증
+     * 해당 사용자가 스터디의 멤버인지 확인
+     * 
+     * @param userId 사용자 ID
+     * @param stPrPostId 스터디 커뮤니티 ID
+     * @throws IllegalArgumentException 멤버가 아닌 경우
+     */
+    private void validateStudyMembership(String userId, Long stPrPostId) {
+        log.info("스터디 멤버십 검증 시작: userId={}, stPrPostId={}", userId, stPrPostId);
+        
+        try {
+            // 스터디 멤버십 확인
+            Optional<com.smhrd.graddy.member.entity.Member> memberOpt = 
+                    studyProjectMemberRepository.findByUserIdAndStudyProjectId(userId, stPrPostId);
+            
+            if (memberOpt.isEmpty()) {
+                log.warn("스터디 멤버가 아님: userId={}, stPrPostId={}", userId, stPrPostId);
+                throw new IllegalArgumentException("해당 스터디의 멤버가 아니므로 댓글을 작성할 수 없습니다.");
+            }
+            
+            log.info("스터디 멤버십 검증 완료: userId={}, stPrPostId={}, memberId={}", 
+                    userId, stPrPostId, memberOpt.get().getMemberId());
+            
+        } catch (IllegalArgumentException e) {
+            // 이미 검증된 예외는 그대로 던지기
+            throw e;
+        } catch (Exception e) {
+            log.error("스터디 멤버십 검증 중 오류 발생: userId={}, stPrPostId={}", userId, stPrPostId, e);
+            throw new IllegalArgumentException("스터디 멤버십 확인 중 오류가 발생했습니다.");
+        }
+    }
+
+    /**
+     * 과제 댓글 목록 조회
      * @param assignmentId 과제 ID
-     * @return 댓글 응답 DTO 목록
+     * @return 댓글 응답 DTO 목록 (닉네임 포함)
      */
     public List<CommentResponse> getAssignmentComments(Long assignmentId) {
         log.info("과제 댓글 목록 조회 시작: assignmentId={}", assignmentId);
         
-        List<Comment> topLevelComments = commentRepository.findTopLevelCommentsByAssignmentId(assignmentId);
+        List<Comment> comments = commentRepository.findAllCommentsByAssignmentId(assignmentId);
         
-        List<CommentResponse> responses = topLevelComments.stream()
-                .map(CommentResponse::from)
+        List<CommentResponse> responses = comments.stream()
+                .map(comment -> {
+                    String nickname = getNicknameByUserId(comment.getUserId());
+                    return CommentResponse.from(comment, nickname);
+                })
                 .collect(Collectors.toList());
         
         log.info("과제 댓글 목록 조회 완료: count={}", responses.size());
@@ -112,17 +176,20 @@ public class CommentService {
     }
 
     /**
-     * 자유게시판 댓글 목록 조회 (계층 구조 포함)
+     * 자유게시판 댓글 목록 조회
      * @param frPostId 자유게시판 ID
-     * @return 댓글 응답 DTO 목록
+     * @return 댓글 응답 DTO 목록 (닉네임 포함)
      */
     public List<CommentResponse> getFreePostComments(Long frPostId) {
         log.info("자유게시판 댓글 목록 조회 시작: frPostId={}", frPostId);
         
-        List<Comment> topLevelComments = commentRepository.findTopLevelCommentsByFrPostId(frPostId);
+        List<Comment> comments = commentRepository.findAllCommentsByFrPostId(frPostId);
         
-        List<CommentResponse> responses = topLevelComments.stream()
-                .map(CommentResponse::from)
+        List<CommentResponse> responses = comments.stream()
+                .map(comment -> {
+                    String nickname = getNicknameByUserId(comment.getUserId());
+                    return CommentResponse.from(comment, nickname);
+                })
                 .collect(Collectors.toList());
         
         log.info("자유게시판 댓글 목록 조회 완료: count={}", responses.size());
@@ -130,17 +197,20 @@ public class CommentService {
     }
 
     /**
-     * 스터디게시판 댓글 목록 조회 (계층 구조 포함)
+     * 스터디게시판 댓글 목록 조회
      * @param stPrPostId 스터디게시판 ID
-     * @return 댓글 응답 DTO 목록
+     * @return 댓글 응답 DTO 목록 (닉네임 포함)
      */
     public List<CommentResponse> getStudyPostComments(Long stPrPostId) {
         log.info("스터디게시판 댓글 목록 조회 시작: stPrPostId={}", stPrPostId);
         
-        List<Comment> topLevelComments = commentRepository.findTopLevelCommentsByStPrPostId(stPrPostId);
+        List<Comment> comments = commentRepository.findAllCommentsByStPrPostId(stPrPostId);
         
-        List<CommentResponse> responses = topLevelComments.stream()
-                .map(CommentResponse::from)
+        List<CommentResponse> responses = comments.stream()
+                .map(comment -> {
+                    String nickname = getNicknameByUserId(comment.getUserId());
+                    return CommentResponse.from(comment, nickname);
+                })
                 .collect(Collectors.toList());
         
         log.info("스터디게시판 댓글 목록 조회 완료: count={}", responses.size());
@@ -150,44 +220,57 @@ public class CommentService {
     /**
      * 댓글 수정
      * @param commentId 댓글 ID
-     * @param memberId 멤버 ID (권한 확인용)
+     * @param userId 사용자 ID (권한 확인용)
      * @param content 수정할 내용
      * @return 수정된 댓글 응답 DTO
      */
     @Transactional
-    public CommentResponse updateComment(Long commentId, Long memberId, String content) {
-        log.info("댓글 수정 시작: commentId={}, memberId={}", commentId, memberId);
+    public CommentResponse updateComment(Long commentId, String userId, String content) {
+        log.info("댓글 수정 시작: commentId={}, userId={}", commentId, userId);
         
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("댓글을 찾을 수 없습니다: " + commentId));
         
-        // 권한 확인
-        if (!comment.getMemberId().equals(memberId)) {
+        // 권한 확인 - 본인이 작성한 댓글만 수정 가능
+        if (!comment.getUserId().equals(userId)) {
             throw new IllegalArgumentException("댓글을 수정할 권한이 없습니다.");
+        }
+        
+        // 스터디 댓글인 경우 멤버십 추가 검증
+        if (comment.getStPrPostId() != null) {
+            validateStudyMembership(userId, comment.getStPrPostId());
         }
         
         comment.setContent(content);
         Comment updatedComment = commentRepository.save(comment);
         
         log.info("댓글 수정 완료: commentId={}", updatedComment.getCommentId());
-        return CommentResponse.from(updatedComment);
+        
+        // 닉네임 조회하여 응답 생성
+        String nickname = getNicknameByUserId(userId);
+        return CommentResponse.from(updatedComment, nickname);
     }
 
     /**
      * 댓글 삭제
      * @param commentId 댓글 ID
-     * @param memberId 멤버 ID (권한 확인용)
+     * @param userId 사용자 ID (권한 확인용)
      */
     @Transactional
-    public void deleteComment(Long commentId, Long memberId) {
-        log.info("댓글 삭제 시작: commentId={}, memberId={}", commentId, memberId);
+    public void deleteComment(Long commentId, String userId) {
+        log.info("댓글 삭제 시작: commentId={}, userId={}", commentId, userId);
         
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("댓글을 찾을 수 없습니다: " + commentId));
         
-        // 권한 확인
-        if (!comment.getMemberId().equals(memberId)) {
+        // 권한 확인 - 본인이 작성한 댓글만 삭제 가능
+        if (!comment.getUserId().equals(userId)) {
             throw new IllegalArgumentException("댓글을 삭제할 권한이 없습니다.");
+        }
+        
+        // 스터디 댓글인 경우 멤버십 추가 검증
+        if (comment.getStPrPostId() != null) {
+            validateStudyMembership(userId, comment.getStPrPostId());
         }
         
         commentRepository.delete(comment);
@@ -219,5 +302,29 @@ public class CommentService {
      */
     public long getStudyPostCommentCount(Long stPrPostId) {
         return commentRepository.countCommentsByStPrPostId(stPrPostId);
+    }
+
+    /**
+     * 사용자 ID를 통해 닉네임을 조회
+     * @param userId 사용자 ID
+     * @return 사용자 닉네임, 조회 실패 시 "알 수 없음"
+     */
+    private String getNicknameByUserId(String userId) {
+        try {
+            Optional<com.smhrd.graddy.user.entity.User> userOpt = userRepository.findByUserId(userId);
+            if (userOpt.isEmpty()) {
+                log.warn("사용자 정보를 찾을 수 없음: userId={}", userId);
+                return "알 수 없음";
+            }
+            
+            String nickname = userOpt.get().getNick();
+            log.debug("사용자 닉네임 조회 성공: userId={}, nickname={}", userId, nickname);
+            
+            return nickname;
+            
+        } catch (Exception e) {
+            log.error("사용자 닉네임 조회 중 오류 발생: userId={}", userId, e);
+            return "알 수 없음";
+        }
     }
 }

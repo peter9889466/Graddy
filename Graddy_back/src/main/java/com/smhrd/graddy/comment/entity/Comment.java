@@ -6,8 +6,6 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * 댓글 엔티티
@@ -17,6 +15,16 @@ import java.util.List;
  * - 과제 댓글: assignment_id만 설정, 나머지 NULL
  * - 자유게시판 댓글: fr_post_id만 설정, 나머지 NULL
  * - 스터디게시판 댓글: st_pr_post_id만 설정, 나머지 NULL
+ * 
+ * 테이블 구조:
+ * - comment_id: 댓글 ID (AUTO_INCREMENT, 단일 기본키)
+ * - user_id: 사용자 ID (varchar)
+ * - assignment_id: 과제 ID (선택적)
+ * - st_pr_post_id: 스터디 커뮤니티 ID (선택적)
+ * - fr_post_id: 자유 커뮤니티 ID (선택적)
+ * - content: 댓글 내용 (TEXT)
+ * - created_at: 등록 시간
+ * - updated_at: 수정 시간
  */
 @Entity
 @Table(name = "comments")
@@ -25,7 +33,6 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(exclude = {"children"})
 public class Comment {
 
     @Id
@@ -33,8 +40,8 @@ public class Comment {
     @Column(name = "comment_id")
     private Long commentId;
 
-    @Column(name = "member_id")
-    private Long memberId;
+    @Column(name = "user_id", length = 50)
+    private String userId;
 
     @Column(name = "assignment_id")
     private Long assignmentId;
@@ -44,9 +51,6 @@ public class Comment {
 
     @Column(name = "fr_post_id")
     private Long frPostId;
-
-    @Column(name = "parent_id")
-    private Long parentId;
 
     @Column(name = "content", columnDefinition = "TEXT", nullable = false)
     private String content;
@@ -58,16 +62,6 @@ public class Comment {
     @Column(name = "updated_at")
     @UpdateTimestamp
     private Timestamp updatedAt;
-
-    // 대댓글 관계 (자식 댓글들)
-    @OneToMany(mappedBy = "parentId", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @Builder.Default
-    private List<Comment> children = new ArrayList<>();
-
-    // 부모 댓글 관계
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "parent_id", insertable = false, updatable = false)
-    private Comment parent;
 
     /**
      * 댓글 타입을 반환
@@ -94,25 +88,9 @@ public class Comment {
         } else if (frPostId != null) {
             return frPostId;
         } else if (stPrPostId != null) {
-            return stPrPostId;
+            return frPostId;
         }
         return null;
-    }
-
-    /**
-     * 최상위 댓글인지 확인
-     * @return 최상위 댓글이면 true
-     */
-    public boolean isTopLevel() {
-        return parentId == null;
-    }
-
-    /**
-     * 대댓글인지 확인
-     * @return 대댓글이면 true
-     */
-    public boolean isReply() {
-        return parentId != null;
     }
 
     /**
