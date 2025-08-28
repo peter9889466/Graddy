@@ -463,44 +463,41 @@ const StudyDetailPage = () => {
 
 	// 가입 신청 관련 함수들
 	const handleApplyToStudy = async () => {
-    if (!id || !authContext?.user?.nickname) {
-        alert('로그인이 필요합니다.');
-        return;
-    }
+		if (!id || !authContext?.user?.nickname) {
+			alert('로그인이 필요합니다.');
+			return;
+		}
 
-    setIsApplying(true);
-    try {
-        const request = {
-            studyProjectId: parseInt(id, 10),
-            message: "열심히 참여하겠습니다!"
-        };
+		setIsApplying(true);
+		try {
+			const request = {
+				studyProjectId: parseInt(id, 10),
+				message: "열심히 참여하겠습니다!"
+			};
 
-        await applyToStudyProject(request);
-        
-        alert('가입 신청이 완료되었습니다!');
-        setIsApplied(true);
-        
-        if (userMemberType === 'leader') {
-            loadApplications();
-        }
-    } catch (error: any) {
-        console.error('가입 신청 실패:', error);
-        
-        // 에러 객체의 message 속성을 먼저 확인
-        const errorMessage = error.message;
+			await applyToStudyProject(request);
+			
+			alert('가입 신청이 완료되었습니다!');
+			setIsApplied(true);
+			
+			if (userMemberType === 'leader') {
+				loadApplications();
+			}
+		} catch (error: any) {
+			console.error('가입 신청 실패:', error);
+			
+			// 에러 메시지 텍스트를 직접 확인
+			if (error.message.includes("이미 해당 스터디/프로젝트의 멤버입니다.")) {
+				alert('이미 해당 스터디/프로젝트의 멤버입니다.');
+				setUserMemberType('member');
+			} else {
+				alert('가입 신청에 실패했습니다. 다시 시도해주세요.');
+			}
 
-        // 서버의 응답 메시지가 아닌, Axios(또는 Fetch)에서 발생한 에러 메시지를 기반으로 판단
-        if (errorMessage.includes("400")) {
-            alert('이미 해당 스터디/프로젝트의 멤버입니다.');
-            setUserMemberType('member');
-        } else {
-            alert('가입 신청에 실패했습니다. 다시 시도해주세요.');
-        }
-
-    } finally {
-        setIsApplying(false);
-    }
-};
+		} finally {
+			setIsApplying(false);
+		}
+	};
 
 	const loadApplications = async () => {
 		if (!id || userMemberType !== 'leader') return;
@@ -1077,13 +1074,16 @@ const StudyDetailPage = () => {
 						</div>
 					);
 				}
-				return <Community />;
+				return <Community 
+					studyProjectId={parseInt(id!, 10)}
+					currentUserId={authContext?.user?.nickname || authContext?.user?.email || '사용자'}
+				/>;
 		}
 	};
 
 	const handleCurriculumUpdate = (newText: string) => {
-    setCurriculumText(newText);
-};
+		setCurriculumText(newText);
+	};
 
 	return (
 		<PageLayout>
