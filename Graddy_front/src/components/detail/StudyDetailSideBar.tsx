@@ -163,21 +163,38 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
                         </span>
                     </div>
                     <hr className="mb-3 border-gray-200" />
-                    <div className="bg-yellow-50 rounded-lg p-3 space-y-3">
+                    <div className=" rounded-lg p-3 space-y-3">
                         {applications.map((application, index) => (
-                            <div key={index} className="border border-yellow-200 rounded-lg p-3 bg-white">
-                                <div className="flex items-center justify-between mb-2">
+                            <div key={index} className="rounded-lg p-3 bg-gray-50">
+                                <div className="flex items-center justify-between">
                                     <span className="text-sm font-medium text-gray-800">
                                         {application.userId}
                                     </span>
-                                    <span className="text-xs text-gray-500">
+                                    {/* <span className="text-xs text-gray-500">
                                         {new Date(application.appliedAt).toLocaleDateString()}
-                                    </span>
+                                    </span> */}
+                                    <div className="flex gap-2">
+                                    <button
+                                        onClick={() => onProcessApplication?.(application.userId, 'PENDING')}
+                                        className="flex-1 px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+                                    >
+                                        V
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            const reason = prompt('거절 사유를 입력하세요 (선택사항):');
+                                            onProcessApplication?.(application.userId, 'REJECTED', reason || undefined);
+                                        }}
+                                        className="flex-1 px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                                    >
+                                        X
+                                    </button>
                                 </div>
-                                <p className="text-xs text-gray-600 mb-3 line-clamp-2">
+                                </div>
+                                {/* <p className="text-xs text-gray-600 mb-3 line-clamp-2">
                                     {application.message}
-                                </p>
-                                <div className="flex gap-2">
+                                </p> */}
+                                {/* <div className="flex gap-2">
                                     <button
                                         onClick={() => onProcessApplication?.(application.userId, 'PENDING')}
                                         className="flex-1 px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
@@ -193,7 +210,7 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
                                     >
                                         거절
                                     </button>
-                                </div>
+                                </div> */}
                             </div>
                         ))}
                     </div>
