@@ -49,6 +49,23 @@ jobs:
                   cache-from: type=gha
                   cache-to: type=gha,mode=max
 
+            # Docker 빌드 전에 GitHub Actions Runner에서 직접 프론트엔드 빌드를 실행하여
+            # 빌드 과정의 로그를 확인하고, 결과물(artifact)을 다운로드할 수 있도록 합니다.
+            - name: Frontend Build & Artifact Upload
+              run: |
+                  echo "--- Starting Frontend Build in Runner ---"
+                  cd Graddy_front
+                  npm install
+                  npm run build
+                  echo "--- Frontend Build Finished ---"
+                  echo "--- Listing dist folder contents ---"
+                  ls -R dist
+
+            - uses: actions/upload-artifact@v3
+              with:
+                  name: build-dist-folder
+                  path: ./Graddy_front/dist/
+
             # 4. 프론트엔드(Frontend) Docker 이미지 빌드 및 푸시 (ARM64만)
             - name: Build and push Frontend image
               uses: docker/build-push-action@v5
