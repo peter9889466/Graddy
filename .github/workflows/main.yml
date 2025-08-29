@@ -60,7 +60,10 @@ jobs:
                   echo "--- Frontend Build Finished ---"
                   echo "--- Listing dist folder contents ---"
                   ls -R dist
-
+              echo "--- Full content of dist/index.html ---"
+              cat ./dist/index.html
+              echo "--- End of dist/index.html content ---"
+              
             - uses: actions/upload-artifact@v4
               with:
                   name: build-dist-folder
