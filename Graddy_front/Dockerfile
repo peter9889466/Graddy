@@ -32,6 +32,8 @@ FROM nginx:stable-alpine
 # Nginx의 기본 웹 루트 디렉토리로 복사합니다.
 COPY --from=builder /app/dist /usr/share/nginx/html
 
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
 # 80번 포트를 외부에 노출합니다.
 EXPOSE 80
 

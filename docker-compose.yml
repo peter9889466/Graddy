@@ -6,7 +6,7 @@ services:
         # [수정] build 대신 Docker Hub의 image를 사용하도록 변경
         image: DOCKER_HUB_USERNAME_PLACEHOLDER/graddy-front:latest
         ports:
-            - "3000:80" # EC2의 3000번 포트를 컨테이너의 80번 포트와 연결
+            - "80:80"
         networks:
             - graddy-net
         restart: always # 항상 재시작 옵션 추가
