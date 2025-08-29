@@ -9,7 +9,7 @@ import Assignment from "../components/detail/Assignment";
 import { studyList } from "../data/studyData";
 import { AuthContext } from "../contexts/AuthContext";
 import PageLayout from "../components/layout/PageLayout";
-import { StudyApiService, applyToStudyProject, getStudyApplications, processStudyApplication, getUserApplicationStatus, StudyApplicationResponse } from "../services/studyApi";
+import { StudyApiService, applyToStudyProject, getStudyApplications, processStudyApplication, getUserApplicationStatus, StudyApplicationResponse, cancelStudyApplication } from "../services/studyApi";
 import FeedBack from "@/components/detail/FeedBack";
 import Schedule from "@/components/detail/Schedule";
 import Curriculum from "@/components/detail/Curriculum";
@@ -185,6 +185,7 @@ const StudyDetailPage = () => {
 					setStudyLevel(studyData.studyLevel || 1);
 					setStudyTags(studyData.tagNames || []);
 					setMaxMembers(studyData.studyProjectTotal || 10);
+					setIsRecruiting(studyData.isRecruiting === "recruitment");
 					
 					// 기간 설정
 					if (studyData.studyProjectStart && studyData.studyProjectEnd) {
@@ -360,7 +361,6 @@ const StudyDetailPage = () => {
 				await StudyApiService.updateStudyProjectStatus(parseInt(id, 10), "end");
 				setIsStudyEnd(true);
 				alert("스터디가 종료되었습니다.");
-				// window.location.reload(); // 이 줄 제거
 			} catch (error) {
 				console.error('스터디 종료 실패:', error);
 				if (error instanceof Error) {
@@ -438,6 +438,7 @@ const StudyDetailPage = () => {
 			
 			setIsEditing(false);
 			alert("스터디 정보가 성공적으로 수정되었습니다.");
+			window.location.reload();
 		} catch (error) {
 			console.error('스터디 수정 실패:', error);
 			alert("스터디 수정에 실패했습니다.");
@@ -483,13 +484,16 @@ const StudyDetailPage = () => {
 			if (userMemberType === 'leader') {
 				loadApplications();
 			}
+
+			window.location.reload();
 		} catch (error: any) {
 			console.error('가입 신청 실패:', error);
 			
 			// 에러 메시지 텍스트를 직접 확인
-			if (error.message.includes("이미 해당 스터디/프로젝트의 멤버입니다.")) {
-				alert('이미 해당 스터디/프로젝트의 멤버입니다.');
+			if (error.message.includes("이미 해당 스터디의 멤버입니다.")) {
+				alert('이미 해당 스터디의 멤버입니다.');
 				setUserMemberType('member');
+				window.location.reload();
 			} else {
 				alert('가입 신청에 실패했습니다. 다시 시도해주세요.');
 			}
@@ -508,6 +512,23 @@ const StudyDetailPage = () => {
 			setApplications(applicationsData.filter(app => app.status === 'PENDING'));
 		} catch (error) {
 			console.error('가입 신청 목록 로드 실패:', error);
+		}
+	};
+
+	// 2. StudyDetailPage.tsx에서 신청 취소 함수 추가
+	const handleCancelApplication = async () => {
+		if (!id) return;
+		
+		if (confirm("가입 신청을 취소하시겠습니까?")) {
+			try {
+				await cancelStudyApplication(parseInt(id, 10));
+				setIsApplied(false);
+				alert("가입 신청이 취소되었습니다.");
+				window.location.reload();
+			} catch (error: any) {
+				console.error('신청 취소 실패:', error);
+				alert(error.message || '신청 취소에 실패했습니다.');
+			}
 		}
 	};
 
@@ -541,6 +562,8 @@ const StudyDetailPage = () => {
 				setMembers(studyData.members);
 			}
 		}
+
+		window.location.reload();
 	} catch (error) {
 		console.error('가입 신청 처리 실패:', error);
 		alert('가입 신청 처리에 실패했습니다.');
@@ -968,16 +991,27 @@ const StudyDetailPage = () => {
 						</div>
 						{/* 버튼 영역 */}
 						{!isEditing && !isLoading && isStudyLeader && !isStudyEnd ? (
-							// 스터디장인 경우 (수정 모드가 아닐 때만 표시)
 							<div className="flex gap-2 mt-3">
-								<button
-									type="button"
-									onClick={handleRecruitmentToggle}
-									className="flex-1 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer transition-colors duration-200"
-									style={{ backgroundColor: isRecruiting ? "#EF4444" : "#10B981" }}
-								>
-									{isRecruiting ? "모집 마감" : "모집 재시작"}
-								</button>
+								{/* 모집 중일 때만 '모집 마감' 버튼 표시 */}
+								{isRecruiting && (
+									<button
+										type="button"
+										onClick={handleRecruitmentToggle}
+										className="flex-1 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer transition-colors duration-200"
+										style={{ backgroundColor: "#EF4444" }}
+									>
+										모집 마감
+									</button>
+								)}
+								
+								{/* 모집 마감된 경우 상태 표시 */}
+								{!isRecruiting && (
+									<div className="flex-1 px-4 py-2 rounded-lg text-center text-sm sm:text-base border"
+										style={{ backgroundColor: "#F9FAFB", color: "#6B7280", borderColor: "#D1D5DB" }}>
+										모집 마감
+									</div>
+								)}
+								
 								<button
 									type="button"
 									onClick={handleStudyEnd}
@@ -1003,9 +1037,9 @@ const StudyDetailPage = () => {
 								) : (
 									<button
 										type="button"
-										className="w-full px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-not-allowed"
+										onClick={handleCancelApplication}
+										className="w-full px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer hover:bg-gray-700 transition-colors"
 										style={{ backgroundColor: "#6B7280" }}
-										disabled
 									>
 										승인 대기 중
 									</button>
@@ -1025,7 +1059,7 @@ const StudyDetailPage = () => {
 						</div>
 					);
 				}
-				return <Assignment />;
+				return <Assignment studyProjectId={parseInt(id!, 10)} />;
 
 			case "과제 피드백":
 				if (!isLoggedIn || !(userMemberType === 'leader' || userMemberType === 'member')) {

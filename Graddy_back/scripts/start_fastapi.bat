@@ -11,7 +11,7 @@ echo Installing required packages...
 pip install -r requirements.txt
 
 echo.
-echo Starting FastAPI server on http://localhost:8000
+echo Starting FastAPI server on http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com
 echo Press Ctrl+C to stop the server
 echo.
 

@@ -162,7 +162,7 @@ if (response.isSuccess()) {
 
 ```bash
 # AI 서버 상태 확인
-curl http://localhost:8000/health
+curl http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/health
 
 # 포트 확인
 netstat -an | findstr :8000

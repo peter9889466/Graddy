@@ -181,50 +181,50 @@ const Community: React.FC<CommunityProps> = ({
         content: string
     ) => {
         try {
-            const response = await fetch(
-                `http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/posts/${postId}`,
-                {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        title: title.trim(),
-                        content: content.trim(),
-                    }),
-                }
-            );
-
+            // URL에 stPrPostId(게시글 ID)와 currentMemberId(현재 로그인 사용자 ID)를 포함합니다.
+            const response = await fetch(`http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/posts/${postId}?currentMemberId=${user?.nickname}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title: title.trim(),
+                    content: content.trim()
+                })
+            });
+            
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                // HTTP 오류가 발생했을 때 상세 메시지를 확인
+                const errorData = await response.json();
+                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
             }
 
             // 게시글 수정 성공 후 목록 새로고침
             await fetchPosts();
         } catch (error) {
-            console.error("게시글 수정 실패:", error);
-            alert("게시글 수정에 실패했습니다.");
+            console.error('게시글 수정 실패:', error);
+            alert(`게시글 수정에 실패했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
         }
     };
 
     const deletePost = async (postId: string) => {
         try {
-            const response = await fetch(
-                `http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/posts/${postId}`,
-                {
-                    method: "DELETE",
-                }
-            );
-
+            // URL에 게시글 ID와 현재 로그인한 사용자 ID를 쿼리 파라미터로 포함합니다.
+            const response = await fetch(`http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/posts/${postId}?currentMemberId=${user?.nickname}`, {
+                method: 'DELETE'
+            });
+            
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                // HTTP 오류가 발생했을 때 상세 메시지를 확인합니다.
+                const errorData = await response.json();
+                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
             }
-
-            // 게시글 삭제 성공 후 목록 새로고침
+            
+            // 성공적으로 삭제되면 게시글 목록을 새로고침하여 화면을 업데이트합니다.
             await fetchPosts();
         } catch (error) {
-            console.error("게시글 삭제 실패:", error);
-            alert("게시글 삭제에 실패했습니다.");
+            console.error('게시글 삭제 실패:', error);
+            alert(`게시글 삭제에 실패했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
         }
     };
 
