@@ -104,7 +104,7 @@ curl -X POST "http://localhost:8000/generate-curriculum" \
 #### **Spring Boot를 통한 호출**
 
 ```bash
-curl -X POST "http://localhost:8080/api/ai-curriculum/generate/1"
+curl -X POST "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/ai-curriculum/generate/1"
 ```
 
 ### **2. 서버 상태 확인**
@@ -114,7 +114,7 @@ curl -X POST "http://localhost:8080/api/ai-curriculum/generate/1"
 curl http://localhost:8000/health
 
 # Spring Boot에서 AI 서버 상태 확인
-curl http://localhost:8080/api/ai-curriculum/health
+curl http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/ai-curriculum/health
 ```
 
 ## 🛠️ **개발 환경**

@@ -64,7 +64,7 @@ const Login: React.FC = () => {
 
         try {
             const response = await axios.post(
-                "http://localhost:8080/api/login",
+                "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/login",
                 {
                     userId: id,
                     password: password,
