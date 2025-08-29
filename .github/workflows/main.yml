@@ -70,7 +70,7 @@ jobs:
                   mkdir deploy
 
                   # 프론트엔드 빌드 결과물 복사
-                  cp -r Graddy_front/build ./deploy/
+                  cp -r Graddy_front/app ./deploy/
 
                   # CodeDeploy 설정 파일 및 스크립트 복사
                   cp appspec.yml ./deploy/
