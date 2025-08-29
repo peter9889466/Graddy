@@ -30,7 +30,9 @@ interface ProjectDetailSideBarProps {
         message: string;
         appliedAt: string;
     }>;
-    onProcessApplication?: (userId: string, status: 'PENDING' | 'REJECTED', reason?: string) => void;
+    studyProjectId: number;
+    onProcessApplication?: (userId: string, status: 'APPROVED' | 'REJECTED', reason?: string) => void;
+    onApplyToProject?: () => void;
 }
 
 const ProjectDetailSideBar: React.FC<ProjectDetailSideBarProps> = ({
@@ -126,7 +128,7 @@ const ProjectDetailSideBar: React.FC<ProjectDetailSideBarProps> = ({
                                 </p>
                                 <div className="flex gap-2">
                                     <button
-                                        onClick={() => onProcessApplication?.(application.userId, 'PENDING')}
+                                        onClick={() => onProcessApplication?.(application.userId, 'APPROVED')}
                                         className="flex-1 px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
                                     >
                                         수락

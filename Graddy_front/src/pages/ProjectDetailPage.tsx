@@ -8,7 +8,7 @@ import Assignment from "../components/detail/Assignment";
 import { studyList } from "../data/studyData";
 import { AuthContext } from "../contexts/AuthContext";
 import PageLayout from "../components/layout/PageLayout";
-import { StudyApiService, applyToStudyProject, getStudyApplications, processStudyApplication, getUserApplicationStatus, StudyApplicationResponse } from "../services/studyApi";
+import { StudyApiService, applyToStudyProject, getStudyApplications, processStudyApplication, getUserApplicationStatus, StudyApplicationResponse, cancelStudyApplication } from "../services/studyApi";
 import FeedBack from "@/components/detail/FeedBack";
 import Schedule from "@/components/detail/Schedule";
 import Curriculum from "@/components/detail/Curriculum";
@@ -162,6 +162,7 @@ const ProjectDetailPage = () => {
 					setStudyDescription(studyData.studyProjectDesc || `프로젝트#${id}의 설명이 없습니다.`);
 					setStudyTags(studyData.tagNames || []);
 					setMaxMembers(studyData.studyProjectTotal || 10);
+					setIsRecruiting(studyData.isRecruiting === "recruitment");
 					
 					// 기간 설정
 					if (studyData.studyProjectStart && studyData.studyProjectEnd) {
@@ -190,8 +191,8 @@ const ProjectDetailPage = () => {
 					}
 					
 					// GitHub URL 설정
-					console.log('백엔드에서 받은 GitHub URL:', studyData.githubUrl);
-					setGithubUrl(studyData.githubUrl || "");
+					console.log('백엔드에서 받은 GitHub URL:', studyData.gitUrl);
+					setGithubUrl(studyData.gitUrl || "");
 					
 					// 멤버 정보 설정
 					if (studyData.members) {
@@ -311,7 +312,7 @@ const ProjectDetailPage = () => {
 		if (!id) return;
 		
 		try {
-			const newStatus = isRecruiting ? "closed" : "recruitment";
+			const newStatus = isRecruiting ? "complete" : "recruitment";
 			await StudyApiService.updateStudyProjectStatus(parseInt(id, 10), newStatus);
 			
 			setIsRecruiting(!isRecruiting);
@@ -406,6 +407,7 @@ const ProjectDetailPage = () => {
 			
 			setIsEditing(false);
 			alert("프로젝트 정보가 성공적으로 수정되었습니다.");
+			window.location.reload();
 		} catch (error) {
 			console.error('프로젝트 수정 실패:', error);
 			alert("프로젝트 수정에 실패했습니다.");
@@ -451,16 +453,20 @@ const ProjectDetailPage = () => {
 			if (userMemberType === 'leader') {
 				loadApplications();
 			}
+
+			window.location.reload();
 		} catch (error: any) {
 			console.error('가입 신청 실패:', error);
 			
-			// 이미 신청한 경우의 에러 처리
-			if (error.message && error.message.includes('이미 신청한')) {
-				alert('이미 가입 신청을 하셨습니다.');
-				setIsApplied(true);
+			// 에러 메시지 텍스트를 직접 확인
+			if (error.message.includes("이미 해당 프로젝트의 멤버입니다.")) {
+				alert('이미 해당 프로젝트의 멤버입니다.');
+				setUserMemberType('member');
+				window.location.reload();
 			} else {
 				alert('가입 신청에 실패했습니다. 다시 시도해주세요.');
 			}
+
 		} finally {
 			setIsApplying(false);
 		}
@@ -478,7 +484,23 @@ const ProjectDetailPage = () => {
 		}
 	};
 
-	const handleProcessApplication = async (userId: string, status: 'PENDING' | 'REJECTED', reason?: string) => {
+	const handleCancelApplication = async () => {
+			if (!id) return;
+			
+			if (confirm("가입 신청을 취소하시겠습니까?")) {
+				try {
+					await cancelStudyApplication(parseInt(id, 10));
+					setIsApplied(false);
+					alert("가입 신청이 취소되었습니다.");
+					window.location.reload();
+				} catch (error: any) {
+					console.error('신청 취소 실패:', error);
+					alert(error.message || '신청 취소에 실패했습니다.');
+				}
+			}
+		};
+
+	const handleProcessApplication = async (userId: string, status: 'APPROVED' | 'REJECTED', reason?: string) => {
 		if (!id) return;
 
 		try {
@@ -490,7 +512,7 @@ const ProjectDetailPage = () => {
 
 			await processStudyApplication(parseInt(id, 10), request);
 			
-			if (status === 'PENDING') {
+			if (status === 'APPROVED') {
 				alert('가입 신청이 승인되었습니다.');
 			} else {
 				alert('가입 신청이 거절되었습니다.');
@@ -500,7 +522,7 @@ const ProjectDetailPage = () => {
 			loadApplications();
 			
 			// 승인된 경우 멤버 목록도 새로고침
-			if (status === 'PENDING') {
+			if (status === 'APPROVED') {
 				// 스터디 정보를 다시 불러와서 멤버 목록 업데이트
 				const studyProjectId = parseInt(id, 10);
 				const studyData = await StudyApiService.getStudyProject(studyProjectId);
@@ -508,6 +530,8 @@ const ProjectDetailPage = () => {
 					setMembers(studyData.members);
 				}
 			}
+
+			window.location.reload();
 		} catch (error) {
 			console.error('가입 신청 처리 실패:', error);
 			alert('가입 신청 처리에 실패했습니다.');
@@ -862,14 +886,24 @@ const ProjectDetailPage = () => {
 						{!isEditing && isStudyLeader ? (
 							// 프로젝트장인 경우 (수정 모드가 아닐 때만 표시)
 							<div className="flex gap-2 mt-3">
-								<button
-									type="button"
-									onClick={handleRecruitmentToggle}
-									className="flex-1 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer transition-colors duration-200"
-									style={{ backgroundColor: isRecruiting ? "#EF4444" : "#10B981" }}
-								>
-									{isRecruiting ? "모집 마감" : "모집 재시작"}
-								</button>
+								{isRecruiting && (
+									<button
+										type="button"
+										onClick={handleRecruitmentToggle}
+										className="flex-1 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer transition-colors duration-200"
+										style={{ backgroundColor: "#EF4444" }}
+									>
+										모집 마감
+									</button>
+								)}
+								
+								{/* 모집 마감된 경우 상태 표시 */}
+								{!isRecruiting && (
+									<div className="flex-1 px-4 py-2 rounded-lg text-center text-sm sm:text-base border"
+										style={{ backgroundColor: "#F9FAFB", color: "#6B7280", borderColor: "#D1D5DB" }}>
+										모집 마감
+									</div>
+								)}
 								<button
 									type="button"
 									onClick={handleStudyEnd}
@@ -895,9 +929,9 @@ const ProjectDetailPage = () => {
 								) : (
 									<button
 										type="button"
-										className="w-full px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-not-allowed"
+										onClick={handleCancelApplication}
+										className="w-full px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer hover:bg-gray-700 transition-colors"
 										style={{ backgroundColor: "#6B7280" }}
-										disabled
 									>
 										승인 대기 중
 									</button>
@@ -912,12 +946,15 @@ const ProjectDetailPage = () => {
 						<div className="flex items-center justify-center h-64">
 							<div className="text-center">
 								<p className="text-gray-500 mb-2">로그인이 필요합니다.</p>
-								<p className="text-sm text-gray-400">팀원만 확인할 수 있습니다.</p>
+								<p className="text-sm text-gray-400">스터디에 가입한 멤버만 접근할 수 있습니다.</p>
 							</div>
 						</div>
 					);
 				}
-				return <Community />;
+				return <Community 
+					studyProjectId={parseInt(id!, 10)}
+					currentUserId={authContext?.user?.nickname || authContext?.user?.email || '사용자'}
+				/>;
 		}
 	};
 
@@ -935,6 +972,8 @@ const ProjectDetailPage = () => {
 						members={members}
 						applications={applications}
 						onProcessApplication={handleProcessApplication}
+						studyProjectId={parseInt(id!, 10)}
+						onApplyToProject={handleApplyToProject}
 					/>
 				</ResponsiveSidebar>
 
