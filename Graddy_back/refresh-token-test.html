@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Refresh Token 테스트</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .section {
+            border: 1px solid #ddd;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .form-group {
+            margin: 10px 0;
+        }
+        label {
+            display: inline-block;
+            width: 120px;
+        }
+        input, button {
+            padding: 8px;
+            margin: 5px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>Refresh Token 시스템 테스트</h1>
+
+    <div class="section">
+        <h2>1. 로그인</h2>
+        <div class="form-group">
+            <label>사용자 ID:</label>
+            <input type="text" id="loginUserId" placeholder="사용자 ID 입력">
+        </div>
+        <div class="form-group">
+            <label>비밀번호:</label>
+            <input type="password" id="loginPassword" placeholder="비밀번호 입력">
+        </div>
+        <button onclick="login()">로그인</button>
+        <div class="log" id="loginLog"></div>
+    </div>
+
+    <div class="section">
+        <h2>2. API 호출 테스트</h2>
+        <button onclick="testApi()">API 호출 (토큰 만료 확인)</button>
+        <button onclick="testExpiredToken()">토큰 만료 시나리오 테스트</button>
+        <div class="log" id="apiLog"></div>
+    </div>
+
+    <div class="section">
+        <h2>3. 토큰 갱신</h2>
+        <button onclick="refreshToken()">수동으로 토큰 갱신</button>
+        <button onclick="testRefreshWithExpiredToken()">만료된 토큰으로 갱신 테스트</button>
+        <div class="log" id="refreshLog"></div>
+    </div>
+
+    <div class="section">
+        <h2>4. 로그아웃</h2>
+        <button onclick="logout()">로그아웃</button>
+        <button onclick="testLogoutWithExpiredToken()">만료된 토큰으로 로그아웃 테스트</button>
+        <div class="log" id="logoutLog"></div>
+    </div>
+
+    <div class="section">
+        <h2>5. 상태 정보</h2>
+        <div id="statusInfo"></div>
+    </div>
+
+    <script>
+        let accessToken = '';
+        let refreshToken = '';
+        let userId = '';
+
+        // Axios 인터셉터 설정
+        axios.interceptors.response.use(
+            (response) => response,
+            async (error) => {
+                if (error.response && error.response.status === 401) {
+                    const data = error.response.data;
+                    if (data && data.expiredToken === true) {
+                        log('토큰이 만료되었습니다. 자동으로 갱신을 시도합니다.', 'info');
+                        try {
+                            await refreshToken();
+                            // 원래 요청 재시도
+                            const originalRequest = error.config;
+                            originalRequest.headers['Authorization'] = `Bearer ${accessToken}`;
+                            return axios(originalRequest);
+                        } catch (refreshError) {
+                            log('토큰 갱신 실패. 로그인이 필요합니다.', 'error');
+                            clearTokens();
+                        }
+                    }
+                }
+                return Promise.reject(error);
+            }
+        );
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('loginLog');
+            const logEntry = document.createElement('div');
+            logEntry.className = type;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logElement.appendChild(logEntry);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function updateStatus() {
+            const statusDiv = document.getElementById('statusInfo');
+            statusDiv.innerHTML = `
+                <p><strong>Access Token:</strong> ${accessToken ? '설정됨' : '없음'}</p>
+                <p><strong>Refresh Token:</strong> ${refreshToken ? '설정됨' : '없음'}</p>
+                <p><strong>사용자 ID:</strong> ${userId || '없음'}</p>
+            `;
+        }
+
+        function clearTokens() {
+            accessToken = '';
+            refreshToken = '';
+            userId = '';
+            updateStatus();
+        }
+
+        async function login() {
+            const userIdInput = document.getElementById('loginUserId').value;
+            const passwordInput = document.getElementById('loginPassword').value;
+
+            if (!userIdInput || !passwordInput) {
+                log('사용자 ID와 비밀번호를 입력해주세요.', 'error');
+                return;
+            }
+
+            try {
+                const response = await axios.post('/api/auth/login', {
+                    userId: userIdInput,
+                    password: passwordInput
+                });
+
+                if (response.data.status === 200) {
+                    const data = response.data.data;
+                    accessToken = data.accessToken;
+                    refreshToken = data.refreshToken;
+                    userId = data.userId;
+                    
+                    log(`로그인 성공! 사용자: ${data.nickname || data.userId}`, 'success');
+                    log(`Access Token: ${accessToken.substring(0, 20)}...`, 'info');
+                    log(`Refresh Token: ${refreshToken.substring(0, 20)}...`, 'info');
+                    
+                    updateStatus();
+                }
+            } catch (error) {
+                log(`로그인 실패: ${error.response?.data?.message || error.message}`, 'error');
+            }
+        }
+
+        async function testApi() {
+            if (!accessToken) {
+                log('먼저 로그인해주세요.', 'error');
+                return;
+            }
+
+            try {
+                const response = await axios.get('/api/me', {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                });
+                log('API 호출 성공!', 'success');
+                log(`응답: ${JSON.stringify(response.data)}`, 'info');
+            } catch (error) {
+                log(`API 호출 실패: ${error.response?.data?.message || error.message}`, 'error');
+            }
+        }
+
+        async function refreshToken() {
+            if (!refreshToken) {
+                log('Refresh Token이 없습니다.', 'error');
+                return;
+            }
+
+            try {
+                const response = await axios.post('/api/auth/refresh', {
+                    refreshToken: refreshToken
+                });
+
+                if (response.data.status === 200) {
+                    const data = response.data.data;
+                    accessToken = data.accessToken;
+                    
+                    log('토큰 갱신 성공!', 'success');
+                    log(`새 Access Token: ${accessToken.substring(0, 20)}...`, 'info');
+                    
+                    updateStatus();
+                }
+            } catch (error) {
+                log(`토큰 갱신 실패: ${error.response?.data?.message || error.message}`, 'error');
+                if (error.response?.status === 401) {
+                    clearTokens();
+                }
+            }
+        }
+
+        async function logout() {
+            if (!refreshToken) {
+                log('로그아웃할 토큰이 없습니다.', 'error');
+                return;
+            }
+
+            try {
+                const response = await axios.post('/api/auth/logout', {
+                    refreshToken: refreshToken
+                });
+
+                log('로그아웃 성공!', 'success');
+                clearTokens();
+            } catch (error) {
+                log(`로그아웃 실패: ${error.response?.data?.message || error.message}`, 'error');
+            }
+        }
+
+        // 초기 상태 업데이트
+        updateStatus();
+
+        // 새로운 테스트 함수들
+        async function testExpiredToken() {
+            if (!accessToken) {
+                log('먼저 로그인해주세요.', 'error');
+                return;
+            }
+
+            log('토큰 만료 시나리오 테스트 시작...', 'info');
+            log('20초 후에 토큰이 만료됩니다. 그 후 API 호출을 시도해보세요.', 'info');
+        }
+
+        async function testRefreshWithExpiredToken() {
+            if (!refreshToken) {
+                log('먼저 로그인해주세요.', 'error');
+                return;
+            }
+
+            log('만료된 Access Token으로 Refresh API 테스트...', 'info');
+            try {
+                // Access Token을 강제로 만료시키기 위해 헤더에 잘못된 토큰 사용
+                const response = await axios.post('/api/auth/refresh', {
+                    refreshToken: refreshToken
+                }, {
+                    headers: {
+                        'Authorization': 'Bearer expired_token_here'
+                    }
+                });
+
+                log('Refresh API 호출 성공! (Access Token 무시됨)', 'success');
+                log(`응답: ${JSON.stringify(response.data)}`, 'info');
+            } catch (error) {
+                log(`Refresh API 호출 실패: ${error.response?.data?.message || error.message}`, 'error');
+            }
+        }
+
+        async function testLogoutWithExpiredToken() {
+            if (!refreshToken) {
+                log('먼저 로그인해주세요.', 'error');
+                return;
+            }
+
+            log('만료된 Access Token으로 Logout API 테스트...', 'info');
+            try {
+                // Access Token을 강제로 만료시키기 위해 헤더에 잘못된 토큰 사용
+                const response = await axios.post('/api/auth/logout', {
+                    refreshToken: refreshToken
+                }, {
+                    headers: {
+                        'Authorization': 'Bearer expired_token_here'
+                    }
+                });
+
+                log('Logout API 호출 성공! (Access Token 무시됨)', 'success');
+                log(`응답: ${JSON.stringify(response.data)}`, 'info');
+                
+                // 로그아웃 성공 시 토큰 정리
+                if (response.data.includes('성공')) {
+                    clearTokens();
+                }
+            } catch (error) {
+                log(`Logout API 호출 실패: ${error.response?.data?.message || error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>
