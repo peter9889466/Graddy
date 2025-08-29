@@ -50,7 +50,7 @@ export const Ranking = () => {
     const fetchRankingData = async (): Promise<RankingResponse> => {
         try {
             const response = await fetch(
-                "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/scores/ranking/top100"
+                "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/scores/ranking/top100"
             );
             if (!response.ok) {
                 throw new Error("Failed to fetch ranking data");
