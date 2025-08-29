@@ -1,7 +1,15 @@
 // 새 비밀번호 설정 컴포넌트
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Lock, Eye, EyeOff, AlertCircle, Check, ArrowLeft, Shield } from "lucide-react";
+import {
+    Lock,
+    Eye,
+    EyeOff,
+    AlertCircle,
+    Check,
+    ArrowLeft,
+    Shield,
+} from "lucide-react";
 
 interface ResetPasswordProps {
     userId: string;
@@ -10,12 +18,17 @@ interface ResetPasswordProps {
     onComplete: () => void;
 }
 
-const ResetPassword: React.FC<ResetPasswordProps> = ({ userId, phone, onBack, onComplete }) => {
+const ResetPassword: React.FC<ResetPasswordProps> = ({
+    userId,
+    phone,
+    onBack,
+    onComplete,
+}) => {
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [errors, setErrors] = useState<{[key: string]: string}>({});
+    const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [hintMessage, setHintMessage] = useState("");
     const [showHint, setShowHint] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -26,7 +39,7 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ userId, phone, onBack, on
         length: false, // 8자 이상
         letter: false, // 소문자 포함
         number: false, // 숫자 포함
-        special: false // 특수문자 포함
+        special: false, // 특수문자 포함
     });
 
     // 힌트 메시지 애니메이션
@@ -47,7 +60,7 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ userId, phone, onBack, on
             length: newPassword.length >= 8,
             letter: /[a-zA-Z]/.test(newPassword), // 대문자 또는 소문자 포함
             number: /[0-9]/.test(newPassword),
-            special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword)
+            special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword),
         });
     }, [newPassword]);
 
@@ -59,18 +72,20 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ userId, phone, onBack, on
         if (password.length < 8) return false;
         if (!/[a-zA-Z]/.test(password)) return false;
         if (!/[0-9]/.test(password)) return false;
-        if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) return false;
+        if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password))
+            return false;
         return true;
     };
 
     const handleResetPassword = async () => {
         clearErrors();
-        const newErrors: {[key: string]: string} = {};
+        const newErrors: { [key: string]: string } = {};
 
         if (!newPassword.trim()) {
             newErrors.newPassword = "새 비밀번호를 입력하세요.";
         } else if (!validatePassword(newPassword)) {
-            newErrors.newPassword = "비밀번호는 8자 이상, 영문자, 숫자, 특수문자를 포함해야 합니다.";
+            newErrors.newPassword =
+                "비밀번호는 8자 이상, 영문자, 숫자, 특수문자를 포함해야 합니다.";
         }
 
         if (!confirmPassword.trim()) {
@@ -86,33 +101,41 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ userId, phone, onBack, on
         }
 
         setIsLoading(true);
-        
+
         try {
             // API URL 및 Request Body를 새 요구사항에 맞게 수정
-            const response = await fetch('http://localhost:8080/api/password-find/reset-password', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    userId: userId,
-                    newPassword: newPassword
-                })
-            });
+            const response = await fetch(
+                "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/password-find/reset-password",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        userId: userId,
+                        newPassword: newPassword,
+                    }),
+                }
+            );
 
             const result = await response.json();
 
             if (result.status === 200) {
                 setHintMessage("비밀번호가 성공적으로 변경되었습니다!");
                 setTimeout(() => {
-                    navigate('/login');
+                    navigate("/login");
                 }, 2000);
             } else {
-                setHintMessage(result.message || "비밀번호 변경에 실패했습니다. 다시 시도해주세요.");
+                setHintMessage(
+                    result.message ||
+                        "비밀번호 변경에 실패했습니다. 다시 시도해주세요."
+                );
             }
         } catch (error) {
-            console.error('비밀번호 변경 API 오류:', error);
-            setHintMessage("서버 연결에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.");
+            console.error("비밀번호 변경 API 오류:", error);
+            setHintMessage(
+                "서버 연결에 문제가 발생했습니다. 잠시 후 다시 시도해주세요."
+            );
         } finally {
             setIsLoading(false);
         }
@@ -126,15 +149,15 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ userId, phone, onBack, on
             setErrors(newErrors);
         }
 
-        if (field === 'newPassword') {
+        if (field === "newPassword") {
             setNewPassword(value);
-        } else if (field === 'confirmPassword') {
+        } else if (field === "confirmPassword") {
             setConfirmPassword(value);
         }
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter') {
+        if (e.key === "Enter") {
             handleResetPassword();
         }
     };
@@ -144,7 +167,11 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ userId, phone, onBack, on
     };
 
     const getRuleIcon = (isValid: boolean) => {
-        return isValid ? <Check className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border-2 border-current"></div>;
+        return isValid ? (
+            <Check className="w-4 h-4" />
+        ) : (
+            <div className="w-4 h-4 rounded-full border-2 border-current"></div>
+        );
     };
 
     return (
@@ -157,7 +184,10 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ userId, phone, onBack, on
                 }}
             >
                 <div className="flex items-center gap-3 mb-2">
-                    <button onClick={onBack} className="p-1 hover:bg-white/20 rounded-lg transition-colors">
+                    <button
+                        onClick={onBack}
+                        className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+                    >
                         <ArrowLeft className="w-5 h-5" />
                     </button>
                     <h2 className="text-2xl font-bold">새 비밀번호 설정</h2>
@@ -207,7 +237,9 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ userId, phone, onBack, on
                 <div>
                     <div className="flex items-center gap-2 mb-2">
                         <div className="w-1 h-6 bg-indigo-600 rounded-full"></div>
-                        <h3 className="text-xl font-bold text-gray-800">새 비밀번호</h3>
+                        <h3 className="text-xl font-bold text-gray-800">
+                            새 비밀번호
+                        </h3>
                     </div>
                     <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -216,7 +248,9 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ userId, phone, onBack, on
                         <input
                             type={showNewPassword ? "text" : "password"}
                             value={newPassword}
-                            onChange={(e) => handleInputChange('newPassword', e.target.value)}
+                            onChange={(e) =>
+                                handleInputChange("newPassword", e.target.value)
+                            }
                             placeholder="새 비밀번호를 입력하세요"
                             className={`w-full pl-10 pr-12 py-3 border rounded-xl transition-all duration-200 ${
                                 errors.newPassword
@@ -238,7 +272,9 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ userId, phone, onBack, on
                         </button>
                     </div>
                     {errors.newPassword && (
-                        <p className="text-red-500 text-sm mt-1">{errors.newPassword}</p>
+                        <p className="text-red-500 text-sm mt-1">
+                            {errors.newPassword}
+                        </p>
                     )}
                 </div>
 
@@ -247,22 +283,40 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ userId, phone, onBack, on
                     <div className="bg-gray-50 rounded-xl p-4">
                         <div className="flex items-center gap-2 mb-3">
                             <Shield className="w-4 h-4 text-gray-600" />
-                            <span className="text-sm font-medium text-gray-700">비밀번호 안전도 확인</span>
+                            <span className="text-sm font-medium text-gray-700">
+                                비밀번호 안전도 확인
+                            </span>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                            <div className={`flex items-center gap-2 ${getRuleColor(passwordRules.length)}`}>
+                            <div
+                                className={`flex items-center gap-2 ${getRuleColor(
+                                    passwordRules.length
+                                )}`}
+                            >
                                 {getRuleIcon(passwordRules.length)}
                                 <span>8자 이상</span>
                             </div>
-                            <div className={`flex items-center gap-2 ${getRuleColor(passwordRules.letter)}`}>
+                            <div
+                                className={`flex items-center gap-2 ${getRuleColor(
+                                    passwordRules.letter
+                                )}`}
+                            >
                                 {getRuleIcon(passwordRules.letter)}
                                 <span>영문자 포함</span>
                             </div>
-                            <div className={`flex items-center gap-2 ${getRuleColor(passwordRules.number)}`}>
+                            <div
+                                className={`flex items-center gap-2 ${getRuleColor(
+                                    passwordRules.number
+                                )}`}
+                            >
                                 {getRuleIcon(passwordRules.number)}
                                 <span>숫자 포함</span>
                             </div>
-                            <div className={`flex items-center gap-2 ${getRuleColor(passwordRules.special)} sm:col-span-2`}>
+                            <div
+                                className={`flex items-center gap-2 ${getRuleColor(
+                                    passwordRules.special
+                                )} sm:col-span-2`}
+                            >
                                 {getRuleIcon(passwordRules.special)}
                                 <span>특수문자 포함 (!@#$%^&* 등)</span>
                             </div>
@@ -274,7 +328,9 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ userId, phone, onBack, on
                 <div>
                     <div className="flex items-center gap-2 mb-2">
                         <div className="w-1 h-6 bg-indigo-600 rounded-full"></div>
-                        <h3 className="text-xl font-bold text-gray-800">비밀번호 확인</h3>
+                        <h3 className="text-xl font-bold text-gray-800">
+                            비밀번호 확인
+                        </h3>
                     </div>
                     <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -283,7 +339,12 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ userId, phone, onBack, on
                         <input
                             type={showConfirmPassword ? "text" : "password"}
                             value={confirmPassword}
-                            onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                            onChange={(e) =>
+                                handleInputChange(
+                                    "confirmPassword",
+                                    e.target.value
+                                )
+                            }
                             placeholder="비밀번호를 다시 입력하세요"
                             className={`w-full pl-10 pr-12 py-3 border rounded-xl transition-all duration-200 ${
                                 errors.confirmPassword
@@ -294,7 +355,9 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ userId, phone, onBack, on
                         />
                         <button
                             type="button"
-                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            onClick={() =>
+                                setShowConfirmPassword(!showConfirmPassword)
+                            }
                             className="absolute inset-y-0 right-0 pr-3 flex items-center"
                         >
                             {showConfirmPassword ? (
@@ -305,13 +368,19 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ userId, phone, onBack, on
                         </button>
                     </div>
                     {errors.confirmPassword && (
-                        <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>
+                        <p className="text-red-500 text-sm mt-1">
+                            {errors.confirmPassword}
+                        </p>
                     )}
                     {/* 비밀번호 일치 표시 */}
                     {confirmPassword && newPassword && (
-                        <div className={`text-sm mt-1 ${
-                            newPassword === confirmPassword ? "text-emerald-600" : "text-red-500"
-                        }`}>
+                        <div
+                            className={`text-sm mt-1 ${
+                                newPassword === confirmPassword
+                                    ? "text-emerald-600"
+                                    : "text-red-500"
+                            }`}
+                        >
                             {newPassword === confirmPassword ? (
                                 <div className="flex items-center gap-1">
                                     <Check className="w-4 h-4" />
@@ -327,19 +396,38 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ userId, phone, onBack, on
                 {/* 변경 버튼 */}
                 <button
                     onClick={handleResetPassword}
-                    disabled={isLoading || !newPassword || !confirmPassword || newPassword !== confirmPassword || !validatePassword(newPassword)}
+                    disabled={
+                        isLoading ||
+                        !newPassword ||
+                        !confirmPassword ||
+                        newPassword !== confirmPassword ||
+                        !validatePassword(newPassword)
+                    }
                     className="w-full py-4 px-6 rounded-xl font-semibold text-white transition-all duration-200 hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                     style={{
                         backgroundColor: "#8B85E9",
-                        boxShadow: "0 10px 15px -3px rgba(139, 133, 233, 0.1), 0 4px 6px -2px rgba(139, 133, 233, 0.05)",
+                        boxShadow:
+                            "0 10px 15px -3px rgba(139, 133, 233, 0.1), 0 4px 6px -2px rgba(139, 133, 233, 0.05)",
                     }}
                     onMouseEnter={(e) => {
-                        if (!isLoading && newPassword && confirmPassword && newPassword === confirmPassword && validatePassword(newPassword)) {
+                        if (
+                            !isLoading &&
+                            newPassword &&
+                            confirmPassword &&
+                            newPassword === confirmPassword &&
+                            validatePassword(newPassword)
+                        ) {
                             e.currentTarget.style.backgroundColor = "#7d75e3";
                         }
                     }}
                     onMouseLeave={(e) => {
-                        if (!isLoading && newPassword && confirmPassword && newPassword === confirmPassword && validatePassword(newPassword)) {
+                        if (
+                            !isLoading &&
+                            newPassword &&
+                            confirmPassword &&
+                            newPassword === confirmPassword &&
+                            validatePassword(newPassword)
+                        ) {
                             e.currentTarget.style.backgroundColor = "#8B85E9";
                         }
                     }}
@@ -351,7 +439,10 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ userId, phone, onBack, on
                 <div className="pt-4 text-center">
                     <p className="text-sm text-gray-600">
                         비밀번호 변경을 완료하시면{" "}
-                        <Link to="/login" className="text-[#8B85E9] hover:underline">
+                        <Link
+                            to="/login"
+                            className="text-[#8B85E9] hover:underline"
+                        >
                             로그인 페이지
                         </Link>
                         로 이동합니다.
