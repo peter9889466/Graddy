@@ -54,6 +54,7 @@ public class ScheduleService {
         log.info("스터디 일정 생성 시작: userId={}, studyProjectId={}, content={}, schTime={}", 
                 request.getUserId(), request.getStudyProjectId(), request.getContent(), request.getSchTime());
         
+                String startContent = String.format("[스터디 일정] %s", request.getContent());
         // 스터디 프로젝트 존재 여부 확인
         StudyProject studyProject = studyProjectRepository.findById(request.getStudyProjectId())
                 .orElseThrow(() -> new IllegalArgumentException("스터디 프로젝트를 찾을 수 없습니다: " + request.getStudyProjectId()));
@@ -61,7 +62,7 @@ public class ScheduleService {
         Schedule schedule = Schedule.builder()
                 .userId(request.getUserId())
                 .studyProjectId(request.getStudyProjectId())
-                .content(request.getContent())
+                .content(startContent)
                 .schTime(localDateTimeToTimestamp(request.getSchTime()))
                 .build();
         
