@@ -1,5 +1,5 @@
 // API 기본 설정
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api';
+const API_BASE_URL = 'http://localhost:8080/api';
 
 // 공통 헤더 설정
 const getHeaders = (): HeadersInit => {
@@ -72,7 +72,7 @@ export const apiRequest = async <T>(
                 localStorage.removeItem('userToken');
                 // 로그인 페이지로 리다이렉트
                 window.location.href = '/login';
-                return;
+                // return;
             }
 
             throw new Error(errorData.message || `HTTP ${response.status}`);
@@ -88,7 +88,7 @@ export const apiRequest = async <T>(
             console.log('JWT 토큰이 만료되었습니다. 로그아웃 처리합니다.');
             localStorage.removeItem('userToken');
             window.location.href = '/login';
-            return;
+            // return;
         }
 
         throw error;

@@ -1,19 +1,12 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import PageLayout from '../components/layout/PageLayout';
-import { AuthContext } from '../contexts/AuthContext';
 import { CommunityProvider, useCommunityContext } from '../contexts/CommunityContext';
 
 const CommunityCreateInner: React.FC = () => {
     const navigate = useNavigate();
-    const authContext = useContext(AuthContext);
-    const { createPost } = useCommunityContext();
-
-    if (!authContext) {
-        throw new Error('CommunityCreate 컴포넌트는 AuthProvider 내에서 사용되어야 합니다.');
-    }
-    const { user } = authContext;
+    const { createPost, loading } = useCommunityContext();
 
     const [postData, setPostData] = useState({
         title: '',
@@ -21,44 +14,88 @@ const CommunityCreateInner: React.FC = () => {
     });
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
+    // 디버깅: 토큰 상태 확인
+    React.useEffect(() => {
+        const token = localStorage.getItem('userToken') || localStorage.getItem('token');
+        console.log('CommunityCreate - 현재 토큰 상태:', {
+            userToken: localStorage.getItem('userToken'),
+            token: localStorage.getItem('token'),
+            hasToken: !!token
+        });
+    }, []);
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setPostData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+        
+        // 에러 메시지 제거
+        if (errors[name]) {
+            setErrors(prev => ({
+                ...prev,
+                [name]: ""
+            }));
+        }
+    };
+
+    const validateForm = () => {
+        const newErrors: { [key: string]: string } = {};
+        
+        if (!postData.title.trim()) {
+            newErrors.title = "게시글 제목을 입력해주세요!";
+        }
+        
+        if (!postData.content.trim()) {
+            newErrors.content = "게시글 내용을 입력해주세요!";
+        }
+        
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
-        // 에러 초기화
-        setErrors({});
-
-        // 필수 필드 검증
-        const newErrors: { [key: string]: string } = {};
-
-        if (!postData.title.trim()) {
-            newErrors.title = '게시글 제목을 입력해주세요!';
-        }
-
-        if (!postData.content.trim()) {
-            newErrors.content = '게시글 내용을 입력해주세요!';
-        }
-
-        if (Object.keys(newErrors).length > 0) {
-            setErrors(newErrors);
+        
+        if (!validateForm()) {
             return;
         }
 
         try {
-            // 게시글 생성
-            const newPost = {
-                title: postData.title,
-                content: postData.content,
-                author: user?.nickname || '익명',
-                type: 'study' as const // 기본값으로 study 설정
-            };
-
-            createPost(newPost);
-
-            // 성공 시 커뮤니티 페이지로 이동
-            navigate('/community');
-        } catch (error) {
+            await createPost({
+                title: postData.title.trim(),
+                content: postData.content.trim(),
+            });
+            
+            alert("게시글이 성공적으로 작성되었습니다!");
+            navigate("/community");
+        } catch (error: any) {
             console.error('게시글 생성 실패:', error);
-            alert('게시글 생성에 실패했습니다. 다시 시도해주세요.');
+            
+            let errorMessage = "게시글 작성에 실패했습니다. 다시 시도해주세요.";
+            
+            if (error?.response?.status === 401) {
+                errorMessage = "로그인이 필요합니다. 다시 로그인해주세요.";
+            } else if (error?.response?.status === 403) {
+                errorMessage = "권한이 없습니다.";
+            } else if (error?.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            } else if (error?.message) {
+                errorMessage = error.message;
+            }
+            
+            alert(errorMessage);
+        }
+    };
+
+    const handleCancel = () => {
+        if (postData.title || postData.content) {
+            if (window.confirm("작성 중인 내용이 있습니다. 정말로 취소하시겠습니까?")) {
+                navigate("/community");
+            }
+        } else {
+            navigate("/community");
         }
     };
 
@@ -89,16 +126,13 @@ const CommunityCreateInner: React.FC = () => {
                         <div className="bg-gray-50 rounded-xl p-4">
                             <input
                                 type="text"
+                                name="title"
                                 value={postData.title}
-                                onChange={(e) => {
-                                    setPostData({ ...postData, title: e.target.value });
-                                    if (errors.title) {
-                                        setErrors(prev => ({ ...prev, title: '' }));
-                                    }
-                                }}
+                                onChange={handleInputChange}
                                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] placeholder-gray-500 ${errors.title ? 'border-red-500' : 'border-gray-300'}`}
                                 placeholder="게시글 제목을 입력해주세요."
                                 style={{ color: errors.title ? '#dc2626' : '#1f2937' }}
+                                disabled={loading}
                             />
                         </div>
                         {errors.title && (
@@ -116,17 +150,14 @@ const CommunityCreateInner: React.FC = () => {
                         </div>
                         <div className="bg-gray-50 rounded-xl p-4">
                             <textarea
+                                name="content"
                                 value={postData.content}
-                                onChange={(e) => {
-                                    setPostData({ ...postData, content: e.target.value });
-                                    if (errors.content) {
-                                        setErrors(prev => ({ ...prev, content: '' }));
-                                    }
-                                }}
+                                onChange={handleInputChange}
                                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] resize-none placeholder-gray-500 ${errors.content ? 'border-red-500' : 'border-gray-300'}`}
                                 rows={8}
                                 placeholder="게시글 내용을 입력해주세요."
                                 style={{ color: errors.content ? '#dc2626' : '#1f2937' }}
+                                disabled={loading}
                             />
                         </div>
                         {errors.content && (
@@ -138,16 +169,18 @@ const CommunityCreateInner: React.FC = () => {
                     <div className="flex justify-end space-x-4 pt-4">
                         <button
                             type="button"
-                            onClick={() => navigate('/community')}
+                            onClick={handleCancel}
                             className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                            disabled={loading}
                         >
                             취소
                         </button>
                         <button
                             type="submit"
-                            className="px-5 py-2.5 bg-[#8B85E9] text-white rounded-lg hover:bg-[#7A74D8] transition-colors duration-200 font-medium"
+                            className="px-5 py-2.5 bg-[#8B85E9] text-white rounded-lg hover:bg-[#7A74D8] transition-colors duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={loading}
                         >
-                            게시글 생성
+                            {loading ? "작성 중..." : "게시글 생성"}
                         </button>
                     </div>
                 </form>

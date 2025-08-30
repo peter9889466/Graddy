@@ -39,7 +39,7 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId }) => {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await fetch(`http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/assignments/study-project/${studyProjectId}`);
+        const response = await fetch(`http://localhost:8080/api/assignments/study-project/${studyProjectId}`);
         if (!response.ok) {
           throw new Error('과제 목록을 불러오는 데 실패했습니다.');
         }

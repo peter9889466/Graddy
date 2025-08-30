@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { communityApi, Post as ApiPost, CreatePostRequest } from "../services/communityApi";
 
 export type PostType = "project" | "study";
 
@@ -32,7 +33,12 @@ interface CommunityContextType {
     posts: Post[];
     comments: Comment[];
     replies: Reply[];
-    createPost: (data: Omit<Post, "id" | "createdAt">) => void;
+    loading: boolean;
+    error: string | null;
+    createPost: (data: CreatePostRequest) => Promise<void>;
+    deletePost: (postId: string) => Promise<void>;
+    updatePost: (postId: string, data: CreatePostRequest) => Promise<void>;
+    refreshPosts: () => Promise<void>;
     addComment: (postId: string, content: string, author: string) => void;
     addReply: (
         postId: string,
@@ -62,15 +68,106 @@ export const CommunityProvider: React.FC<ProviderProps> = ({ children }) => {
     const [posts, setPosts] = useState<Post[]>([]);
     const [comments, setComments] = useState<Comment[]>([]);
     const [replies, setReplies] = useState<Reply[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    const createPost = (data: Omit<Post, "id" | "createdAt">) => {
-        const newPost: Post = {
-            ...data,
-            id: Date.now().toString(),
-            createdAt: new Date().toLocaleString("ko-KR"),
-        };
-        setPosts((prev) => [newPost, ...prev]);
+    // API 게시글을 UI 게시글로 변환
+    const convertApiPostToPost = (apiPost: ApiPost): Post => ({
+        id: apiPost.frPostId.toString(),
+        type: "project", // 기본값, 필요시 API에서 타입 정보 추가
+        title: apiPost.title,
+        author: apiPost.nick || apiPost.userId,
+        content: apiPost.content,
+        createdAt: new Date(apiPost.createdAt).toLocaleString("ko-KR"),
+    });
+
+    // 게시글 목록 조회
+    const refreshPosts = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const apiPosts = await communityApi.getAllPosts();
+            const convertedPosts = apiPosts.map(convertApiPostToPost);
+            setPosts(convertedPosts);
+        } catch (err) {
+            console.error('게시글 조회 실패:', err);
+            setError('게시글을 불러오는데 실패했습니다.');
+        } finally {
+            setLoading(false);
+        }
     };
+
+    // 게시글 생성
+    const createPost = async (data: CreatePostRequest) => {
+        try {
+            setLoading(true);
+            setError(null);
+            console.log('게시글 생성 요청 데이터:', data);
+            
+            const result = await communityApi.createPost(data);
+            console.log('게시글 생성 성공:', result);
+            
+            await refreshPosts(); // 생성 후 목록 새로고침
+        } catch (err: any) {
+            console.error('게시글 생성 실패 상세:', {
+                error: err,
+                message: err?.message,
+                response: err?.response?.data,
+                status: err?.response?.status
+            });
+            
+            let errorMessage = '게시글 작성에 실패했습니다.';
+            if (err?.response?.status === 401) {
+                errorMessage = '로그인이 필요합니다.';
+            } else if (err?.response?.status === 403) {
+                errorMessage = '권한이 없습니다.';
+            } else if (err?.response?.data?.message) {
+                errorMessage = err.response.data.message;
+            }
+            
+            setError(errorMessage);
+            throw err;
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // 게시글 삭제
+    const deletePost = async (postId: string) => {
+        try {
+            setLoading(true);
+            setError(null);
+            await communityApi.deletePost(parseInt(postId));
+            await refreshPosts(); // 삭제 후 목록 새로고침
+        } catch (err) {
+            console.error('게시글 삭제 실패:', err);
+            setError('게시글 삭제에 실패했습니다.');
+            throw err;
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // 게시글 수정
+    const updatePost = async (postId: string, data: CreatePostRequest) => {
+        try {
+            setLoading(true);
+            setError(null);
+            await communityApi.updatePost(parseInt(postId), data);
+            await refreshPosts(); // 수정 후 목록 새로고침
+        } catch (err) {
+            console.error('게시글 수정 실패:', err);
+            setError('게시글 수정에 실패했습니다.');
+            throw err;
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // 컴포넌트 마운트 시 게시글 목록 조회
+    useEffect(() => {
+        refreshPosts();
+    }, []);
 
     const addComment = (postId: string, content: string, author: string) => {
         const newComment: Comment = {
@@ -109,7 +206,12 @@ export const CommunityProvider: React.FC<ProviderProps> = ({ children }) => {
         posts,
         comments,
         replies,
+        loading,
+        error,
         createPost,
+        deletePost,
+        updatePost,
+        refreshPosts,
         addComment,
         addReply,
         getCommentsByPost,

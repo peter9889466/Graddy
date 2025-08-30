@@ -25,6 +25,7 @@ import StudyCreate from "./pages/StudyCreate";
 import FindAccount from "./pages/FindAccount";
 import { Ranking } from "./pages/Ranking";
 import { CommunityPage } from "./pages/CommunityPage";
+import { CommunityCreatePage } from "./pages/CommunityCreatePage";
 import ApiTestComponent from "./components/examples/ApiTestComponent";
 import CommunityCreate from "./pages/CommunityCreate";
 
@@ -34,49 +35,49 @@ function App() {
             <AuthProvider>
                 <AssignmentProvider>
                     <div className="min-h-screen flex flex-col">
-                    <Header />
-                    <main className="flex-1">
-                        <Suspense fallback={<LoadingOverlay />}>
-                            <Routes>
-                                <Route path="/" element={<MainPage />} />
-                                <Route path="/mypage" element={<MyPage />} />
-                                <Route
-                                    path="/delete"
-                                    element={<DeleteModal />}
-                                />
-                                <Route path="/modal" element={<TestModal />} />
-                                <Route
-                                    path="/dropdown"
-                                    element={<TestDropdown />}
-                                />
-                                <Route
-                                    path="/autocomplete"
-                                    element={<TestAutoCompleteSearch />}
-                                />
-                                <Route path="/join" element={<Join />} />
-                                <Route path="/login" element={<Login />} />
-                                <Route path="/findAcc" element={<FindAccount />} />
-                                <Route path="/ranking" element={<Ranking />} />
-                                <Route path="/community" element={<CommunityPage />} />
-                                <Route path="/community/create" element={<CommunityCreate />} />
-                                <Route
-                                    path="/search"
-                                    element={<StudySearchPage />}
-                                />
-                                <Route path="/api-test" element={<ApiTestComponent />} />
-                                <Route
-                                    path="/study/create"
-                                    element={<StudyCreate />}
-                                />
-                                <Route path="/study/:id"
-                                element={<StudyDetailPage/>}/>
-                                <Route path="/project/:id"
-                                element={<ProjectDetailPage/>}/>
-                            </Routes>
-                        </Suspense>
-                    </main>
-                    <Footer />
-                </div>
+                        <Header />
+                        <main className="flex-1">
+                            <Suspense fallback={<LoadingOverlay />}>
+                                <Routes>
+                                    <Route path="/" element={<MainPage />} />
+                                    <Route path="/mypage" element={<MyPage />} />
+                                    <Route
+                                        path="/delete"
+                                        element={<DeleteModal />}
+                                    />
+                                    <Route path="/modal" element={<TestModal />} />
+                                    <Route
+                                        path="/dropdown"
+                                        element={<TestDropdown />}
+                                    />
+                                    <Route
+                                        path="/autocomplete"
+                                        element={<TestAutoCompleteSearch />}
+                                    />
+                                    <Route path="/join" element={<Join />} />
+                                    <Route path="/login" element={<Login />} />
+                                    <Route path="/findAcc" element={<FindAccount />} />
+                                    <Route path="/ranking" element={<Ranking />} />
+                                    <Route path="/community" element={<CommunityPage />} />
+                                    <Route path="/community/create" element={<CommunityCreatePage />} />
+                                    <Route
+                                        path="/search"
+                                        element={<StudySearchPage />}
+                                    />
+                                    <Route path="/api-test" element={<ApiTestComponent />} />
+                                    <Route
+                                        path="/study/create"
+                                        element={<StudyCreate />}
+                                    />
+                                    <Route path="/study/:id"
+                                        element={<StudyDetailPage />} />
+                                    <Route path="/project/:id"
+                                        element={<ProjectDetailPage />} />
+                                </Routes>
+                            </Suspense>
+                        </main>
+                        <Footer />
+                    </div>
                 </AssignmentProvider>
             </AuthProvider>
         </ErrorBoundary>

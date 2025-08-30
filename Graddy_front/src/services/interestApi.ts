@@ -26,7 +26,7 @@ export interface InterestResponse {
 export class InterestApiService {
     // JWT 토큰을 자동으로 포함하지 않는 axios 인스턴스 생성
     private static interestsAxiosInstance = axios.create({
-        baseURL: 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com',
+        baseURL: 'http://localhost:8080',
         timeout: 10000,
         headers: {
             'Content-Type': 'application/json',
