@@ -38,7 +38,7 @@ public class AICurriculumService {
     @Autowired
     private InterestRepository interestRepository;
 
-    @Value("${ai.curriculum.api.url:http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com}")
+    @Value("${ai.curriculum.api.url:http://localhost:8000}")
     private String aiApiUrl;
 
     private final RestTemplate restTemplate = new RestTemplate();

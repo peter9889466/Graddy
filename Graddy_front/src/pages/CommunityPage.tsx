@@ -10,13 +10,15 @@ import Comments from "../components/community/Comments";
 import CreatePostModal from "../components/community/CreatePostModal";
 import { useModal } from "../hooks/useModal";
 import { Search } from "lucide-react";
+import { getUserFromToken } from "../utils/auth";
 
 const SearchAndCreate: React.FC = () => {
-    const { posts, createPost } = useCommunityContext();
+    const { posts, loading, error, deletePost } = useCommunityContext();
     const [searchField, setSearchField] = useState<"title" | "author">("title");
     const [query, setQuery] = useState("");
     const { isOpen, openModal, closeModal } = useModal();
     const navigate = useNavigate();
+    const currentUser = getUserFromToken();
 
     // 드롭다운 상태 관리
     const [isFieldOpen, setIsFieldOpen] = useState(false);
@@ -48,13 +50,14 @@ const SearchAndCreate: React.FC = () => {
         });
     }, [posts, searchField, query]);
 
-    const handleCreate = (data: {
-        title: string;
-        author: string;
-        content: string;
-        type: PostType;
-    }) => {
-        createPost(data);
+    const handleDelete = async (postId: string) => {
+        if (window.confirm('정말로 이 게시글을 삭제하시겠습니까?')) {
+            try {
+                await deletePost(postId);
+            } catch (error) {
+                alert('게시글 삭제에 실패했습니다.');
+            }
+        }
     };
 
     const fieldOptions = [
@@ -158,70 +161,109 @@ const SearchAndCreate: React.FC = () => {
                 </button>
             </div>
 
-            <div className="flex flex-col gap-5">
-                {filtered.map((post) => (
-                    <div
-                        key={post.id}
-                        className="flex items-start p-5 border border-gray-200 rounded-lg bg-white gap-5"
-                    >
-                        <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-3">
-                                <span
-                                    className="text-xs px-3 py-1 rounded-full font-bold"
-                                    style={{
-                                        color:
-                                            post.type === "project"
-                                                ? "#8B85E9"
-                                                : "#10B981",
-                                        backgroundColor:
-                                            post.type === "project"
-                                                ? "#E8E6FF"
-                                                : "#D1FAE5",
-                                    }}
-                                ></span>
-                                <span className="text-sm text-gray-500">
-                                    {post.author}
-                                </span>
-                            </div>
+            {/* 로딩 상태 */}
+            {loading && (
+                <div className="flex items-center justify-center py-12">
+                    <div className="text-center">
+                        <div className="text-gray-500 text-lg">로딩 중...</div>
+                    </div>
+                </div>
+            )}
 
-                            <div
-                                className="text-lg font-bold text-gray-800 mb-2 cursor-pointer hover:text-[#8B85E9] transition-colors duration-200"
-                                onClick={() =>
-                                    navigate(`/community/${post.id}`)
-                                }
-                            >
-                                {post.title}
-                            </div>
+            {/* 에러 상태 */}
+            {error && (
+                <div className="flex items-center justify-center py-12">
+                    <div className="text-center">
+                        <div className="text-red-500 text-lg mb-2">{error}</div>
+                        <button 
+                            onClick={() => window.location.reload()}
+                            className="px-4 py-2 bg-[#8B85E9] text-white rounded-lg hover:bg-[#7A74D8] transition-colors"
+                        >
+                            다시 시도
+                        </button>
+                    </div>
+                </div>
+            )}
 
-                            <div className="text-base text-gray-600 mb-4 whitespace-pre-line">
-                                {post.content}
-                            </div>
+            {/* 게시글 목록 */}
+            {!loading && !error && (
+                <div className="flex flex-col gap-5">
+                    {filtered.map((post) => (
+                        <div
+                            key={post.id}
+                            className="flex items-start p-5 border border-gray-200 rounded-lg bg-white gap-5"
+                        >
+                            <div className="flex-1">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center gap-3">
+                                        <span
+                                            className="text-xs px-3 py-1 rounded-full font-bold"
+                                            style={{
+                                                color:
+                                                    post.type === "project"
+                                                        ? "#8B85E9"
+                                                        : "#10B981",
+                                                backgroundColor:
+                                                    post.type === "project"
+                                                        ? "#E8E6FF"
+                                                        : "#D1FAE5",
+                                            }}
+                                        >
+                                            자유게시판
+                                        </span>
+                                        <span className="text-sm text-gray-500">
+                                            {post.author}
+                                        </span>
+                                        <span className="text-xs text-gray-400">
+                                            {post.createdAt}
+                                        </span>
+                                    </div>
+                                    
+                                    {/* 삭제 버튼 - 본인 게시글만 표시 */}
+                                    {currentUser && post.author === currentUser.userId && (
+                                        <button
+                                            onClick={() => handleDelete(post.id)}
+                                            className="text-red-500 hover:text-red-700 text-sm px-2 py-1 rounded hover:bg-red-50 transition-colors"
+                                        >
+                                            삭제
+                                        </button>
+                                    )}
+                                </div>
 
-                            <Comments postId={post.id} />
+                                <div
+                                    className="text-lg font-bold text-gray-800 mb-2 cursor-pointer hover:text-[#8B85E9] transition-colors duration-200"
+                                    onClick={() =>
+                                        navigate(`/community/${post.id}`)
+                                    }
+                                >
+                                    {post.title}
+                                </div>
+
+                                <div className="text-base text-gray-600 mb-4 whitespace-pre-line">
+                                    {post.content}
+                                </div>
+
+                                <Comments postId={post.id} />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* 게시글이 없는 경우 */}
+            {!loading && !error && filtered.length === 0 && (
+                <div className="flex items-center justify-center py-12">
+                    <div className="text-center">
+                        <div className="text-gray-400 text-lg mb-2">
+                            {query ? '검색 결과가 없습니다' : '게시글이 없습니다'}
+                        </div>
+                        <div className="text-gray-300 text-sm">
+                            {query ? '다른 검색어를 시도해보세요!' : '첫 번째 게시글을 작성해보세요!'}
                         </div>
                     </div>
-                ))}
-
-                {filtered.length === 0 && (
-                    <div className="flex items-center justify-center py-12">
-                        <div className="text-center">
-                            <div className="text-gray-400 text-lg mb-2">
-                                게시글이 없습니다
-                            </div>
-                            <div className="text-gray-300 text-sm">
-                                첫 번째 게시글을 작성해보세요!
-                            </div>
-                        </div>
-                    </div>
-                )}
+                </div>
+            )}
             </div>
-
-            <CreatePostModal
-                isOpen={isOpen}
-                onClose={closeModal}
-                onCreate={handleCreate}
-            />
-        </div>
     );
 };
 

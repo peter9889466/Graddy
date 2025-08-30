@@ -58,6 +58,9 @@ public class SwaggerConfig {
                                 .description("JWT 토큰을 입력하세요. Bearer 접두사는 자동으로 추가됩니다.")))
                 .tags(List.of(
                     new Tag()
+                        .name("인증 관리")
+                        .description("사용자 로그인, 로그아웃, 토큰 갱신 등 인증 관련 API"),
+                    new Tag()
                         .name("스터디/프로젝트 관리")
                         .description("스터디와 프로젝트의 생성, 조회, 수정, 삭제 및 태그 관리 API"),
                     new Tag()

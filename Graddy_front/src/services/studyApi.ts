@@ -165,7 +165,7 @@ export class StudyApiService {
         try {
             console.log('getStudiesProjects 호출 시작');
 
-            const response = await fetch('http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/studies-projects', {
+            const response = await fetch('http://localhost:8080/api/studies-projects', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'
@@ -198,7 +198,7 @@ export class StudyApiService {
         try {
             console.log('getStudyProject 호출 시작:', studyProjectId);
 
-            const response = await fetch(`http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/studies-projects/${studyProjectId}`, {
+            const response = await fetch(`http://localhost:8080/api/studies-projects/${studyProjectId}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'
@@ -350,7 +350,7 @@ export const createPost = async (data: {
     title: string;
     content: string;
 }) => {
-  return apiPost("/posts", data);  // http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/posts 호출
+  return apiPost("/posts", data);  // http://localhost:8080/api/posts 호출
 };
 
 // 신청 취소
