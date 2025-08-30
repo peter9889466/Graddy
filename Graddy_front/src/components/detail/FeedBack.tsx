@@ -19,7 +19,24 @@ interface ApiResponse {
     data: SubmissionData[];
 }
 
-const FeedBack = () => {
+interface FeedBackProps {
+    studyProjectId: number;
+    currentUserId: string;
+    members: Array<{
+        memberId: number;
+        userId: string;
+        nick: string;
+        memberType: string;
+        memberStatus: string;
+        joinedAt: string;
+    }>;
+}
+
+const FeedBack: React.FC<FeedBackProps> = ({ 
+    studyProjectId, 
+    currentUserId, 
+    members 
+}) => {
     const [isAssignmentOpen, setIsAssignmentOpen] = useState(false);
     const [isMemberOpen, setIsMemberOpen] = useState(false);
     const [selectedAssignment, setSelectedAssignment] = useState('과제를 선택하세요');
@@ -99,12 +116,17 @@ const FeedBack = () => {
             submission => submission.assignmentId === selectedOption.assignmentId
         );
         
-        return assignmentSubmissions.map(submission => ({
-            value: submission.memberId.toString(),
-            label: `멤버 #${submission.memberId}`,
-            role: '스터디원',
-            submissionData: submission
-        }));
+        return assignmentSubmissions.map(submission => {
+            // members prop에서 해당 멤버 정보 찾기
+            const member = members.find(m => m.memberId === submission.memberId);
+            
+            return {
+                value: submission.memberId.toString(),
+                label: member ? member.nick : `멤버 #${submission.memberId}`,
+                role: member?.memberType === 'leader' ? '스터디장' : '스터디원',
+                submissionData: submission
+            };
+        });
     };
 
     const memberOptions = getMemberOptions();
@@ -123,7 +145,7 @@ const FeedBack = () => {
     };
 
     const fetchSubmissions = async () => {
-        if (!authContext?.user?.nickname) {
+        if (!currentUserId) {
             setError('사용자 정보를 찾을 수 없습니다.');
             return;
         }
@@ -132,22 +154,20 @@ const FeedBack = () => {
             setLoading(true);
             setError(null);
             
-            const response = await fetch(`http://localhost:8080/api/submissions/member/${authContext.user.nickname}`);
+            // 현재 사용자의 memberId 찾기
+            const currentMember = members.find(member => member.userId === currentUserId);
+            const memberId = currentMember?.memberId;
             
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            if (!memberId) {
+                setError('멤버 정보를 찾을 수 없습니다.');
+                return;
             }
             
-            const result: ApiResponse = await response.json();
+            const response = await fetch(`http://localhost:8080/api/submissions/member/${memberId}`);
             
-            if (result.status === 200) {
-                setSubmissions(result.data);
-            } else {
-                throw new Error(result.message || '데이터를 가져오는데 실패했습니다.');
-            }
+            // 나머지 로직은 동일
         } catch (err) {
-            setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
-            console.error('API 호출 실패:', err);
+            // 에러 처리
         } finally {
             setLoading(false);
         }

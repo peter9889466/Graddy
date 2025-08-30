@@ -1073,7 +1073,11 @@ const StudyDetailPage = () => {
 						</div>
 					);
 				}
-				return <FeedBack />;
+				return <FeedBack 
+					studyProjectId={parseInt(id!, 10)}
+					currentUserId={getUserIdFromToken() || authContext?.user?.nickname || ''}
+					members={members}
+				/>;
 			case "과제 / 일정 관리":
 				if (!isLoggedIn || !(userMemberType === 'leader' || userMemberType === 'member')) {
 					return (
