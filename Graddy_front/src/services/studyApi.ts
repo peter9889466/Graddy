@@ -57,7 +57,7 @@ export interface StudyData {
     isRecruiting: boolean;
     recruitmentStatus: '모집중' | '모집완료';
     type: '스터디' | '프로젝트';
-    tags: Array<string | {name: string, difficulty?: string}>;
+    tags: Array<string | { name: string, difficulty?: string }>;
     leader: string;
     createdAt?: string;
     updatedAt?: string;
@@ -164,28 +164,28 @@ export class StudyApiService {
     static async getStudiesProjects(): Promise<BackendStudyProjectData[]> {
         try {
             console.log('getStudiesProjects 호출 시작');
-            
-            const response = await fetch('http://localhost:8080/api/studies-projects', {
+
+            const response = await fetch('http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/studies-projects', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'
                 }
             });
-            
+
             console.log('HTTP 응답 상태:', response.status);
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            
+
             const responseData = await response.json();
             console.log('getStudiesProjects 응답:', responseData);
-            
+
             if (!responseData || !responseData.data) {
                 console.warn('getStudiesProjects API data 필드가 없습니다.');
                 return [];
             }
-            
+
             return responseData.data;
         } catch (error) {
             console.error('getStudiesProjects 실패:', error);
@@ -197,16 +197,16 @@ export class StudyApiService {
     static async getStudyProject(studyProjectId: number): Promise<BackendStudyProjectData | null> {
         try {
             console.log('getStudyProject 호출 시작:', studyProjectId);
-            
-            const response = await fetch(`http://localhost:8080/api/studies-projects/${studyProjectId}`, {
+
+            const response = await fetch(`http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/studies-projects/${studyProjectId}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'
                 }
             });
-            
+
             console.log('HTTP 응답 상태:', response.status);
-            
+
             if (!response.ok) {
                 if (response.status === 404) {
                     console.log('스터디/프로젝트를 찾을 수 없습니다.');
@@ -214,15 +214,15 @@ export class StudyApiService {
                 }
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            
+
             const responseData = await response.json();
             console.log('getStudyProject 응답:', responseData);
-            
+
             if (!responseData || !responseData.data) {
                 console.warn('getStudyProject API data 필드가 없습니다.');
                 return null;
             }
-            
+
             return responseData.data;
         } catch (error) {
             console.error('getStudyProject 실패:', error);
@@ -252,10 +252,10 @@ export class StudyApiService {
     static async updateStudyProject(studyProjectId: number, updateData: any): Promise<any> {
         try {
             console.log('updateStudyProject 호출 시작:', studyProjectId);
-            
+
             const response = await apiPut<any>(`/studies-projects/${studyProjectId}`, updateData);
             console.log('updateStudyProject 응답:', response);
-            
+
             return response.data;
         } catch (error) {
             console.error('updateStudyProject 실패:', error);
@@ -267,11 +267,11 @@ export class StudyApiService {
     static async updateStudyProjectStatus(studyProjectId: number, status: string): Promise<BackendStudyProjectData> {
         try {
             console.log('updateStudyProjectStatus 호출 시작:', { studyProjectId, status });
-            
+
             // body가 아닌 쿼리 파라미터로 status 전달
             const response = await apiPatch<BackendStudyProjectData>(`/studies-projects/${studyProjectId}/status?status=${status}`);
             console.log('updateStudyProjectStatus 응답:', response);
-            
+
             return response.data;
         } catch (error) {
             console.error('updateStudyProjectStatus 실패:', error);
@@ -282,16 +282,16 @@ export class StudyApiService {
 
 // 가입 신청 관련 타입 정의
 export interface StudyApplicationRequest {
-	studyProjectId: number;
-	message: string;
+    studyProjectId: number;
+    message: string;
 }
 
 export interface StudyApplicationResponse {
-	userId: string;
-	studyProjectId: number;
-	status: 'PENDING' | 'APPROVED' | 'REJECTED';
-	message: string;
-	appliedAt: string;
+    userId: string;
+    studyProjectId: number;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    message: string;
+    appliedAt: string;
 }
 
 export interface ProcessApplicationRequest {
@@ -302,40 +302,40 @@ export interface ProcessApplicationRequest {
 
 // 가입 신청 API
 export const applyToStudyProject = async (request: StudyApplicationRequest): Promise<StudyApplicationResponse> => {
-	const response = await apiPost<StudyApplicationResponse>('/study-applications/apply', request);
-	return response.data;
+    const response = await apiPost<StudyApplicationResponse>('/study-applications/apply', request);
+    return response.data;
 };
 
 // 가입 신청 목록 조회 API
 export const getStudyApplications = async (studyProjectId: number): Promise<StudyApplicationResponse[]> => {
-	const response = await apiGet<StudyApplicationResponse[]>(`/study-applications/${studyProjectId}/applications`);
-	return response.data;
+    const response = await apiGet<StudyApplicationResponse[]>(`/study-applications/${studyProjectId}/applications`);
+    return response.data;
 };
 
 // 가입 신청 처리 API (승인/거절)
 export const processStudyApplication = async (
-	studyProjectId: number, 
-	request: ProcessApplicationRequest
+    studyProjectId: number,
+    request: ProcessApplicationRequest
 ): Promise<string> => {
-	const response = await apiPut<string>(`/study-applications/${studyProjectId}/process`, request);
-	return response.data;
+    const response = await apiPut<string>(`/study-applications/${studyProjectId}/process`, request);
+    return response.data;
 };
 
 // 사용자의 가입 신청 상태 조회 API
 export const getUserApplicationStatus = async (studyProjectId: number): Promise<StudyApplicationResponse | null> => {
-	try {
-		// 내 신청 목록을 가져와서 해당 스터디/프로젝트의 신청 상태를 찾기
-		const response = await apiGet<StudyApplicationResponse[]>('/study-applications/my-applications');
-		const myApplications = response.data;
-		
-		// 해당 스터디/프로젝트의 신청을 찾기
-		const application = myApplications.find(app => app.studyProjectId === studyProjectId);
-		
-		return application || null;
-	} catch (error) {
-		// 가입 신청이 없는 경우 404 에러가 발생할 수 있음
-		return null;
-	}
+    try {
+        // 내 신청 목록을 가져와서 해당 스터디/프로젝트의 신청 상태를 찾기
+        const response = await apiGet<StudyApplicationResponse[]>('/study-applications/my-applications');
+        const myApplications = response.data;
+
+        // 해당 스터디/프로젝트의 신청을 찾기
+        const application = myApplications.find(app => app.studyProjectId === studyProjectId);
+
+        return application || null;
+    } catch (error) {
+        // 가입 신청이 없는 경우 404 에러가 발생할 수 있음
+        return null;
+    }
 };
 
 // 커리큘럼 텍스트 업데이트 함수
@@ -350,5 +350,11 @@ export const createPost = async (data: {
     title: string;
     content: string;
 }) => {
-  return apiPost("/posts", data);  // http://localhost:8080/api/posts 호출
+  return apiPost("/posts", data);  // http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/posts 호출
+};
+
+// 신청 취소
+export const cancelStudyApplication = async (studyProjectId: number): Promise<any> => {
+	const response = await apiDelete<any>(`/study-applications/${studyProjectId}/cancel`);
+	return response.data;
 };

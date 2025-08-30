@@ -26,7 +26,7 @@ export interface InterestResponse {
 export class InterestApiService {
     // JWT 토큰을 자동으로 포함하지 않는 axios 인스턴스 생성
     private static interestsAxiosInstance = axios.create({
-        baseURL: 'http://localhost:8080',
+        baseURL: 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com',
         timeout: 10000,
         headers: {
             'Content-Type': 'application/json',
@@ -37,22 +37,22 @@ export class InterestApiService {
     static async getAllInterests(): Promise<InterestForFrontend[]> {
         try {
             console.log('관심사 데이터 조회 시작');
-            
+
             const response = await this.interestsAxiosInstance.get('/api/interests');
             console.log('관심사 API 응답:', response.data);
-            
+
             if (!response.data || !response.data.data) {
                 console.warn('관심사 API data 필드가 없습니다.');
                 return [];
             }
-            
+
             const interests: Interest[] = response.data.data;
             console.log('원본 관심사 데이터:', interests);
-            
+
             // 백엔드 데이터를 프론트엔드 형식으로 변환
             const convertedData = this.convertBackendToFrontend(interests);
             console.log('변환된 관심사 데이터:', convertedData);
-            
+
             return convertedData;
         } catch (error) {
             console.error('관심사 데이터 조회 실패:', error);
@@ -90,10 +90,10 @@ export class InterestApiService {
     static async getInterestsByType(studyType: 'study' | 'project'): Promise<InterestForFrontend[]> {
         try {
             const allInterests = await this.getAllInterests();
-            
+
             // 스터디: 1-6번 카테고리, 프로젝트: 1-7번 카테고리
             const maxDivision = studyType === 'study' ? 6 : 7;
-            
+
             return allInterests.filter(interest => interest.interestDivision <= maxDivision);
         } catch (error) {
             console.error('타입별 관심사 조회 실패:', error);

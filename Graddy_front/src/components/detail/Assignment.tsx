@@ -1,64 +1,91 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
 import { useAssignmentContext } from '../../contexts/AssignmentContext';
 import { AuthContext } from '../../contexts/AuthContext';
+import { Loader2 } from 'lucide-react'; // 로딩 아이콘
 
-const Assignment: React.FC = () => {
+interface AssignmentProps {
+  studyProjectId: number;
+}
+
+interface FetchedAssignment {
+  assignmentId: number;
+  studyProjectId: number;
+  memberId: number;
+  title: string;
+  description: string;
+  deadline: string;
+  fileUrl: string;
+  createdAt: string;
+}
+
+const Assignment: React.FC<AssignmentProps> = ({ studyProjectId }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedOption, setSelectedOption] = useState('과제를 선택하세요');
   const [assignmentContent, setAssignmentContent] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [fetchedAssignments, setFetchedAssignments] = useState<FetchedAssignment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { submitAssignment, getSubmissionByAssignment } = useAssignmentContext();
   const authContext = useContext(AuthContext);
 
-  const options = [
-    { value: 'algorithm', label: '알고리즘 문제 풀이', period: '2025.08.20 ~ 2025.08.25' },
-    { value: 'project', label: '프로젝트 기획서', period: '2025.08.25 ~ 2025.08.30' },
-    { value: 'report', label: '스터디 리포트', period: '2025.08.30 ~ 2025.09.05' },
-    { value: 'presentation', label: '발표 자료', period: '2025.09.05 ~ 2025.09.10' }
-  ];
+  // 컴포넌트 마운트 시 과제 목록 API 호출
+  useEffect(() => {
+    const fetchAssignments = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(`http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/assignments/study-project/${studyProjectId}`);
+        if (!response.ok) {
+          throw new Error('과제 목록을 불러오는 데 실패했습니다.');
+        }
+        const data = await response.json();
+        setFetchedAssignments(data.data);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchAssignments();
+  }, [studyProjectId]);
 
+  // 클릭 이벤트 리스너 설정
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleOptionClick = (option: { value: string; label: string; period: string }) => {
-    setSelectedOption(option.label);
+  const handleOptionClick = (option: FetchedAssignment) => {
+    setSelectedOption(option.title);
     setIsOpen(false);
   };
 
-  // 선택된 과제의 기간 찾기
-  const selectedAssignment = options.find(option => option.label === selectedOption);
+  const selectedAssignment = fetchedAssignments.find(option => option.title === selectedOption);
 
-  // 과제 제출 처리
   const handleSubmit = () => {
     if (!authContext?.isLoggedIn) {
       alert("로그인 후 이용해주세요!");
       return;
     }
-
     if (selectedOption === '과제를 선택하세요') {
       alert("과제를 선택해주세요!");
       return;
     }
-
     if (!assignmentContent.trim()) {
       alert("과제 내용을 작성해주세요!");
       return;
     }
-
     const submittedBy = authContext.user?.nickname || '익명 사용자';
-    
-    // 첨부파일 정보 처리
     let attachmentInfo = undefined;
     if (selectedFile) {
       attachmentInfo = {
@@ -67,26 +94,20 @@ const Assignment: React.FC = () => {
         fileType: selectedFile.type || '알 수 없는 형식'
       };
     }
-    
     submitAssignment(selectedOption, assignmentContent, submittedBy, attachmentInfo);
-    
     setIsSubmitted(true);
     setShowSuccessMessage(true);
-    
-    // 3초 후 성공 메시지 숨기기
     setTimeout(() => {
       setShowSuccessMessage(false);
     }, 3000);
   };
 
-  // 과제 선택 시 기존 제출 내용 확인
   useEffect(() => {
     if (selectedOption !== '과제를 선택하세요') {
       const existingSubmission = getSubmissionByAssignment(selectedOption);
       if (existingSubmission) {
         setAssignmentContent(existingSubmission.content);
         setIsSubmitted(true);
-        // 기존 첨부파일 정보는 표시만 하고 수정 불가
       } else {
         setAssignmentContent('');
         setIsSubmitted(false);
@@ -95,56 +116,71 @@ const Assignment: React.FC = () => {
     }
   }, [selectedOption, getSubmissionByAssignment]);
 
+
+  const getAssignmentOptions = () => {
+    return fetchedAssignments.map((assignment) => ({
+      value: assignment.assignmentId.toString(),
+      label: assignment.title,
+      period: `~ ${assignment.deadline}`
+    }));
+  };
+
+  const assignmentOptions = getAssignmentOptions();
+
   return (
-    		<div className="space-y-4 p-4 pr-10">
-      {/* 과제 제출 소제목 */}
-      <h2 className="text-xl font-bold mb-6 -mt-5 -ml-4"
-        style={{ color: "#8B85E9" }}>과제 제출</h2>
+    <div className="space-y-4 p-4 pr-10">
+      <h2 className="text-xl font-bold mb-6 -mt-5 -ml-4" style={{ color: "#8B85E9" }}>과제 제출</h2>
 
-      {/* 과제 선택 드롭다운 */}
-      <div className="mb-4 relative" ref={dropdownRef}>
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className={`w-full px-4 py-2 rounded-xl bg-white text-gray-700 flex items-center justify-between border ${isOpen ? "border-2 border-[#8B85E9]" : "border-2 border-gray-300"
-            } focus:outline-none`}>
-          <span>{selectedOption}</span>
-          <svg
-            className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-
-        {isOpen && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-xl shadow-lg z-10 overflow-hidden">
-            {options.map((option, index) => (
-              <div
-                key={option.value}
-                onClick={() => handleOptionClick(option)}
-                className={`px-4 py-2 cursor-pointer transition-colors hover:bg-gray-50 ${index !== options.length - 1 ? 'border-b border-gray-100' : ''}`}
-                style={{
-                  backgroundColor: selectedOption === option.label ? '#E8E6FF' : '#FFFFFF',
-                  color: selectedOption === option.label ? '#8B85E9' : '#374151'
-                }}
-              >
-                <div className="font-medium">{option.label}</div>
-                <div className="text-xs text-gray-500 mt-1">{option.period}</div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* 선택된 과제 제목 및 기간 */}
-      {selectedOption !== '과제를 선택하세요' && (
-        <div>
-          <p className="text-2xl font-semibold text-black">
-            {selectedOption} <span className="text-sm text-gray-500 font-normal">[{selectedAssignment?.period}]</span>
-          </p>
+      {isLoading ? (
+        <div className="flex items-center justify-center h-48">
+          <Loader2 className="animate-spin w-8 h-8 text-[#8B85E9]" />
+          <span className="ml-2 text-gray-500">과제 목록을 불러오는 중...</span>
         </div>
+      ) : error ? (
+        <div className="flex items-center justify-center h-48 text-red-500">
+          <p>오류 발생: {error}</p>
+        </div>
+      ) : fetchedAssignments.length === 0 ? (
+        <div className="flex items-center justify-center h-48 text-gray-500">
+          <p>제출할 과제가 없습니다.</p>
+        </div>
+      ) : (
+        <>
+          {/* 과제 선택 드롭다운 */}
+          <div className="mb-4 relative" ref={dropdownRef}>
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className={`w-full px-4 py-2 rounded-xl bg-white text-gray-700 flex items-center justify-between border ${isOpen ? "border-2 border-[#8B85E9]" : "border-2 border-gray-300"} focus:outline-none`}
+            >
+              <span>{selectedOption}</span>
+              <svg className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {isOpen && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-xl shadow-lg z-10 overflow-hidden">
+                {fetchedAssignments.map((option, index) => (
+                  <div
+                    key={option.assignmentId}
+                    onClick={() => handleOptionClick(option)}
+                    className={`px-4 py-2 cursor-pointer transition-colors hover:bg-gray-50 ${selectedOption === option.title ? 'bg-[#E8E6FF] text-[#8B85E9]' : 'bg-white text-gray-700'} ${index !== fetchedAssignments.length - 1 ? 'border-b border-gray-100' : ''}`}
+                  >
+                    <div className="font-medium">{option.title}</div>
+                    <div className="text-xs text-gray-500 mt-1">~ {option.deadline}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* 선택된 과제 제목 및 기간 */}
+          {selectedOption !== '과제를 선택하세요' && (
+            <div>
+              <p className="text-2xl font-semibold text-black">
+                {selectedOption} <span className="text-sm text-gray-500 font-normal">[{selectedAssignment?.deadline}]</span>
+              </p>
+            </div>
+          )}
+        </>
       )}
 
       <hr />

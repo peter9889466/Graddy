@@ -37,23 +37,27 @@ export const Ranking = () => {
 
     // 현재 사용자 정보 (임시 - 실제로는 로그인 정보에서 가져와야 함)
     const auth = useContext(AuthContext);
-    const currentUserId = auth?.user?.nickname || null; 
+    const currentUserId = auth?.user?.nickname || null;
     const currentUserRanking = rankingData.find(
         (user) => user.userId === currentUserId
     );
     // 현재 사용자 랭킹 정보 찾기
-    const currentUser = rankingData.find(user => user.userId === currentUserId);
+    const currentUser = rankingData.find(
+        (user) => user.userId === currentUserId
+    );
 
     // API 호출 함수
     const fetchRankingData = async (): Promise<RankingResponse> => {
         try {
-            const response = await fetch('http://localhost:8080/api/scores/ranking/top100');
+            const response = await fetch(
+                "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/scores/ranking/top100"
+            );
             if (!response.ok) {
-                throw new Error('Failed to fetch ranking data');
+                throw new Error("Failed to fetch ranking data");
             }
             return await response.json();
         } catch (error) {
-            console.error('Error fetching ranking data:', error);
+            console.error("Error fetching ranking data:", error);
             throw error;
         }
     };
@@ -68,7 +72,7 @@ export const Ranking = () => {
                 setTotalUsers(response.data.totalUsers);
                 setError(null);
             } catch (err) {
-                setError('랭킹 데이터를 불러오는데 실패했습니다.');
+                setError("랭킹 데이터를 불러오는데 실패했습니다.");
             } finally {
                 setLoading(false);
             }
@@ -76,8 +80,6 @@ export const Ranking = () => {
 
         loadRankingData();
     }, []);
-
-    
 
     // 랭킹 메달 아이콘 반환
     const getRankIcon = (rank: number) => {
@@ -118,7 +120,9 @@ export const Ranking = () => {
                         <div className="flex justify-center items-center h-64">
                             <div className="flex flex-col items-center">
                                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-                                <div className="text-gray-500">랭킹 데이터를 불러오는 중...</div>
+                                <div className="text-gray-500">
+                                    랭킹 데이터를 불러오는 중...
+                                </div>
                             </div>
                         </div>
                     </ResponsiveMainContent>
@@ -137,7 +141,9 @@ export const Ranking = () => {
                             <div className="flex items-center">
                                 <div className="text-red-500 mr-3">⚠️</div>
                                 <div>
-                                    <h3 className="text-red-800 font-semibold">오류가 발생했습니다</h3>
+                                    <h3 className="text-red-800 font-semibold">
+                                        오류가 발생했습니다
+                                    </h3>
                                     <p className="text-red-700 mt-1">{error}</p>
                                 </div>
                             </div>
@@ -162,7 +168,8 @@ export const Ranking = () => {
                     전체 랭킹
                 </h2>
                 <p className="text-sm text-gray-600 mt-1">
-                    스터디 참여와 완료에 따른 점수 기준 순위입니다. (총 {totalUsers}명)
+                    스터디 참여와 완료에 따른 점수 기준 순위입니다. (총{" "}
+                    {totalUsers}명)
                 </p>
             </div>
 
@@ -171,7 +178,7 @@ export const Ranking = () => {
                     <div
                         key={user.scoreId}
                         className={`p-6 hover:bg-gray-50 transition-colors cursor-pointer ${
-                            user.userId === currentUserId ? 'bg-blue-50' : ''
+                            user.userId === currentUserId ? "bg-blue-50" : ""
                         }`}
                         onClick={() => handleUserClick(user)}
                     >
@@ -197,7 +204,10 @@ export const Ranking = () => {
                                         )}
                                     </h3>
                                     <div className="text-xs text-gray-500">
-                                        최근 업데이트: {new Date(user.lastUpdated).toLocaleDateString()}
+                                        최근 업데이트:{" "}
+                                        {new Date(
+                                            user.lastUpdated
+                                        ).toLocaleDateString()}
                                     </div>
                                 </div>
                             </div>
@@ -229,7 +239,9 @@ export const Ranking = () => {
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-4">
                                 <div
-                                    className={`w-10 h-10 ${getRankBadgeColor(currentUserRanking.rank)} 
+                                    className={`w-10 h-10 ${getRankBadgeColor(
+                                        currentUserRanking.rank
+                                    )} 
                                             rounded-full flex items-center justify-center text-white font-bold text-sm`}
                                 >
                                     {currentUserRanking.rank <= 3
@@ -242,16 +254,21 @@ export const Ranking = () => {
                                         {currentUserRanking.userId}
                                     </h3>
                                     <div className="text-xs text-gray-500">
-                                        최근 업데이트: {new Date(currentUserRanking.lastUpdated).toLocaleDateString()}
+                                        최근 업데이트:{" "}
+                                        {new Date(
+                                            currentUserRanking.lastUpdated
+                                        ).toLocaleDateString()}
                                     </div>
                                 </div>
                             </div>
                             <div className="text-right">
                                 <div className="text-xl font-bold text-blue-600">
-                                    {currentUserRanking.userScore.toLocaleString()}점
+                                    {currentUserRanking.userScore.toLocaleString()}
+                                    점
                                 </div>
                                 <div className="text-sm text-gray-500">
-                                    #{currentUserRanking.rank} / {currentUserRanking.totalUsers}
+                                    #{currentUserRanking.rank} /{" "}
+                                    {currentUserRanking.totalUsers}
                                 </div>
                             </div>
                         </div>
@@ -280,7 +297,7 @@ export const Ranking = () => {
                     >
                         ✕
                     </button>
-                    
+
                     <h3 className="text-2xl font-bold mb-4">
                         {selectedUser.userId}님의 랭킹 정보
                     </h3>
@@ -335,13 +352,21 @@ export const Ranking = () => {
                         </div>
                         <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
-                                <span className="text-gray-600">전체 사용자 수:</span>
-                                <span className="font-medium">{selectedUser.totalUsers}명</span>
+                                <span className="text-gray-600">
+                                    전체 사용자 수:
+                                </span>
+                                <span className="font-medium">
+                                    {selectedUser.totalUsers}명
+                                </span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-gray-600">최근 업데이트:</span>
+                                <span className="text-gray-600">
+                                    최근 업데이트:
+                                </span>
                                 <span className="font-medium">
-                                    {new Date(selectedUser.lastUpdated).toLocaleString()}
+                                    {new Date(
+                                        selectedUser.lastUpdated
+                                    ).toLocaleString()}
                                 </span>
                             </div>
                         </div>
@@ -355,7 +380,9 @@ export const Ranking = () => {
                             </div>
                             <div className="max-h-48 overflow-y-auto space-y-2">
                                 {myStudyList
-                                    .filter((study) => study.status === "active")
+                                    .filter(
+                                        (study) => study.status === "active"
+                                    )
                                     .slice(0, 3)
                                     .map((study) => (
                                         <div

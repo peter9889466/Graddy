@@ -76,7 +76,7 @@ OPENAI_API_KEY=your_openai_api_key_here
 `application.properties`에서 AI API URL을 설정할 수 있습니다:
 
 ```properties
-ai.curriculum.api.url=http://localhost:8000
+ai.curriculum.api.url=http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com
 ```
 
 ## 📊 **사용법**
@@ -86,7 +86,7 @@ ai.curriculum.api.url=http://localhost:8000
 #### **FastAPI 직접 호출**
 
 ```bash
-curl -X POST "http://localhost:8000/generate-curriculum" \
+curl -X POST "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/generate-curriculum" \
   -H "Content-Type: application/json" \
   -d '{
     "study_project_id": 1,
@@ -104,17 +104,17 @@ curl -X POST "http://localhost:8000/generate-curriculum" \
 #### **Spring Boot를 통한 호출**
 
 ```bash
-curl -X POST "http://localhost:8080/api/ai-curriculum/generate/1"
+curl -X POST "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/ai-curriculum/generate/1"
 ```
 
 ### **2. 서버 상태 확인**
 
 ```bash
 # FastAPI 서버 상태
-curl http://localhost:8000/health
+curl http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/health
 
 # Spring Boot에서 AI 서버 상태 확인
-curl http://localhost:8080/api/ai-curriculum/health
+curl http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/ai-curriculum/health
 ```
 
 ## 🛠️ **개발 환경**

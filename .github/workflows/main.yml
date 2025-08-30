@@ -6,38 +6,36 @@ on:
     push:
         branches: ["main"]
 
-# 동시 실행 제한 (무한 빌드 방지)
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: true
 
-# 워크플로우에서 사용할 환경 변수를 중앙에서 관리합니다.
 env:
     AWS_REGION: ap-northeast-1
-    S3_BUCKET_NAME: mygraddybucket # 본인의 S3 버킷 이름
-    CODE_DEPLOY_APP_NAME: graddy # CodeDeploy 애플리케이션 이름
-    CODE_DEPLOY_GROUP_NAME: graddy # CodeDeploy 배포 그룹 이름
+    S3_BUCKET_NAME: mygraddybucket
+    CODE_DEPLOY_APP_NAME: graddy
+    CODE_DEPLOY_GROUP_NAME: graddy
 
 jobs:
     build-and-deploy:
         runs-on: ubuntu-latest
         steps:
-            # 1. 코드 체크아웃
+            # 1. 소스 코드 가져오기 (기존과 동일)
             - name: Checkout source code
               uses: actions/checkout@v4
 
-            # 2. Docker Hub 로그인
+            # 2. Docker Hub 로그인 (기존과 동일)
             - name: Login to Docker Hub
               uses: docker/login-action@v3
               with:
                   username: ${{ secrets.DOCKER_HUB_USERNAME }}
                   password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-            # 2.5. Docker Buildx 설정 (멀티 플랫폼 빌드용)
+            # 2.5. Docker Buildx 설정 (기존과 동일)
             - name: Set up Docker Buildx
               uses: docker/setup-buildx-action@v3
 
-            # 3. 백엔드(Backend) Docker 이미지 빌드 및 푸시 (ARM64만)
+            # 3. 백엔드 이미지 빌드 및 푸시 (기존과 동일)
             - name: Build and push Backend image
               uses: docker/build-push-action@v5
               with:
@@ -47,38 +45,44 @@ jobs:
                   push: true
                   tags: ${{ secrets.DOCKER_HUB_USERNAME }}/graddy-back:latest
                   cache-from: type=gha
-                  cache-to: type=gha,mode=max
+                  cache-to: type=gha
 
-            # Docker 빌드 전에 GitHub Actions Runner에서 직접 프론트엔드 빌드를 실행하여
-            # 빌드 과정의 로그를 확인하고, 결과물(artifact)을 다운로드할 수 있도록 합니다.
-            - name: Frontend Build & Artifact Upload
+            # ===============================================================
+            # (★★수정/추가된 부분 1: 프론트엔드 빌드 단계★★)
+            # ===============================================================
+            - name: Set up Node.js for Frontend
+              uses: actions/setup-node@v3
+              with:
+                  node-version: 20
+
+            - name: Build Frontend
               run: |
-                  echo "--- Starting Frontend Build in Runner ---"
-                  cd Graddy_front
-                  npm install
-                  npm run build
-                  echo "--- Frontend Build Finished ---"
-                  echo "--- Listing dist folder contents ---"
-                  ls -R dist
+                  cd Graddy_front  # 프론트엔드 디렉토리로 이동
+                  npm install      # 의존성 설치
+                  npm run build    # build 폴더 생성
 
-            - uses: actions/upload-artifact@v4
-              with:
-                  name: build-dist-folder
-                  path: ./Graddy_front/dist/
+            # ===============================================================
+            # (★★수정/추가된 부분 2: 배포 파일 압축 및 S3 업로드★★)
+            # ===============================================================
+            - name: Create deployment package
+              run: |
+                  # 배포에 필요한 파일들을 모을 deploy 디렉토리 생성
+                  mkdir deploy
 
-            # 4. 프론트엔드(Frontend) Docker 이미지 빌드 및 푸시 (ARM64만)
-            - name: Build and push Frontend image
-              uses: docker/build-push-action@v5
-              with:
-                  context: ./Graddy_front
-                  file: ./Graddy_front/Dockerfile
-                  platforms: linux/arm64
-                  push: true
-                  tags: ${{ secrets.DOCKER_HUB_USERNAME }}/graddy-front:latest
-                  cache-from: type=gha
-                  cache-to: type=gha,mode=max
+                  # 프론트엔드 빌드 결과물 복사
+                  cp -r Graddy_front/dist ./deploy/
 
-            # 5. AWS 자격 증명 설정
+                  # CodeDeploy 설정 파일 및 스크립트 복사
+                  cp appspec.yml ./deploy/
+                  cp -r scripts ./deploy/
+
+                  # 백엔드 실행을 위한 docker-compose.yml 파일 복사
+                  cp docker-compose.yml ./deploy/
+
+                  # deploy 디렉토리를 통째로 압축
+                  cd deploy
+                  zip -r ../deploy.zip .
+
             - name: Configure AWS credentials
               uses: aws-actions/configure-aws-credentials@v4
               with:
@@ -86,38 +90,10 @@ jobs:
                   aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
                   aws-region: ${{ env.AWS_REGION }}
 
-            # 6. 배포 패키지 생성
-            - name: Create deployment package
-              run: |
-                  mkdir -p deploy
-                  cp docker-compose.yml deploy/
-                  cp appspec.yml deploy/
-                  echo "DOCKER_HUB_ID=${{ secrets.DOCKER_HUB_USERNAME }}" > deploy/deploy.env
-                  # [수정] scripts 폴더 복사를 확실하게
-                  cp -r scripts deploy/
-                  # 배포 패키지 내용 확인
-                  echo "=== Deploy package contents ==="
-                  ls -la deploy/
-                  ls -la deploy/scripts/
+            - name: Upload to S3
+              run: aws s3 cp deploy.zip s3://${{ env.S3_BUCKET_NAME }}/
 
-            # 7. 배포 패키지를 zip으로 압축
-            # deploy/ 디렉토리 내부의 파일들을 압축합니다.
-            - name: Make zip file
-              run: |
-                  # deploy.env를 루트로 복사
-                  cp deploy/deploy.env ./deploy.env
-                  # 루트 디렉토리에서 필요한 파일들을 직접 zip에 포함
-                  zip -r deploy.zip docker-compose.yml appspec.yml scripts/ deploy.env
-                  # 배포 패키지 내용 확인
-                  echo "=== Final zip contents ==="
-                  unzip -l deploy.zip
-
-            # 8. S3에 zip 파일 업로드
-            - name: Upload zip to S3
-              run: aws s3 cp deploy.zip s3://${{ env.S3_BUCKET_NAME }}/deploy.zip
-
-            # 9. CodeDeploy 배포 트리거
-            - name: Deploy to EC2 instance
+            - name: Deploy to EC2
               run: |
                   aws deploy create-deployment \
                     --application-name ${{ env.CODE_DEPLOY_APP_NAME }} \
