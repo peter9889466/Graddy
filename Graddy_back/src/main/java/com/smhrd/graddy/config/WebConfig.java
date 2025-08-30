@@ -11,16 +11,18 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**") // 모든 URL 허용
-                .allowedOrigins("*") // 모든 도메인 허용 → 보안 필요시 도메인 지정
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS","PATCH")
+        registry.addMapping("/**")
+                .allowedOriginPatterns("*") // 모든 Origin 허용 (개발용)
+                // 또는 특정 Origin만 허용하려면:
+                // .allowedOrigins("http://localhost:5173", "http://localhost:3000")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
                 .allowedHeaders("*")
-                .allowCredentials(false);
+                .allowCredentials(true)
+                .maxAge(3600); // preflight 요청 캐시 시간 (초)
     }
 
     @Bean
     public RestTemplate restTemplate() {
         return new RestTemplate();
     }
-
 }

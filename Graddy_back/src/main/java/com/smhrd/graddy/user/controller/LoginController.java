@@ -65,10 +65,17 @@ public class LoginController {
             // 2번은 예외가 발생하지 않았을 경우, 즉 인증에 성공했을 경우에만 실행
 
             // 2. 인증 성공 시, JWT 생성
-            final String token = jwtUtil.generateToken(request.getUserId());
+            final String token = jwtUtil.generateAccessToken(request.getUserId());
 
             // 3. 생성된 토큰을 응답으로 반환
-            LoginResponse loginResponse = new LoginResponse(token);
+            LoginResponse loginResponse = LoginResponse.builder()
+                    .accessToken(token)
+                    .refreshToken("") // 이 컨트롤러는 사용하지 않으므로 빈 문자열
+                    .tokenType("Bearer")
+                    .userId(request.getUserId())
+                    .nickname("") // 사용자 정보가 필요하면 별도 조회 필요
+                    .expiresIn(3600L) // 1시간 (3600초)
+                    .build();
             return ApiResponse.success("로그인에 성공했습니다.", loginResponse);
             
         } catch (BadCredentialsException e) {

@@ -1,6 +1,5 @@
 package com.smhrd.graddy.security.config;
 
-
 import com.smhrd.graddy.security.jwt.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -22,24 +21,20 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 //1. CSRF(Cross-Site Request Forgery) 보호 비활성화(개발 편의를 위해)
                 .csrf(csrf -> csrf.disable())
+                
+                // CORS 설정 활성화 (WebMvcConfigurer에서 설정됨)
+                .cors(cors -> cors.and())
 
                 // 2. 모든 HTTP 요청에 대해 인증을 요구하도록 설정
                 .authorizeHttpRequests(authorize -> authorize
-                        // 'api/studies'와 Swagger 관련 경로는 모두에게 허용
-                        .requestMatchers("/api/ws/**").permitAll()
-                        .requestMatchers("**").permitAll()
-                        // .requestMatchers("/api/join","/api/studies", "/swagger-ui/**", "/v3/api-docs/**", "/api/login/**").permitAll()
-                        // USER 역할을 가진 사용자 접근 가능
-                        .requestMatchers("api/asd").hasRole("USER")
-                        // admin 역할을 가진 사용자만 접근 가능
-                        .requestMatchers("api/admin/**").hasRole("ADMIN")
-                        // 나머지 모든 요청은 인증 필요
-                        .anyRequest().authenticated()
+                        // 테스트 중이므로 모든 요청 허용
+                        .anyRequest().permitAll()
                 )
                 .httpBasic(httpBasic -> httpBasic.disable())
                 // 3. 폼 기반 로그인 설정 (가장 중요한 변경 부분)

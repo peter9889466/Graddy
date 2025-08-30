@@ -1,4 +1,4 @@
-package com.smhrd.graddy.user.dto;
+package com.smhrd.graddy.auth.dto;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -11,12 +11,9 @@ import lombok.Builder;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class LoginResponse {
+public class RefreshTokenResponse {
 
     private String accessToken;
-    private String refreshToken;
     private String tokenType;
-    private String userId;
-    private String nickname;
     private Long expiresIn;
 }
