@@ -31,10 +31,12 @@ public class SecurityConfig {
                 // CORS 설정 활성화 (WebMvcConfigurer에서 설정됨)
                 .cors(cors -> cors.and())
 
-                // 2. 모든 HTTP 요청에 대해 인증을 요구하도록 설정
+                // 2. HTTP 요청 인증 설정
                 .authorizeHttpRequests(authorize -> authorize
-                        // 테스트 중이므로 모든 요청 허용
-                        .anyRequest().permitAll()
+                        // 인증 관련 엔드포인트는 JWT 검증 없이 허용
+                        .requestMatchers("/api/auth/login", "/api/auth/refresh", "/api/auth/logout").permitAll()
+                        // 나머지 요청은 인증 필요
+                        .anyRequest().authenticated()
                 )
                 .httpBasic(httpBasic -> httpBasic.disable())
                 // 3. 폼 기반 로그인 설정 (가장 중요한 변경 부분)
