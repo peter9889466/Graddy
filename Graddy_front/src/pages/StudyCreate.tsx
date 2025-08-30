@@ -429,7 +429,7 @@ const StudyCreate: React.FC = () => {
             console.log("백엔드로 전송할 데이터:", createStudyProjectRequest);
             console.log("현재 사용자 정보:", user);
             console.log(
-                "API_BASE_URL:"
+                "API_BASE_URL:"+
                     "http://localhost:8080/api"
             );
 
