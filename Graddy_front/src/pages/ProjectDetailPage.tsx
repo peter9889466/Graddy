@@ -331,6 +331,7 @@ const ProjectDetailPage = () => {
 				await StudyApiService.updateStudyProjectStatus(parseInt(id, 10), "end");
 				alert("프로젝트가 종료되었습니다.");
 				// 프로젝트 종료 후 페이지 이동 또는 상태 업데이트
+				navigate("/");
 			} catch (error) {
 				console.error('프로젝트 종료 실패:', error);
 				alert('프로젝트 종료에 실패했습니다.');

@@ -629,9 +629,9 @@ const Schedule: React.FC<ScheduleProps> = ({
                                         type="file"
                                         onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                                         className="block w-full text-sm file:mr-4 file:py-2 file:px-4
-                                                  file:rounded-lg file:border-0
-                                                  file:text-sm file:font-semibold file:text-[#8B85E9]
-                                                  file:bg-violet-50 hover:file:bg-violet-100"
+                                                    file:rounded-lg file:border-0
+                                                    file:text-sm file:font-semibold file:text-[#8B85E9]
+                                                    file:bg-violet-50 hover:file:bg-violet-100"
                                     />
                                 </div>
                             </>
