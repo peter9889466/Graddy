@@ -35,6 +35,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         "/api/auth/login",
         "/api/auth/refresh", 
         "/api/auth/logout",
+        "/login", // 추가된 경로
         "/swagger-ui",
         "/v3/api-docs",
         "/api/ws"
