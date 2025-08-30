@@ -86,11 +86,11 @@ public class AICurriculumService {
             // HTTP 요청 엔티티 생성
             HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestData, headers);
 
-            logger.info("Sending request to FastAPI server: {}", aiApiUrl + "/generate-curriculum");
+            logger.info("Sending request to FastAPI server: {}", aiApiUrl + "/auto-generate-curriculum");
 
-            // FastAPI 서버로 POST 요청
+            // FastAPI 서버로 POST 요청 (auto-generate-curriculum 엔드포인트 사용)
             ResponseEntity<Map> response = restTemplate.postForEntity(
-                    aiApiUrl + "/generate-curriculum",
+                    aiApiUrl + "/auto-generate-curriculum",
                     requestData,
                     Map.class
             );
@@ -122,16 +122,39 @@ public class AICurriculumService {
     /**
      * 스터디/프로젝트 생성 후 자동으로 AI 커리큘럼을 생성합니다.
      * 이 메서드는 StudyService에서 호출되어 스터디 생성과 함께 자동으로 실행됩니다.
+     * typeCheck가 "study"인 경우에만 AI 커리큘럼을 생성합니다.
      */
     public void createAICurriculum(Long studyProjectId, String studyProjectName) {
         try {
             logger.info("Auto-creating AI curriculum for study project: {} (ID: {})", studyProjectName, studyProjectId);
             
+            // 스터디/프로젝트 정보 조회하여 typeCheck 확인
+            StudyProject studyProject = studyProjectRepository.findById(studyProjectId)
+                    .orElseThrow(() -> new IllegalArgumentException("스터디/프로젝트를 찾을 수 없습니다: " + studyProjectId));
+            
+            // typeCheck가 "study"인 경우에만 AI 커리큘럼 생성
+            if (!"study".equals(studyProject.getTypeCheck().toString())) {
+                logger.info("Skipping AI curriculum generation for non-study project: {} (ID: {}, type: {})", 
+                    studyProjectName, studyProjectId, studyProject.getTypeCheck());
+                return;
+            }
+            
+            logger.info("Proceeding with AI curriculum generation for study project: {} (ID: {}, type: {})", 
+                studyProjectName, studyProjectId, studyProject.getTypeCheck());
+            
             // AI 커리큘럼 생성
             AICurriculumResponse curriculumResponse = generateCurriculum(studyProjectId);
             
-            // 생성된 커리큘럼을 데이터베이스에 저장 (필요시)
-            // TODO: 커리큘럼 저장 로직 구현
+            // 생성된 커리큘럼을 데이터베이스의 cur_text 필드에 저장
+            if (curriculumResponse != null && curriculumResponse.isSuccess() && curriculumResponse.getCurriculum() != null) {
+                // cur_text 필드에 AI 생성 커리큘럼 저장
+                studyProject.setCurText(curriculumResponse.getCurriculum());
+                studyProjectRepository.save(studyProject);
+                
+                logger.info("AI curriculum saved to cur_text field for study project: {} (ID: {})", studyProjectName, studyProjectId);
+            } else {
+                logger.warn("AI curriculum generation was not successful for study project: {} (ID: {})", studyProjectName, studyProjectId);
+            }
             
             logger.info("AI curriculum auto-created successfully for study project: {} (ID: {})", studyProjectName, studyProjectId);
             
