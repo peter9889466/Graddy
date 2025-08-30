@@ -50,4 +50,30 @@ public class SmsService {
         }
 
     }
+    
+    /**
+     * 스케줄 알림 문자 발송
+     */
+    public void sendScheduleNotification(String phoneNumber, String message) {
+        // TODO: 솔라피 SDK 의존성 설치 후 실제 SMS 발송 구현
+        System.out.println("스케줄 알림 SMS 발송 시뮬레이션: " + phoneNumber + "로 메시지 " + message + " 발송");
+        System.out.println("실제 SMS 발송을 위해서는 솔라피 SDK 의존성을 설치하고 주석을 해제하세요.");
+
+        // 실제 SMS 발송 코드 (의존성 설치 후 주석 해제)
+        /*
+        DefaultMessageService messageService = new DefaultMessageService(apiKey, apiSecret, "https://api.solapi.com");
+
+        Message smsMessage = new Message();
+        smsMessage.setFrom(solapiSenderNumber);
+        smsMessage.setTo(phoneNumber);
+        smsMessage.setText(message);
+
+        try {
+            messageService.sendOne(new SingleMessageSendingRequest(smsMessage));
+            System.out.println("스케줄 알림 SMS 발송 성공");
+        } catch (Exception e) {
+            System.err.println("스케줄 알림 SMS 발송 실패: " + e.getMessage());
+        }
+        */
+    }
 }

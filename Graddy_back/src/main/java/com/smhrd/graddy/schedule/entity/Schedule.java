@@ -35,6 +35,9 @@ public class Schedule {
     @Column(name = "sch_time", nullable = false)
     private Timestamp schTime;
     
+    @Column(name = "aram_chk", columnDefinition = "TINYINT(1) DEFAULT 0")
+    private Boolean aramChk = false;
+    
     // 스터디 일정인지 개인 일정인지 구분하는 메서드
     public boolean isStudySchedule() {
         return studyProjectId != null;

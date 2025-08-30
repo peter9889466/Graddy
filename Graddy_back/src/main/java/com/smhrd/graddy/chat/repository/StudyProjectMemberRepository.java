@@ -79,4 +79,13 @@ public interface StudyProjectMemberRepository extends JpaRepository<Member, Long
      */
     @Query("SELECT COUNT(m) FROM Member m WHERE m.studyProjectId = :studyProjectId")
     long countByStudyProjectId(@Param("studyProjectId") Long studyProjectId);
+    
+    /**
+     * 특정 스터디의 모든 사용자 ID를 조회
+     * 
+     * @param studyProjectId 스터디/프로젝트 ID
+     * @return 사용자 ID 목록
+     */
+    @Query("SELECT m.userId FROM Member m WHERE m.studyProjectId = :studyProjectId ORDER BY m.joinedAt ASC")
+    List<String> findUserIdsByStudyProjectId(@Param("studyProjectId") Long studyProjectId);
 }

@@ -47,4 +47,28 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
             @Param("studyProjectId") Long studyProjectId, 
             @Param("startTime") Timestamp startTime, 
             @Param("endTime") Timestamp endTime);
+    
+    // content가 특정 문자열로 시작하고 N시간 이내에 있는 스케줄 조회
+    @Query("SELECT s FROM Schedule s WHERE s.content LIKE :contentPrefix% AND s.schTime <= :endTime ORDER BY s.schTime ASC")
+    List<Schedule> findByContentStartingWithAndSchTimeBefore(
+            @Param("contentPrefix") String contentPrefix,
+            @Param("endTime") Timestamp endTime);
+    
+    // content가 특정 문자열로 시작하고 N시간 이내에 있고 아직 알림을 보내지 않은 스케줄 조회
+    @Query("SELECT s FROM Schedule s WHERE s.content LIKE :contentPrefix% AND s.schTime <= :endTime AND s.aramChk = false ORDER BY s.schTime ASC")
+    List<Schedule> findByContentStartingWithAndSchTimeBeforeAndAramChkFalse(
+            @Param("contentPrefix") String contentPrefix,
+            @Param("endTime") Timestamp endTime);
+    
+    // 사용자의 이미 처리된 스케줄 조회 (재활성화용)
+    @Query("SELECT s FROM Schedule s WHERE s.userId = :userId AND s.aramChk = true ORDER BY s.schTime ASC")
+    List<Schedule> findByUserIdAndAramChkTrue(@Param("userId") String userId);
+    
+    // 특정 사용자에게 동일한 스케줄이 이미 존재하는지 확인
+    @Query("SELECT COUNT(s) > 0 FROM Schedule s WHERE s.userId = :userId AND s.studyProjectId = :studyProjectId AND s.content = :content AND s.schTime = :schTime")
+    boolean existsByUserIdAndStudyProjectIdAndContentAndSchTime(
+            @Param("userId") String userId, 
+            @Param("studyProjectId") Long studyProjectId, 
+            @Param("content") String content, 
+            @Param("schTime") Timestamp schTime);
 }

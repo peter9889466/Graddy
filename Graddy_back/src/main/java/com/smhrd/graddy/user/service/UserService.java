@@ -18,6 +18,7 @@ import com.smhrd.graddy.user.repository.DaysRepository;
 import com.smhrd.graddy.user.repository.UserScoreRepository;
 import com.smhrd.graddy.interest.repository.InterestRepository;
 import com.smhrd.graddy.auth.VerificationService;
+import com.smhrd.graddy.schedule.service.ScheduleNotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -48,6 +49,7 @@ public class UserService {
     private final DaysRepository daysRepository;
     private final VerificationService verificationService;
     private final StudyProjectRepository studyProjectRepository;
+    private final ScheduleNotificationService scheduleNotificationService;
 
     /**
      * [추가] 사용자 아이디 중복 확인 메서드
@@ -513,5 +515,42 @@ public class UserService {
                           ", name=" + user.getName() + ", tel=" + user.getTel() + ", nick=" + user.getNick());
         
         return updatePageInfo;
+    }
+    
+    /**
+     * 사용자 알람 설정 변경
+     * 
+     * @param userId 사용자 ID
+     * @param alarmType 새로운 알람 설정 (true: ON, false: OFF)
+     * @return 업데이트된 사용자 정보
+     * @throws IllegalArgumentException 사용자를 찾을 수 없는 경우
+     */
+    @Transactional
+    public User updateUserAlarmSetting(String userId, boolean alarmType) {
+        System.out.println("사용자 알람 설정 변경 시작: userId=" + userId + ", alarmType=" + alarmType);
+        
+        // 사용자 정보 조회
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + userId));
+        
+        // 기존 알람 설정과 다른 경우에만 처리
+        if (user.isAlarmType() != alarmType) {
+            // 알람 설정 변경
+            user.setAlarmType(alarmType);
+            User updatedUser = userRepository.save(user);
+            
+            // 알람을 켠 경우, 해당 사용자의 스케줄 재활성화
+            if (alarmType) {
+                scheduleNotificationService.reactivateUserSchedules(userId);
+                System.out.println("사용자 알람 설정 변경 완료: userId=" + userId + ", alarmType=" + alarmType + ", 스케줄 재활성화 완료");
+            } else {
+                System.out.println("사용자 알람 설정 변경 완료: userId=" + userId + ", alarmType=" + alarmType);
+            }
+            
+            return updatedUser;
+        } else {
+            System.out.println("알람 설정이 동일하여 변경하지 않음: userId=" + userId + ", alarmType=" + alarmType);
+            return user;
+        }
     }
 }
