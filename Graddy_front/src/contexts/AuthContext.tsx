@@ -3,7 +3,7 @@
 import React, { createContext, useState, useEffect, PropsWithChildren } from 'react';
 
 interface User {
-    nickname: string;
+    nickname: string; 
     email: string;
 }
 
