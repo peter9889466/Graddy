@@ -13,7 +13,7 @@ const ApiTestComponent: React.FC = () => {
         try {
             // 1. 기본 연결 테스트
             const response = await fetch(
-                "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/api/studies-projects",
+                "http://localhost:8080/api/api/studies-projects",
                 {
                     method: "POST",
                     headers: {
@@ -47,7 +47,7 @@ const ApiTestComponent: React.FC = () => {
             console.log("저장된 토큰:", token);
 
             const response = await fetch(
-                "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/studies-projects",
+                "http://localhost:8080/api/studies-projects",
                 {
                     method: "GET",
                     headers: {

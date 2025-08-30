@@ -108,7 +108,7 @@ OPENAI_API_KEY=your_openai_api_key_here
 ### 1. 기본 AI 과제 생성
 
 ```bash
-curl -X POST 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/assignments/ai/generate' \
+curl -X POST 'http://localhost:8080/api/assignments/ai/generate' \
   -H 'Authorization: Bearer {JWT_TOKEN}' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -120,7 +120,7 @@ curl -X POST 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/
 ### 2. 프로젝트 기반 AI 과제 생성
 
 ```bash
-curl -X POST 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/assignments/ai/generate' \
+curl -X POST 'http://localhost:8080/api/assignments/ai/generate' \
   -H 'Authorization: Bearer {JWT_TOKEN}' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -133,7 +133,7 @@ curl -X POST 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/
 ### 3. 퀴즈 형태 AI 과제 생성
 
 ```bash
-curl -X POST 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/assignments/ai/generate' \
+curl -X POST 'http://localhost:8080/api/assignments/ai/generate' \
   -H 'Authorization: Bearer {JWT_TOKEN}' \
   -H 'Content-Type: application/json' \
   -d '{

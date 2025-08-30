@@ -95,10 +95,10 @@ Spring Boot (Java) ←→ FastAPI (Python) ←→ OpenAI GPT
 
 ```bash
 # AI 커리큘럼 생성
-curl -X POST "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/ai-curriculum/generate/1"
+curl -X POST "http://localhost:8080/api/ai-curriculum/generate/1"
 
 # AI 서버 상태 확인
-curl -X GET "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/ai-curriculum/health"
+curl -X GET "http://localhost:8080/api/ai-curriculum/health"
 ```
 
 ### **2. Spring Boot 애플리케이션에서 사용**
@@ -162,7 +162,7 @@ if (response.isSuccess()) {
 
 ```bash
 # AI 서버 상태 확인
-curl http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/health
+curl http://localhost:8000/health
 
 # 포트 확인
 netstat -an | findstr :8000

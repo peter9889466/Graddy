@@ -205,7 +205,7 @@ new Thread(() -> {
 
 ```properties
 # application.properties
-fastapi.server.url=http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com
+fastapi.server.url=http://localhost:8000
 ```
 
 ### 2. OpenAI API 설정
@@ -282,7 +282,7 @@ FastAPI 서버에서 관리되므로 Java 애플리케이션에서는 별도 설
 
 ```bash
 # 과제 제출 (자동 AI 피드백 생성)
-curl -X POST "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/submissions/submit" \
+curl -X POST "http://localhost:8080/api/submissions/submit" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
@@ -293,11 +293,11 @@ curl -X POST "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/subm
   }'
 
 # 제출 목록 조회
-curl -X GET "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/submissions/assignment/13" \
+curl -X GET "http://localhost:8080/api/submissions/assignment/13" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
 # 피드백 목록 조회
-curl -X GET "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/feedbacks/submission/1" \
+curl -X GET "http://localhost:8080/api/feedbacks/submission/1" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 

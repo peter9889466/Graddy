@@ -429,9 +429,8 @@ const StudyCreate: React.FC = () => {
             console.log("백엔드로 전송할 데이터:", createStudyProjectRequest);
             console.log("현재 사용자 정보:", user);
             console.log(
-                "API_BASE_URL:",
-                import.meta.env.VITE_API_BASE_URL ||
-                    "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api"
+                "API_BASE_URL:"
+                    "http://localhost:8080/api"
             );
 
             const createdStudyProject =

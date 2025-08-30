@@ -155,7 +155,7 @@ Authorization: Bearer {JWT_TOKEN}
 
 ```bash
 # 1. 개인 일정 생성
-curl -X POST 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/schedules/personal' \
+curl -X POST 'http://localhost:8080/api/schedules/personal' \
   -H 'Authorization: Bearer {JWT_TOKEN}' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -164,7 +164,7 @@ curl -X POST 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/
   }'
 
 # 2. 개인 일정 조회
-curl -X GET 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/schedules/my/personal' \
+curl -X GET 'http://localhost:8080/api/schedules/my/personal' \
   -H 'Authorization: Bearer {JWT_TOKEN}'
 ```
 
@@ -172,7 +172,7 @@ curl -X GET 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/s
 
 ```bash
 # 1. 스터디 일정 생성
-curl -X POST 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/schedules/study' \
+curl -X POST 'http://localhost:8080/api/schedules/study' \
   -H 'Authorization: Bearer {JWT_TOKEN}' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -182,7 +182,7 @@ curl -X POST 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/
   }'
 
 # 2. 스터디 일정 조회
-curl -X GET 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/schedules/my/study' \
+curl -X GET 'http://localhost:8080/api/schedules/my/study' \
   -H 'Authorization: Bearer {JWT_TOKEN}'
 ```
 
@@ -190,7 +190,7 @@ curl -X GET 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/s
 
 ```bash
 # 1. 과제 생성 (자동으로 제출일 일정 추가됨)
-curl -X POST 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/assignments' \
+curl -X POST 'http://localhost:8080/api/assignments' \
   -H 'Authorization: Bearer {JWT_TOKEN}' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -202,7 +202,7 @@ curl -X POST 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/
   }'
 
 # 2. 생성된 일정 확인
-curl -X GET 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/schedules/my' \
+curl -X GET 'http://localhost:8080/api/schedules/my' \
   -H 'Authorization: Bearer {JWT_TOKEN}'
 ```
 

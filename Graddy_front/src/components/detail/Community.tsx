@@ -78,7 +78,7 @@ const Community: React.FC<CommunityProps> = ({
 
         try {
             const response = await fetch(
-                `http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/posts/study-project/${studyProjectId}`
+                `http://localhost:8080/api/posts/study-project/${studyProjectId}`
             );
 
             if (!response.ok) {
@@ -144,7 +144,7 @@ const Community: React.FC<CommunityProps> = ({
 
         try {
             const response = await fetch(
-                "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/posts",
+                "http://localhost:8080/api/posts",
                 {
                     method: "POST",
                     headers: {
@@ -182,7 +182,7 @@ const Community: React.FC<CommunityProps> = ({
     ) => {
         try {
             // URL에 stPrPostId(게시글 ID)와 currentMemberId(현재 로그인 사용자 ID)를 포함합니다.
-            const response = await fetch(`http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/posts/${postId}?currentMemberId=${user?.nickname}`, {
+            const response = await fetch(`http://localhost:8080/api/posts/${postId}?currentMemberId=${user?.nickname}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -210,7 +210,7 @@ const Community: React.FC<CommunityProps> = ({
     const deletePost = async (postId: string) => {
         try {
             // URL에 게시글 ID와 현재 로그인한 사용자 ID를 쿼리 파라미터로 포함합니다.
-            const response = await fetch(`http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/posts/${postId}?currentMemberId=${user?.nickname}`, {
+            const response = await fetch(`http://localhost:8080/api/posts/${postId}?currentMemberId=${user?.nickname}`, {
                 method: 'DELETE'
             });
             

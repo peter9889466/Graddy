@@ -40,7 +40,7 @@ public class FeedbackService {
     private final ScoreService scoreService;
     private final RestTemplate restTemplate;
 
-    @Value("${fastapi.server.url:http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com}")
+    @Value("${fastapi.server.url:http://localhost:8000}")
     private String fastApiServerUrl;
 
     /**
