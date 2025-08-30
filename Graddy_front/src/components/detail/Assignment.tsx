@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useContext } from 'react';
 import { useAssignmentContext } from '../../contexts/AssignmentContext';
 import { AuthContext } from '../../contexts/AuthContext';
 import { Loader2 } from 'lucide-react'; // 로딩 아이콘
+import dayjs from "dayjs";
 
 interface AssignmentProps {
   studyProjectId: number;
@@ -72,35 +73,70 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId }) => {
 
   const selectedAssignment = fetchedAssignments.find(option => option.title === selectedOption);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    // 1. 유효성 검사 (기존 로직 유지)
     if (!authContext?.isLoggedIn) {
-      alert("로그인 후 이용해주세요!");
-      return;
+        alert("로그인 후 이용해주세요!");
+        return;
     }
-    if (selectedOption === '과제를 선택하세요') {
-      alert("과제를 선택해주세요!");
-      return;
+    const selectedAssignment = fetchedAssignments.find(option => option.title === selectedOption);
+    if (!selectedAssignment) {
+        alert("과제를 선택해주세요!");
+        return;
     }
     if (!assignmentContent.trim()) {
-      alert("과제 내용을 작성해주세요!");
-      return;
+        alert("과제 내용을 작성해주세요!");
+        return;
     }
-    const submittedBy = authContext.user?.nickname || '익명 사용자';
-    let attachmentInfo = undefined;
-    if (selectedFile) {
-      attachmentInfo = {
-        fileName: selectedFile.name,
-        fileSize: `${(selectedFile.size / 1024).toFixed(1)} KB`,
-        fileType: selectedFile.type || '알 수 없는 형식'
-      };
+
+    // 2. API 요청 데이터 준비
+    const submissionData = {
+        assignmentId: selectedAssignment.assignmentId,
+        memberId: authContext.user?.nickname, 
+        content: assignmentContent,
+        // 파일 업로드 로직에 따라 fileUrl 값을 설정해야 함
+        fileUrl: selectedFile ? "업로드된 파일의 URL" : null
+    };
+
+    // 3. API 호출
+    try {
+        const response = await fetch('http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/submissions/submit', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                // 인증 토큰이 필요하다면 여기에 추가
+                // 'Authorization': `Bearer ${authContext.token}`
+            },
+            body: JSON.stringify(submissionData),
+        });
+
+        // 4. 응답 처리
+        const data = await response.json();
+        if (response.ok) {
+            // 성공 응답
+            setIsSubmitted(true);
+            setShowSuccessMessage(true);
+            console.log("과제 제출 성공:", data);
+            
+            // 제출 성공 후 폼 초기화 로직 (선택 사항)
+            setSelectedOption('과제를 선택하세요');
+            setAssignmentContent('');
+            setSelectedFile(null);
+            
+            setTimeout(() => {
+                setShowSuccessMessage(false);
+            }, 3000);
+        } else {
+            // 실패 응답
+            console.error("과제 제출 실패:", data.message);
+            alert(`과제 제출에 실패했습니다: ${data.message}`);
+        }
+    } catch (error) {
+        // 네트워크 오류 등
+        console.error("API 호출 중 오류 발생:", error);
+        alert("과제 제출 중 오류가 발생했습니다. 다시 시도해주세요.");
     }
-    submitAssignment(selectedOption, assignmentContent, submittedBy, attachmentInfo);
-    setIsSubmitted(true);
-    setShowSuccessMessage(true);
-    setTimeout(() => {
-      setShowSuccessMessage(false);
-    }, 3000);
-  };
+};
 
   useEffect(() => {
     if (selectedOption !== '과제를 선택하세요') {
@@ -159,16 +195,19 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId }) => {
             </button>
             {isOpen && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-xl shadow-lg z-10 overflow-hidden">
-                {fetchedAssignments.map((option, index) => (
-                  <div
-                    key={option.assignmentId}
-                    onClick={() => handleOptionClick(option)}
-                    className={`px-4 py-2 cursor-pointer transition-colors hover:bg-gray-50 ${selectedOption === option.title ? 'bg-[#E8E6FF] text-[#8B85E9]' : 'bg-white text-gray-700'} ${index !== fetchedAssignments.length - 1 ? 'border-b border-gray-100' : ''}`}
-                  >
-                    <div className="font-medium">{option.title}</div>
-                    <div className="text-xs text-gray-500 mt-1">~ {option.deadline}</div>
-                  </div>
-                ))}
+                {fetchedAssignments.map((option, index) => {
+                  const deadline = new Date(option.deadline).toLocaleDateString("ko-KR");
+                  return (
+                    <div
+                      key={option.assignmentId}
+                      onClick={() => handleOptionClick(option)}
+                      className={`px-4 py-2 cursor-pointer transition-colors hover:bg-gray-50 ${selectedOption === option.title ? 'bg-[#E8E6FF] text-[#8B85E9]' : 'bg-white text-gray-700'} ${index !== fetchedAssignments.length - 1 ? 'border-b border-gray-100' : ''}`}
+                    >
+                      <div className="font-medium">{option.title}</div>
+                      <div className="text-xs text-gray-500 mt-1">~ {deadline}</div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -186,7 +225,7 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId }) => {
       <hr />
 
              {/* 과제 내용 + 첨부파일 묶음 */}
-       <div className="space-y-4">
+        <div className="space-y-4">
         {/* 과제 내용 */}
         <div>
           <p className="text-lg font-bold mb-2 text-gray-500">
@@ -207,29 +246,29 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId }) => {
         </div>
 
                  {/* 첨부파일 */}
-         <div>
-           <p className="text-lg font-bold mb-2 text-gray-500">
-             첨부 파일
-           </p>
-           <input
-             type="file"
-             onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-             disabled={isSubmitted}
-             className={`block w-full text-sm file:mr-4 file:py-2 file:px-4
-                       file:rounded-lg file:border-0
-                       file:text-sm file:font-semibold file:text-[#8B85E9]
-                       file:bg-violet-50 hover:file:bg-violet-100
-                       ${isSubmitted ? 'opacity-50 cursor-not-allowed' : ''}`}
-           />
-           {selectedFile && (
-             <div className="mt-2 p-2 bg-gray-50 rounded-lg border border-gray-200">
-               <p className="text-sm text-gray-700">
-                 <span className="font-medium">선택된 파일:</span> {selectedFile.name} 
-                 <span className="text-gray-500 ml-2">({(selectedFile.size / 1024).toFixed(1)} KB)</span>
-               </p>
-             </div>
-           )}
-         </div>
+          <div>
+            <p className="text-lg font-bold mb-2 text-gray-500">
+              첨부 파일
+            </p>
+            <input
+              type="file"
+              onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+              disabled={isSubmitted}
+              className={`block w-full text-sm file:mr-4 file:py-2 file:px-4
+                        file:rounded-lg file:border-0
+                        file:text-sm file:font-semibold file:text-[#8B85E9]
+                        file:bg-violet-50 hover:file:bg-violet-100
+                        ${isSubmitted ? 'opacity-50 cursor-not-allowed' : ''}`}
+            />
+            {selectedFile && (
+              <div className="mt-2 p-2 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-sm text-gray-700">
+                  <span className="font-medium">선택된 파일:</span> {selectedFile.name} 
+                  <span className="text-gray-500 ml-2">({(selectedFile.size / 1024).toFixed(1)} KB)</span>
+                </p>
+              </div>
+            )}
+          </div>
       </div>
 
       {/* 성공 메시지 */}

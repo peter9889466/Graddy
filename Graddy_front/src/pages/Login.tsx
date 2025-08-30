@@ -64,15 +64,15 @@ const Login: React.FC = () => {
 
         try {
             const response = await axios.post(
-                "http://localhost:8080/api/login",
+                "http://localhost:8080/api/auth/login",
                 {
                     userId: id,
                     password: password,
                 }
             );
-
+            console.log(response)
             // 💡 1. API 응답에서 토큰을 가져옵니다.
-            const token = response.data.data.token;
+            const token = response.data.data.accessToken;
 
             const userData = {
                 nickname: response.data.nickname || id,

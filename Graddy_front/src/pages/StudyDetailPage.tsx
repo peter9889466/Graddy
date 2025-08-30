@@ -361,6 +361,7 @@ const StudyDetailPage = () => {
 				await StudyApiService.updateStudyProjectStatus(parseInt(id, 10), "end");
 				setIsStudyEnd(true);
 				alert("스터디가 종료되었습니다.");
+				navigate("/");
 			} catch (error) {
 				console.error('스터디 종료 실패:', error);
 				if (error instanceof Error) {
