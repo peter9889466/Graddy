@@ -53,7 +53,7 @@ const ProjectDetailPage = () => {
 	const [studyPeriod, setStudyPeriod] = useState<string>(
 		state?.period || ""
 	);
-	const [githubUrl, setGithubUrl] = useState<string>("");
+	const [gitUrl, setGitUrl] = useState<string>("");
 	const [studyLevel, setStudyLevel] = useState<number>(1);
 	
 	// 프로젝트 설정
@@ -115,7 +115,7 @@ const ProjectDetailPage = () => {
 	const [editDescription, setEditDescription] = useState(studyDescription);
 	const [editPeriod, setEditPeriod] = useState(studyPeriod);
 	const [editTags, setEditTags] = useState<Array<{name: string, interestId: number}>>([]);
-	const [editGithubUrl, setEditGithubUrl] = useState(githubUrl);
+	const [editGithubUrl, setEditGithubUrl] = useState(gitUrl);
 	const [isTagModalOpen, setIsTagModalOpen] = useState(false);
 	const [tagSearchValue, setTagSearchValue] = useState('');
 	const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -192,7 +192,7 @@ const ProjectDetailPage = () => {
 					
 					// GitHub URL 설정
 					console.log('백엔드에서 받은 GitHub URL:', studyData.gitUrl);
-					setGithubUrl(studyData.gitUrl || "");
+					setGitUrl(studyData.gitUrl || "");
 					
 					// 멤버 정보 설정
 					if (studyData.members) {
@@ -354,7 +354,7 @@ const ProjectDetailPage = () => {
 			});
 			setEditTags(initialTags);
 			
-			setEditGithubUrl(githubUrl);
+			setEditGithubUrl(gitUrl);
 			setIsEditing(true);
 		}
 	};
@@ -389,11 +389,11 @@ const ProjectDetailPage = () => {
 				soltEnd: new Date().toISOString(), // 기존 시간 유지
 				interestIds: interestIds,
 				dayIds: [], // 프로젝트는 요일 정보 없음
-				githubUrl: editGithubUrl
+				gitUrl: editGithubUrl
 			};
 
 			console.log('백엔드로 전송할 데이터:', updateData);
-			console.log('GitHub URL이 포함되어 있는지 확인:', updateData.githubUrl);
+			console.log('GitHub URL이 포함되어 있는지 확인:', updateData.gitUrl);
 
 			// 백엔드 API 호출
 			await StudyApiService.updateStudyProject(parseInt(id!, 10), updateData);
@@ -404,7 +404,7 @@ const ProjectDetailPage = () => {
 			setStudyDescription(editDescription);
 			setStudyPeriod(editPeriod);
 			setStudyTags(editTags.map(tag => tag.name));
-			setGithubUrl(editGithubUrl);
+			setGitUrl(editGithubUrl);
 			
 			setIsEditing(false);
 			alert("프로젝트 정보가 성공적으로 수정되었습니다.");
@@ -850,14 +850,14 @@ const ProjectDetailPage = () => {
 									className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-transparent"
 								/>
 							) : (
-								githubUrl ? (
+								gitUrl ? (
 									<a
-										href={githubUrl}
+										href={gitUrl}
 										target="_blank"
 										rel="noopener noreferrer"
 										className="block w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors cursor-pointer"
 									>
-										{githubUrl}
+										{gitUrl}
 									</a>
 								) : (
 									<span className="block w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50 text-gray-500">
