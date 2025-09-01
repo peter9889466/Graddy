@@ -70,13 +70,12 @@ const Login: React.FC = () => {
                     password: password,
                 }
             );
-            console.log(response)
+            console.log(response);
             // 💡 1. API 응답에서 토큰을 가져옵니다.
             const token = response.data.data.accessToken;
 
             const userData = {
                 nickname: response.data.nickname || id,
-                email: response.data.email || `${id}@example.com`,
             };
 
             // 💡 2. AuthContext의 login 함수에 userData와 함께 token을 전달합니다.

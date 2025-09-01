@@ -211,54 +211,6 @@ const MainPage = () => {
                     ? error.message
                     : "추천 스터디를 불러오는데 실패했습니다."
             );
-
-            // 에러 시에도 기본 데이터를 표시하여 UI가 비어있지 않도록 함
-            console.log("기본 데이터로 대체합니다.");
-            setRecommendedStudies([
-                {
-                    studyProjectId: 1,
-                    studyProjectName: "React 심화 스터디",
-                    studyProjectTitle:
-                        "React와 TypeScript로 실무 프로젝트 만들기",
-                    studyLevel: 2,
-                    studyProjectStart: "2025-09-15T00:00:00",
-                    studyProjectEnd: "2025-11-15T00:00:00",
-                    studyProjectTotal: 6,
-                    currentMemberCount: 4,
-                    userId: "김개발",
-                    tags: ["React", "TypeScript", "프론트엔드"],
-                    typeCheck: "study",
-                    isRecruiting: "recruitment",
-                },
-                {
-                    studyProjectId: 2,
-                    studyProjectName: "알고리즘 코딩테스트 대비",
-                    studyProjectTitle: "백준/프로그래머스 문제 해결 스터디",
-                    studyLevel: 1,
-                    studyProjectStart: "2025-09-10T00:00:00",
-                    studyProjectEnd: "2025-12-10T00:00:00",
-                    studyProjectTotal: 8,
-                    currentMemberCount: 6,
-                    userId: "박알고",
-                    tags: ["알고리즘", "코딩테스트", "Python"],
-                    typeCheck: "study",
-                    isRecruiting: "recruitment",
-                },
-                {
-                    studyProjectId: 3,
-                    studyProjectName: "Spring Boot 실전 프로젝트",
-                    studyProjectTitle: "Spring Boot로 REST API 서버 구축하기",
-                    studyLevel: 3,
-                    studyProjectStart: "2025-09-20T00:00:00",
-                    studyProjectEnd: "2025-12-20T00:00:00",
-                    studyProjectTotal: 5,
-                    currentMemberCount: 3,
-                    userId: "이백엔드",
-                    tags: ["Spring Boot", "Java", "백엔드"],
-                    typeCheck: "study",
-                    isRecruiting: "recruitment",
-                },
-            ]);
         } finally {
             setLoadingRecommendations(false);
         }

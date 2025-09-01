@@ -44,7 +44,7 @@ const JoinProfile: React.FC<JoinProfileProps> = ({
     const [phoneLast, setPhoneLast] = useState("");
     const [telError, setTelError] = useState(""); // 전화번호 중복 에러
     const [notificationPreference, setNotificationPreference] = useState<
-        "email" | "phone" | ""
+        "phone" | ""
     >("");
     const [hintMessage, setHintMessage] = useState<string>("");
     const [showHint, setShowHint] = useState(false);
@@ -367,7 +367,7 @@ const JoinProfile: React.FC<JoinProfileProps> = ({
     };
 
     // 알림 방법 토글
-    const toggleNotificationPreference = (type: "email" | "phone") => {
+    const toggleNotificationPreference = (type: "phone") => {
         setNotificationPreference(notificationPreference === type ? "" : type);
     };
 

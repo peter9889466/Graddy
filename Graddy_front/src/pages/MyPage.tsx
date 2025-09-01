@@ -55,7 +55,7 @@ export const MyPage = () => {
     const [passwordError, setPasswordError] = useState("");
     const [name, setName] = useState("");
     const [nickname, setNickname] = useState("");
-    const [email, setEmail] = useState("");
+
     const [phone, setPhone] = useState("");
     const [userScore, setUserScore] = useState(0);
 
@@ -92,7 +92,7 @@ export const MyPage = () => {
                         const data = updatePageResponse.data;
                         setName(data.name);
                         setNickname(data.nickname);
-                        setEmail(data.userId); // userId를 email로 사용
+
                         setPhone(data.tel);
                     }
                 }
@@ -384,14 +384,12 @@ export const MyPage = () => {
                                         passwordError={passwordError}
                                         name={name}
                                         nickname={nickname}
-                                        email={email}
                                         phone={phone}
                                         onPasswordChange={handlePasswordChange}
                                         onConfirmPasswordChange={
                                             handleConfirmPasswordChange
                                         }
                                         onNicknameChange={setNickname}
-                                        onEmailChange={setEmail}
                                         onPhoneChange={setPhone}
                                         onUpdateProfile={handleUpdateProfile}
                                     />

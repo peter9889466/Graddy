@@ -6,12 +6,10 @@ interface ProfileEditFormProps {
     passwordError: string;
     name: string;
     nickname: string;
-    email: string;
     phone: string;
     onPasswordChange: (value: string) => void;
     onConfirmPasswordChange: (value: string) => void;
     onNicknameChange: (value: string) => void;
-    onEmailChange: (value: string) => void;
     onPhoneChange: (value: string) => void;
     onUpdateProfile: () => void;
 }
@@ -175,7 +173,6 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
                             }}
                         />
                     </div>
-
 
                     {/* 저장 버튼 */}
                     <div className="pt-4">
