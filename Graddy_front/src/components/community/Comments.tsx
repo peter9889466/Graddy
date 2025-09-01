@@ -1,107 +1,310 @@
-import React, { useState } from "react";
-import { useCommunityContext } from "../../contexts/CommunityContext";
+import React, { useState, useContext, useEffect } from "react";
+import { AuthContext } from "../../contexts/AuthContext";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import {
+    CommentResponse,
+    updateComment,
+    deleteComment,
+    CommentRequest,
+    getCommentsByType,
+    createCommentByType,
+} from "../../services/commentApi";
 
 interface Props {
-    postId: string;
+    postId: number;
+    postType: "free" | "study" | "assignment";
+    isExpanded: boolean;
+    onToggle: () => void;
 }
 
-const Comments: React.FC<Props> = ({ postId }) => {
-    const { getCommentsByPost, getRepliesByComment, addComment, addReply } = useCommunityContext();
+const Comments: React.FC<Props> = ({
+    postId,
+    postType,
+    isExpanded,
+    onToggle,
+}) => {
+    const authContext = useContext(AuthContext);
     const [newComment, setNewComment] = useState("");
-    const [newCommentAuthor, setNewCommentAuthor] = useState("");
+    const [comments, setComments] = useState<CommentResponse[]>([]);
+    const [loading, setLoading] = useState(false);
 
-    const comments = getCommentsByPost(postId);
+    const isLoggedIn = authContext?.isLoggedIn || false;
+    const currentUser = authContext?.user;
 
-    const handleAddComment = () => {
-        if (!newComment.trim() || !newCommentAuthor.trim()) {
-            alert("작성자와 내용을 입력하세요.");
+    // 댓글 목록 로드
+    const loadComments = async () => {
+        if (!isExpanded) return;
+
+        try {
+            setLoading(true);
+            const response = await getCommentsByType(postType, postId);
+
+            if (response.success && Array.isArray(response.data)) {
+                setComments(response.data);
+            } else {
+                console.error("댓글 데이터 형식 오류:", response);
+                setComments([]);
+            }
+        } catch (error) {
+            console.error("댓글 로드 실패:", error);
+            setComments([]);
+            // alert를 console.warn으로 변경하여 사용자 경험 개선
+            console.warn("댓글을 불러오는데 실패했습니다:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadComments();
+    }, [isExpanded, postId, postType]);
+
+    const handleAddComment = async () => {
+        if (!isLoggedIn) {
+            alert("로그인이 필요합니다.");
             return;
         }
-        addComment(postId, newComment, newCommentAuthor);
-        setNewComment("");
-        setNewCommentAuthor("");
+        if (!newComment.trim()) {
+            alert("댓글 내용을 입력하세요.");
+            return;
+        }
+
+        try {
+            const commentData: CommentRequest = {
+                content: newComment.trim(),
+            };
+
+            const response = await createCommentByType(
+                postType,
+                postId,
+                commentData
+            );
+
+            if (response.success) {
+                setNewComment("");
+                loadComments(); // await 제거 - 비동기 함수가 아님
+                console.log("댓글이 성공적으로 작성되었습니다.");
+            } else {
+                throw new Error(
+                    response.message || "댓글 작성에 실패했습니다."
+                );
+            }
+        } catch (error) {
+            console.error("댓글 작성 실패:", error);
+            alert("댓글 작성에 실패했습니다.");
+        }
     };
 
     return (
-        <div className="space-y-4">
-            <div className="rounded-xl p-4">
-                <h3 className="text-base font-semibold mb-3" style={{ color: "#8B85E9" }}>댓글</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
-                    <input value={newCommentAuthor} onChange={(e) => setNewCommentAuthor(e.target.value)} placeholder="작성자" className= "border rounded-lg px-3 py-2" />
-                    <input value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="댓글 내용" className=" border rounded-lg px-3 py-2 sm:col-span-2" />
-                </div>
-                <button onClick={handleAddComment} className="px-4 py-2 rounded-lg text-white" style={{ backgroundColor: "#8B85E9" }}>댓글 등록</button>
-            </div>
-
-            <div className="space-y-4">
-                {comments.map((c) => (
-                    <CommentItem key={c.id} commentId={c.id} postId={postId} />
-                ))}
-                {comments.length === 0 && (
-                    <div className="text-center text-gray-500">아직 댓글이 없습니다.</div>
+        <div className="border-t border-gray-200 pt-3 ">
+            {/* 댓글 토글 버튼 */}
+            <button
+                onClick={onToggle}
+                className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#8B85E9] transition-colors mb-3 ml-3"
+            >
+                {isExpanded ? (
+                    <ChevronUp size={16} />
+                ) : (
+                    <ChevronDown size={16} />
                 )}
-            </div>
-        </div>
-    );
-};
+                댓글 {comments.length}개
+            </button>
 
-const CommentItem: React.FC<{ commentId: string; postId: string }> = ({ commentId, postId }) => {
-    const { getRepliesByComment, addReply, getCommentsByPost } = useCommunityContext();
-    const comment = getCommentsByPost(postId).find((c) => c.id === commentId);
-    const [replyAuthor, setReplyAuthor] = useState("");
-    const [replyContent, setReplyContent] = useState("");
-
-    if (!comment) return null;
-    const replies = getRepliesByComment(commentId);
-
-    const handleAddReply = () => {
-        if (!replyAuthor.trim() || !replyContent.trim()) {
-            alert("작성자와 내용을 입력하세요.");
-            return;
-        }
-        addReply(postId, commentId, replyContent, replyAuthor);
-        setReplyAuthor("");
-        setReplyContent("");
-    };
-
-    return (
-        <div className="rounded-xl p-4 ">
-            <div className="flex items-start justify-between">
-                <div>
-                    <div className="font-medium">{comment.author}</div>
-                    <div className="text-gray-700 whitespace-pre-line">{comment.content}</div>
-                </div>
-                <div className="text-sm text-gray-500">{comment.createdAt}</div>
-            </div>
-
-            {/* 대댓글 입력 */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
-                <input value={replyAuthor} onChange={(e) => setReplyAuthor(e.target.value)} placeholder="대댓글 작성자" className="border rounded-lg px-3 py-2" />
-                <input value={replyContent} onChange={(e) => setReplyContent(e.target.value)} placeholder="대댓글 내용" className="border rounded-lg px-3 py-2 sm:col-span-2" />
-            </div>
-            <button onClick={handleAddReply} className="mt-2 px-3 py-1.5 rounded-lg text-white" style={{ backgroundColor: "#8B85E9" }}>대댓글 등록</button>
-
-            {/* 대댓글 리스트 */}
-            <div className="mt-3 pl-4" >
-                {replies.map((r) => (
-                    <div key={r.id} className="py-2">
-                        <div className="flex items-start justify-between">
-                            <div>
-                                <div className="text-sm font-medium">{r.author}</div>
-                                <div className="text-sm text-gray-700 whitespace-pre-line">{r.content}</div>
+            {/* 댓글 섹션 (확장 시에만 표시) */}
+            {isExpanded && (
+                <div className="space-y-4">
+                    {/* 댓글 작성 (로그인 시에만) */}
+                    {isLoggedIn ? (
+                        <div className="bg-gray-50 rounded-lg p-4">
+                            <div className="flex gap-2 mb-3">
+                                <input
+                                    value={newComment}
+                                    onChange={(e) =>
+                                        setNewComment(e.target.value)
+                                    }
+                                    placeholder="댓글을 입력하세요..."
+                                    className="flex-1 border rounded-lg px-3 py-2 focus:outline-none focus:border-[#8B85E9]"
+                                />
+                                <button
+                                    onClick={handleAddComment}
+                                    className="px-4 py-2 rounded-lg text-white hover:bg-[#7A74D8] transition-colors"
+                                    style={{ backgroundColor: "#8B85E9" }}
+                                >
+                                    등록
+                                </button>
                             </div>
-                            <div className="text-xs text-gray-500">{r.createdAt}</div>
                         </div>
+                    ) : (
+                        <div className="bg-gray-50 rounded-lg p-4 text-center text-gray-500">
+                            댓글을 작성하려면 로그인이 필요합니다.
+                        </div>
+                    )}
+
+                    {/* 댓글 목록 */}
+                    <div className="space-y-3">
+                        {loading ? (
+                            <div className="text-center text-gray-500 py-4">
+                                댓글을 불러오는 중...
+                            </div>
+                        ) : (
+                            <>
+                                {comments.map((comment) => (
+                                    <CommentItem
+                                        key={comment.commentId}
+                                        comment={comment}
+                                        onUpdate={loadComments}
+                                    />
+                                ))}
+                                {comments.length === 0 && (
+                                    <div className="text-center text-gray-500 py-4">
+                                        아직 댓글이 없습니다.
+                                    </div>
+                                )}
+                            </>
+                        )}
                     </div>
-                ))}
-                {replies.length === 0 && (
-                    <div className="text-sm text-gray-500">대댓글이 없습니다.</div>
-                )}
+                </div>
+            )}
+        </div>
+    );
+};
+
+const CommentItem: React.FC<{
+    comment: CommentResponse;
+    onUpdate: () => void;
+}> = ({ comment, onUpdate }) => {
+    const authContext = useContext(AuthContext);
+    const [isEditingComment, setIsEditingComment] = useState(false);
+    const [editCommentContent, setEditCommentContent] = useState("");
+
+    const isLoggedIn = authContext?.isLoggedIn || false;
+    const currentUser = authContext?.user;
+
+    const handleEditComment = () => {
+        setIsEditingComment(true);
+        setEditCommentContent(comment.content);
+    };
+
+    const handleSaveComment = async () => {
+        if (!editCommentContent.trim()) {
+            alert("댓글 내용을 입력하세요.");
+            return;
+        }
+
+        try {
+            const response = await updateComment(
+                comment.commentId,
+                editCommentContent.trim()
+            );
+            if (response.success) {
+                setIsEditingComment(false);
+                setEditCommentContent("");
+                onUpdate(); // await 제거
+                console.log("댓글이 성공적으로 수정되었습니다.");
+            } else {
+                throw new Error(
+                    response.message || "댓글 수정에 실패했습니다."
+                );
+            }
+        } catch (error) {
+            console.error("댓글 수정 실패:", error);
+            alert("댓글 수정에 실패했습니다.");
+        }
+    };
+
+    const handleCancelEditComment = () => {
+        setIsEditingComment(false);
+        setEditCommentContent("");
+    };
+
+    const handleDeleteComment = async () => {
+        if (window.confirm("정말로 이 댓글을 삭제하시겠습니까?")) {
+            try {
+                const response = await deleteComment(comment.commentId);
+                if (response.success) {
+                    onUpdate(); // await 제거
+                    console.log("댓글이 성공적으로 삭제되었습니다.");
+                } else {
+                    throw new Error(
+                        response.message || "댓글 삭제에 실패했습니다."
+                    );
+                }
+            } catch (error) {
+                console.error("댓글 삭제 실패:", error);
+                alert("댓글 삭제에 실패했습니다.");
+            }
+        }
+    };
+
+    return (
+        <div className="bg-white border border-gray-100 rounded-lg p-4">
+            <div className="flex items-start justify-between mb-2">
+                <div className="flex-1">
+                    <div className="font-medium text-sm">
+                        {comment.nickname}
+                    </div>
+                    {isEditingComment ? (
+                        <div className="mt-2">
+                            <textarea
+                                value={editCommentContent}
+                                onChange={(e) =>
+                                    setEditCommentContent(e.target.value)
+                                }
+                                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#8B85E9] resize-none"
+                                rows={3}
+                                placeholder="댓글을 수정하세요..."
+                            />
+                            <div className="flex gap-2 mt-2">
+                                <button
+                                    onClick={handleSaveComment}
+                                    className="px-3 py-1 rounded-lg text-white text-xs hover:bg-[#7A74D8] transition-colors"
+                                    style={{ backgroundColor: "#8B85E9" }}
+                                >
+                                    저장
+                                </button>
+                                <button
+                                    onClick={handleCancelEditComment}
+                                    className="px-3 py-1 rounded-lg text-gray-600 text-xs border border-gray-300 hover:bg-gray-50 transition-colors"
+                                >
+                                    취소
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="text-gray-700 whitespace-pre-line mt-1">
+                            {comment.content}
+                        </div>
+                    )}
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                    <div className="text-xs text-gray-500">
+                        {new Date(comment.createdAt).toLocaleString()}
+                    </div>
+                    {/* 수정/삭제 버튼 - 본인 댓글만 */}
+                    {isLoggedIn &&
+                        currentUser?.nickname === comment.nickname &&
+                        !isEditingComment && (
+                            <div className="flex gap-1">
+                                <button
+                                    onClick={handleEditComment}
+                                    className="text-xs text-blue-500 hover:text-blue-700 transition-colors"
+                                >
+                                    수정
+                                </button>
+                                <button
+                                    onClick={handleDeleteComment}
+                                    className="text-xs text-red-500 hover:text-red-700 transition-colors"
+                                >
+                                    삭제
+                                </button>
+                            </div>
+                        )}
+                </div>
             </div>
         </div>
     );
 };
+
+// Note: 대댓글 기능은 현재 백엔드 API에서 지원하지 않으므로 제거됨
 
 export default Comments;
-
-

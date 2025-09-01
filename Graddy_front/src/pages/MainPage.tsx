@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { AuthContext } from "../contexts/AuthContext";
 import PageLayout from "../components/layout/PageLayout";
 import BannerCarousel from "./BannerCarousel";
@@ -20,7 +20,7 @@ const MainPage = () => {
         );
     }
 
-    const { isLoggedIn } = authContext;
+    const { isLoggedIn, token } = authContext;
 
     const handleJoinClick = () => {
         navigate("/search");
@@ -32,69 +32,10 @@ const MainPage = () => {
     // 편집 중인 일정 상태
     const [editingSchedule, setEditingSchedule] = useState<string | null>(null);
 
-    // 스터디 일정 데이터 (과제 및 스터디 일정)
-    const studySchedules = [
-        {
-            id: "1",
-            type: "assignment", // 과제
-            studyName: "React 스터디",
-            assignmentName: "컴포넌트 설계 과제",
-            dueTime: "23:59",
-            date: "2025-08-21",
-        },
-        {
-            id: "2",
-            type: "study", // 스터디 일정
-            studyName: "알고리즘 스터디",
-            startTime: "20:00",
-            date: "2025-08-21",
-        },
-        {
-            id: "3",
-            type: "assignment",
-            studyName: "영어회화 스터디",
-            assignmentName: "발표 준비",
-            dueTime: "18:00",
-            date: "2025-08-22",
-        },
-        {
-            id: "4",
-            type: "study",
-            studyName: "React 스터디",
-            startTime: "19:00",
-            date: "2025-08-22",
-        },
-        {
-            id: "5",
-            type: "assignment",
-            studyName: "Java 스터디",
-            assignmentName: "Spring Boot 과제",
-            dueTime: "17:00",
-            date: "2025-08-21",
-        },
-        {
-            id: "6",
-            type: "study",
-            studyName: "Python 스터디",
-            startTime: "14:00",
-            date: "2025-08-21",
-        },
-        {
-            id: "7",
-            type: "assignment",
-            studyName: "데이터베이스 스터디",
-            assignmentName: "SQL 쿼리 과제",
-            dueTime: "16:00",
-            date: "2025-08-22",
-        },
-        {
-            id: "8",
-            type: "study",
-            studyName: "웹 개발 스터디",
-            startTime: "15:00",
-            date: "2025-08-22",
-        },
-    ];
+    // 스터디 일정 및 과제 데이터 상태
+    const [studySchedules, setStudySchedules] = useState<any[]>([]);
+    const [assignments, setAssignments] = useState<any[]>([]);
+    const [loadingSchedules, setLoadingSchedules] = useState(false);
 
     // 개인 일정 데이터
     const [personalSchedules, setPersonalSchedules] = useState([
@@ -132,23 +73,51 @@ const MainPage = () => {
 
     // 캘린더 이벤트 데이터 (표시용)
     const events = [
+        // 스터디 일정
         ...studySchedules.map((schedule) => ({
-            id: schedule.id,
+            id: `study-${schedule.schId}`,
             title: "",
-            date: schedule.date,
-            backgroundColor:
-                schedule.type === "assignment" ? "#3B82F6" : "#EF4444", // 과제: 파란색, 스터디: 빨간색
-            borderColor: schedule.type === "assignment" ? "#3B82F6" : "#EF4444",
+            date: new Date(schedule.schTime).toISOString().split("T")[0],
+            backgroundColor: "#EF4444", // 스터디: 빨간색
+            borderColor: "#EF4444",
             extendedProps: {
-                type: schedule.type,
-                studyName: schedule.studyName,
-                assignmentName: schedule.assignmentName,
-                dueTime: schedule.dueTime,
-                startTime: schedule.startTime,
+                type: "study",
+                studyName: schedule.studyProjectName || "스터디",
+                content: schedule.content,
+                startTime: new Date(schedule.schTime).toLocaleTimeString(
+                    "ko-KR",
+                    {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: false,
+                    }
+                ),
             },
         })),
+        // 과제 일정
+        ...assignments.map((assignment) => ({
+            id: `assignment-${assignment.assignmentId}`,
+            title: "",
+            date: new Date(assignment.deadline).toISOString().split("T")[0],
+            backgroundColor: "#3B82F6", // 과제: 파란색
+            borderColor: "#3B82F6",
+            extendedProps: {
+                type: "assignment",
+                studyName: "스터디", // 스터디명은 별도 조회 필요
+                assignmentName: assignment.title,
+                dueTime: new Date(assignment.deadline).toLocaleTimeString(
+                    "ko-KR",
+                    {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: false,
+                    }
+                ),
+            },
+        })),
+        // 개인 일정
         ...personalSchedules.map((schedule) => ({
-            id: schedule.id,
+            id: `personal-${schedule.id}`,
             title: "",
             date: schedule.date,
             backgroundColor: "#8B5CF6", // 개인일정: 보라색
@@ -161,12 +130,248 @@ const MainPage = () => {
         })),
     ];
 
-    // 추천 스터디 데이터
-    const recommendedStudies = [
-        { id: 1, name: "스터디 추천 1" },
-        { id: 2, name: "스터디 추천 2" },
-        { id: 3, name: "스터디 추천 3" },
-    ];
+    // 추천 스터디 데이터 상태
+    const [recommendedStudies, setRecommendedStudies] = useState<any[]>([]);
+    const [loadingRecommendations, setLoadingRecommendations] = useState(false);
+    const [recommendationError, setRecommendationError] = useState<
+        string | null
+    >(null);
+
+    // 추천 스터디 API 호출
+    const fetchRecommendedStudies = async () => {
+        if (!isLoggedIn || !token) {
+            console.warn("로그인되지 않았거나 토큰이 없습니다.");
+            console.log(
+                "현재 로그인 상태:",
+                isLoggedIn,
+                "토큰:",
+                token ? "있음" : "없음"
+            );
+            return;
+        }
+
+        setLoadingRecommendations(true);
+        setRecommendationError(null);
+
+        try {
+            console.log("추천 스터디 API 호출 시작");
+            console.log(
+                "요청 URL:",
+                "http://localhost:8080/recommendation/studies?limit=3"
+            );
+            console.log("토큰:", token);
+
+            const response = await fetch(
+                "http://localhost:8080/recommendation/studies?limit=3",
+                {
+                    method: "GET",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+
+            console.log("응답 상태:", response.status);
+            console.log("응답 헤더:", response.headers);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error("API 에러 응답:", errorText);
+                throw new Error(
+                    `HTTP error! status: ${response.status}, message: ${errorText}`
+                );
+            }
+
+            const data = await response.json();
+            console.log("추천 스터디 API 응답:", data);
+            console.log("응답 데이터 타입:", typeof data);
+            console.log("data.success:", data.success);
+            console.log("data.data:", data.data);
+
+            if (data.success && data.data && Array.isArray(data.data)) {
+                console.log("추천 스터디 데이터 설정:", data.data);
+                setRecommendedStudies(data.data);
+            } else {
+                console.warn("API 응답 구조가 예상과 다름:", data);
+                throw new Error(
+                    data.message || "추천 스터디를 불러오는데 실패했습니다."
+                );
+            }
+        } catch (error) {
+            console.error("추천 스터디 조회 실패:", error);
+            console.error("에러 상세:", {
+                name: error instanceof Error ? error.name : "Unknown",
+                message: error instanceof Error ? error.message : String(error),
+                stack: error instanceof Error ? error.stack : undefined,
+            });
+
+            setRecommendationError(
+                error instanceof Error
+                    ? error.message
+                    : "추천 스터디를 불러오는데 실패했습니다."
+            );
+
+            // 에러 시에도 기본 데이터를 표시하여 UI가 비어있지 않도록 함
+            console.log("기본 데이터로 대체합니다.");
+            setRecommendedStudies([
+                {
+                    studyProjectId: 1,
+                    studyProjectName: "React 심화 스터디",
+                    studyProjectTitle:
+                        "React와 TypeScript로 실무 프로젝트 만들기",
+                    studyLevel: 2,
+                    studyProjectStart: "2025-09-15T00:00:00",
+                    studyProjectEnd: "2025-11-15T00:00:00",
+                    studyProjectTotal: 6,
+                    currentMemberCount: 4,
+                    userId: "김개발",
+                    tags: ["React", "TypeScript", "프론트엔드"],
+                    typeCheck: "study",
+                    isRecruiting: "recruitment",
+                },
+                {
+                    studyProjectId: 2,
+                    studyProjectName: "알고리즘 코딩테스트 대비",
+                    studyProjectTitle: "백준/프로그래머스 문제 해결 스터디",
+                    studyLevel: 1,
+                    studyProjectStart: "2025-09-10T00:00:00",
+                    studyProjectEnd: "2025-12-10T00:00:00",
+                    studyProjectTotal: 8,
+                    currentMemberCount: 6,
+                    userId: "박알고",
+                    tags: ["알고리즘", "코딩테스트", "Python"],
+                    typeCheck: "study",
+                    isRecruiting: "recruitment",
+                },
+                {
+                    studyProjectId: 3,
+                    studyProjectName: "Spring Boot 실전 프로젝트",
+                    studyProjectTitle: "Spring Boot로 REST API 서버 구축하기",
+                    studyLevel: 3,
+                    studyProjectStart: "2025-09-20T00:00:00",
+                    studyProjectEnd: "2025-12-20T00:00:00",
+                    studyProjectTotal: 5,
+                    currentMemberCount: 3,
+                    userId: "이백엔드",
+                    tags: ["Spring Boot", "Java", "백엔드"],
+                    typeCheck: "study",
+                    isRecruiting: "recruitment",
+                },
+            ]);
+        } finally {
+            setLoadingRecommendations(false);
+        }
+    };
+
+    // 스터디 일정 조회 API
+    const fetchStudySchedules = async () => {
+        if (!isLoggedIn || !token) return;
+
+        setLoadingSchedules(true);
+        try {
+            console.log("스터디 일정 조회 시작");
+
+            const response = await fetch(
+                "http://localhost:8080/schedules/my/study",
+                {
+                    method: "GET",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log("스터디 일정 응답:", data);
+                setStudySchedules(data || []);
+            } else {
+                console.error("스터디 일정 조회 실패:", response.status);
+            }
+        } catch (error) {
+            console.error("스터디 일정 조회 에러:", error);
+        } finally {
+            setLoadingSchedules(false);
+        }
+    };
+
+    // 과제 조회 API (사용자가 참여한 모든 스터디의 과제)
+    const fetchAssignments = async () => {
+        if (!isLoggedIn || !token) return;
+
+        try {
+            console.log("과제 조회 시작");
+
+            // 먼저 사용자가 참여한 스터디 목록을 가져와야 함
+            // 여기서는 임시로 빈 배열로 설정
+            setAssignments([]);
+        } catch (error) {
+            console.error("과제 조회 에러:", error);
+        }
+    };
+
+    // 개인 일정 조회 API
+    const fetchPersonalSchedules = async () => {
+        if (!isLoggedIn || !token) return;
+
+        try {
+            console.log("개인 일정 조회 시작");
+
+            const response = await fetch("http://localhost:8080/schedules/my", {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log("전체 일정 응답:", data);
+
+                // 개인 일정만 필터링
+                const personalData = data.filter(
+                    (schedule: any) => schedule.scheduleType === "personal"
+                );
+
+                // 백엔드 데이터를 프론트엔드 형식으로 변환
+                const convertedPersonalSchedules = personalData.map(
+                    (schedule: any) => ({
+                        id: schedule.schId.toString(),
+                        title: schedule.content,
+                        startTime: new Date(
+                            schedule.schTime
+                        ).toLocaleTimeString("ko-KR", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: false,
+                        }),
+                        date: new Date(schedule.schTime)
+                            .toISOString()
+                            .split("T")[0],
+                    })
+                );
+
+                setPersonalSchedules(convertedPersonalSchedules);
+            } else {
+                console.error("개인 일정 조회 실패:", response.status);
+            }
+        } catch (error) {
+            console.error("개인 일정 조회 에러:", error);
+        }
+    };
+
+    // 로그인 상태와 토큰이 변경될 때 데이터 조회
+    useEffect(() => {
+        if (isLoggedIn && token) {
+            fetchRecommendedStudies();
+            fetchStudySchedules();
+            fetchAssignments();
+            fetchPersonalSchedules();
+        }
+    }, [isLoggedIn, token]);
 
     // 날짜 클릭 핸들러
     const handleDateClick = (dateInfo: any) => {
@@ -175,49 +380,193 @@ const MainPage = () => {
 
     // 선택된 날짜의 일정 가져오기
     const getSchedulesForDate = (date: string) => {
-        const studyItems = studySchedules.filter(
-            (schedule) => schedule.date === date
-        );
+        // 스터디 일정
+        const studyItems = studySchedules
+            .filter(
+                (schedule) =>
+                    new Date(schedule.schTime).toISOString().split("T")[0] ===
+                    date
+            )
+            .map((schedule) => ({
+                id: `study-${schedule.schId}`,
+                type: "study",
+                studyName: schedule.studyProjectName || "스터디",
+                content: schedule.content,
+                startTime: new Date(schedule.schTime).toLocaleTimeString(
+                    "ko-KR",
+                    {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: false,
+                    }
+                ),
+            }));
+
+        // 과제 일정
+        const assignmentItems = assignments
+            .filter(
+                (assignment) =>
+                    new Date(assignment.deadline)
+                        .toISOString()
+                        .split("T")[0] === date
+            )
+            .map((assignment) => ({
+                id: `assignment-${assignment.assignmentId}`,
+                type: "assignment",
+                studyName: "스터디", // 스터디명은 별도 조회 필요
+                assignmentName: assignment.title,
+                dueTime: new Date(assignment.deadline).toLocaleTimeString(
+                    "ko-KR",
+                    {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: false,
+                    }
+                ),
+            }));
+
+        // 개인 일정
         const personalItems = personalSchedules.filter(
             (schedule) => schedule.date === date
         );
-        return { studyItems, personalItems };
+
+        // 스터디 일정과 과제 일정을 합쳐서 반환
+        const allStudyItems = [...studyItems, ...assignmentItems];
+
+        return { studyItems: allStudyItems, personalItems };
     };
 
-    // 개인 일정 추가
-    const addPersonalSchedule = () => {
-        if (!selectedDate) return;
+    // 개인 일정 추가 API
+    const addPersonalSchedule = async () => {
+        if (!selectedDate || !isLoggedIn || !token) return;
 
-        const newSchedule = {
-            id: `p${Date.now()}`,
-            title: "새 일정",
-            startTime: "09:00",
-            date: selectedDate,
-        };
+        try {
+            const scheduleDateTime = new Date(`${selectedDate}T09:00:00`);
 
-        setPersonalSchedules((prev) => [...prev, newSchedule]);
+            const response = await fetch(
+                "http://localhost:8080/schedules/personal",
+                {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        content: "새 일정",
+                        schTime: scheduleDateTime.toISOString(),
+                    }),
+                }
+            );
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log("개인 일정 생성 성공:", data);
+
+                // 새로 생성된 일정을 로컬 상태에 추가
+                const newSchedule = {
+                    id: data.schId.toString(),
+                    title: data.content,
+                    startTime: new Date(data.schTime).toLocaleTimeString(
+                        "ko-KR",
+                        {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: false,
+                        }
+                    ),
+                    date: selectedDate,
+                };
+
+                setPersonalSchedules((prev) => [...prev, newSchedule]);
+            } else {
+                console.error("개인 일정 생성 실패:", response.status);
+                alert("일정 추가에 실패했습니다.");
+            }
+        } catch (error) {
+            console.error("개인 일정 생성 에러:", error);
+            alert("일정 추가 중 오류가 발생했습니다.");
+        }
     };
 
-    // 개인 일정 삭제
-    const deletePersonalSchedule = (id: string) => {
-        setPersonalSchedules((prev) =>
-            prev.filter((schedule) => schedule.id !== id)
-        );
+    // 개인 일정 삭제 API
+    const deletePersonalSchedule = async (id: string) => {
+        if (!isLoggedIn || !token) return;
+
+        try {
+            const response = await fetch(
+                `http://localhost:8080/schedules/${id}`,
+                {
+                    method: "DELETE",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            if (response.ok) {
+                console.log("개인 일정 삭제 성공");
+                setPersonalSchedules((prev) =>
+                    prev.filter((schedule) => schedule.id !== id)
+                );
+            } else {
+                console.error("개인 일정 삭제 실패:", response.status);
+                alert("일정 삭제에 실패했습니다.");
+            }
+        } catch (error) {
+            console.error("개인 일정 삭제 에러:", error);
+            alert("일정 삭제 중 오류가 발생했습니다.");
+        }
     };
 
-    // 개인 일정 수정
-    const updatePersonalSchedule = (
+    // 개인 일정 수정 API
+    const updatePersonalSchedule = async (
         id: string,
         title: string,
         startTime: string
     ) => {
-        setPersonalSchedules((prev) =>
-            prev.map((schedule) =>
-                schedule.id === id
-                    ? { ...schedule, title, startTime }
-                    : schedule
-            )
-        );
+        if (!isLoggedIn || !token) return;
+
+        try {
+            // 현재 일정의 날짜를 찾아서 새로운 시간과 결합
+            const currentSchedule = personalSchedules.find((s) => s.id === id);
+            if (!currentSchedule) return;
+
+            const scheduleDateTime = new Date(
+                `${currentSchedule.date}T${startTime}:00`
+            );
+
+            const response = await fetch(
+                `http://localhost:8080/schedules/${id}`,
+                {
+                    method: "PUT",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        content: title,
+                        schTime: scheduleDateTime.toISOString(),
+                    }),
+                }
+            );
+
+            if (response.ok) {
+                console.log("개인 일정 수정 성공");
+                setPersonalSchedules((prev) =>
+                    prev.map((schedule) =>
+                        schedule.id === id
+                            ? { ...schedule, title, startTime }
+                            : schedule
+                    )
+                );
+            } else {
+                console.error("개인 일정 수정 실패:", response.status);
+                alert("일정 수정에 실패했습니다.");
+            }
+        } catch (error) {
+            console.error("개인 일정 수정 에러:", error);
+            alert("일정 수정 중 오류가 발생했습니다.");
+        }
     };
 
     return (
@@ -307,11 +656,20 @@ const MainPage = () => {
                                                                 </div>
                                                             </>
                                                         ) : (
-                                                            <div className="flex items-center gap-1 text-xs text-gray-600">
-                                                                <Clock className="w-3 h-3" />
-                                                                스터디 시작:{" "}
-                                                                {item.startTime}
-                                                            </div>
+                                                            <>
+                                                                <div className="text-sm text-gray-700 mb-1">
+                                                                    {
+                                                                        item.content
+                                                                    }
+                                                                </div>
+                                                                <div className="flex items-center gap-1 text-xs text-gray-600">
+                                                                    <Clock className="w-3 h-3" />
+                                                                    시작:{" "}
+                                                                    {
+                                                                        item.startTime
+                                                                    }
+                                                                </div>
+                                                            </>
                                                         )}
                                                     </div>
                                                 ))}
@@ -492,18 +850,233 @@ const MainPage = () => {
                         >
                             추천 스터디
                         </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-4">
-                            {recommendedStudies.map((study) => (
-                                <div
-                                    key={study.id}
-                                    className="bg-gray-50 rounded-lg p-4 text-center hover:shadow-md transition-shadow cursor-pointer"
-                                >
-                                    <div className="font-medium">
-                                        {study.name}
+
+                        {loadingRecommendations ? (
+                            <div className="flex items-center justify-center py-8">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8B85E9]"></div>
+                                <span className="ml-2 text-gray-600">
+                                    추천 스터디를 불러오는 중...
+                                </span>
+                            </div>
+                        ) : recommendedStudies.length === 0 ? (
+                            <div className="text-center py-8 text-gray-500">
+                                <p>추천할 스터디가 없습니다.</p>
+                                {recommendationError && (
+                                    <div className="mt-4">
+                                        <p className="text-red-600 mb-2">
+                                            API 호출 실패: {recommendationError}
+                                        </p>
+                                        <button
+                                            onClick={fetchRecommendedStudies}
+                                            className="px-4 py-2 bg-[#8B85E9] text-white rounded-lg hover:bg-[#7A74D8] transition-colors"
+                                        >
+                                            다시 시도
+                                        </button>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-4">
+                                {(() => {
+                                    console.log(
+                                        "추천 스터디 렌더링:",
+                                        recommendedStudies
+                                    );
+                                    console.log(
+                                        "추천 스터디 개수:",
+                                        recommendedStudies.length
+                                    );
+                                    return recommendedStudies.map(
+                                        (study, index) => {
+                                            console.log(
+                                                `스터디 ${index}:`,
+                                                study
+                                            );
+                                            // 날짜 포맷팅 함수
+                                            const formatDate = (
+                                                dateString: string
+                                            ): string => {
+                                                try {
+                                                    const date = new Date(
+                                                        dateString
+                                                    );
+                                                    const year =
+                                                        date.getFullYear();
+                                                    const month = String(
+                                                        date.getMonth() + 1
+                                                    ).padStart(2, "0");
+                                                    const day = String(
+                                                        date.getDate()
+                                                    ).padStart(2, "0");
+                                                    return `${year}-${month}-${day}`;
+                                                } catch (error) {
+                                                    return dateString;
+                                                }
+                                            };
+
+                                            // 모집 상태 변환
+                                            const getRecruitmentStatus = (
+                                                isRecruiting: string
+                                            ) => {
+                                                switch (isRecruiting) {
+                                                    case "recruitment":
+                                                        return "모집중";
+                                                    case "complete":
+                                                        return "모집완료";
+                                                    case "end":
+                                                        return "종료됨";
+                                                    default:
+                                                        return "모집중";
+                                                }
+                                            };
+
+                                            // 타입 변환
+                                            const getTypeLabel = (
+                                                typeCheck: string
+                                            ) => {
+                                                return typeCheck === "study"
+                                                    ? "스터디"
+                                                    : "프로젝트";
+                                            };
+
+                                            return (
+                                                <div
+                                                    key={
+                                                        study.studyProjectId ||
+                                                        index
+                                                    }
+                                                    className="bg-gray-50 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                                                    onClick={() => {
+                                                        const isProject =
+                                                            study.typeCheck ===
+                                                            "project";
+                                                        const route = isProject
+                                                            ? `/project/${study.studyProjectId}`
+                                                            : `/study/${study.studyProjectId}`;
+                                                        navigate(route);
+                                                    }}
+                                                >
+                                                    <div className="mb-3">
+                                                        <div className="text-lg font-bold text-gray-800 mb-1">
+                                                            {
+                                                                study.studyProjectName
+                                                            }
+                                                        </div>
+                                                        <div className="text-sm text-gray-600 mb-2">
+                                                            {
+                                                                study.studyProjectTitle
+                                                            }
+                                                        </div>
+                                                        <div className="text-xs text-gray-500 mb-3">
+                                                            기간:{" "}
+                                                            {formatDate(
+                                                                study.studyProjectStart
+                                                            )}{" "}
+                                                            ~{" "}
+                                                            {formatDate(
+                                                                study.studyProjectEnd
+                                                            )}{" "}
+                                                            / 리더:{" "}
+                                                            {study.userId}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex gap-2 flex-wrap mb-3">
+                                                        {/* 스터디 레벨 (스터디인 경우만) */}
+                                                        {study.typeCheck ===
+                                                            "study" &&
+                                                            study.studyLevel && (
+                                                                <span
+                                                                    className={`px-2 py-0.5 rounded-xl text-xs font-medium ${
+                                                                        study.studyLevel ===
+                                                                        1
+                                                                            ? "bg-green-100 text-green-700"
+                                                                            : study.studyLevel ===
+                                                                              2
+                                                                            ? "bg-yellow-100 text-yellow-700"
+                                                                            : "bg-red-100 text-red-700"
+                                                                    }`}
+                                                                >
+                                                                    레벨{" "}
+                                                                    {
+                                                                        study.studyLevel
+                                                                    }
+                                                                </span>
+                                                            )}
+                                                        {/* 태그 표시 */}
+                                                        {study.tags &&
+                                                            study.tags
+                                                                .slice(0, 2)
+                                                                .map(
+                                                                    (
+                                                                        tag: string,
+                                                                        index: number
+                                                                    ) => (
+                                                                        <span
+                                                                            key={
+                                                                                index
+                                                                            }
+                                                                            className="px-2 py-0.5 rounded-xl text-xs bg-gray-100 text-gray-600"
+                                                                        >
+                                                                            #
+                                                                            {
+                                                                                tag
+                                                                            }
+                                                                        </span>
+                                                                    )
+                                                                )}
+                                                    </div>
+
+                                                    <div className="flex justify-between items-center">
+                                                        <div className="flex gap-2">
+                                                            {/* 타입 뱃지 */}
+                                                            <span
+                                                                className={`px-2 py-1 rounded-full text-xs font-bold ${
+                                                                    study.typeCheck ===
+                                                                    "study"
+                                                                        ? "bg-green-50 text-green-700"
+                                                                        : "bg-orange-50 text-orange-700"
+                                                                }`}
+                                                            >
+                                                                {getTypeLabel(
+                                                                    study.typeCheck
+                                                                )}
+                                                            </span>
+                                                            {/* 모집 상태 뱃지 */}
+                                                            <span
+                                                                className={`px-2 py-1 rounded-full text-xs font-bold ${
+                                                                    study.isRecruiting ===
+                                                                    "recruitment"
+                                                                        ? "bg-blue-50 text-blue-700"
+                                                                        : study.isRecruiting ===
+                                                                          "complete"
+                                                                        ? "bg-purple-50 text-purple-700"
+                                                                        : "bg-gray-50 text-gray-700"
+                                                                }`}
+                                                            >
+                                                                {getRecruitmentStatus(
+                                                                    study.isRecruiting
+                                                                )}
+                                                            </span>
+                                                        </div>
+                                                        <span className="text-xs text-gray-600">
+                                                            (
+                                                            {study.currentMemberCount ||
+                                                                0}
+                                                            /
+                                                            {
+                                                                study.studyProjectTotal
+                                                            }
+                                                            명)
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+                                    );
+                                })()}
+                            </div>
+                        )}
                     </div>
                 </div>
             ) : (

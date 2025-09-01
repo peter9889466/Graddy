@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useEffect } from "react";
+import React, { useMemo, useState, useRef, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import PageLayout from "../components/layout/PageLayout";
 import {
@@ -6,6 +6,7 @@ import {
     useCommunityContext,
     PostType,
 } from "../contexts/CommunityContext";
+import { AuthContext } from "../contexts/AuthContext";
 import Comments from "../components/community/Comments";
 import CreatePostModal from "../components/community/CreatePostModal";
 import { useModal } from "../hooks/useModal";
@@ -14,15 +15,23 @@ import { getUserFromToken } from "../utils/auth";
 
 const SearchAndCreate: React.FC = () => {
     const { posts, loading, error, deletePost } = useCommunityContext();
+    const authContext = useContext(AuthContext);
     const [searchField, setSearchField] = useState<"title" | "author">("title");
     const [query, setQuery] = useState("");
     const { isOpen, openModal, closeModal } = useModal();
     const navigate = useNavigate();
     const currentUser = getUserFromToken();
 
+    // 댓글 확장 상태 관리
+    const [expandedComments, setExpandedComments] = useState<Set<string>>(
+        new Set()
+    );
+
     // 드롭다운 상태 관리
     const [isFieldOpen, setIsFieldOpen] = useState(false);
     const fieldDropdownRef = useRef<HTMLDivElement>(null);
+
+    const isLoggedIn = authContext?.isLoggedIn || false;
 
     // 드롭다운 외부 클릭 시 닫기
     useEffect(() => {
@@ -51,13 +60,23 @@ const SearchAndCreate: React.FC = () => {
     }, [posts, searchField, query]);
 
     const handleDelete = async (postId: string) => {
-        if (window.confirm('정말로 이 게시글을 삭제하시겠습니까?')) {
+        if (window.confirm("정말로 이 게시글을 삭제하시겠습니까?")) {
             try {
                 await deletePost(postId);
             } catch (error) {
-                alert('게시글 삭제에 실패했습니다.');
+                alert("게시글 삭제에 실패했습니다.");
             }
         }
+    };
+
+    const toggleComments = (postId: string) => {
+        const newExpanded = new Set(expandedComments);
+        if (newExpanded.has(postId)) {
+            newExpanded.delete(postId);
+        } else {
+            newExpanded.add(postId);
+        }
+        setExpandedComments(newExpanded);
     };
 
     const fieldOptions = [
@@ -152,13 +171,15 @@ const SearchAndCreate: React.FC = () => {
                     </button>
                 </div>
 
-                {/* 게시글 작성 버튼 */}
-                <button
-                    onClick={() => navigate("/community/create")}
-                    className="px-6 py-2.5 bg-[#8B85E9] text-white rounded-lg font-medium hover:bg-[#7A74D8] transition-colors duration-200 flex items-center gap-2"
-                >
-                    작성하기
-                </button>
+                {/* 게시글 작성 버튼 (로그인 시에만) */}
+                {isLoggedIn && (
+                    <button
+                        onClick={() => navigate("/community/create")}
+                        className="px-6 py-2.5 bg-[#8B85E9] text-white rounded-lg font-medium hover:bg-[#7A74D8] transition-colors duration-200 flex items-center gap-2"
+                    >
+                        작성하기
+                    </button>
+                )}
             </div>
 
             {/* 로딩 상태 */}
@@ -175,7 +196,7 @@ const SearchAndCreate: React.FC = () => {
                 <div className="flex items-center justify-center py-12">
                     <div className="text-center">
                         <div className="text-red-500 text-lg mb-2">{error}</div>
-                        <button 
+                        <button
                             onClick={() => window.location.reload()}
                             className="px-4 py-2 bg-[#8B85E9] text-white rounded-lg hover:bg-[#7A74D8] transition-colors"
                         >
@@ -191,22 +212,17 @@ const SearchAndCreate: React.FC = () => {
                     {filtered.map((post) => (
                         <div
                             key={post.id}
-                            className="flex items-start p-5 border border-gray-200 rounded-lg bg-white gap-5"
+                            className="border border-gray-200 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow"
                         >
-                            <div className="flex-1">
+                            {/* 게시글 헤더 */}
+                            <div className="p-5">
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center gap-3">
                                         <span
                                             className="text-xs px-3 py-1 rounded-full font-bold"
                                             style={{
-                                                color:
-                                                    post.type === "project"
-                                                        ? "#8B85E9"
-                                                        : "#10B981",
-                                                backgroundColor:
-                                                    post.type === "project"
-                                                        ? "#E8E6FF"
-                                                        : "#D1FAE5",
+                                                color: "#8B85E9",
+                                                backgroundColor: "#E8E6FF",
                                             }}
                                         >
                                             자유게시판
@@ -218,18 +234,22 @@ const SearchAndCreate: React.FC = () => {
                                             {post.createdAt}
                                         </span>
                                     </div>
-                                    
+
                                     {/* 삭제 버튼 - 본인 게시글만 표시 */}
-                                    {currentUser && post.author === currentUser.userId && (
-                                        <button
-                                            onClick={() => handleDelete(post.id)}
-                                            className="text-red-500 hover:text-red-700 text-sm px-2 py-1 rounded hover:bg-red-50 transition-colors"
-                                        >
-                                            삭제
-                                        </button>
-                                    )}
+                                    {currentUser &&
+                                        post.author === currentUser.userId && (
+                                            <button
+                                                onClick={() =>
+                                                    handleDelete(post.id)
+                                                }
+                                                className="text-red-500 hover:text-red-700 text-sm px-2 py-1 rounded hover:bg-red-50 transition-colors"
+                                            >
+                                                삭제
+                                            </button>
+                                        )}
                                 </div>
 
+                                {/* 게시글 제목 */}
                                 <div
                                     className="text-lg font-bold text-gray-800 mb-2 cursor-pointer hover:text-[#8B85E9] transition-colors duration-200"
                                     onClick={() =>
@@ -239,12 +259,18 @@ const SearchAndCreate: React.FC = () => {
                                     {post.title}
                                 </div>
 
+                                {/* 게시글 내용 */}
                                 <div className="text-base text-gray-600 mb-4 whitespace-pre-line">
                                     {post.content}
                                 </div>
-
-                                <Comments postId={post.id} />
                             </div>
+
+                            {/* 댓글 섹션 */}
+                            <Comments
+                                postId={post.id}
+                                isExpanded={expandedComments.has(post.id)}
+                                onToggle={() => toggleComments(post.id)}
+                            />
                         </div>
                     ))}
                 </div>
@@ -255,15 +281,19 @@ const SearchAndCreate: React.FC = () => {
                 <div className="flex items-center justify-center py-12">
                     <div className="text-center">
                         <div className="text-gray-400 text-lg mb-2">
-                            {query ? '검색 결과가 없습니다' : '게시글이 없습니다'}
+                            {query
+                                ? "검색 결과가 없습니다"
+                                : "게시글이 없습니다"}
                         </div>
                         <div className="text-gray-300 text-sm">
-                            {query ? '다른 검색어를 시도해보세요!' : '첫 번째 게시글을 작성해보세요!'}
+                            {query
+                                ? "다른 검색어를 시도해보세요!"
+                                : "첫 번째 게시글을 작성해보세요!"}
                         </div>
                     </div>
                 </div>
             )}
-            </div>
+        </div>
     );
 };
 
