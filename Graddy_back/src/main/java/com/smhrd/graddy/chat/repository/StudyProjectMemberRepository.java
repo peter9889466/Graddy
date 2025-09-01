@@ -88,4 +88,23 @@ public interface StudyProjectMemberRepository extends JpaRepository<Member, Long
      */
     @Query("SELECT m.userId FROM Member m WHERE m.studyProjectId = :studyProjectId ORDER BY m.joinedAt ASC")
     List<String> findUserIdsByStudyProjectId(@Param("studyProjectId") Long studyProjectId);
+    
+    /**
+     * 특정 스터디의 특정 멤버 상세 정보 조회 (복잡한 조인 쿼리)
+     * 
+     * @param studyProjectId 스터디/프로젝트 ID
+     * @param memberId 멤버 ID
+     * @return 멤버 상세 정보 (Object 배열로 반환)
+     */
+    @Query("SELECT " +
+           "m.memberId, m.userId, m.studyProjectId, m.joinedAt, " +
+           "u.nick, u.gitUrl, u.userRefer, u.imgUrl, " +
+           "COALESCE(s.userScore, 0) as userScore " +
+           "FROM Member m " +
+           "LEFT JOIN User u ON m.userId = u.userId " +
+           "LEFT JOIN Score s ON m.userId = s.userId " +
+           "WHERE m.studyProjectId = :studyProjectId AND m.memberId = :memberId")
+    Object[] findMemberDetailByStudyProjectIdAndMemberId(
+            @Param("studyProjectId") Long studyProjectId, 
+            @Param("memberId") Long memberId);
 }

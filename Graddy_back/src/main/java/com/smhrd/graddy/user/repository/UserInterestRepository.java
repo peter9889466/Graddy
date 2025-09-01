@@ -19,4 +19,16 @@ public interface UserInterestRepository extends JpaRepository<UserInterest, User
     @Modifying
     @Query("DELETE FROM UserInterest ui WHERE ui.id.userId = :userId")
     void deleteByIdUserId(@Param("userId") String userId);
+    
+    /**
+     * 특정 사용자의 관심분야 이름 목록 조회
+     * 
+     * @param userId 사용자 ID
+     * @return 관심분야 이름 목록
+     */
+    @Query("SELECT i.interestName FROM UserInterest ui " +
+           "JOIN Interest i ON ui.id.interestId = i.interestId " +
+           "WHERE ui.id.userId = :userId " +
+           "ORDER BY i.interestName ASC")
+    List<String> findInterestNamesByUserId(@Param("userId") String userId);
 }
