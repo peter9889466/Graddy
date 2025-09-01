@@ -75,11 +75,18 @@ interface FeedBackProps {
     }>;
 }
 
-const FeedBack: React.FC<FeedBackProps> = ({ 
-    studyProjectId, 
-    currentUserId, 
-    members 
-}) => {
+    const FeedBack: React.FC<FeedBackProps> = ({ 
+        studyProjectId, 
+        currentUserId, 
+        members 
+    }) => {
+        // 디버깅을 위한 콘솔 로그
+        console.log('FeedBack 컴포넌트 - 전달받은 데이터:', {
+            studyProjectId,
+            currentUserId,
+            membersCount: members.length,
+            members: members
+        });
     const [isAssignmentOpen, setIsAssignmentOpen] = useState(false);
     const [isMemberOpen, setIsMemberOpen] = useState(false);
     const [selectedAssignment, setSelectedAssignment] = useState('과제를 선택하세요');
@@ -317,9 +324,20 @@ const FeedBack: React.FC<FeedBackProps> = ({
             setLoading(true);
             setError(null);
             
-            // 현재 사용자의 memberId 찾기
-            const currentMember = members.find(member => member.userId === currentUserId);
+            // 현재 사용자의 memberId 찾기 (여러 방법으로 시도)
+            console.log('멤버 찾기 시도:', {
+                currentUserId,
+                members: members.map(m => ({ userId: m.userId, nick: m.nick, memberId: m.memberId }))
+            });
+            
+            const currentMember = members.find(member => 
+                member.userId === currentUserId || 
+                member.nick === currentUserId ||
+                member.userId.toLowerCase() === currentUserId.toLowerCase()
+            );
             const memberId = currentMember?.memberId;
+            
+            console.log('찾은 멤버:', currentMember);
             
             if (!memberId) {
                 setError('멤버 정보를 찾을 수 없습니다.');
