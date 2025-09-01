@@ -4,7 +4,7 @@ import { LineChart, MessageCircle, Reply, Trash2, User, Paperclip } from 'lucide
 import { AuthContext } from '../../contexts/AuthContext';
 import { useAssignmentContext } from '../../contexts/AssignmentContext';
 
-interface SubmissionData {
+interface SubmissionData {   
     submissionId: number;
     assignmentId: number;
     memberId: number;
@@ -17,6 +17,49 @@ interface ApiResponse {
     status: number;
     message: string;
     data: SubmissionData[];
+}
+
+interface AssignmentSubmissionData {
+    submissionId: number;
+    assignmentId: number;
+    memberId: number;
+    content: string;
+    fileUrl: string;
+    createdAt: string;
+}
+
+interface AssignmentSubmissionResponse {
+    status: number;
+    message: string;
+    data: AssignmentSubmissionData[];
+}
+
+// 개별 제출 조회를 위한 인터페이스
+interface SingleSubmissionResponse {
+    status: number;
+    message: string;
+    data: {
+        submissionId: number;
+        assignmentId: number;
+        memberId: number;
+        content: string;
+        fileUrl: string | null;
+        createdAt: string;
+    };
+}
+
+// AI 피드백 응답 인터페이스 수정
+interface FeedbackResponse {
+    status: number;
+    message: string;
+    data: Array<{
+        feedId: number;
+        memberId: number;
+        submissionId: number;
+        score: number;
+        comment: string;
+        createdAt: string;
+    }>;
 }
 
 interface FeedBackProps {
@@ -49,6 +92,16 @@ const FeedBack: React.FC<FeedBackProps> = ({
     const [submissions, setSubmissions] = useState<SubmissionData[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [assignments, setAssignments] = useState<any[]>([]);
+    const [assignmentSubmissions, setAssignmentSubmissions] = useState<AssignmentSubmissionData[]>([]);
+    const [selectedAssignmentId, setSelectedAssignmentId] = useState<number | null>(null);
+    const [selectedMemberId, setSelectedMemberId] = useState<number | null>(null);
+    const [currentSubmissionData, setCurrentSubmissionData] = useState<any>(null);
+    
+    // AI 피드백 관련 상태
+    const [aiFeedback, setAiFeedback] = useState<string>('');
+    const [feedbackLoading, setFeedbackLoading] = useState(false);
+    const [feedbackScore, setFeedbackScore] = useState<number | null>(null);
 
     // 댓글 관련 상태
     const [comments, setComments] = useState([
@@ -80,6 +133,75 @@ const FeedBack: React.FC<FeedBackProps> = ({
     const [newReply, setNewReply] = useState('');
     const [replyingTo, setReplyingTo] = useState<string | null>(null);
     
+    const fetchAssignments = async () => {
+        try {
+            const response = await fetch(`http://localhost:8080/api/assignments/study-project/${studyProjectId}`);
+            const data = await response.json();
+            
+            if (data.status === 200) {
+                setAssignments(data.data || []);
+            }
+        } catch (err) {
+            console.error('과제 목록 조회 실패:', err);
+        }
+    };
+
+    // AI 피드백 조회 함수
+    const generateAIFeedback = async (submissionId: number) => {
+        try {
+            setFeedbackLoading(true);
+            setError(null);
+            
+            const response = await fetch(`http://localhost:8080/api/feedbacks/submission/${submissionId}`);
+            const data: FeedbackResponse = await response.json();
+            
+            if (data.status === 200 && data.data.length > 0) {
+                // 배열의 첫 번째 피드백 사용 (가장 최신 또는 유일한 피드백)
+                const feedback = data.data[0];
+                setAiFeedback(feedback.comment);
+                setFeedbackScore(feedback.score);
+            } else {
+                throw new Error(data.message || 'AI 피드백 조회 실패');
+            }
+        } catch (err: any) {
+            console.error('AI 피드백 조회 실패:', err);
+            setError('AI 피드백을 불러오는 데 실패했습니다.');
+            setAiFeedback('');
+            setFeedbackScore(null);
+        } finally {
+            setFeedbackLoading(false);
+        }
+    };
+
+    // 개별 제출 내용을 가져오는 함수
+    const fetchSubmissionContent = async (assignmentId: number, memberId: number) => {
+        try {
+            setLoading(true);
+            setError(null);
+            
+            const response = await fetch(`http://localhost:8080/api/submissions/assignment/${assignmentId}/member/${memberId}`);
+            const data: SingleSubmissionResponse = await response.json();
+            
+            if (data.status === 200) {
+                setCurrentSubmissionData(data.data);
+                setAssignmentContent(data.data.content);
+                
+                // 과제 내용을 가져온 후 AI 피드백 자동 생성
+                await generateAIFeedback(data.data.submissionId);
+            } else {
+                throw new Error(data.message || 'API 응답 오류');
+            }
+        } catch (err: any) {
+            console.error('과제 내용 조회 실패:', err);
+            setError('과제 내용을 불러오는 데 실패했습니다.');
+            setAssignmentContent('');
+            setCurrentSubmissionData(null);
+            setAiFeedback('');
+            setFeedbackScore(null);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const getAssignmentOptions = () => {
         if (submissions.length === 0) return [];
@@ -87,13 +209,24 @@ const FeedBack: React.FC<FeedBackProps> = ({
         // assignmentId별로 그룹화하여 중복 제거
         const uniqueAssignments = submissions.reduce((acc, submission) => {
             if (!acc.some(item => item.assignmentId === submission.assignmentId)) {
-                acc.push({
-                    assignmentId: submission.assignmentId,
-                    value: `assignment_${submission.assignmentId}`,
-                    label: `과제 #${submission.assignmentId}`,
-                    period: new Date(submission.createdAt).toLocaleDateString('ko-KR'),
-                    createdAt: submission.createdAt
-                });
+                // assignments 배열에서 해당 과제 정보 찾기 (과제 제목을 가져오기 위해)
+                const assignmentInfo = assignments.find(a => a.assignmentId === submission.assignmentId);
+                if(assignmentInfo != null){
+                    acc.push({
+                        assignmentId: submission.assignmentId,
+                        value: `assignment_${submission.assignmentId}`,
+                        // label: assignmentInfo ? assignmentInfo.title : `과제 #${submission.assignmentId}`,
+                        label: assignmentInfo ? assignmentInfo.title : null,
+                        period: assignmentInfo ? new Date(submission.createdAt).toLocaleDateString('ko-KR', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        }) : null
+                        // createdAt: assignmentInfo ? submission.createdAt : null
+                    });
+                }
             }
             return acc;
         }, [] as any[]);
@@ -101,20 +234,35 @@ const FeedBack: React.FC<FeedBackProps> = ({
         return uniqueAssignments.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     };
 
+    const fetchAssignmentSubmissions = async (assignmentId: number) => {
+        try {
+            setLoading(true);
+            setError(null);
+            
+            const response = await fetch(`http://localhost:8080/api/submissions/assignment/${assignmentId}`);
+            const data: AssignmentSubmissionResponse = await response.json();
+            
+            if (data.status === 200) {
+                setAssignmentSubmissions(data.data);
+            } else {
+                throw new Error(data.message || 'API 응답 오류');
+            }
+        } catch (err: any) {
+            console.error('과제별 제출 목록 조회 실패:', err);
+            setError('과제별 제출 목록을 불러오는 데 실패했습니다.');
+            setAssignmentSubmissions([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+    
     const assignmentOptions = getAssignmentOptions();
 
     // 과제 제출한 사람들의 목록을 동적으로 생성
     const getMemberOptions = () => {
-        if (selectedAssignment === '과제를 선택하세요') {
+        if (selectedAssignment === '과제를 선택하세요' || assignmentSubmissions.length === 0) {
             return [];
         }
-        
-        const selectedOption = assignmentOptions.find(option => option.label === selectedAssignment);
-        if (!selectedOption) return [];
-        
-        const assignmentSubmissions = submissions.filter(
-            submission => submission.assignmentId === selectedOption.assignmentId
-        );
         
         return assignmentSubmissions.map(submission => {
             // members prop에서 해당 멤버 정보 찾기
@@ -131,17 +279,32 @@ const FeedBack: React.FC<FeedBackProps> = ({
 
     const memberOptions = getMemberOptions();
     
-    const handleAssignmentClick = (option: { assignmentId: number; value: string; label: string; period: string }) => {
+    const handleAssignmentClick = async (option: { assignmentId: number; value: string; label: string; period: string }) => {
         setSelectedAssignment(option.label);
         setSelectedMember('스터디원을 선택하세요');
+        setSelectedAssignmentId(option.assignmentId);
         setIsAssignmentOpen(false);
         setAssignmentContent('');
+        
+        // AI 피드백 관련 상태 초기화
+        setAiFeedback('');
+        setFeedbackScore(null);
+        setCurrentSubmissionData(null);
+        setSelectedMemberId(null);
+        
+        // 선택된 과제의 제출 목록 가져오기
+        await fetchAssignmentSubmissions(option.assignmentId);
     };
 
-    const handleMemberClick = (option: { value: string; label: string; role: string; submissionData: SubmissionData }) => {
+    const handleMemberClick = async (option: { value: string; label: string; role: string; submissionData: SubmissionData }) => {
         setSelectedMember(option.label);
+        setSelectedMemberId(option.submissionData.memberId);
         setIsMemberOpen(false);
-        setAssignmentContent(option.submissionData.content);
+        
+        // 새로운 API로 과제 내용 가져오기
+        if (selectedAssignmentId) {
+            await fetchSubmissionContent(selectedAssignmentId, option.submissionData.memberId);
+        }
     };
 
     const fetchSubmissions = async () => {
@@ -164,10 +327,20 @@ const FeedBack: React.FC<FeedBackProps> = ({
             }
             
             const response = await fetch(`http://localhost:8080/api/submissions/member/${memberId}`);
+
+            const data: ApiResponse = await response.json();
+
+            if (data.status === 200) {
+                setSubmissions(data.data); // API 응답 데이터를 submissions 상태에 저장
+            } else {
+                throw new Error(data.message || 'API 응답 오류');
+            }
             
             // 나머지 로직은 동일
         } catch (err) {
             // 에러 처리
+            console.error('Failed to fetch submissions:', err);
+            setError('과제 제출 목록을 불러오는 데 실패했습니다.');
         } finally {
             setLoading(false);
         }
@@ -175,27 +348,18 @@ const FeedBack: React.FC<FeedBackProps> = ({
 
     // 컴포넌트 마운트 시 API 호출
     useEffect(() => {
-        fetchSubmissions();
+        const fetchData = async () => {
+            await Promise.all([
+                fetchSubmissions(),
+                fetchAssignments() // 과제 기본 정보 가져오기
+            ]);
+        };
+        
+        fetchData();
     }, []);
 
     // 선택된 과제의 기간 찾기
     const selectedAssignmentData = assignmentOptions.find(option => option.label === selectedAssignment);
-
-    const getSelectedSubmissionData = () => {
-        if (selectedAssignment === '과제를 선택하세요' || selectedMember === '스터디원을 선택하세요') {
-            return null;
-        }
-        
-        const selectedOption = assignmentOptions.find(option => option.label === selectedAssignment);
-        if (!selectedOption) return null;
-        
-        const memberOption = memberOptions.find(option => option.label === selectedMember);
-        if (!memberOption) return null;
-        
-        return memberOption.submissionData;
-    };
-
-    const selectedSubmissionData = getSelectedSubmissionData();
 
     // 드롭다운 외부 클릭 처리
     React.useEffect(() => {
@@ -260,74 +424,6 @@ const FeedBack: React.FC<FeedBackProps> = ({
         ));
     };
 
-//     // 점수 데이터 (기존 데이터 사용)
-//     const labels = ["1월", "2월", "3월", "4월", "5월"];
-//     const scoreData = [120, 200, 150, 170, 220];
-
-//   // Chart.js용 데이터 형식으로 변환
-//     const chartData = {
-//         labels: labels,
-//         datasets: [
-//         {
-//             label: '점수',
-//             data: scoreData,
-//             borderColor: 'rgba(139, 133, 233, 1)', // 보라색 계열
-//             backgroundColor: 'rgba(139, 133, 233, 0.1)',
-//             borderWidth: 3,
-//             tension: 0.4,
-//             pointBackgroundColor: 'rgba(139, 133, 233, 1)',
-//             pointBorderColor: '#ffffff',
-//             pointBorderWidth: 2,
-//             pointRadius: 6,
-//             pointHoverRadius: 8,
-//         }
-//         ]
-//     };
-
-//   // 차트 옵션
-//     const chartOptions = {
-//         responsive: true,
-//         maintainAspectRatio: false,
-//         plugins: {
-//         legend: {
-//             display: false // 범례 숨김
-//         },
-//         title: {
-//             display: true,
-//             text: '월별 점수 추이',
-//             font: {
-//             size: 16,
-//             weight: 'bold' as const
-//             },
-//             color: '#374151'
-//         }
-//         },
-//         scales: {
-//         x: {
-//             grid: {
-//             display: false
-//             },
-//             ticks: {
-//             color: '#6B7280'
-//             }
-//         },
-//         y: {
-//             beginAtZero: true,
-//             grid: {
-//             color: '#F3F4F6'
-//             },
-//             ticks: {
-//             color: '#6B7280'
-//             },
-//             title: {
-//             display: true,
-//             text: '점수',
-//             color: '#6B7280'
-//             }
-//         }
-//         }
-//     };
-
     return (
         <div className="space-y-4 h-[61.5vh] overflow-y-auto p-4 pr-10">
 
@@ -335,7 +431,7 @@ const FeedBack: React.FC<FeedBackProps> = ({
         <h2 className="text-xl font-bold mb-6 -mt-5 -ml-4"
             style={{ color: "#8B85E9" }}>과제 피드백</h2>
 
-                    {/* 드롭다운 선택 영역 */}
+            {/* 드롭다운 선택 영역 */}
             <div className="flex flex-col gap-4 mb-4">
                 {/* 과제 선택 드롭다운 */}
                 <div className="flex-1 relative" ref={assignmentDropdownRef}>
@@ -375,7 +471,7 @@ const FeedBack: React.FC<FeedBackProps> = ({
                     )}
                 </div>
 
-                            {/* 스터디원 선택 드롭다운 */}
+                {/* 스터디원 선택 드롭다운 */}
                 <div className="flex-1 relative" ref={memberDropdownRef}>
                     <button
                         onClick={() => selectedAssignment !== '과제를 선택하세요' && setIsMemberOpen(!isMemberOpen)}
@@ -396,7 +492,7 @@ const FeedBack: React.FC<FeedBackProps> = ({
                         </svg>
                     </button>
                     
-                                    {isMemberOpen && (
+                    {isMemberOpen && (
                         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-xl shadow-lg z-10 overflow-hidden">
                             {memberOptions.length > 0 ? (
                                 memberOptions.map((option, index) => (
@@ -438,81 +534,105 @@ const FeedBack: React.FC<FeedBackProps> = ({
             )}
         <hr className="my-4"/>
 
-                            {/* 과제 제출 내용 */}
+            {/* 과제 제출 내용 */}
             <div>
-            <p className="text-lg font-bold mb-2 text-gray-500">
-                과제 내용
-            </p>
-            {selectedAssignment !== '과제를 선택하세요' && selectedMember !== '스터디원을 선택하세요' ? (
-                (() => {
-                    const submission = getSubmissionByAssignment(selectedAssignment);
-                    if (submission && submission.submittedBy === selectedMember) {
-                        return (
-                            <div className="bg-gray-50 border-2 border-[#8B85E9] rounded-lg p-4">
-                                <div className="mb-2 text-sm text-gray-600">
-                                    <strong>제출일:</strong> {submission.submittedAt}
-                                </div>
-                                                                <div className="bg-white rounded p-3 border border-gray-200">
-                                    <p className="whitespace-pre-wrap text-gray-700 text-sm leading-relaxed">{submission.content}</p>
-                                </div>
-                                
-                                                                {/* 첨부파일 표시 */}
-                                <div className="mt-4 bg-white rounded p-3 border border-gray-200">
-                                    {submission.attachment ? (
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <Paperclip className="w-4 h-4 text-gray-400" />
-                                                <div className="flex-1">
-                                                    <button 
-                                                        className="text-sm font-medium text-[#8B85E9] hover:text-[#7A75D8] hover:underline transition-colors text-left"
-                                                        onClick={() => {
-                                                            // 실제 파일 다운로드 기능은 서버 연동 시 구현
-                                                            alert('파일 다운로드 기능은 서버 연동 후 구현됩니다.');
-                                                        }}
-                                                    >
-                                                        {submission.attachment.fileName}
-                                                    </button>
-                                                    <p className="text-xs text-gray-500">
-                                                        {submission.attachment.fileSize} • {submission.attachment.fileType}
-                                                    </p>
-                                                </div>
+                <p className="text-lg font-bold mb-2 text-gray-500">
+                    과제 내용
+                </p>
+                {selectedAssignment !== '과제를 선택하세요' && selectedMember !== '스터디원을 선택하세요' ? (
+                    currentSubmissionData ? (
+                        <div className="bg-gray-50 border-2 border-[#8B85E9] rounded-lg p-4">
+                            <div className="mb-2 text-sm text-gray-600">
+                                <strong>제출일:</strong> {new Date(currentSubmissionData.createdAt).toLocaleString('ko-KR')}
+                            </div>
+                            <div 
+                                className="text-gray-700 text-sm leading-relaxed whitespace-pre-line"
+                            >
+                                {currentSubmissionData.content}
+                            </div>
+                            
+                            {/* 첨부파일 표시 */}
+                            <div className="mt-4 bg-white rounded p-3 border border-gray-200">
+                                {currentSubmissionData.fileUrl ? (
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <Paperclip className="w-4 h-4 text-gray-400" />
+                                            <div className="flex-1">
+                                                <button 
+                                                    className="text-sm font-medium text-[#8B85E9] hover:text-[#7A75D8] hover:underline transition-colors text-left"
+                                                    onClick={() => {
+                                                        window.open(currentSubmissionData.fileUrl, '_blank');
+                                                    }}
+                                                >
+                                                    첨부파일 보기
+                                                </button>
                                             </div>
                                         </div>
-                                    ) : (
-                                        <div className="p-2 bg-gray-50 rounded border border-gray-200">
-                                            <p className="text-sm text-gray-500 text-center">첨부파일이 없습니다.</p>
-                                        </div>
-                                    )}
-                                </div>
+                                    </div>
+                                ) : (
+                                    <div className="p-2 bg-gray-50 rounded border border-gray-200">
+                                        <p className="text-sm text-gray-500 text-center">첨부파일이 없습니다.</p>
+                                    </div>
+                                )}
                             </div>
-                        );
-                    } else {
-                        return (
-                            <div className="bg-gray-50 border-2 border-gray-300 rounded-lg p-4">
-                                <p className="text-gray-500 text-center">해당 스터디원의 과제 제출 내용이 없습니다.</p>
-                            </div>
-                        );
-                    }
-                })()
-            ) : (
-                <div className="bg-gray-50 border-2 border-gray-300 rounded-lg p-4">
-                    <p className="text-gray-500 text-center">과제와 스터디원을 선택해주세요.</p>
-                </div>
-            )}
+                        </div>
+                    ) : loading ? (
+                        <div className="bg-gray-50 border-2 border-gray-300 rounded-lg p-4">
+                            <p className="text-gray-500 text-center">과제 내용을 불러오는 중...</p>
+                        </div>
+                    ) : (
+                        <div className="bg-gray-50 border-2 border-gray-300 rounded-lg p-4">
+                            <p className="text-gray-500 text-center">해당 스터디원의 과제 제출 내용이 없습니다.</p>
+                        </div>
+                    )
+                ) : (
+                    <div className="bg-gray-50 border-2 border-gray-300 rounded-lg p-4">
+                        <p className="text-gray-500 text-center">과제와 스터디원을 선택해주세요.</p>
+                    </div>
+                )}
             </div>
 
-        {/* AI 피드백 */}        
-        <div>
-            <p className="text-lg font-bold mb-2 text-gray-500">
-                AI 피드백
-            </p>
-            <textarea
-                value={assignmentContent}
-                readOnly
-                placeholder="피드백을 불러오는 중입니다..."
-                className="w-full h-30 p-3 border-2 border-[#8B85E9] rounded-lg resize-none placeholder:text-sm placeholder:text-gray-400 bg-gray-50"
-            />
-        </div>
+            {/* AI 피드백 */}        
+            <div>
+                <div className="flex items-center justify-between mb-2">
+                    <p className="text-lg font-bold text-gray-500">
+                        AI 피드백
+                    </p>
+                    {feedbackScore !== null && (
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-600">점수:</span>
+                            <span className="text-lg font-bold text-[#8B85E9]">{feedbackScore}점</span>
+                        </div>
+                    )}
+                </div>
+                <div className="w-full min-h-[120px] p-3 border-2 border-[#8B85E9] rounded-lg bg-gray-50">
+                    {feedbackLoading ? (
+                        <p className="text-gray-500 text-center">피드백을 생성하는 중입니다...</p>
+                    ) : aiFeedback ? (
+                        <div className="text-gray-700 text-sm leading-relaxed">
+                            {aiFeedback.split('\n').map((line: string, index: number) => (
+                                <div key={index}>
+                                    {line}
+                                    {index < aiFeedback.split('\n').length - 1 && <br />}
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-gray-400 text-center">과제와 스터디원을 선택하면 AI 피드백이 생성됩니다.</p>
+                    )}
+                </div>
+                {/* {currentSubmissionData && !feedbackLoading && (
+                    <div className="mt-2 flex justify-end">
+                        <button
+                            onClick={() => generateAIFeedback(currentSubmissionData.submissionId)}
+                            className="px-4 py-2 text-white rounded-md transition-colors duration-200"
+                            style={{ backgroundColor: "#8B85E9" }}
+                        >
+                            피드백 재생성
+                        </button>
+                    </div>
+                )} */}
+            </div>
     
       {/* 댓글 */}
         <div>
@@ -659,4 +779,4 @@ const FeedBack: React.FC<FeedBackProps> = ({
     )
 }
 
-export default FeedBack
+export default FeedBack;
