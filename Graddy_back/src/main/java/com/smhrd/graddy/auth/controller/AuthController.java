@@ -139,7 +139,7 @@ public class AuthController {
             RefreshTokenResponse response = RefreshTokenResponse.builder()
                 .accessToken(newAccessToken)
                 .tokenType("Bearer")
-                .expiresIn(3600L) // 1시간 (3600초)
+                .expiresIn(10800L) // 3시간 (10800초)
                 .build();
             
             log.info("Access Token 갱신 성공");

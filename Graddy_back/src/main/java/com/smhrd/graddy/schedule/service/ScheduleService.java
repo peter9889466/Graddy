@@ -6,6 +6,7 @@ import com.smhrd.graddy.schedule.entity.Schedule;
 import com.smhrd.graddy.schedule.repository.ScheduleRepository;
 import com.smhrd.graddy.study.entity.StudyProject;
 import com.smhrd.graddy.study.repository.StudyProjectRepository;
+import com.smhrd.graddy.study.repository.StudyProjectMemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ public class ScheduleService {
     
     private final ScheduleRepository scheduleRepository;
     private final StudyProjectRepository studyProjectRepository;
+    private final StudyProjectMemberRepository studyProjectMemberRepository;
     
     /**
      * 개인 일정 생성
@@ -54,6 +56,7 @@ public class ScheduleService {
         log.info("스터디 일정 생성 시작: userId={}, studyProjectId={}, content={}, schTime={}", 
                 request.getUserId(), request.getStudyProjectId(), request.getContent(), request.getSchTime());
         
+                String startContent = String.format("[스터디 일정] %s", request.getContent());
         // 스터디 프로젝트 존재 여부 확인
         StudyProject studyProject = studyProjectRepository.findById(request.getStudyProjectId())
                 .orElseThrow(() -> new IllegalArgumentException("스터디 프로젝트를 찾을 수 없습니다: " + request.getStudyProjectId()));
@@ -61,7 +64,7 @@ public class ScheduleService {
         Schedule schedule = Schedule.builder()
                 .userId(request.getUserId())
                 .studyProjectId(request.getStudyProjectId())
-                .content(request.getContent())
+                .content(startContent)
                 .schTime(localDateTimeToTimestamp(request.getSchTime()))
                 .build();
         
@@ -300,5 +303,184 @@ public class ScheduleService {
     private LocalDateTime timestampToLocalDateTime(Timestamp timestamp) {
         if (timestamp == null) return null;
         return timestamp.toLocalDateTime();
+    }
+    
+    /**
+     * 스터디 일정 생성 시 모든 멤버에게 개별 스케줄 생성
+     * 
+     * @param content 일정 내용
+     * @param schTime 일정 시간
+     * @param studyProjectId 스터디 프로젝트 ID
+     * @return 생성된 스케줄 개수
+     */
+    @Transactional
+    public int createStudyScheduleForAllMembers(String content, LocalDateTime schTime, Long studyProjectId) {
+        log.info("스터디 일정 멤버별 생성 시작: studyProjectId={}, content={}, schTime={}", 
+                studyProjectId, content, schTime);
+        
+        // 스터디 프로젝트 존재 여부 확인
+        StudyProject studyProject = studyProjectRepository.findById(studyProjectId)
+                .orElseThrow(() -> new IllegalArgumentException("스터디 프로젝트를 찾을 수 없습니다: " + studyProjectId));
+        
+        // 스터디 멤버들 조회
+        List<String> memberIds = studyProjectMemberRepository.findUserIdsByStudyProjectId(studyProjectId);
+        
+        if (memberIds.isEmpty()) {
+            log.warn("스터디 멤버가 없습니다: studyProjectId={}", studyProjectId);
+            return 0;
+        }
+        
+        String scheduleContent = String.format("[스터디 일정] %s", content);
+        int createdCount = 0;
+        
+        for (String memberId : memberIds) {
+            try {
+                Schedule schedule = Schedule.builder()
+                    .content(scheduleContent)
+                    .schTime(localDateTimeToTimestamp(schTime))
+                    .studyProjectId(studyProjectId)
+                    .userId(memberId)
+                    .aramChk(false)
+                    .build();
+                
+                scheduleRepository.save(schedule);
+                createdCount++;
+                
+                log.debug("멤버별 스케줄 생성 완료: userId={}, schId={}", memberId, schedule.getSchId());
+                
+            } catch (Exception e) {
+                log.error("멤버별 스케줄 생성 실패: userId={}, studyProjectId={}, error={}", 
+                    memberId, studyProjectId, e.getMessage());
+            }
+        }
+        
+        log.info("스터디 일정 멤버별 생성 완료: studyProjectId={}, 생성된 스케줄 수={}", 
+                studyProjectId, createdCount);
+        
+        return createdCount;
+    }
+    
+    /**
+     * 과제 일정 생성 시 모든 멤버에게 개별 스케줄 생성
+     * 
+     * @param content 과제 제목
+     * @param schTime 제출 마감 시간
+     * @param studyProjectId 스터디 프로젝트 ID
+     * @return 생성된 스케줄 개수
+     */
+    @Transactional
+    public int createAssignmentScheduleForAllMembers(String content, LocalDateTime schTime, Long studyProjectId) {
+        log.info("과제 일정 멤버별 생성 시작: studyProjectId={}, content={}, schTime={}", 
+                studyProjectId, content, schTime);
+        
+        // 스터디 프로젝트 존재 여부 확인
+        StudyProject studyProject = studyProjectRepository.findById(studyProjectId)
+                .orElseThrow(() -> new IllegalArgumentException("스터디 프로젝트를 찾을 수 없습니다: " + studyProjectId));
+        
+        // 스터디 멤버들 조회
+        List<String> memberIds = studyProjectMemberRepository.findUserIdsByStudyProjectId(studyProjectId);
+        
+        if (memberIds.isEmpty()) {
+            log.warn("스터디 멤버가 없습니다: studyProjectId={}", studyProjectId);
+            return 0;
+        }
+        
+        String scheduleContent = String.format("[과제 제출일] %s - %s", 
+                studyProject.getStudyProjectName(), content);
+        int createdCount = 0;
+        
+        for (String memberId : memberIds) {
+            try {
+                Schedule schedule = Schedule.builder()
+                    .content(scheduleContent)
+                    .schTime(localDateTimeToTimestamp(schTime))
+                    .studyProjectId(studyProjectId)
+                    .userId(memberId)
+                    .aramChk(false)
+                    .build();
+                
+                scheduleRepository.save(schedule);
+                createdCount++;
+                
+                log.debug("멤버별 과제 스케줄 생성 완료: userId={}, schId={}", memberId, schedule.getSchId());
+                
+            } catch (Exception e) {
+                log.error("멤버별 과제 스케줄 생성 실패: userId={}, studyProjectId={}, error={}", 
+                    memberId, studyProjectId, e.getMessage());
+            }
+        }
+        
+        log.info("과제 일정 멤버별 생성 완료: studyProjectId={}, 생성된 스케줄 수={}", 
+                studyProjectId, createdCount);
+        
+        return createdCount;
+    }
+    
+    /**
+     * 기존 스터디 일정을 모든 멤버에게 복사 (기존 데이터 마이그레이션용)
+     * 
+     * @param studyProjectId 스터디 프로젝트 ID
+     * @return 복사된 스케줄 개수
+     */
+    @Transactional
+    public int copyExistingStudySchedulesToAllMembers(Long studyProjectId) {
+        log.info("기존 스터디 일정 멤버별 복사 시작: studyProjectId={}", studyProjectId);
+        
+        // 기존 스터디 일정 조회 (리더가 생성한 것들)
+        List<Schedule> existingSchedules = scheduleRepository.findByStudyProjectIdOrderBySchTimeAsc(studyProjectId);
+        
+        if (existingSchedules.isEmpty()) {
+            log.info("복사할 기존 스케줄이 없습니다: studyProjectId={}", studyProjectId);
+            return 0;
+        }
+        
+        // 스터디 멤버들 조회
+        List<String> memberIds = studyProjectMemberRepository.findUserIdsByStudyProjectId(studyProjectId);
+        
+        if (memberIds.isEmpty()) {
+            log.warn("스터디 멤버가 없습니다: studyProjectId={}", studyProjectId);
+            return 0;
+        }
+        
+        int copiedCount = 0;
+        
+        for (Schedule existingSchedule : existingSchedules) {
+            // 스터디 일정이나 과제 제출일인 경우만 복사
+            if (existingSchedule.getContent().startsWith("[스터디 일정]") || 
+                existingSchedule.getContent().startsWith("[과제 제출일]")) {
+                
+                for (String memberId : memberIds) {
+                    // 이미 해당 멤버에게 동일한 스케줄이 있는지 확인
+                    if (!scheduleRepository.existsByUserIdAndStudyProjectIdAndContentAndSchTime(
+                            memberId, studyProjectId, existingSchedule.getContent(), existingSchedule.getSchTime())) {
+                        
+                        try {
+                            Schedule newSchedule = Schedule.builder()
+                                .content(existingSchedule.getContent())
+                                .schTime(existingSchedule.getSchTime())
+                                .studyProjectId(studyProjectId)
+                                .userId(memberId)
+                                .aramChk(false)
+                                .build();
+                            
+                            scheduleRepository.save(newSchedule);
+                            copiedCount++;
+                            
+                            log.debug("기존 스케줄 복사 완료: userId={}, content={}", 
+                                memberId, existingSchedule.getContent());
+                            
+                        } catch (Exception e) {
+                            log.error("기존 스케줄 복사 실패: userId={}, content={}, error={}", 
+                                memberId, existingSchedule.getContent(), e.getMessage());
+                        }
+                    }
+                }
+            }
+        }
+        
+        log.info("기존 스터디 일정 멤버별 복사 완료: studyProjectId={}, 복사된 스케줄 수={}", 
+                studyProjectId, copiedCount);
+        
+        return copiedCount;
     }
 }

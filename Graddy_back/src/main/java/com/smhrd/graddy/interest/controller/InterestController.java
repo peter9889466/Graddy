@@ -13,7 +13,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/interests")
-@CrossOrigin(origins = "*")
+// @CrossOrigin(origins = "*")
 @Tag(name = "관심 항목 관리", description = "관심 항목 조회 및 관리 API")
 public class InterestController {
 

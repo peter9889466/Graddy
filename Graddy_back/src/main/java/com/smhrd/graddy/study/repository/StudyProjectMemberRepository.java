@@ -1,4 +1,4 @@
-package com.smhrd.graddy.chat.repository;
+package com.smhrd.graddy.study.repository;
 
 import com.smhrd.graddy.member.entity.Member;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -79,4 +79,33 @@ public interface StudyProjectMemberRepository extends JpaRepository<Member, Long
      */
     @Query("SELECT COUNT(m) FROM Member m WHERE m.studyProjectId = :studyProjectId")
     long countByStudyProjectId(@Param("studyProjectId") Long studyProjectId);
+    
+    /**
+     * 특정 스터디의 모든 사용자 ID를 조회
+     * 
+     * @param studyProjectId 스터디/프로젝트 ID
+     * @return 사용자 ID 목록
+     */
+    @Query("SELECT m.userId FROM Member m WHERE m.studyProjectId = :studyProjectId ORDER BY m.joinedAt ASC")
+    List<String> findUserIdsByStudyProjectId(@Param("studyProjectId") Long studyProjectId);
+    
+    /**
+     * 특정 스터디의 특정 멤버 상세 정보 조회 (Native Query 사용)
+     * 
+     * @param studyProjectId 스터디/프로젝트 ID
+     * @param memberId 멤버 ID
+     * @return 멤버 상세 정보 (Object 배열로 반환)
+     */
+    @Query(value = "SELECT " +
+           "m.member_id, m.user_id, m.study_project_id, m.study_project_check, m.member_type, m.joined_at, " +
+           "u.nick, u.git_url, u.user_refer, " +
+           "COALESCE(us.user_score, 0) as user_score " +
+           "FROM study_project_member m " +
+           "LEFT JOIN users u ON m.user_id = u.user_id " +
+           "LEFT JOIN scores us ON m.user_id = us.user_id " +
+           "WHERE m.study_project_id = :studyProjectId AND m.member_id = :memberId", 
+           nativeQuery = true)
+    List<Object[]> findMemberDetailByStudyProjectIdAndMemberId(
+            @Param("studyProjectId") Long studyProjectId, 
+            @Param("memberId") Long memberId);
 }
