@@ -203,26 +203,6 @@ const handleProcessApplication = async (userId: string, status: 'APPROVED' | 'RE
                                     </button>
                                 </div>
                                 </div>
-                                {/* <p className="text-xs text-gray-600 mb-3 line-clamp-2">
-                                    {application.message}
-                                </p> */}
-                                {/* <div className="flex gap-2">
-                                    <button
-                                        onClick={() => onProcessApplication?.(application.userId, 'PENDING')}
-                                        className="flex-1 px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
-                                    >
-                                        수락
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            const reason = prompt('거절 사유를 입력하세요 (선택사항):');
-                                            onProcessApplication?.(application.userId, 'REJECTED', reason || undefined);
-                                        }}
-                                        className="flex-1 px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-                                    >
-                                        거절
-                                    </button>
-                                </div> */}
                             </div>
                         ))}
                     </div>

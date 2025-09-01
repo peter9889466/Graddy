@@ -1,5 +1,15 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
-import { communityApi, Post as ApiPost, CreatePostRequest } from "../services/communityApi";
+import React, {
+    createContext,
+    useContext,
+    useState,
+    ReactNode,
+    useEffect,
+} from "react";
+import {
+    communityApi,
+    Post as ApiPost,
+    CreatePostRequest,
+} from "../services/communityApi";
 
 export type PostType = "project" | "study";
 
@@ -46,6 +56,10 @@ interface CommunityContextType {
         content: string,
         author: string
     ) => void;
+    updateComment: (commentId: string, content: string) => void;
+    deleteComment: (commentId: string) => void;
+    updateReply: (replyId: string, content: string) => void;
+    deleteReply: (replyId: string) => void;
     getCommentsByPost: (postId: string) => Comment[];
     getRepliesByComment: (commentId: string) => Reply[];
 }
@@ -56,7 +70,10 @@ const CommunityContext = createContext<CommunityContextType | undefined>(
 
 export const useCommunityContext = () => {
     const ctx = useContext(CommunityContext);
-    if (!ctx) throw new Error("useCommunityContext must be used within CommunityProvider");
+    if (!ctx)
+        throw new Error(
+            "useCommunityContext must be used within CommunityProvider"
+        );
     return ctx;
 };
 
@@ -90,8 +107,8 @@ export const CommunityProvider: React.FC<ProviderProps> = ({ children }) => {
             const convertedPosts = apiPosts.map(convertApiPostToPost);
             setPosts(convertedPosts);
         } catch (err) {
-            console.error('게시글 조회 실패:', err);
-            setError('게시글을 불러오는데 실패했습니다.');
+            console.error("게시글 조회 실패:", err);
+            setError("게시글을 불러오는데 실패했습니다.");
         } finally {
             setLoading(false);
         }
@@ -102,29 +119,29 @@ export const CommunityProvider: React.FC<ProviderProps> = ({ children }) => {
         try {
             setLoading(true);
             setError(null);
-            console.log('게시글 생성 요청 데이터:', data);
-            
+            console.log("게시글 생성 요청 데이터:", data);
+
             const result = await communityApi.createPost(data);
-            console.log('게시글 생성 성공:', result);
-            
+            console.log("게시글 생성 성공:", result);
+
             await refreshPosts(); // 생성 후 목록 새로고침
         } catch (err: any) {
-            console.error('게시글 생성 실패 상세:', {
+            console.error("게시글 생성 실패 상세:", {
                 error: err,
                 message: err?.message,
                 response: err?.response?.data,
-                status: err?.response?.status
+                status: err?.response?.status,
             });
-            
-            let errorMessage = '게시글 작성에 실패했습니다.';
+
+            let errorMessage = "게시글 작성에 실패했습니다.";
             if (err?.response?.status === 401) {
-                errorMessage = '로그인이 필요합니다.';
+                errorMessage = "로그인이 필요합니다.";
             } else if (err?.response?.status === 403) {
-                errorMessage = '권한이 없습니다.';
+                errorMessage = "권한이 없습니다.";
             } else if (err?.response?.data?.message) {
                 errorMessage = err.response.data.message;
             }
-            
+
             setError(errorMessage);
             throw err;
         } finally {
@@ -140,8 +157,8 @@ export const CommunityProvider: React.FC<ProviderProps> = ({ children }) => {
             await communityApi.deletePost(parseInt(postId));
             await refreshPosts(); // 삭제 후 목록 새로고침
         } catch (err) {
-            console.error('게시글 삭제 실패:', err);
-            setError('게시글 삭제에 실패했습니다.');
+            console.error("게시글 삭제 실패:", err);
+            setError("게시글 삭제에 실패했습니다.");
             throw err;
         } finally {
             setLoading(false);
@@ -156,8 +173,8 @@ export const CommunityProvider: React.FC<ProviderProps> = ({ children }) => {
             await communityApi.updatePost(parseInt(postId), data);
             await refreshPosts(); // 수정 후 목록 새로고침
         } catch (err) {
-            console.error('게시글 수정 실패:', err);
-            setError('게시글 수정에 실패했습니다.');
+            console.error("게시글 수정 실패:", err);
+            setError("게시글 수정에 실패했습니다.");
             throw err;
         } finally {
             setLoading(false);
@@ -197,6 +214,36 @@ export const CommunityProvider: React.FC<ProviderProps> = ({ children }) => {
         setReplies((prev) => [...prev, newReply]);
     };
 
+    const updateComment = (commentId: string, content: string) => {
+        setComments((prev) =>
+            prev.map((comment) =>
+                comment.id === commentId ? { ...comment, content } : comment
+            )
+        );
+    };
+
+    const deleteComment = (commentId: string) => {
+        setComments((prev) =>
+            prev.filter((comment) => comment.id !== commentId)
+        );
+        // 해당 댓글의 대댓글도 함께 삭제
+        setReplies((prev) =>
+            prev.filter((reply) => reply.parentCommentId !== commentId)
+        );
+    };
+
+    const updateReply = (replyId: string, content: string) => {
+        setReplies((prev) =>
+            prev.map((reply) =>
+                reply.id === replyId ? { ...reply, content } : reply
+            )
+        );
+    };
+
+    const deleteReply = (replyId: string) => {
+        setReplies((prev) => prev.filter((reply) => reply.id !== replyId));
+    };
+
     const getCommentsByPost = (postId: string) =>
         comments.filter((c) => c.postId === postId);
     const getRepliesByComment = (commentId: string) =>
@@ -214,6 +261,10 @@ export const CommunityProvider: React.FC<ProviderProps> = ({ children }) => {
         refreshPosts,
         addComment,
         addReply,
+        updateComment,
+        deleteComment,
+        updateReply,
+        deleteReply,
         getCommentsByPost,
         getRepliesByComment,
     };
@@ -224,5 +275,3 @@ export const CommunityProvider: React.FC<ProviderProps> = ({ children }) => {
         </CommunityContext.Provider>
     );
 };
-
-
