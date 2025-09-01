@@ -78,8 +78,6 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          // 필요시 인증 토큰 추가
-          // 'Authorization': `Bearer ${authContext?.token}`
         }
       });
       
@@ -368,7 +366,7 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 {selectedAssignment.title}
               </h3>
-              <p className="text-sm text-gray-600 mb-2">
+              <p className="text-sm text-gray-600 mb-2 whitespace-pre-line">
                 {selectedAssignment.description}
               </p>
               <p className="text-sm text-red-600">
