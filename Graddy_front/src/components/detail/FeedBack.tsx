@@ -164,10 +164,20 @@ const FeedBack: React.FC<FeedBackProps> = ({
             }
             
             const response = await fetch(`http://localhost:8080/api/submissions/member/${memberId}`);
+
+            const data: ApiResponse = await response.json();
+
+            if (data.status === 200) {
+                setSubmissions(data.data); // API 응답 데이터를 submissions 상태에 저장
+            } else {
+                throw new Error(data.message || 'API 응답 오류');
+            }
             
             // 나머지 로직은 동일
         } catch (err) {
             // 에러 처리
+            console.error('Failed to fetch submissions:', err);
+            setError('과제 제출 목록을 불러오는 데 실패했습니다.');
         } finally {
             setLoading(false);
         }
@@ -335,7 +345,7 @@ const FeedBack: React.FC<FeedBackProps> = ({
         <h2 className="text-xl font-bold mb-6 -mt-5 -ml-4"
             style={{ color: "#8B85E9" }}>과제 피드백</h2>
 
-                    {/* 드롭다운 선택 영역 */}
+            {/* 드롭다운 선택 영역 */}
             <div className="flex flex-col gap-4 mb-4">
                 {/* 과제 선택 드롭다운 */}
                 <div className="flex-1 relative" ref={assignmentDropdownRef}>
@@ -375,7 +385,7 @@ const FeedBack: React.FC<FeedBackProps> = ({
                     )}
                 </div>
 
-                            {/* 스터디원 선택 드롭다운 */}
+                {/* 스터디원 선택 드롭다운 */}
                 <div className="flex-1 relative" ref={memberDropdownRef}>
                     <button
                         onClick={() => selectedAssignment !== '과제를 선택하세요' && setIsMemberOpen(!isMemberOpen)}
@@ -438,7 +448,7 @@ const FeedBack: React.FC<FeedBackProps> = ({
             )}
         <hr className="my-4"/>
 
-                            {/* 과제 제출 내용 */}
+            {/* 과제 제출 내용 */}
             <div>
             <p className="text-lg font-bold mb-2 text-gray-500">
                 과제 내용
@@ -659,4 +669,4 @@ const FeedBack: React.FC<FeedBackProps> = ({
     )
 }
 
-export default FeedBack
+export default FeedBack;

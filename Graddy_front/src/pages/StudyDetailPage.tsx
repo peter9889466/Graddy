@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState, useContext, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import ResponsiveContainer from "../components/layout/ResponsiveContainer";
 import ResponsiveSidebar from "../components/layout/ResponsiveSidebar";
@@ -19,7 +19,7 @@ import { Tag, Info, Crown, Calendar, Search, AlertCircle, X, Star } from "lucide
 import { getUserIdFromToken } from "../utils/jwtUtils";
 import { InterestApiService, InterestForFrontend } from "../services/interestApi";
 
-const StudyDetailPage = () => {
+const StudyDetailPage: React.FC = () => {
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
 	const [activeTab, setActiveTab] = useState("스터디 정보");
@@ -27,6 +27,13 @@ const StudyDetailPage = () => {
 	const [isRecruiting, setIsRecruiting] = useState(true); // 모집 상태 관리
 	const [isStudyEnd, setIsStudyEnd] = useState(false);
 	const [curriculumText, setCurriculumText] = useState<string>('');
+	const [currentMemberId, setCurrentMemberId] = useState<number | null>(null);
+
+	if (!id) {
+		// id가 없는 경우의 에러 처리 또는 리디렉션
+		return <div>유효하지 않은 스터디 ID입니다.</div>;
+	}
+	const studyProjectId = parseInt(id, 10);
 
 	const authContext = useContext(AuthContext);
 	const location = useLocation();
@@ -60,7 +67,10 @@ const StudyDetailPage = () => {
 		state?.studyLevel || 1
 	);
 	
-
+	if (!authContext) {
+    // 컨텍스트가 없는 경우의 처리 (예: null 반환 또는 로딩 상태 표시)
+    return null; 
+}
 
 	// 기간 포맷팅 함수
 	const formatPeriod = (period: string): string => {
@@ -136,6 +146,18 @@ const StudyDetailPage = () => {
 	}>>([]);
 	const [maxMembers, setMaxMembers] = useState<number>(10);
 	const [isLoading, setIsLoading] = useState(true);
+
+	// 추가된 부분
+	const { user } = authContext;
+	const currentUserId = user?.nickname;
+
+	const currentMember = useMemo(() => {
+			if (!user || !user.nickname) return null; // 유저 정보나 userId가 없으면 null 반환
+			return members.find(member => member.userId === user.nickname); // userId로 멤버 찾기
+		}, [members, user]);
+
+	const memberId = currentMember ? currentMember.memberId : null;
+	//
 	
 	// 편집 관련 상태
 	const [isEditing, setIsEditing] = useState(false);
@@ -1050,7 +1072,8 @@ const StudyDetailPage = () => {
 					</div>
 				);
 			case "과제 제출":
-				if (!isLoggedIn || !(userMemberType === 'leader' || userMemberType === 'member')) {
+				// 로그인 및 스터디 멤버 권한 확인
+				if (!isLoggedIn || !currentMember || !(currentMember.memberType === 'leader' || currentMember.memberType === 'member')) {
 					return (
 						<div className="flex items-center justify-center h-64">
 							<div className="text-center">
@@ -1060,7 +1083,8 @@ const StudyDetailPage = () => {
 						</div>
 					);
 				}
-				return <Assignment studyProjectId={parseInt(id!, 10)} />;
+				// ✅ 권한 확인 후, Assignment 컴포넌트에 memberId를 전달합니다.
+				return <Assignment studyProjectId={studyProjectId} memberId={memberId} />;
 
 			case "과제 피드백":
 				if (!isLoggedIn || !(userMemberType === 'leader' || userMemberType === 'member')) {
