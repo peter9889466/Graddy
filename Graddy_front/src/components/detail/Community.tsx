@@ -69,6 +69,18 @@ const Community: React.FC<CommunityProps> = ({
 
     const { user } = useContext(AuthContext)!;
 
+    // 인증 헤더 생성 유틸리티
+    const getAuthHeaders = (): HeadersInit => {
+        const token = localStorage.getItem('userToken');
+        const headers: HeadersInit = {
+            'Content-Type': 'application/json'
+        };
+        if (token && token !== 'null' && token.trim() !== '') {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        return headers;
+    };
+
     // API 함수들
     const fetchPosts = async () => {
         if (!studyProjectId) return;
@@ -78,7 +90,11 @@ const Community: React.FC<CommunityProps> = ({
 
         try {
             const response = await fetch(
-                `http://localhost:8080/api/posts/study-project/${studyProjectId}`
+                `http://localhost:8080/api/posts/study-project/${studyProjectId}`,
+                {
+                    method: 'GET',
+                    headers: getAuthHeaders()
+                }
             );
 
             if (!response.ok) {
@@ -147,9 +163,7 @@ const Community: React.FC<CommunityProps> = ({
                 "http://localhost:8080/api/posts",
                 {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
+                    headers: getAuthHeaders(),
                     body: JSON.stringify({
                         studyProjectId: studyProjectId,
                         memberId: user.nickname, // ✅ AuthContext에서 가져온 nickname을 memberId로 사용
@@ -184,9 +198,7 @@ const Community: React.FC<CommunityProps> = ({
             // URL에 stPrPostId(게시글 ID)와 currentMemberId(현재 로그인 사용자 ID)를 포함합니다.
             const response = await fetch(`http://localhost:8080/api/posts/${postId}?currentMemberId=${user?.nickname}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: getAuthHeaders(),
                 body: JSON.stringify({
                     title: title.trim(),
                     content: content.trim()
@@ -211,7 +223,8 @@ const Community: React.FC<CommunityProps> = ({
         try {
             // URL에 게시글 ID와 현재 로그인한 사용자 ID를 쿼리 파라미터로 포함합니다.
             const response = await fetch(`http://localhost:8080/api/posts/${postId}?currentMemberId=${user?.nickname}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: getAuthHeaders()
             });
             
             if (!response.ok) {

@@ -17,6 +17,7 @@ interface FetchedAssignment {
   deadline: string;
   fileUrl: string;
   createdAt: string;
+  isSubmitted?: boolean; // 제출 여부 추가
 }
 
 interface SubmissionResponse {
@@ -62,6 +63,18 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
   const { getSubmissionByAssignment } = useAssignmentContext();
   const authContext = useContext(AuthContext);
 
+  // 인증 헤더 생성 유틸리티
+  const getAuthHeaders = (): HeadersInit => {
+    const token = localStorage.getItem('userToken');
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json'
+    };
+    if (token && token !== 'null' && token.trim() !== '') {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
+  };
+
   // 선택된 과제 정보 계산
   const selectedAssignment = useMemo(() => 
     fetchedAssignments.find(assignment => assignment.assignmentId === selectedAssignmentId),
@@ -76,9 +89,7 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
     try {
       const response = await fetch(`http://localhost:8080/api/assignments/study-project/${studyProjectId}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
+        headers: getAuthHeaders()
       });
       
       if (!response.ok) {
@@ -86,14 +97,61 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
       }
       
       const data = await response.json();
-      setFetchedAssignments(data.data || []);
+      const assignments = data.data || [];
+      
+      // 각 과제에 대한 제출 상태 확인
+      if (memberId) {
+        const assignmentsWithSubmissionStatus = await Promise.all(
+          assignments.map(async (assignment: FetchedAssignment) => {
+            try {
+              const submissionResponse = await fetch(
+                `http://localhost:8080/api/submissions/assignment/${assignment.assignmentId}/member/${memberId}`,
+                { headers: getAuthHeaders() }
+              );
+              return {
+                ...assignment,
+                isSubmitted: submissionResponse.ok
+              };
+            } catch (error) {
+              return {
+                ...assignment,
+                isSubmitted: false
+              };
+            }
+          })
+        );
+        setFetchedAssignments(assignmentsWithSubmissionStatus);
+      } else {
+        setFetchedAssignments(assignments);
+      }
     } catch (err: any) {
       console.error('과제 목록 조회 오류:', err);
       setError(err.message || '과제 목록을 불러오는 데 실패했습니다.');
     } finally {
       setIsLoading(false);
     }
-  }, [studyProjectId]);
+  }, [studyProjectId, memberId]);
+
+  // 제출된 과제 내용 조회
+  const fetchSubmissionContent = useCallback(async (assignmentId: number) => {
+    if (!memberId) return;
+    
+    try {
+      const response = await fetch(
+        `http://localhost:8080/api/submissions/assignment/${assignmentId}/member/${memberId}`,
+        { headers: getAuthHeaders() }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.data) {
+          setAssignmentContent(data.data.content || '');
+        }
+      }
+    } catch (error) {
+      console.error('제출 내용 조회 실패:', error);
+    }
+  }, [memberId]);
 
   // 파일 업로드 API (실제 구현 필요)
   const uploadFile = useCallback(async (file: File): Promise<string> => {
@@ -115,6 +173,12 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
 
     if (!selectedAssignment) {
       setError("과제를 선택해주세요.");
+      return;
+    }
+
+    // 이미 제출한 과제인지 확인
+    if (selectedAssignment.isSubmitted) {
+      setError("이미 제출한 과제입니다. 한 과제당 한 번만 제출할 수 있습니다.");
       return;
     }
 
@@ -143,11 +207,7 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
 
       const response = await fetch('http://localhost:8080/api/submissions/submit', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // 필요시 인증 토큰 추가
-          // 'Authorization': `Bearer ${authContext?.token}`
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(submissionData)
       });
 
@@ -158,6 +218,15 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
         setIsSubmitted(true);
         setShowSuccessMessage(true);
         setSubmitMessage(responseData.message);
+        
+        // 과제 목록의 제출 상태 업데이트
+        setFetchedAssignments(prev => 
+          prev.map(assignment => 
+            assignment.assignmentId === selectedAssignment.assignmentId
+              ? { ...assignment, isSubmitted: true }
+              : assignment
+          )
+        );
         
         console.log("과제 제출 성공:", responseData.data);
 
@@ -199,10 +268,11 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
   // 선택된 과제 변경 시 기존 제출 내용 확인
   useEffect(() => {
     if (selectedAssignment) {
-      const existingSubmission = getSubmissionByAssignment(selectedAssignment.title);
-      if (existingSubmission) {
-        setAssignmentContent(existingSubmission.content);
+      if (selectedAssignment.isSubmitted) {
+        // 이미 제출한 과제인 경우 제출 상태로 설정
         setIsSubmitted(true);
+        // 제출된 내용을 가져와서 표시
+        fetchSubmissionContent(selectedAssignment.assignmentId);
       } else {
         setAssignmentContent('');
         setIsSubmitted(false);
@@ -210,7 +280,7 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
         setShowSuccessMessage(false);
       }
     }
-  }, [selectedAssignment, getSubmissionByAssignment]);
+  }, [selectedAssignment]);
 
   // 과제 선택 핸들러
   const handleAssignmentSelect = useCallback((assignment: FetchedAssignment) => {
@@ -348,7 +418,15 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
                     : 'bg-white text-gray-700'
                 } ${index !== fetchedAssignments.length - 1 ? 'border-b border-gray-100' : ''}`}
               >
-                <div className="font-medium">{assignment.title}</div>
+                <div className="flex items-center justify-between">
+                  <div className="font-medium">{assignment.title}</div>
+                  {assignment.isSubmitted && (
+                    <div className="flex items-center gap-1 text-xs text-green-600">
+                      <CheckCircle className="w-3 h-3" />
+                      제출완료
+                    </div>
+                  )}
+                </div>
                 <div className="text-xs text-gray-500 mt-1">
                   마감일: {formatDate(assignment.deadline)}
                 </div>

@@ -1099,7 +1099,7 @@ const StudyDetailPage: React.FC = () => {
 				}
 				return <FeedBack 
 					studyProjectId={parseInt(id!, 10)}
-					currentUserId={getUserIdFromToken() || authContext?.user?.nickname || ''}
+					currentUserId={currentMember?.userId || authContext?.user?.nickname || ''}
 					members={members}
 				/>;
 			case "과제 / 일정 관리":

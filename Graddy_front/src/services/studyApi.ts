@@ -198,32 +198,16 @@ export class StudyApiService {
         try {
             console.log('getStudyProject 호출 시작:', studyProjectId);
 
-            const response = await fetch(`http://localhost:8080/api/studies-projects/${studyProjectId}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
+            // apiGet을 사용하여 인증 헤더 자동 포함
+            const response = await apiGet<BackendStudyProjectData>(`/studies-projects/${studyProjectId}`);
+            console.log('getStudyProject 응답:', response);
 
-            console.log('HTTP 응답 상태:', response.status);
-
-            if (!response.ok) {
-                if (response.status === 404) {
-                    console.log('스터디/프로젝트를 찾을 수 없습니다.');
-                    return null;
-                }
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            const responseData = await response.json();
-            console.log('getStudyProject 응답:', responseData);
-
-            if (!responseData || !responseData.data) {
+            if (!response || !response.data) {
                 console.warn('getStudyProject API data 필드가 없습니다.');
                 return null;
             }
 
-            return responseData.data;
+            return response.data;
         } catch (error) {
             console.error('getStudyProject 실패:', error);
             return null;

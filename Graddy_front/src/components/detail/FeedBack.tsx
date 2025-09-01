@@ -62,6 +62,23 @@ interface FeedbackResponse {
     }>;
 }
 
+// 댓글/답글 UI 타입
+interface UiReply {
+    id: string;
+    content: string;
+    author: string;
+    timestamp: string;
+    parentId: string;
+}
+
+interface UiComment {
+    id: string;
+    content: string;
+    author: string;
+    timestamp: string;
+    replies: UiReply[];
+}
+
 interface FeedBackProps {
     studyProjectId: number;
     currentUserId: string;
@@ -75,11 +92,18 @@ interface FeedBackProps {
     }>;
 }
 
-const FeedBack: React.FC<FeedBackProps> = ({ 
-    studyProjectId, 
-    currentUserId, 
-    members 
-}) => {
+    const FeedBack: React.FC<FeedBackProps> = ({ 
+        studyProjectId, 
+        currentUserId, 
+        members 
+    }) => {
+        // 디버깅을 위한 콘솔 로그
+        console.log('FeedBack 컴포넌트 - 전달받은 데이터:', {
+            studyProjectId,
+            currentUserId,
+            membersCount: members.length,
+            members: members
+        });
     const [isAssignmentOpen, setIsAssignmentOpen] = useState(false);
     const [isMemberOpen, setIsMemberOpen] = useState(false);
     const [selectedAssignment, setSelectedAssignment] = useState('과제를 선택하세요');
@@ -103,31 +127,20 @@ const FeedBack: React.FC<FeedBackProps> = ({
     const [feedbackLoading, setFeedbackLoading] = useState(false);
     const [feedbackScore, setFeedbackScore] = useState<number | null>(null);
 
-    // 댓글 관련 상태
-    const [comments, setComments] = useState([
-        {
-            id: '1',
-            content: 'AI 피드백이 정말 도움이 되었습니다!',
-            author: '김철수',
-            timestamp: '2024-01-15 14:30',
-            replies: [
-                {
-                    id: '1-1',
-                    content: '저도 동감합니다!',
-                    author: '이영희',
-                    timestamp: '2024-01-15 15:00',
-                    parentId: '1'
-                }
-            ]
-        },
-        {
-            id: '2',
-            content: '다음 과제도 기대됩니다.',
-            author: '박민수',
-            timestamp: '2024-01-15 16:20',
-            replies: []
+    // 인증 헤더 생성 유틸리티
+    const getAuthHeaders = (): HeadersInit => {
+        const token = localStorage.getItem('userToken');
+        const headers: HeadersInit = {
+            'Content-Type': 'application/json'
+        };
+        if (token && token !== 'null' && token.trim() !== '') {
+            headers['Authorization'] = `Bearer ${token}`;
         }
-    ]);
+        return headers;
+    };
+
+    // 댓글 관련 상태 (기본값 제거)
+    const [comments, setComments] = useState<UiComment[]>([]);
 
     const [newComment, setNewComment] = useState('');
     const [newReply, setNewReply] = useState('');
@@ -135,14 +148,21 @@ const FeedBack: React.FC<FeedBackProps> = ({
     
     const fetchAssignments = async () => {
         try {
-            const response = await fetch(`http://localhost:8080/api/assignments/study-project/${studyProjectId}`);
+            const response = await fetch(`http://localhost:8080/api/assignments/study-project/${studyProjectId}`,
+                { method: 'GET', headers: getAuthHeaders() }
+            );
+            if (!response.ok) {
+                throw new Error(`과제 목록 조회 실패: ${response.status}`);
+            }
             const data = await response.json();
-            
             if (data.status === 200) {
                 setAssignments(data.data || []);
+            } else {
+                throw new Error(data.message || '과제 목록 조회 실패');
             }
         } catch (err) {
             console.error('과제 목록 조회 실패:', err);
+            setError(err instanceof Error ? err.message : '과제 목록 조회 실패');
         }
     };
 
@@ -152,7 +172,12 @@ const FeedBack: React.FC<FeedBackProps> = ({
             setFeedbackLoading(true);
             setError(null);
             
-            const response = await fetch(`http://localhost:8080/api/feedbacks/submission/${submissionId}`);
+            const response = await fetch(`http://localhost:8080/api/feedbacks/submission/${submissionId}`,
+                { method: 'GET', headers: getAuthHeaders() }
+            );
+            if (!response.ok) {
+                throw new Error(`AI 피드백 조회 실패: ${response.status}`);
+            }
             const data: FeedbackResponse = await response.json();
             
             if (data.status === 200 && data.data.length > 0) {
@@ -179,7 +204,12 @@ const FeedBack: React.FC<FeedBackProps> = ({
             setLoading(true);
             setError(null);
             
-            const response = await fetch(`http://localhost:8080/api/submissions/assignment/${assignmentId}/member/${memberId}`);
+            const response = await fetch(`http://localhost:8080/api/submissions/assignment/${assignmentId}/member/${memberId}`,
+                { method: 'GET', headers: getAuthHeaders() }
+            );
+            if (!response.ok) {
+                throw new Error(`과제 내용 조회 실패: ${response.status}`);
+            }
             const data: SingleSubmissionResponse = await response.json();
             
             if (data.status === 200) {
@@ -239,7 +269,12 @@ const FeedBack: React.FC<FeedBackProps> = ({
             setLoading(true);
             setError(null);
             
-            const response = await fetch(`http://localhost:8080/api/submissions/assignment/${assignmentId}`);
+            const response = await fetch(`http://localhost:8080/api/submissions/assignment/${assignmentId}`,
+                { method: 'GET', headers: getAuthHeaders() }
+            );
+            if (!response.ok) {
+                throw new Error(`과제별 제출 목록 조회 실패: ${response.status}`);
+            }
             const data: AssignmentSubmissionResponse = await response.json();
             
             if (data.status === 200) {
@@ -317,17 +352,32 @@ const FeedBack: React.FC<FeedBackProps> = ({
             setLoading(true);
             setError(null);
             
-            // 현재 사용자의 memberId 찾기
-            const currentMember = members.find(member => member.userId === currentUserId);
+            // 현재 사용자의 memberId 찾기 (여러 방법으로 시도)
+            console.log('멤버 찾기 시도:', {
+                currentUserId,
+                members: members.map(m => ({ userId: m.userId, nick: m.nick, memberId: m.memberId }))
+            });
+            
+            const currentMember = members.find(member => 
+                member.userId === currentUserId || 
+                member.nick === currentUserId ||
+                member.userId.toLowerCase() === currentUserId.toLowerCase()
+            );
             const memberId = currentMember?.memberId;
+            
+            console.log('찾은 멤버:', currentMember);
             
             if (!memberId) {
                 setError('멤버 정보를 찾을 수 없습니다.');
                 return;
             }
             
-            const response = await fetch(`http://localhost:8080/api/submissions/member/${memberId}`);
-
+            const response = await fetch(`http://localhost:8080/api/submissions/member/${memberId}`,
+                { method: 'GET', headers: getAuthHeaders() }
+            );
+            if (!response.ok) {
+                throw new Error(`제출 목록 조회 실패: ${response.status}`);
+            }
             const data: ApiResponse = await response.json();
 
             if (data.status === 200) {
