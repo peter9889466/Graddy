@@ -1,6 +1,6 @@
 package com.smhrd.graddy.study.service;
 
-import com.smhrd.graddy.chat.repository.StudyProjectMemberRepository;
+import com.smhrd.graddy.study.repository.StudyProjectMemberRepository;
 import com.smhrd.graddy.study.dto.StudyMemberResponse;
 import com.smhrd.graddy.user.repository.UserInterestRepository;
 import lombok.RequiredArgsConstructor;
@@ -34,14 +34,15 @@ public class StudyMemberService {
         log.info("스터디 멤버 상세 정보 조회: studyProjectId={}, memberId={}", studyProjectId, memberId);
         
         // 멤버 기본 정보 조회
-        Object[] memberData = studyProjectMemberRepository.findMemberDetailByStudyProjectIdAndMemberId(
+        List<Object[]> results = studyProjectMemberRepository.findMemberDetailByStudyProjectIdAndMemberId(
                 studyProjectId, memberId);
         
-        if (memberData == null || memberData.length == 0) {
+        if (results == null || results.isEmpty()) {
             throw new IllegalArgumentException("해당 스터디의 멤버를 찾을 수 없습니다: studyProjectId=" + studyProjectId + ", memberId=" + memberId);
         }
         
-        // Object 배열에서 데이터 추출
+        // 첫 번째 결과에서 데이터 추출
+        Object[] memberData = results.get(0);
         String userId = (String) memberData[1];
         
         // 관심분야 조회
@@ -52,12 +53,12 @@ public class StudyMemberService {
                 .memberId((Long) memberData[0])
                 .userId(userId)
                 .studyProjectId((Long) memberData[2])
-                .joinedAt(memberData[3] != null ? memberData[3].toString() : null)
-                .nick((String) memberData[4])
-                .gitUrl((String) memberData[5])
-                .userRefer((String) memberData[6])
-                .imgUrl((String) memberData[7])
-                .userScore((Integer) memberData[8])
+                .joinedAt(memberData[5] != null ? memberData[5].toString() : null)      // joined_at
+                .nick((String) memberData[6])             // nick
+                .gitUrl((String) memberData[7])           // git_url
+                .userRefer((String) memberData[8])        // user_refer
+                .imgUrl(null)                             // img_url은 현재 null로 설정
+                .userScore(memberData[9] != null ? ((Long) memberData[9]).intValue() : 0)       // user_score
                 .interests(interests)
                 .build();
         

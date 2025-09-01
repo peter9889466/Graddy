@@ -5,7 +5,7 @@ import com.smhrd.graddy.comment.dto.CommentResponse;
 import com.smhrd.graddy.comment.entity.Comment;
 import com.smhrd.graddy.comment.repository.CommentRepository;
 import com.smhrd.graddy.user.repository.UserRepository;
-import com.smhrd.graddy.chat.repository.StudyProjectMemberRepository;
+import com.smhrd.graddy.study.repository.StudyProjectMemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

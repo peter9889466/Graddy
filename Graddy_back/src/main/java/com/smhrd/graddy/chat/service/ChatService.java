@@ -4,7 +4,7 @@ import com.smhrd.graddy.chat.dto.ChatMessageRequest;
 import com.smhrd.graddy.chat.dto.ChatMessageResponse;
 import com.smhrd.graddy.chat.entity.ChatMessage;
 import com.smhrd.graddy.chat.repository.ChatMessageRepository;
-import com.smhrd.graddy.chat.repository.StudyProjectMemberRepository;
+import com.smhrd.graddy.study.repository.StudyProjectMemberRepository;
 import com.smhrd.graddy.member.entity.Member;
 import com.smhrd.graddy.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
