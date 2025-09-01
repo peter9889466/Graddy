@@ -84,7 +84,7 @@ Content-Type: application/json
 # OpenAI API 설정
 openai.api.key=${OPENAI_API_KEY:}
 openai.api.url=https://api.openai.com/v1/chat/completions
-openai.model=gpt-4o-mini
+openai.model=gpt-4o
 ```
 
 ### 2. 환경 변수 설정

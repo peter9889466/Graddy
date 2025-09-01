@@ -21,6 +21,8 @@ import com.smhrd.graddy.member.service.MemberService;
 import com.smhrd.graddy.study.service.StudyApplicationService;
 
 import java.util.Map;
+import com.smhrd.graddy.study.dto.AICurriculumResponse;
+import com.smhrd.graddy.study.service.AICurriculumService;
 
 /**
  * 스터디/프로젝트 관리 API 컨트롤러
@@ -36,6 +38,7 @@ public class StudyController {
     private final JwtUtil jwtUtil;
     private final MemberService memberService;
     private final StudyApplicationService studyApplicationService;
+    private final AICurriculumService aiCurriculumService;
 
     /**
      * 스터디/프로젝트 생성
@@ -452,6 +455,58 @@ public class StudyController {
                                     "스케줄러는 매일 자정(00:00)에 자동으로 실행됩니다.");
         } catch (Exception e) {
             return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "스케줄러 테스트 실행에 실패했습니다.", null);
+        }
+    }
+
+    /**
+     * 스터디 커리큘럼 수정
+     * 특정 스터디의 AI 커리큘럼을 새로 생성하여 수정합니다.
+     * study_project_id를 통해 해당 스터디의 커리큘럼만 수정 가능합니다.
+     * 
+     * @param studyProjectId 수정할 스터디의 ID
+     * @param authorization JWT 토큰 (Bearer 형식)
+     * @return 수정된 커리큘럼 정보
+     */
+    @PostMapping("/{studyProjectId}/update-curriculum")
+    @Operation(summary = "스터디 커리큘럼 수정", 
+              description = "특정 스터디의 AI 커리큘럼을 새로 생성하여 수정합니다.\n\n" +
+                           "**사용법:**\n" +
+                           "1. Authorization 헤더에 JWT 토큰 입력 (Bearer 형식)\n" +
+                           "2. studyProjectId 경로 변수에 수정할 스터디 ID 입력\n" +
+                           "3. 스터디 타입인 경우에만 커리큘럼 수정 가능\n\n" +
+                           "**주의:**\n" +
+                           "• 프로젝트 타입에서는 커리큘럼 수정이 불가능합니다.\n" +
+                           "• 기존 커리큘럼이 새로운 AI 생성 커리큘럼으로 덮어씌워집니다.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<ApiResponse<AICurriculumResponse>> updateStudyCurriculum(
+            @Parameter(description = "수정할 스터디의 ID", example = "1", required = true)
+            @PathVariable Long studyProjectId,
+            @Parameter(description = "JWT 토큰 (Bearer 형식)", 
+                      example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                      required = true)
+            @RequestHeader(name = "Authorization", required = true) String authorization) {
+        try {
+            // JWT 토큰에서 user_id 추출
+            String token = authorization.replace("Bearer ", "");
+            String userId = jwtUtil.extractUserId(token);
+            
+            // 스터디/프로젝트 정보 조회하여 권한 확인
+            StudyResponse studyResponse = studyService.getStudy(studyProjectId);
+            
+            // 스터디 생성자만 커리큘럼 수정 가능
+            if (!userId.equals(studyResponse.getUserId())) {
+                return ApiResponse.error(HttpStatus.FORBIDDEN, "커리큘럼 수정 권한이 없습니다. 스터디 생성자만 수정할 수 있습니다.", null);
+            }
+            
+            // AI 커리큘럼 수정 실행
+            AICurriculumResponse curriculumResponse = aiCurriculumService.updateCurriculum(studyProjectId);
+            
+            return ApiResponse.success("스터디 커리큘럼이 성공적으로 수정되었습니다.", curriculumResponse);
+            
+        } catch (IllegalArgumentException e) {
+            return ApiResponse.error(HttpStatus.BAD_REQUEST, e.getMessage(), null);
+        } catch (Exception e) {
+            return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "커리큘럼 수정 중 오류가 발생했습니다: " + e.getMessage(), null);
         }
     }
 }
