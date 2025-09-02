@@ -22,8 +22,6 @@ interface ScheduleProps {
     memberId?: number;
 }
 
-
-
 const Schedule: React.FC<ScheduleProps> = ({
     isStudyLeader = false,
     studyProjectId = 0,
@@ -108,39 +106,41 @@ const Schedule: React.FC<ScheduleProps> = ({
         }
     };
 
-   const loadSchedules = async () => {
-    try {
-        console.log('일정 목록 로드 시도 - studyProjectId:', studyProjectId);
-        
-        // DB에서 일정 목록 가져오기
-        const response = await apiGet(`/schedules/study/${studyProjectId}`);
-        console.log('일정 목록 응답:', response);
-        
-        // **수정된 부분**
-        // response.data 대신 response 자체를 확인합니다.
-        if (Array.isArray(response)) {
-            const schedules = response.map((schedule: any) => ({
-                id: schedule.schId.toString(),
-                title: schedule.content,
-                type: 'schedule' as const,
-                date: new Date(schedule.schTime).toISOString().split('T')[0],
-                time: new Date(schedule.schTime).toISOString().split('T')[1].substring(0, 5),
-                description: schedule.content,
-                createdAt: schedule.schTime,
-                isExpanded: false
-            }));
+    const loadSchedules = async () => {
+        try {
+            console.log('일정 목록 로드 시도 - studyProjectId:', studyProjectId);
             
-            setScheduleItems(prevItems => {
-                const existingAssignments = prevItems.filter(item => item.type === 'assignment');
-                return [...existingAssignments, ...schedules];
-            });
-        } else {
-            console.log('일정 데이터가 없거나 배열이 아닙니다:', response);
+            // DB에서 일정 목록 가져오기 (정확한 엔드포인트)
+            const response = await apiGet(`/schedules/study/${studyProjectId}`);
+            console.log('일정 목록 응답:', response);
+            
+            // 응답이 직접 배열인 경우와 data 프로퍼티에 배열이 있는 경우 모두 처리
+            const scheduleData = response.data || response;
+            
+            if (scheduleData && Array.isArray(scheduleData)) {
+                const schedules = scheduleData.map((schedule: any) => ({
+                    id: schedule.schId.toString(),
+                    title: schedule.content,
+                    type: 'schedule' as const,
+                    date: new Date(schedule.schTime).toISOString().split('T')[0],
+                    time: new Date(schedule.schTime).toISOString().split('T')[1].substring(0, 5),
+                    description: schedule.content,
+                    createdAt: schedule.schTime,
+                    isExpanded: false
+                }));
+                
+                // 기존 과제는 유지하고 일정만 업데이트
+                setScheduleItems(prevItems => {
+                    const existingAssignments = prevItems.filter(item => item.type === 'assignment');
+                    return [...existingAssignments, ...schedules];
+                });
+            } else {
+                console.log('일정 데이터가 없거나 배열이 아닙니다:', scheduleData);
+            }
+        } catch (error) {
+            console.log('일정 목록 로드 실패:', error);
         }
-    } catch (error) {
-        console.log('일정 목록 로드 실패:', error);
-    }
-};
+    };
 
     const handleAddItem = async () => {
         console.log('handleAddItem 함수 호출됨');
@@ -228,25 +228,13 @@ const Schedule: React.FC<ScheduleProps> = ({
                         if (response.data) {
                             alert('일정이 추가되었습니다!');
                             
-                            // 새로 생성된 일정을 목록에 추가
-                            const newSchedule: ScheduleItem = {
-                                id: (response.data as any).schId?.toString() || Date.now().toString(),
-                                title: newItem.title,
-                                type: 'schedule',
-                                date: newItem.date,
-                                time: newItem.time,
-                                description: newItem.title,
-                                createdAt: new Date().toISOString(),
-                                isExpanded: false
-                            };
-                            
-                            // 목록에 새 일정 추가
-                            setScheduleItems([...scheduleItems, newSchedule]);
-                            
                             // 폼 초기화
                             setNewItem({ title: '', description: '', date: '', time: '' });
                             setSelectedFile(null);
                             setIsAdding(false);
+                            
+                            // 일정 목록 다시 로드
+                            await loadSchedules();
                             
                             return; // 성공 시 여기서 종료
                         }
@@ -291,13 +279,27 @@ const Schedule: React.FC<ScheduleProps> = ({
                 }
             } else {
                 console.log('일정 삭제 요청 - schId:', id);
-                const response = await apiDelete(`/schedules/${id}`);
-                console.log('일정 삭제 응답:', response);
+                
+                try {
+                    await apiDelete(`/schedules/${id}`);
+                    console.log('일정 삭제 성공');
 
-                // 일정 삭제는 응답 상태로 성공 여부 확인
-                alert('일정이 성공적으로 삭제되었습니다.');
-                // 목록에서 삭제된 일정 제거
-                setScheduleItems(scheduleItems.filter(item => item.id !== id));
+                    // 일정 삭제 성공
+                    alert('일정이 성공적으로 삭제되었습니다.');
+                    // 일정 목록 다시 로드
+                    await loadSchedules();
+                } catch (deleteError: any) {
+                    // JSON 파싱 오류이지만 실제로는 삭제 성공인 경우 처리
+                    if (deleteError.message && deleteError.message.includes('Unexpected end of JSON input')) {
+                        console.log('일정 삭제 성공 (빈 응답)');
+                        alert('일정이 성공적으로 삭제되었습니다.');
+                        // 일정 목록 다시 로드
+                        await loadSchedules();
+                    } else {
+                        // 실제 삭제 실패
+                        throw deleteError;
+                    }
+                }
             }
         } catch (error) {
             console.error(`${type === 'assignment' ? '과제' : '일정'} 삭제 실패:`, error);
@@ -332,26 +334,16 @@ const Schedule: React.FC<ScheduleProps> = ({
             const response = await apiPut(`/schedules/${id}`, updateData);
             console.log('일정 수정 응답:', response);
 
-            if (response.data) {
-                alert('일정이 성공적으로 수정되었습니다.');
-                
-                // 목록에서 수정된 일정 업데이트
-                setScheduleItems(scheduleItems.map(item =>
-                    item.id === id
-                        ? {
-                            ...item,
-                            title: editingData.title,
-                            date: editingData.date,
-                            time: editingData.time,
-                            description: editingData.title
-                        }
-                        : item
-                ));
-                
-                // 수정 모드 종료
-                setEditingSchedule(null);
-                setEditingData({ title: '', date: '', time: '' });
-            }
+            // PUT 요청은 일반적으로 성공 시 수정된 데이터를 반환
+            alert('일정이 성공적으로 수정되었습니다.');
+            
+            // 수정 모드 종료
+            setEditingSchedule(null);
+            setEditingData({ title: '', date: '', time: '' });
+            
+            // 일정 목록 다시 로드
+            await loadSchedules();
+            
         } catch (error) {
             console.error('일정 수정 실패:', error);
             alert('일정 수정에 실패했습니다. 다시 시도해주세요.');
