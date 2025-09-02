@@ -114,7 +114,10 @@ public class StudyMatchingService {
         double interestMatchScore = calculateInterestMatchScore(user, study);
         double levelMatchScore = calculateLevelMatchScore(user, study);
         
-        // 5. DTO 생성 및 반환
+        // 5. 리더 닉네임 조회
+        String leaderNickname = getLeaderNickname(study.getUserId());
+        
+        // 6. DTO 생성 및 반환
         return StudyRecommendationDto.builder()
                 .studyProjectId(study.getStudyProjectId())
                 .studyProjectName(study.getStudyProjectName())
@@ -123,6 +126,7 @@ public class StudyMatchingService {
                 .studyLevel(study.getStudyLevel())
                 .typeCheck(study.getTypeCheck().name())
                 .userId(study.getUserId())
+                .userNickname(leaderNickname)
                 .isRecruiting(study.getIsRecruiting().name())
                 .studyProjectStart(timestampToLocalDateTime(study.getStudyProjectStart()))
                 .studyProjectEnd(timestampToLocalDateTime(study.getStudyProjectEnd()))
@@ -540,5 +544,21 @@ public class StudyMatchingService {
             return null;
         }
         return timestamp.toLocalDateTime();
+    }
+    
+    /**
+     * 리더의 닉네임 조회
+     * @param userId 리더의 사용자 ID
+     * @return 리더의 닉네임, 사용자를 찾을 수 없으면 "알 수 없음" 반환
+     */
+    private String getLeaderNickname(String userId) {
+        try {
+            return userRepository.findByUserId(userId)
+                    .map(user -> user.getNick() != null ? user.getNick() : "알 수 없음")
+                    .orElse("알 수 없음");
+        } catch (Exception e) {
+            log.warn("리더 닉네임 조회 중 오류 발생 (userId: {}): {}", userId, e.getMessage());
+            return "알 수 없음";
+        }
     }
 } 
