@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useRef } from "react";
 import { Edit3, Camera, ExternalLink } from "lucide-react";
 
 interface SelectedInterestItem {
@@ -8,14 +8,16 @@ interface SelectedInterestItem {
     difficulty: string;
 }
 
+interface MemberData {
+    nickname: string;
+    githubUrl?: string;
+}
+
 interface ProfileSectionProps {
     profileImage: string;
     userScore: number;
     userInterests: SelectedInterestItem[];
-    memberData?: {
-        nickname?: string;
-        githubUrl?: string;
-    };
+    memberData: MemberData;
     isEditingGithub: boolean;
     onProfileImageClick: () => void;
     onImageChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -24,7 +26,7 @@ interface ProfileSectionProps {
     onGithubSave: () => void;
     onGithubCancel: () => void;
     onGithubChange: (value: string) => void;
-    fileInputRef: React.RefObject<HTMLInputElement | null>;
+    fileInputRef: React.RefObject<HTMLInputElement>;
 }
 
 const ProfileSection: React.FC<ProfileSectionProps> = ({
@@ -42,6 +44,10 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
     onGithubChange,
     fileInputRef,
 }) => {
+    const handleGithubChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        onGithubChange(value);
+    };
     return (
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
             {/* 왼쪽: 프로필 정보 */}
@@ -50,7 +56,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                 <div className="flex justify-center lg:justify-start -mt-4">
                     <div className="relative">
                         <div
-                            className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border cursor-pointer group"
+                            className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border cursor-pointer group relative"
                             style={{
                                 borderColor: "#777777",
                             }}
@@ -82,7 +88,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                             닉네임
                         </label>
                         <div className="px-3 sm:px-4 py-2 sm:py-3 bg-gray-100 rounded-lg text-gray-600 text-sm sm:text-base">
-                            {memberData?.nickname || "사용자"}
+                            {memberData.nickname}
                         </div>
                     </div>
                     <div>
@@ -113,10 +119,8 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                             <div className="space-y-2">
                                 <input
                                     type="url"
-                                    defaultValue={memberData?.githubUrl || ""}
-                                    onChange={(e) =>
-                                        onGithubChange(e.target.value)
-                                    }
+                                    value={memberData.githubUrl || ""}
+                                    onChange={handleGithubChange}
                                     className="w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg text-sm sm:text-base focus:outline-none focus:border-purple-400"
                                     placeholder="https://github.com/username"
                                 />
@@ -146,7 +150,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                             </div>
                         ) : (
                             <div className="px-3 sm:px-4 py-2 sm:py-3 bg-gray-100 rounded-lg text-sm sm:text-base break-all">
-                                {memberData?.githubUrl ? (
+                                {memberData.githubUrl ? (
                                     <a
                                         href={memberData.githubUrl}
                                         target="_blank"
@@ -195,7 +199,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                                     color: "#8B85E9",
                                 }}
                             >
-                                {userScore.toLocaleString()}
+                                {userScore?.toLocaleString() || 0}
                             </span>
                         </div>
                     </div>

@@ -1,7 +1,13 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Search, X, AlertCircle } from "lucide-react";
+import {
+    getAllInterests,
+    updateUserInterests,
+    Interest,
+    UserInterest,
+} from "../../services/userService";
 
-// 타입 정의 - Join2와 동일하게 수정
+// 타입 정의
 interface InterestItem {
     id: number;
     name: string;
@@ -14,46 +20,34 @@ interface SelectedInterestItem extends InterestItem {
 
 interface InterestProps {
     maxSelections?: number;
-    initialSelections?: SelectedInterestItem[];
-    onComplete?: (selectedInterests: SelectedInterestItem[]) => void;
+    initialSelections?: UserInterest[];
+    onComplete?: (selectedInterests: UserInterest[]) => void;
     onCancel?: () => void;
 }
 
-// Join2와 동일한 관심분야 데이터
-const allInterests: InterestItem[] = [
-    { id: 1, name: "Python", category: "language" },
-    { id: 2, name: "JavaScript", category: "language" },
-    { id: 3, name: "Java", category: "language" },
-    { id: 4, name: "C++", category: "language" },
-    { id: 5, name: "C", category: "language" },
-    { id: 6, name: "TypeScript", category: "language" },
-    { id: 7, name: "Kotlin", category: "language" },
-    { id: 8, name: "Swift", category: "language" },
-    { id: 9, name: "Go", category: "language" },
-    { id: 10, name: "PHP", category: "language" },
-    { id: 11, name: "Dart", category: "language" },
-    { id: 12, name: "Rust", category: "language" },
-    { id: 13, name: "Ruby", category: "language" },
-    { id: 14, name: "Assembly", category: "language" },
-    { id: 15, name: "React", category: "framework" },
-    { id: 16, name: "Node.js", category: "framework" },
-    { id: 17, name: "Spring", category: "framework" },
-    { id: 18, name: "Spring Boot", category: "framework" },
-    { id: 19, name: "Django", category: "framework" },
-    { id: 20, name: "Flask", category: "framework" },
-    { id: 21, name: "Vue", category: "framework" },
-    { id: 22, name: "Pandas", category: "tool" },
-    { id: 23, name: "Unity", category: "tool" },
-    { id: 24, name: "Linux", category: "platform" },
-];
-
-// Join2와 동일한 카테고리
+// 카테고리 매핑
 const categories = {
     all: "전체",
-    language: "프로그래밍 언어",
-    framework: "프레임워크/라이브러리",
-    tool: "도구/라이브러리",
-    platform: "플랫폼/OS",
+    1: "프로그래밍 언어",
+    2: "프레임워크/라이브러리",
+    3: "도구/라이브러리",
+    4: "플랫폼/OS",
+};
+
+// 카테고리 ID를 문자열로 변환하는 함수
+const getCategoryString = (interestDivision: number): string => {
+    switch (interestDivision) {
+        case 1:
+            return "language";
+        case 2:
+            return "framework";
+        case 3:
+            return "tool";
+        case 4:
+            return "platform";
+        default:
+            return "other";
+    }
 };
 
 const InterestSelection: React.FC<InterestProps> = ({
@@ -62,8 +56,10 @@ const InterestSelection: React.FC<InterestProps> = ({
     onComplete,
     onCancel,
 }) => {
-    const [selectedInterests, setSelectedInterests] =
-        useState<SelectedInterestItem[]>(initialSelections);
+    const [allInterests, setAllInterests] = useState<InterestItem[]>([]);
+    const [selectedInterests, setSelectedInterests] = useState<
+        SelectedInterestItem[]
+    >([]);
     const [activeCategory, setActiveCategory] = useState<string>("all");
     const [searchTerm, setSearchTerm] = useState("");
     const [activeDifficulty, setActiveDifficulty] = useState<string | null>(
@@ -71,9 +67,42 @@ const InterestSelection: React.FC<InterestProps> = ({
     );
     const [hintMessage, setHintMessage] = useState<string>("");
     const [showHint, setShowHint] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
 
     // 모달 ref
     const modalRef = useRef<HTMLDivElement>(null);
+
+    // 관심분야 데이터 로드
+    useEffect(() => {
+        const fetchInterests = async () => {
+            try {
+                setIsLoading(true);
+                const interests = await getAllInterests();
+                const mappedInterests = interests.map((interest) => ({
+                    id: interest.interestId,
+                    name: interest.interestName,
+                    category: getCategoryString(interest.interestDivision),
+                }));
+                setAllInterests(mappedInterests);
+
+                // 초기 선택된 관심분야 설정
+                const initialSelected = initialSelections.map((item) => ({
+                    id: item.id,
+                    name: item.name,
+                    category: item.category,
+                    difficulty: item.difficulty,
+                }));
+                setSelectedInterests(initialSelected);
+            } catch (error) {
+                console.error("관심분야 로드 실패:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchInterests();
+    }, [initialSelections]);
 
     // ESC 키 이벤트 리스너
     useEffect(() => {
@@ -217,12 +246,31 @@ const InterestSelection: React.FC<InterestProps> = ({
     };
 
     // 완료 버튼 클릭
-    const handleComplete = (): void => {
+    const handleComplete = async (): Promise<void> => {
         if (selectedInterests.length === 0) {
             setHintMessage("최소 하나 이상의 관심분야를 선택해주세요!");
             return;
         }
-        onComplete?.(selectedInterests);
+
+        setIsSaving(true);
+        try {
+            const userInterests: UserInterest[] = selectedInterests.map(
+                (item) => ({
+                    id: item.id,
+                    name: item.name,
+                    category: item.category,
+                    difficulty: item.difficulty,
+                })
+            );
+
+            await updateUserInterests(userInterests);
+            onComplete?.(userInterests);
+        } catch (error) {
+            console.error("관심분야 저장 실패:", error);
+            alert("관심분야 저장에 실패했습니다. 다시 시도해주세요.");
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     // 취소 버튼 클릭
@@ -362,68 +410,75 @@ const InterestSelection: React.FC<InterestProps> = ({
                             기술 및 분야
                         </h3>
                         <div className="border border-gray-200 rounded-xl p-4 h-64 overflow-y-auto bg-gray-50">
-                            <div className="flex flex-wrap gap-2">
-                                {filteredInterests.map((item) => {
-                                    const isSelected = selectedInterests.some(
-                                        (i) => i.id === item.id
-                                    );
-                                    return (
-                                        <button
-                                            key={item.id}
-                                            onClick={() =>
-                                                handleInterestClick(item)
-                                            }
-                                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105 ${
-                                                isSelected
-                                                    ? "bg-white text-white shadow-md"
-                                                    : "bg-white text-gray-700 hover:text-indigo-600 border border-gray-200 hover:border-indigo-200"
-                                            }`}
-                                            style={
-                                                isSelected
-                                                    ? {
-                                                          backgroundColor:
-                                                              "#8B85E9",
-                                                          color: "white",
-                                                          boxShadow:
-                                                              "0 0 0 2px rgba(139, 133, 233, 0.2)",
-                                                      }
-                                                    : {}
-                                            }
-                                            onMouseEnter={
-                                                !isSelected
-                                                    ? (e) => {
-                                                          (
-                                                              e.target as HTMLButtonElement
-                                                          ).style.backgroundColor =
-                                                              "rgba(139, 133, 233, 0.05)";
-                                                          (
-                                                              e.target as HTMLButtonElement
-                                                          ).style.color =
-                                                              "#8B85E9";
-                                                      }
-                                                    : undefined
-                                            }
-                                            onMouseLeave={
-                                                !isSelected
-                                                    ? (e) => {
-                                                          (
-                                                              e.target as HTMLButtonElement
-                                                          ).style.backgroundColor =
-                                                              "white";
-                                                          (
-                                                              e.target as HTMLButtonElement
-                                                          ).style.color =
-                                                              "rgb(55, 65, 81)";
-                                                      }
-                                                    : undefined
-                                            }
-                                        >
-                                            {item.name}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                            {filteredInterests.length === 0 && (
+                            {isLoading ? (
+                                <div className="flex justify-center items-center h-full">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8B85E9]"></div>
+                                </div>
+                            ) : (
+                                <div className="flex flex-wrap gap-2">
+                                    {filteredInterests.map((item) => {
+                                        const isSelected =
+                                            selectedInterests.some(
+                                                (i) => i.id === item.id
+                                            );
+                                        return (
+                                            <button
+                                                key={item.id}
+                                                onClick={() =>
+                                                    handleInterestClick(item)
+                                                }
+                                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105 ${
+                                                    isSelected
+                                                        ? "bg-white text-white shadow-md"
+                                                        : "bg-white text-gray-700 hover:text-indigo-600 border border-gray-200 hover:border-indigo-200"
+                                                }`}
+                                                style={
+                                                    isSelected
+                                                        ? {
+                                                              backgroundColor:
+                                                                  "#8B85E9",
+                                                              color: "white",
+                                                              boxShadow:
+                                                                  "0 0 0 2px rgba(139, 133, 233, 0.2)",
+                                                          }
+                                                        : {}
+                                                }
+                                                onMouseEnter={
+                                                    !isSelected
+                                                        ? (e) => {
+                                                              (
+                                                                  e.target as HTMLButtonElement
+                                                              ).style.backgroundColor =
+                                                                  "rgba(139, 133, 233, 0.05)";
+                                                              (
+                                                                  e.target as HTMLButtonElement
+                                                              ).style.color =
+                                                                  "#8B85E9";
+                                                          }
+                                                        : undefined
+                                                }
+                                                onMouseLeave={
+                                                    !isSelected
+                                                        ? (e) => {
+                                                              (
+                                                                  e.target as HTMLButtonElement
+                                                              ).style.backgroundColor =
+                                                                  "white";
+                                                              (
+                                                                  e.target as HTMLButtonElement
+                                                              ).style.color =
+                                                                  "rgb(55, 65, 81)";
+                                                          }
+                                                        : undefined
+                                                }
+                                            >
+                                                {item.name}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                            {!isLoading && filteredInterests.length === 0 && (
                                 <div className="text-center text-gray-500 py-8">
                                     검색 결과가 없습니다.
                                 </div>
@@ -494,18 +549,18 @@ const InterestSelection: React.FC<InterestProps> = ({
                     <button
                         onClick={handleComplete}
                         className={`px-6 py-3 rounded-lg font-medium text-sm transition-all ${
-                            selectedInterests.length > 0
+                            selectedInterests.length > 0 && !isSaving
                                 ? "text-white hover:opacity-90"
                                 : "bg-gray-300 text-gray-500 cursor-not-allowed"
                         }`}
                         style={
-                            selectedInterests.length > 0
+                            selectedInterests.length > 0 && !isSaving
                                 ? { backgroundColor: "#8B85E9" }
                                 : {}
                         }
-                        disabled={selectedInterests.length === 0}
+                        disabled={selectedInterests.length === 0 || isSaving}
                     >
-                        저장하기
+                        {isSaving ? "저장 중..." : "저장하기"}
                     </button>
                 </div>
             </div>
