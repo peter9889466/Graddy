@@ -1,14 +1,28 @@
 import React, { useState, useContext, useEffect } from "react";
 import { AuthContext } from "../../contexts/AuthContext";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import {
-    CommentResponse,
-    updateComment,
-    deleteComment,
-    CommentRequest,
-    getCommentsByType,
-    createCommentByType,
-} from "../../services/commentApi";
+
+// API 응답 타입 정의
+interface CommentResponse {
+    commentId: number;
+    userId: string;
+    nickname: string;
+    content: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+interface ApiResponse<T> {
+    status: number;
+    message: string;
+    data: T;
+}
+
+// API 요청 타입
+interface CommentRequest {
+    content: string;
+    studyProjectId?: number;
+}
 
 interface Props {
     postId: number;
@@ -16,6 +30,55 @@ interface Props {
     isExpanded: boolean;
     onToggle: () => void;
 }
+
+// JWT 토큰을 localStorage에서 가져오는 헬퍼 함수
+const getAuthHeaders = () => {
+    const token = localStorage.getItem('userToken');
+    return {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` })
+    };
+};
+
+// API 함수들
+const commentApi = {
+    // 댓글 목록 조회
+    getCommentsByType: async (postType: string, postId: number): Promise<ApiResponse<CommentResponse[]>> => {
+        const response = await fetch(`http://localhost:8080/api/api/comments/free-posts/${postId}`, {
+            method: 'GET',
+            headers: getAuthHeaders(),
+        });
+        return response.json();
+    },
+
+    // 댓글 작성
+    createCommentByType: async (postType: string, postId: number, commentData: CommentRequest): Promise<ApiResponse<CommentResponse>> => {
+        const response = await fetch(`http://localhost:8080/api/api/comments/free-posts/${postId}`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(commentData),
+        });
+        return response.json();
+    },
+
+    // 댓글 수정
+    updateComment: async (commentId: number, content: string): Promise<ApiResponse<CommentResponse>> => {
+        const response = await fetch(`http://localhost:8080/api/api/comments/${commentId}?content=${encodeURIComponent(content)}`, {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+        });
+        return response.json();
+    },
+
+    // 댓글 삭제
+    deleteComment: async (commentId: number): Promise<ApiResponse<null>> => {
+        const response = await fetch(`http://localhost:8080/api/api/comments/${commentId}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders(),
+        });
+        return response.json();
+    }
+};
 
 const Comments: React.FC<Props> = ({
     postId,
@@ -37,9 +100,9 @@ const Comments: React.FC<Props> = ({
 
         try {
             setLoading(true);
-            const response = await getCommentsByType(postType, postId);
+            const response = await commentApi.getCommentsByType(postType, postId);
 
-            if (response.status && Array.isArray(response.data)) {
+            if (response.status === 200 && Array.isArray(response.data)) {
                 setComments(response.data);
             } else {
                 console.error("댓글 데이터 형식 오류:", response);
@@ -48,7 +111,6 @@ const Comments: React.FC<Props> = ({
         } catch (error) {
             console.error("댓글 로드 실패:", error);
             setComments([]);
-            // alert를 console.warn으로 변경하여 사용자 경험 개선
             console.warn("댓글을 불러오는데 실패했습니다:", error);
         } finally {
             setLoading(false);
@@ -70,23 +132,31 @@ const Comments: React.FC<Props> = ({
         }
 
         try {
+            // JWT 토큰 확인
+            const token = localStorage.getItem('userToken');
+            if (!token) {
+                alert("로그인 정보가 없습니다. 다시 로그인해주세요.");
+                return;
+            }
+
             const commentData: CommentRequest = {
                 content: newComment.trim(),
+                studyProjectId: 0 // API 명세에 따라 필수값, 필요시 수정
             };
 
-            const response = await createCommentByType(
+            const response = await commentApi.createCommentByType(
                 postType,
                 postId,
                 commentData
             );
 
-            if (response.status) {
+            if (response.status === 201) {
                 setNewComment("");
-                loadComments(); // await 제거 - 비동기 함수가 아님
+                loadComments();
                 console.log("댓글이 성공적으로 작성되었습니다.");
             } else {
                 throw new Error(
-                    response.statusText || "댓글 작성에 실패했습니다."
+                    response.message || "댓글 작성에 실패했습니다."
                 );
             }
         } catch (error) {
@@ -192,18 +262,25 @@ const CommentItem: React.FC<{
         }
 
         try {
-            const response = await updateComment(
+            // JWT 토큰 확인
+            const token = localStorage.getItem('userToken');
+            if (!token) {
+                alert("로그인 정보가 없습니다. 다시 로그인해주세요.");
+                return;
+            }
+
+            const response = await commentApi.updateComment(
                 comment.commentId,
                 editCommentContent.trim()
             );
-            if (response.status) {
+            if (response.status === 200) {
                 setIsEditingComment(false);
                 setEditCommentContent("");
-                onUpdate(); // await 제거
+                onUpdate();
                 console.log("댓글이 성공적으로 수정되었습니다.");
             } else {
                 throw new Error(
-                    response.statusText || "댓글 수정에 실패했습니다."
+                    response.message || "댓글 수정에 실패했습니다."
                 );
             }
         } catch (error) {
@@ -220,13 +297,20 @@ const CommentItem: React.FC<{
     const handleDeleteComment = async () => {
         if (window.confirm("정말로 이 댓글을 삭제하시겠습니까?")) {
             try {
-                const response = await deleteComment(comment.commentId);
-                if (response.status) {
-                    onUpdate(); // await 제거
+                // JWT 토큰 확인
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    alert("로그인 정보가 없습니다. 다시 로그인해주세요.");
+                    return;
+                }
+
+                const response = await commentApi.deleteComment(comment.commentId);
+                if (response.status === 200) {
+                    onUpdate();
                     console.log("댓글이 성공적으로 삭제되었습니다.");
                 } else {
                     throw new Error(
-                        response.statusText || "댓글 삭제에 실패했습니다."
+                        response.message || "댓글 삭제에 실패했습니다."
                     );
                 }
             } catch (error) {
@@ -280,7 +364,7 @@ const CommentItem: React.FC<{
                     <div className="text-xs text-gray-500">
                         {new Date(comment.createdAt).toLocaleString()}
                     </div>
-                    {/* 수정/삭제 버튼 - 본인 댓글만 */}
+                    {/* 수정/삭제 버튼 - 본인 댓글만 (nickname 비교) */}
                     {isLoggedIn &&
                         currentUser?.nickname === comment.nickname &&
                         !isEditingComment && (
