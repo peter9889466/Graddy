@@ -16,10 +16,8 @@ import {
     getUpdatePageInfo,
     updateUserProfile,
     updateUserInterests,
+    updateUserGitInfo,
     withdrawUser,
-    UserInterest,
-    MyPageResponse,
-    UpdatePageInfo,
     UserProfileUpdateRequest,
     UserInterestsUpdateRequest,
 } from "../services/userApi";
@@ -55,7 +53,7 @@ export const MyPage = () => {
     const [passwordError, setPasswordError] = useState("");
     const [name, setName] = useState("");
     const [nickname, setNickname] = useState("");
-    const [email, setEmail] = useState("");
+
     const [phone, setPhone] = useState("");
     const [userScore, setUserScore] = useState(0);
 
@@ -70,29 +68,30 @@ export const MyPage = () => {
 
                 if (activeTab === "마이페이지") {
                     const myPageResponse = await getMyPageInfo();
-                    if (myPageResponse.success) {
-                        const data = myPageResponse.data;
-                        setNickname(data.nickname);
+                    if (myPageResponse.data.success) {
+                        const data = myPageResponse.data.data;
+                        setNickname(data.nick); // 백엔드 필드명에 맞게 수정
                         setUserScore(data.userScore);
-                        setGithubUrl(data.githubUrl || "");
-                        setIntroduction(data.introduction || ""); // introduction 필드 추가 필요
+                        setGithubUrl(data.gitUrl || ""); // 백엔드 필드명에 맞게 수정
+                        setIntroduction(""); // 백엔드에 introduction 필드가 없으므로 빈 문자열
 
-                        // 관심분야 변환
-                        const interests = data.interests.map((interest) => ({
-                            id: interest.interestId,
-                            name: interest.interestName,
-                            category: "framework", // 기본값
-                            difficulty: interest.interestLevel,
-                        }));
+                        // 관심분야 변환 (백엔드에서 문자열 배열로 반환)
+                        const interests = data.interests.map(
+                            (interestName: string, index: number) => ({
+                                id: index + 1, // 임시 ID
+                                name: interestName,
+                                category: "framework", // 기본값
+                                difficulty: "초급", // 기본값
+                            })
+                        );
                         setUserInterests(interests);
                     }
                 } else if (activeTab === "회원정보 수정") {
                     const updatePageResponse = await getUpdatePageInfo();
-                    if (updatePageResponse.success) {
-                        const data = updatePageResponse.data;
+                    if (updatePageResponse.data.success) {
+                        const data = updatePageResponse.data.data;
                         setName(data.name);
-                        setNickname(data.nickname);
-                        setEmail(data.userId); // userId를 email로 사용
+                        setNickname(data.nick); // 백엔드 필드명에 맞게 수정
                         setPhone(data.tel);
                     }
                 }
@@ -117,7 +116,7 @@ export const MyPage = () => {
         ) {
             try {
                 const response = await withdrawUser();
-                if (response.success) {
+                if (response.data.success) {
                     alert("회원탈퇴가 완료되었습니다.");
                     authContext?.logout();
                     window.location.href = "/";
@@ -180,7 +179,7 @@ export const MyPage = () => {
             };
 
             const response = await updateUserInterests(requestData);
-            if (response.success) {
+            if (response.data.success) {
                 setUserInterests(selectedInterests);
                 setShowInterestModal(false);
                 alert("관심분야가 성공적으로 수정되었습니다.");
@@ -203,10 +202,16 @@ export const MyPage = () => {
 
     const handleGithubSave = async () => {
         try {
-            // TODO: GitHub URL 업데이트 API 호출
-            setGithubUrl(tempGithubUrl);
-            setIsEditingGithub(false);
-            console.log("GitHub URL이 저장되었습니다:", tempGithubUrl);
+            // GitHub URL 업데이트 API 호출
+            const response = await updateUserGitInfo({
+                gitUrl: tempGithubUrl,
+            });
+
+            if (response.data.success) {
+                setGithubUrl(tempGithubUrl);
+                setIsEditingGithub(false);
+                alert("GitHub URL이 성공적으로 저장되었습니다.");
+            }
         } catch (error) {
             console.error("GitHub URL 저장 실패:", error);
             alert("GitHub URL 저장에 실패했습니다.");
@@ -280,7 +285,7 @@ export const MyPage = () => {
             }
 
             const response = await updateUserProfile(requestData);
-            if (response.success) {
+            if (response.data.success) {
                 alert("회원정보가 성공적으로 수정되었습니다.");
 
                 // 닉네임이 변경된 경우 AuthContext 업데이트
@@ -335,7 +340,9 @@ export const MyPage = () => {
                                             userInterests={userInterests}
                                             memberData={{
                                                 nickname: nickname,
-                                                githubUrl: githubUrl,
+                                                githubUrl: isEditingGithub
+                                                    ? tempGithubUrl
+                                                    : githubUrl,
                                             }}
                                             isEditingGithub={isEditingGithub}
                                             onProfileImageClick={
@@ -384,14 +391,12 @@ export const MyPage = () => {
                                         passwordError={passwordError}
                                         name={name}
                                         nickname={nickname}
-                                        email={email}
                                         phone={phone}
                                         onPasswordChange={handlePasswordChange}
                                         onConfirmPasswordChange={
                                             handleConfirmPasswordChange
                                         }
                                         onNicknameChange={setNickname}
-                                        onEmailChange={setEmail}
                                         onPhoneChange={setPhone}
                                         onUpdateProfile={handleUpdateProfile}
                                     />

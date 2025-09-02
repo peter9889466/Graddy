@@ -128,7 +128,6 @@ export const StudySearchPage = () => {
         console.log("=== 현재 로그인한 유저 정보 ===");
         console.log("로그인 상태:", authContext?.isLoggedIn);
         console.log("유저 닉네임:", authContext?.user?.nickname);
-        console.log("유저 이메일:", authContext?.user?.email);
         console.log("전체 유저 정보:", authContext?.user);
         console.log("================================");
     }, [authContext]);
@@ -154,20 +153,20 @@ export const StudySearchPage = () => {
                 return isRecruiting === "recruitment";
             };
 
-            			// 리더의 닉네임 추출
-			const getLeaderNickname = () => {
-				if (study.members && study.members.length > 0) {
-					const leader = study.members.find(
-						(member: { memberType: string; nick: string }) =>
-							member.memberType === "leader"
-					);
-					if (leader && leader.nick && leader.nick.trim() !== "") {
-						return leader.nick;
-					}
-				}
-				// 닉네임이 없거나 비어있으면 userId 반환
-				return study.userId;
-			};
+            // 리더의 닉네임 추출
+            const getLeaderNickname = () => {
+                if (study.members && study.members.length > 0) {
+                    const leader = study.members.find(
+                        (member: { memberType: string; nick: string }) =>
+                            member.memberType === "leader"
+                    );
+                    if (leader && leader.nick && leader.nick.trim() !== "") {
+                        return leader.nick;
+                    }
+                }
+                // 닉네임이 없거나 비어있으면 userId 반환
+                return study.userId;
+            };
 
             return {
                 studyId: study.studyProjectId,
@@ -577,66 +576,66 @@ export const StudySearchPage = () => {
                             className="flex items-center p-5 border border-gray-200 rounded-lg bg-white gap-5 cursor-pointer"
                         >
                             <div className="flex-1">
-                                                                 <div
-                                     className="text-lg font-bold text-gray-800 mb-2  duration-200"
-                                     onClick={() => {
-                                         const isProject =
-                                             study.type === "프로젝트";
-                                         const route = isProject
-                                             ? `/project/${study.studyId}`
-                                             : `/study/${study.studyId}`;
-                                         navigate(route, {
-                                             state: {
-                                                 name: study.studyName,
-                                                 title: study.studyTitle,
-                                                 description: study.studyTitle,
-                                                 leader: study.leader,
-                                                 period: `${formatDate(
-                                                     study.studyStart
-                                                 )} ~ ${formatDate(
-                                                     study.studyEnd
-                                                 )}`,
-                                                 tags: study.tags,
-                                                 type: isProject
-                                                     ? "project"
-                                                     : "study",
-                                                 studyLevel: study.studyLevel,
-                                             },
-                                         });
-                                     }}
-                                 >
-                                     {study.studyName}
-                                 </div>
-                                                                 <div
-                                     className="text-base mb-2 text-gray-800 duration-200"
-                                     onClick={() => {
-                                         const isProject =
-                                             study.type === "프로젝트";
-                                         const route = isProject
-                                             ? `/project/${study.studyId}`
-                                             : `/study/${study.studyId}`;
-                                         navigate(route, {
-                                             state: {
-                                                 name: study.studyName,
-                                                 title: study.studyTitle,
-                                                 description: study.studyTitle,
-                                                 leader: study.leader,
-                                                 period: `${formatDate(
-                                                     study.studyStart
-                                                 )} ~ ${formatDate(
-                                                     study.studyEnd
-                                                 )}`,
-                                                 tags: study.tags,
-                                                 type: isProject
-                                                     ? "project"
-                                                     : "study",
-                                                 studyLevel: study.studyLevel,
-                                             },
-                                         });
-                                     }}
-                                 >
-                                     {study.studyTitle}
-                                 </div>
+                                <div
+                                    className="text-lg font-bold text-gray-800 mb-2  duration-200"
+                                    onClick={() => {
+                                        const isProject =
+                                            study.type === "프로젝트";
+                                        const route = isProject
+                                            ? `/project/${study.studyId}`
+                                            : `/study/${study.studyId}`;
+                                        navigate(route, {
+                                            state: {
+                                                name: study.studyName,
+                                                title: study.studyTitle,
+                                                description: study.studyTitle,
+                                                leader: study.leader,
+                                                period: `${formatDate(
+                                                    study.studyStart
+                                                )} ~ ${formatDate(
+                                                    study.studyEnd
+                                                )}`,
+                                                tags: study.tags,
+                                                type: isProject
+                                                    ? "project"
+                                                    : "study",
+                                                studyLevel: study.studyLevel,
+                                            },
+                                        });
+                                    }}
+                                >
+                                    {study.studyName}
+                                </div>
+                                <div
+                                    className="text-base mb-2 text-gray-800 duration-200"
+                                    onClick={() => {
+                                        const isProject =
+                                            study.type === "프로젝트";
+                                        const route = isProject
+                                            ? `/project/${study.studyId}`
+                                            : `/study/${study.studyId}`;
+                                        navigate(route, {
+                                            state: {
+                                                name: study.studyName,
+                                                title: study.studyTitle,
+                                                description: study.studyTitle,
+                                                leader: study.leader,
+                                                period: `${formatDate(
+                                                    study.studyStart
+                                                )} ~ ${formatDate(
+                                                    study.studyEnd
+                                                )}`,
+                                                tags: study.tags,
+                                                type: isProject
+                                                    ? "project"
+                                                    : "study",
+                                                studyLevel: study.studyLevel,
+                                            },
+                                        });
+                                    }}
+                                >
+                                    {study.studyTitle}
+                                </div>
 
                                 <div className="text-sm text-gray-600 mb-2">
                                     {study.type === "프로젝트"

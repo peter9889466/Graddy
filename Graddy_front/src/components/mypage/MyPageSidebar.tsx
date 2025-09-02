@@ -27,41 +27,36 @@ const MyPageSidebar: React.FC<MyPageSidebarProps> = ({
     return (
         <>
             {/* 마이페이지 섹션 */}
-            <div
-                className="bg-white rounded-xl p-3 sm:p-4"
-            >
+            <div className="bg-white rounded-xl p-3 sm:p-4">
                 <div className="space-y-2">
                     {sideMenuItems.slice(0, 3).map((item) => (
-                        <>
+                        <React.Fragment key={item.name}>
                             <button
-                                key={item.name}
                                 onClick={() => onTabChange(item.name)}
-                                className={`w-full text-left px-2 sm:px-3 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 group text-sm sm:text-base hover:scale-105 hover:text-[#8B85E9] hover:font-bold ${activeTab === item.name
-                                    ? "font-bold text-[#8B85E9]"
-                                    : "text-black"
-                                    }`}
+                                className={`w-full text-left px-2 sm:px-3 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 group text-sm sm:text-base hover:scale-105 hover:text-[#8B85E9] hover:font-bold ${
+                                    activeTab === item.name
+                                        ? "font-bold text-[#8B85E9]"
+                                        : "text-black"
+                                }`}
                             >
                                 <span className="truncate">{item.name}</span>
                             </button>
-                            <hr className="mb-3"
-                                style={{ color: "gray" }} />
-                        </>
+                            <hr className="mb-3" style={{ color: "gray" }} />
+                        </React.Fragment>
                     ))}
                     <button
                         onClick={onDeleteAccount}
-                        className={`w-full text-left px-2 sm:px-3 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 group text-sm sm:text-base hover:scale-105 text-red-400  hover:text-rose-400 hover:font-bold ${activeTab === "회원탈퇴"
-                            ? "font-bold text-rose-400"
-                            : "text-red-400"
-                            }`}
+                        className={`w-full text-left px-2 sm:px-3 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 group text-sm sm:text-base hover:scale-105 text-red-400  hover:text-rose-400 hover:font-bold ${
+                            activeTab === "회원탈퇴"
+                                ? "font-bold text-rose-400"
+                                : "text-red-400"
+                        }`}
                     >
                         <span className="truncate">회원탈퇴</span>
                     </button>
-                    <hr className="mb-3"
-                        style={{ color: "gray" }} />
+                    <hr className="mb-3" style={{ color: "gray" }} />
                 </div>
             </div>
-
-
         </>
     );
 };

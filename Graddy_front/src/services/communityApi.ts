@@ -14,17 +14,12 @@ const apiClient = axios.create({
 // 요청 인터셉터: JWT 토큰 자동 추가
 apiClient.interceptors.request.use(
     (config) => {
-        // userToken과 token 둘 다 확인
-        const token = localStorage.getItem('userToken') || localStorage.getItem('token');
+        const token = localStorage.getItem('userToken');
         if (token && token !== 'null' && token.trim() !== '') {
             config.headers.Authorization = `Bearer ${token}`;
             console.log('Community API - Authorization 헤더 추가됨:', `Bearer ${token.substring(0, 20)}...`);
         } else {
             console.log('Community API - 토큰이 없어서 Authorization 헤더를 포함하지 않습니다.');
-            console.log('저장된 토큰들:', {
-                userToken: localStorage.getItem('userToken'),
-                token: localStorage.getItem('token')
-            });
         }
         return config;
     },
@@ -46,10 +41,9 @@ apiClient.interceptors.response.use(
             data: error.response?.data,
             message: error.message
         });
-        
+
         if (error.response?.status === 401) {
             // 토큰 만료 시 로그인 페이지로 리다이렉트
-            localStorage.removeItem('token');
             localStorage.removeItem('userToken');
             window.location.href = '/login';
         }
@@ -104,9 +98,9 @@ export const communityApi = {
                 data: postData,
                 headers: apiClient.defaults.headers
             });
-            
+
             const response = await apiClient.post<ApiResponse<Post>>('/free-posts', postData);
-            
+
             console.log('게시글 생성 API 응답:', response.data);
             return response.data.data;
         } catch (error: any) {

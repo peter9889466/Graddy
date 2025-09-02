@@ -1,10 +1,14 @@
 // src/contexts/AuthContext.js
 
-import React, { createContext, useState, useEffect, PropsWithChildren } from 'react';
+import React, {
+    createContext,
+    useState,
+    useEffect,
+    PropsWithChildren,
+} from "react";
 
 interface User {
     nickname: string;
-    email: string;
 }
 
 interface AuthContextType {
@@ -23,10 +27,10 @@ export const AuthProvider: React.FC<PropsWithChildren> = ({ children }) => {
     const [token, setToken] = useState<string | null>(null); // 💡 토큰 상태 초기화
 
     useEffect(() => {
-        const storedToken = localStorage.getItem('userToken');
-        const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
-        const userData = localStorage.getItem('userData');
-        
+        const storedToken = localStorage.getItem("userToken");
+        const loggedIn = localStorage.getItem("isLoggedIn") === "true";
+        const userData = localStorage.getItem("userData");
+
         setIsLoggedIn(loggedIn);
         if (userData) {
             setUser(JSON.parse(userData));
@@ -37,24 +41,25 @@ export const AuthProvider: React.FC<PropsWithChildren> = ({ children }) => {
     }, []);
 
     const login = (userData?: User, token?: string) => {
-        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem("isLoggedIn", "true");
         setIsLoggedIn(true);
-        
+
         if (userData) {
-            localStorage.setItem('userData', JSON.stringify(userData));
+            localStorage.setItem("userData", JSON.stringify(userData));
             setUser(userData);
         }
-        
-        if (token) { // 💡 토큰이 전달되면 로컬 스토리지에 저장
-            localStorage.setItem('userToken', token);
+
+        if (token) {
+            // 💡 토큰이 전달되면 로컬 스토리지에 저장
+            localStorage.setItem("userToken", token);
             setToken(token); // 💡 상태에도 저장
         }
     };
 
     const logout = () => {
-        localStorage.removeItem('isLoggedIn');
-        localStorage.removeItem('userData');
-        localStorage.removeItem('userToken');
+        localStorage.removeItem("isLoggedIn");
+        localStorage.removeItem("userData");
+        localStorage.removeItem("userToken");
         setIsLoggedIn(false);
         setUser(null);
         setToken(null);
@@ -63,8 +68,6 @@ export const AuthProvider: React.FC<PropsWithChildren> = ({ children }) => {
     const value = { isLoggedIn, user, token, login, logout }; // 💡 토큰을 값에 포함
 
     return (
-        <AuthContext.Provider value={value}>
-            {children}
-        </AuthContext.Provider>
+        <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
     );
 };

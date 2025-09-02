@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut, apiDelete, apiPatch, ApiResponse } from './api';
+import { apiGet, apiPost, apiPut, apiDelete, apiPatch } from './api';
 
 // 백엔드에서 오는 스터디/프로젝트 데이터 타입 (정확한 백엔드 응답 구조와 일치)
 export interface BackendStudyProjectData {
@@ -114,50 +114,50 @@ export class StudyApiService {
     // 전체 스터디 목록 조회
     static async getAllStudies(): Promise<StudyData[]> {
         const response = await apiGet<StudyData[]>('/studies');
-        return response.data;
+        return response.data.data;
     }
 
     // 특정 스터디 조회
     static async getStudy(studyId: number): Promise<StudyData> {
         const response = await apiGet<StudyData>(`/studies/${studyId}`);
-        return response.data;
+        return response.data.data;
     }
 
     // 모집중인 스터디 목록 조회
     static async getRecruitingStudies(): Promise<StudyData[]> {
         const response = await apiGet<StudyData[]>('/studies/recruiting');
-        return response.data;
+        return response.data.data;
     }
 
     // 스터디 검색
     static async searchStudies(keyword?: string): Promise<StudyData[]> {
         const endpoint = keyword ? `/studies/search?keyword=${encodeURIComponent(keyword)}` : '/studies/search';
         const response = await apiGet<StudyData[]>(endpoint);
-        return response.data;
+        return response.data.data;
     }
 
     // 레벨별 스터디 목록 조회
     static async getStudiesByLevel(level: number): Promise<StudyData[]> {
         const response = await apiGet<StudyData[]>(`/studies/level/${level}`);
-        return response.data;
+        return response.data.data;
     }
 
     // 사용자가 리더인 스터디 목록 조회
     static async getStudiesByLeader(userId: string): Promise<StudyData[]> {
         const response = await apiGet<StudyData[]>(`/studies/leader/${userId}`);
-        return response.data;
+        return response.data.data;
     }
 
     // 스터디 생성 (기존)
     static async createStudy(studyData: CreateStudyRequest): Promise<StudyData> {
         const response = await apiPost<StudyData>('/studies', studyData);
-        return response.data;
+        return response.data.data;
     }
 
     // 새로운 스터디 프로젝트 생성 (JWT 토큰 인증 포함)
     static async createStudyProject(studyProjectData: CreateStudyProjectRequest): Promise<any> {
         const response = await apiPost<any>('/studies-projects', studyProjectData);
-        return response.data;
+        return response.data.data;
     }
 
     // 스터디/프로젝트 목록 조회 (백엔드 API와 직접 통신)
@@ -202,12 +202,12 @@ export class StudyApiService {
             const response = await apiGet<BackendStudyProjectData>(`/studies-projects/${studyProjectId}`);
             console.log('getStudyProject 응답:', response);
 
-            if (!response || !response.data) {
+            if (!response || !response.data || !response.data.data) {
                 console.warn('getStudyProject API data 필드가 없습니다.');
                 return null;
             }
 
-            return response.data;
+            return response.data.data;
         } catch (error) {
             console.error('getStudyProject 실패:', error);
             return null;
@@ -217,19 +217,19 @@ export class StudyApiService {
     // 스터디 수정
     static async updateStudy(studyId: number, studyData: UpdateStudyRequest): Promise<StudyData> {
         const response = await apiPut<StudyData>(`/studies/${studyId}`, studyData);
-        return response.data;
+        return response.data.data;
     }
 
     // 스터디 상태 변경
     static async updateStudyStatus(studyId: number, status: string): Promise<StudyData> {
         const response = await apiPatch<StudyData>(`/studies/${studyId}/status?status=${status}`);
-        return response.data;
+        return response.data.data;
     }
 
     // 스터디 삭제
     static async deleteStudy(studyId: number): Promise<string> {
         const response = await apiDelete<string>(`/studies/${studyId}`);
-        return response.data;
+        return response.data.data;
     }
 
     // 스터디/프로젝트 수정
@@ -240,7 +240,7 @@ export class StudyApiService {
             const response = await apiPut<any>(`/studies-projects/${studyProjectId}`, updateData);
             console.log('updateStudyProject 응답:', response);
 
-            return response.data;
+            return response.data.data;
         } catch (error) {
             console.error('updateStudyProject 실패:', error);
             throw error;
@@ -256,7 +256,7 @@ export class StudyApiService {
             const response = await apiPatch<BackendStudyProjectData>(`/studies-projects/${studyProjectId}/status?status=${status}`);
             console.log('updateStudyProjectStatus 응답:', response);
 
-            return response.data;
+            return response.data.data;
         } catch (error) {
             console.error('updateStudyProjectStatus 실패:', error);
             throw error;
@@ -287,13 +287,13 @@ export interface ProcessApplicationRequest {
 // 가입 신청 API
 export const applyToStudyProject = async (request: StudyApplicationRequest): Promise<StudyApplicationResponse> => {
     const response = await apiPost<StudyApplicationResponse>('/study-applications/apply', request);
-    return response.data;
+    return response.data.data;
 };
 
 // 가입 신청 목록 조회 API
 export const getStudyApplications = async (studyProjectId: number): Promise<StudyApplicationResponse[]> => {
     const response = await apiGet<StudyApplicationResponse[]>(`/study-applications/${studyProjectId}/applications`);
-    return response.data;
+    return response.data.data;
 };
 
 // 가입 신청 처리 API (승인/거절)
@@ -302,7 +302,7 @@ export const processStudyApplication = async (
     request: ProcessApplicationRequest
 ): Promise<string> => {
     const response = await apiPut<string>(`/study-applications/${studyProjectId}/process`, request);
-    return response.data;
+    return response.data.data;
 };
 
 // 사용자의 가입 신청 상태 조회 API
@@ -310,10 +310,10 @@ export const getUserApplicationStatus = async (studyProjectId: number): Promise<
     try {
         // 내 신청 목록을 가져와서 해당 스터디/프로젝트의 신청 상태를 찾기
         const response = await apiGet<StudyApplicationResponse[]>('/study-applications/my-applications');
-        const myApplications = response.data;
+        const myApplications = response.data.data;
 
         // 해당 스터디/프로젝트의 신청을 찾기
-        const application = myApplications.find(app => app.studyProjectId === studyProjectId);
+        const application = myApplications.find((app: StudyApplicationResponse) => app.studyProjectId === studyProjectId);
 
         return application || null;
     } catch (error) {
@@ -334,11 +334,11 @@ export const createPost = async (data: {
     title: string;
     content: string;
 }) => {
-  return apiPost("/posts", data);  // http://localhost:8080/api/posts 호출
+    return apiPost("/posts", data);  // http://localhost:8080/api/posts 호출
 };
 
 // 신청 취소
 export const cancelStudyApplication = async (studyProjectId: number): Promise<any> => {
-	const response = await apiDelete<any>(`/study-applications/${studyProjectId}/cancel`);
-	return response.data;
+    const response = await apiDelete<any>(`/study-applications/${studyProjectId}/cancel`);
+    return response.data.data;
 };

@@ -1,4 +1,5 @@
 import { apiGet, apiPut, apiDelete, ApiResponse } from './api';
+import { AxiosResponse } from 'axios';
 
 // 사용자 관심분야 타입
 export interface UserInterest {
@@ -7,21 +8,21 @@ export interface UserInterest {
     interestLevel: string;
 }
 
-// 마이페이지 응답 타입
+// 마이페이지 응답 타입 (백엔드 응답 구조에 맞게 수정)
 export interface MyPageResponse {
-    nickname: string;
-    githubUrl?: string;
+    nick: string; // 백엔드에서 nick 필드 사용
+    gitUrl?: string; // 백엔드에서 gitUrl 필드 사용
     userScore: number;
-    interests: UserInterest[];
-    recommenderNickname?: string;
+    interests: string[]; // 백엔드에서 문자열 배열로 반환
+    userRefer?: string; // 백엔드에서 userRefer 필드 사용
 }
 
-// 회원정보 수정 페이지 데이터 타입
+// 회원정보 수정 페이지 데이터 타입 (백엔드 응답 구조에 맞게 수정)
 export interface UpdatePageInfo {
     name: string;
     userId: string;
     tel: string;
-    nickname: string;
+    nick: string; // 백엔드에서 nick 필드 사용
 }
 
 // 회원정보 수정 요청 타입
@@ -59,31 +60,48 @@ export interface StudyProjectListResponse {
 }
 
 // 마이페이지 정보 조회
-export const getMyPageInfo = (): Promise<ApiResponse<MyPageResponse>> => {
+export const getMyPageInfo = (): Promise<AxiosResponse<ApiResponse<MyPageResponse>>> => {
     return apiGet<MyPageResponse>('/me');
 };
 
 // 회원정보 수정 페이지 데이터 조회
-export const getUpdatePageInfo = (): Promise<ApiResponse<UpdatePageInfo>> => {
+export const getUpdatePageInfo = (): Promise<AxiosResponse<ApiResponse<UpdatePageInfo>>> => {
     return apiGet<UpdatePageInfo>('/me/update');
 };
 
 // 회원정보 수정
-export const updateUserProfile = (data: UserProfileUpdateRequest): Promise<ApiResponse<UserProfileUpdateResponse>> => {
+export const updateUserProfile = (data: UserProfileUpdateRequest): Promise<AxiosResponse<ApiResponse<UserProfileUpdateResponse>>> => {
     return apiPut<UserProfileUpdateResponse>('/me/profile', data);
 };
 
 // 관심분야 수정
-export const updateUserInterests = (data: UserInterestsUpdateRequest): Promise<ApiResponse<{ interests: UserInterest[] }>> => {
+export const updateUserInterests = (data: UserInterestsUpdateRequest): Promise<AxiosResponse<ApiResponse<{ interests: UserInterest[] }>>> => {
     return apiPut<{ interests: UserInterest[] }>('/me/interests', data);
 };
 
 // 회원탈퇴
-export const withdrawUser = (): Promise<ApiResponse<{ message: string; deletedUserId: string; note: string }>> => {
+export const withdrawUser = (): Promise<AxiosResponse<ApiResponse<{ message: string; deletedUserId: string; note: string }>>> => {
     return apiDelete<{ message: string; deletedUserId: string; note: string }>('/me/withdraw');
 };
 
 // 스터디/프로젝트 목록 조회
-export const getStudyProjectList = (status: string = 'ALL'): Promise<ApiResponse<StudyProjectListResponse[]>> => {
+export const getStudyProjectList = (status: string = 'ALL'): Promise<AxiosResponse<ApiResponse<StudyProjectListResponse[]>>> => {
     return apiGet<StudyProjectListResponse[]>(`/me/study-projects?status=${status}`);
+};
+
+// Git 정보 수정 요청 타입
+export interface UserGitInfoUpdateRequest {
+    gitUrl?: string;
+    userRefer?: string;
+}
+
+// Git 정보 수정 응답 타입
+export interface UserGitInfoUpdateResponse {
+    message: string;
+    updatedFields: Record<string, string>;
+}
+
+// Git 정보 수정
+export const updateUserGitInfo = (data: UserGitInfoUpdateRequest): Promise<AxiosResponse<ApiResponse<UserGitInfoUpdateResponse>>> => {
+    return apiPut<UserGitInfoUpdateResponse>('/me/git-info', data);
 };

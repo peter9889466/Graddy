@@ -130,23 +130,36 @@ const MainPage = () => {
         })),
     ];
 
-    // 추천 스터디 데이터 상태
-    const [recommendedStudies, setRecommendedStudies] = useState<any[]>([]);
+    // 추천 스터디 데이터 상태 - 백엔드 DTO 구조에 맞게 타입 정의
+    interface RecommendedStudy {
+        studyProjectId: number;
+        studyProjectName: string;
+        studyProjectTitle: string;
+        studyProjectDesc: string;
+        studyLevel: number;
+        typeCheck: string;
+        userId: string;
+        isRecruiting: string;
+        studyProjectStart: string;
+        studyProjectEnd: string;
+        studyProjectTotal: number;
+        tags: string[];
+        currentMemberCount: number;
+        finalScore: number;
+    }
+
+    const [recommendedStudies, setRecommendedStudies] = useState<
+        RecommendedStudy[]
+    >([]);
     const [loadingRecommendations, setLoadingRecommendations] = useState(false);
     const [recommendationError, setRecommendationError] = useState<
         string | null
     >(null);
 
-    // 추천 스터디 API 호출
+    // 추천 스터디 API 호출 - 백엔드 서버 연결 확인 및 에러 처리 개선
     const fetchRecommendedStudies = async () => {
         if (!isLoggedIn || !token) {
             console.warn("로그인되지 않았거나 토큰이 없습니다.");
-            console.log(
-                "현재 로그인 상태:",
-                isLoggedIn,
-                "토큰:",
-                token ? "있음" : "없음"
-            );
             return;
         }
 
@@ -155,14 +168,10 @@ const MainPage = () => {
 
         try {
             console.log("추천 스터디 API 호출 시작");
-            console.log(
-                "요청 URL:",
-                "http://localhost:8080/recommendation/studies?limit=3"
-            );
-            console.log("토큰:", token);
 
+            // 백엔드 서버 연결 확인
             const response = await fetch(
-                "http://localhost:8080/recommendation/studies?limit=3",
+                "http://localhost:8080/api/recommendation/studies?limit=3",
                 {
                     method: "GET",
                     headers: {
@@ -173,23 +182,28 @@ const MainPage = () => {
             );
 
             console.log("응답 상태:", response.status);
-            console.log("응답 헤더:", response.headers);
 
             if (!response.ok) {
+                if (response.status === 0 || !response.status) {
+                    throw new Error(
+                        "백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요."
+                    );
+                }
+
                 const errorText = await response.text();
                 console.error("API 에러 응답:", errorText);
                 throw new Error(
-                    `HTTP error! status: ${response.status}, message: ${errorText}`
+                    `서버 오류 (${response.status}): ${
+                        errorText || "알 수 없는 오류"
+                    }`
                 );
             }
 
             const data = await response.json();
             console.log("추천 스터디 API 응답:", data);
-            console.log("응답 데이터 타입:", typeof data);
-            console.log("data.success:", data.success);
-            console.log("data.data:", data.data);
 
-            if (data.success && data.data && Array.isArray(data.data)) {
+            // 백엔드 ApiResponse 구조에 맞게 처리
+            if (data.status == 200 && data.data && Array.isArray(data.data)) {
                 console.log("추천 스터디 데이터 설정:", data.data);
                 setRecommendedStudies(data.data);
             } else {
@@ -200,65 +214,20 @@ const MainPage = () => {
             }
         } catch (error) {
             console.error("추천 스터디 조회 실패:", error);
-            console.error("에러 상세:", {
-                name: error instanceof Error ? error.name : "Unknown",
-                message: error instanceof Error ? error.message : String(error),
-                stack: error instanceof Error ? error.stack : undefined,
-            });
 
-            setRecommendationError(
-                error instanceof Error
-                    ? error.message
-                    : "추천 스터디를 불러오는데 실패했습니다."
-            );
+            let errorMessage = "추천 스터디를 불러오는데 실패했습니다.";
 
-            // 에러 시에도 기본 데이터를 표시하여 UI가 비어있지 않도록 함
-            console.log("기본 데이터로 대체합니다.");
-            setRecommendedStudies([
-                {
-                    studyProjectId: 1,
-                    studyProjectName: "React 심화 스터디",
-                    studyProjectTitle:
-                        "React와 TypeScript로 실무 프로젝트 만들기",
-                    studyLevel: 2,
-                    studyProjectStart: "2025-09-15T00:00:00",
-                    studyProjectEnd: "2025-11-15T00:00:00",
-                    studyProjectTotal: 6,
-                    currentMemberCount: 4,
-                    userId: "김개발",
-                    tags: ["React", "TypeScript", "프론트엔드"],
-                    typeCheck: "study",
-                    isRecruiting: "recruitment",
-                },
-                {
-                    studyProjectId: 2,
-                    studyProjectName: "알고리즘 코딩테스트 대비",
-                    studyProjectTitle: "백준/프로그래머스 문제 해결 스터디",
-                    studyLevel: 1,
-                    studyProjectStart: "2025-09-10T00:00:00",
-                    studyProjectEnd: "2025-12-10T00:00:00",
-                    studyProjectTotal: 8,
-                    currentMemberCount: 6,
-                    userId: "박알고",
-                    tags: ["알고리즘", "코딩테스트", "Python"],
-                    typeCheck: "study",
-                    isRecruiting: "recruitment",
-                },
-                {
-                    studyProjectId: 3,
-                    studyProjectName: "Spring Boot 실전 프로젝트",
-                    studyProjectTitle: "Spring Boot로 REST API 서버 구축하기",
-                    studyLevel: 3,
-                    studyProjectStart: "2025-09-20T00:00:00",
-                    studyProjectEnd: "2025-12-20T00:00:00",
-                    studyProjectTotal: 5,
-                    currentMemberCount: 3,
-                    userId: "이백엔드",
-                    tags: ["Spring Boot", "Java", "백엔드"],
-                    typeCheck: "study",
-                    isRecruiting: "recruitment",
-                },
-            ]);
+            if (
+                error instanceof TypeError &&
+                error.message === "Failed to fetch"
+            ) {
+                errorMessage =
+                    "백엔드 서버에 연결할 수 없습니다. 서버가 http://localhost:8080에서 실행 중인지 확인해주세요.";
+            } else if (error instanceof Error) {
+                errorMessage = error.message;
+            }
+
+            setRecommendationError(errorMessage);
         } finally {
             setLoadingRecommendations(false);
         }
@@ -273,7 +242,7 @@ const MainPage = () => {
             console.log("스터디 일정 조회 시작");
 
             const response = await fetch(
-                "http://localhost:8080/schedules/my/study",
+                "http://localhost:8080/api/schedules/my/study",
                 {
                     method: "GET",
                     headers: {
@@ -319,13 +288,16 @@ const MainPage = () => {
         try {
             console.log("개인 일정 조회 시작");
 
-            const response = await fetch("http://localhost:8080/schedules/my", {
-                method: "GET",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-            });
+            const response = await fetch(
+                "http://localhost:8080/api/schedules/my",
+                {
+                    method: "GET",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
 
             if (response.ok) {
                 const data = await response.json();
@@ -444,7 +416,7 @@ const MainPage = () => {
             const scheduleDateTime = new Date(`${selectedDate}T09:00:00`);
 
             const response = await fetch(
-                "http://localhost:8080/schedules/personal",
+                "http://localhost:8080/api/schedules/personal",
                 {
                     method: "POST",
                     headers: {
@@ -494,7 +466,7 @@ const MainPage = () => {
 
         try {
             const response = await fetch(
-                `http://localhost:8080/schedules/${id}`,
+                `http://localhost:8080/api/schedules/${id}`,
                 {
                     method: "DELETE",
                     headers: {
@@ -536,7 +508,7 @@ const MainPage = () => {
             );
 
             const response = await fetch(
-                `http://localhost:8080/schedules/${id}`,
+                `http://localhostapi/schedules/${id}`,
                 {
                     method: "PUT",
                     headers: {
@@ -877,204 +849,169 @@ const MainPage = () => {
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-4">
-                                {(() => {
-                                    console.log(
-                                        "추천 스터디 렌더링:",
-                                        recommendedStudies
-                                    );
-                                    console.log(
-                                        "추천 스터디 개수:",
-                                        recommendedStudies.length
-                                    );
-                                    return recommendedStudies.map(
-                                        (study, index) => {
-                                            console.log(
-                                                `스터디 ${index}:`,
-                                                study
-                                            );
-                                            // 날짜 포맷팅 함수
-                                            const formatDate = (
-                                                dateString: string
-                                            ): string => {
-                                                try {
-                                                    const date = new Date(
-                                                        dateString
-                                                    );
-                                                    const year =
-                                                        date.getFullYear();
-                                                    const month = String(
-                                                        date.getMonth() + 1
-                                                    ).padStart(2, "0");
-                                                    const day = String(
-                                                        date.getDate()
-                                                    ).padStart(2, "0");
-                                                    return `${year}-${month}-${day}`;
-                                                } catch (error) {
-                                                    return dateString;
-                                                }
-                                            };
-
-                                            // 모집 상태 변환
-                                            const getRecruitmentStatus = (
-                                                isRecruiting: string
-                                            ) => {
-                                                switch (isRecruiting) {
-                                                    case "recruitment":
-                                                        return "모집중";
-                                                    case "complete":
-                                                        return "모집완료";
-                                                    case "end":
-                                                        return "종료됨";
-                                                    default:
-                                                        return "모집중";
-                                                }
-                                            };
-
-                                            // 타입 변환
-                                            const getTypeLabel = (
-                                                typeCheck: string
-                                            ) => {
-                                                return typeCheck === "study"
-                                                    ? "스터디"
-                                                    : "프로젝트";
-                                            };
-
-                                            return (
-                                                <div
-                                                    key={
-                                                        study.studyProjectId ||
-                                                        index
-                                                    }
-                                                    className="bg-gray-50 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-                                                    onClick={() => {
-                                                        const isProject =
-                                                            study.typeCheck ===
-                                                            "project";
-                                                        const route = isProject
-                                                            ? `/project/${study.studyProjectId}`
-                                                            : `/study/${study.studyProjectId}`;
-                                                        navigate(route);
-                                                    }}
-                                                >
-                                                    <div className="mb-3">
-                                                        <div className="text-lg font-bold text-gray-800 mb-1">
-                                                            {
-                                                                study.studyProjectName
-                                                            }
-                                                        </div>
-                                                        <div className="text-sm text-gray-600 mb-2">
-                                                            {
-                                                                study.studyProjectTitle
-                                                            }
-                                                        </div>
-                                                        <div className="text-xs text-gray-500 mb-3">
-                                                            기간:{" "}
-                                                            {formatDate(
-                                                                study.studyProjectStart
-                                                            )}{" "}
-                                                            ~{" "}
-                                                            {formatDate(
-                                                                study.studyProjectEnd
-                                                            )}{" "}
-                                                            / 리더:{" "}
-                                                            {study.userId}
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="flex gap-2 flex-wrap mb-3">
-                                                        {/* 스터디 레벨 (스터디인 경우만) */}
-                                                        {study.typeCheck ===
-                                                            "study" &&
-                                                            study.studyLevel && (
-                                                                <span
-                                                                    className={`px-2 py-0.5 rounded-xl text-xs font-medium ${
-                                                                        study.studyLevel ===
-                                                                        1
-                                                                            ? "bg-green-100 text-green-700"
-                                                                            : study.studyLevel ===
-                                                                              2
-                                                                            ? "bg-yellow-100 text-yellow-700"
-                                                                            : "bg-red-100 text-red-700"
-                                                                    }`}
-                                                                >
-                                                                    레벨{" "}
-                                                                    {
-                                                                        study.studyLevel
-                                                                    }
-                                                                </span>
-                                                            )}
-                                                        {/* 태그 표시 */}
-                                                        {study.tags &&
-                                                            study.tags
-                                                                .slice(0, 2)
-                                                                .map(
-                                                                    (
-                                                                        tag: string,
-                                                                        index: number
-                                                                    ) => (
-                                                                        <span
-                                                                            key={
-                                                                                index
-                                                                            }
-                                                                            className="px-2 py-0.5 rounded-xl text-xs bg-gray-100 text-gray-600"
-                                                                        >
-                                                                            #
-                                                                            {
-                                                                                tag
-                                                                            }
-                                                                        </span>
-                                                                    )
-                                                                )}
-                                                    </div>
-
-                                                    <div className="flex justify-between items-center">
-                                                        <div className="flex gap-2">
-                                                            {/* 타입 뱃지 */}
-                                                            <span
-                                                                className={`px-2 py-1 rounded-full text-xs font-bold ${
-                                                                    study.typeCheck ===
-                                                                    "study"
-                                                                        ? "bg-green-50 text-green-700"
-                                                                        : "bg-orange-50 text-orange-700"
-                                                                }`}
-                                                            >
-                                                                {getTypeLabel(
-                                                                    study.typeCheck
-                                                                )}
-                                                            </span>
-                                                            {/* 모집 상태 뱃지 */}
-                                                            <span
-                                                                className={`px-2 py-1 rounded-full text-xs font-bold ${
-                                                                    study.isRecruiting ===
-                                                                    "recruitment"
-                                                                        ? "bg-blue-50 text-blue-700"
-                                                                        : study.isRecruiting ===
-                                                                          "complete"
-                                                                        ? "bg-purple-50 text-purple-700"
-                                                                        : "bg-gray-50 text-gray-700"
-                                                                }`}
-                                                            >
-                                                                {getRecruitmentStatus(
-                                                                    study.isRecruiting
-                                                                )}
-                                                            </span>
-                                                        </div>
-                                                        <span className="text-xs text-gray-600">
-                                                            (
-                                                            {study.currentMemberCount ||
-                                                                0}
-                                                            /
-                                                            {
-                                                                study.studyProjectTotal
-                                                            }
-                                                            명)
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            );
+                                {recommendedStudies.map((study, index) => {
+                                    // 날짜 포맷팅 함수 - LocalDateTime 형식 처리
+                                    const formatDate = (
+                                        dateString: string
+                                    ): string => {
+                                        try {
+                                            const date = new Date(dateString);
+                                            const year = date.getFullYear();
+                                            const month = String(
+                                                date.getMonth() + 1
+                                            ).padStart(2, "0");
+                                            const day = String(
+                                                date.getDate()
+                                            ).padStart(2, "0");
+                                            return `${year}-${month}-${day}`;
+                                        } catch (error) {
+                                            return dateString;
                                         }
+                                    };
+
+                                    // 모집 상태 변환
+                                    const getRecruitmentStatus = (
+                                        isRecruiting: string
+                                    ) => {
+                                        switch (isRecruiting) {
+                                            case "recruitment":
+                                                return "모집중";
+                                            case "complete":
+                                                return "모집완료";
+                                            case "end":
+                                                return "종료됨";
+                                            default:
+                                                return "모집중";
+                                        }
+                                    };
+
+                                    // 타입 변환
+                                    const getTypeLabel = (
+                                        typeCheck: string
+                                    ) => {
+                                        return typeCheck === "study"
+                                            ? "스터디"
+                                            : "프로젝트";
+                                    };
+
+                                    return (
+                                        <div
+                                            key={study.studyProjectId || index}
+                                            className="bg-gray-50 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                                            onClick={() => {
+                                                const isProject =
+                                                    study.typeCheck ===
+                                                    "project";
+                                                const route = isProject
+                                                    ? `/project/${study.studyProjectId}`
+                                                    : `/study/${study.studyProjectId}`;
+                                                navigate(route);
+                                            }}
+                                        >
+                                            <div className="mb-3">
+                                                <div className="text-lg font-bold text-gray-800 mb-1">
+                                                    {study.studyProjectName}
+                                                </div>
+                                                <div className="text-sm text-gray-600 mb-2">
+                                                    {study.studyProjectTitle}
+                                                </div>
+                                                <div className="text-xs text-gray-500 mb-3">
+                                                    기간:{" "}
+                                                    {formatDate(
+                                                        study.studyProjectStart
+                                                    )}{" "}
+                                                    ~{" "}
+                                                    {formatDate(
+                                                        study.studyProjectEnd
+                                                    )}{" "}
+                                                    / 리더: {study.userId}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex gap-2 flex-wrap mb-3">
+                                                {/* 스터디 레벨 (스터디인 경우만) */}
+                                                {study.typeCheck === "study" &&
+                                                    study.studyLevel && (
+                                                        <span
+                                                            className={`px-2 py-0.5 rounded-xl text-xs font-medium ${
+                                                                study.studyLevel ===
+                                                                1
+                                                                    ? "bg-green-100 text-green-700"
+                                                                    : study.studyLevel ===
+                                                                      2
+                                                                    ? "bg-yellow-100 text-yellow-700"
+                                                                    : "bg-red-100 text-red-700"
+                                                            }`}
+                                                        >
+                                                            레벨{" "}
+                                                            {study.studyLevel}
+                                                        </span>
+                                                    )}
+                                                {/* 태그 표시 - 백엔드에서 제공하는 tags 배열 사용 */}
+                                                {study.tags &&
+                                                    Array.isArray(study.tags) &&
+                                                    study.tags
+                                                        .slice(0, 2)
+                                                        .map(
+                                                            (
+                                                                tag: string,
+                                                                tagIndex: number
+                                                            ) => (
+                                                                <span
+                                                                    key={
+                                                                        tagIndex
+                                                                    }
+                                                                    className="px-2 py-0.5 rounded-xl text-xs bg-gray-100 text-gray-600"
+                                                                >
+                                                                    #{tag}
+                                                                </span>
+                                                            )
+                                                        )}
+                                            </div>
+
+                                            <div className="flex justify-between items-center">
+                                                <div className="flex gap-2">
+                                                    {/* 타입 뱃지 */}
+                                                    <span
+                                                        className={`px-2 py-1 rounded-full text-xs font-bold ${
+                                                            study.typeCheck ===
+                                                            "study"
+                                                                ? "bg-green-50 text-green-700"
+                                                                : "bg-orange-50 text-orange-700"
+                                                        }`}
+                                                    >
+                                                        {getTypeLabel(
+                                                            study.typeCheck
+                                                        )}
+                                                    </span>
+                                                    {/* 모집 상태 뱃지 */}
+                                                    <span
+                                                        className={`px-2 py-1 rounded-full text-xs font-bold ${
+                                                            study.isRecruiting ===
+                                                            "recruitment"
+                                                                ? "bg-blue-50 text-blue-700"
+                                                                : study.isRecruiting ===
+                                                                  "complete"
+                                                                ? "bg-purple-50 text-purple-700"
+                                                                : "bg-gray-50 text-gray-700"
+                                                        }`}
+                                                    >
+                                                        {getRecruitmentStatus(
+                                                            study.isRecruiting
+                                                        )}
+                                                    </span>
+                                                </div>
+                                                <span className="text-xs text-gray-600">
+                                                    (
+                                                    {study.currentMemberCount ||
+                                                        0}
+                                                    /{study.studyProjectTotal}
+                                                    명)
+                                                </span>
+                                            </div>
+                                        </div>
                                     );
-                                })()}
+                                })}
                             </div>
                         )}
                     </div>
