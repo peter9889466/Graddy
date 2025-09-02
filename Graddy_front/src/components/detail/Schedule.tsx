@@ -142,170 +142,183 @@ const Schedule: React.FC<ScheduleProps> = ({
         }
     };
 
-    const handleAddItem = async () => {
-        console.log('handleAddItem 함수 호출됨');
-        console.log('newItem:', newItem);
-        console.log('activeTab:', activeTab);
-        
-        if (newItem.title && newItem.date) {
-            try {
-                if (activeTab === 'assignment') {
-                    // 과제 마감일 유효성 검사
-                    const selectedDate = new Date(newItem.date);
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-
-                    if (selectedDate < today) {
-                        alert('과제 마감일은 오늘 이후로 설정해주세요.');
-                        return;
-                    }
-
-                    // 과제 추가 API 호출
-                    const assignmentData = {
-                        studyProjectId: studyProjectId,
-                        memberId: memberId,
-                        title: newItem.title,
-                        description: newItem.description || '',
-                        deadline: new Date(newItem.date).toISOString(),
-                        fileUrl: selectedFile ? selectedFile.name : '' // 임시로 파일명 저장
-                    };
-
-                    console.log('과제 추가 데이터:', assignmentData);
-                    
-                    try {
-                        const response = await apiPost('/assignments', assignmentData);
-                        console.log('과제 추가 응답:', response);
-
-                        console.log('response.data 확인:', response.data);
-                        console.log('response.data 타입:', typeof response.data);
-                        console.log('response.data가 truthy인가?', !!response.data);
-                        
-                        if (response.data) {
-                            alert('과제가 추가되었습니다!');
-                            
-                            // 새로 생성된 과제를 목록에 추가
-                            const newAssignment: ScheduleItem = {
-                                id: (response.data as any).assignmentId?.toString() || Date.now().toString(),
-                                title: newItem.title,
-                                type: 'assignment',
-                                date: newItem.date,
-                                description: newItem.description,
-                                fileUrl: selectedFile ? selectedFile.name : '',
-                                createdAt: new Date().toISOString(),
-                                isExpanded: false
-                            };
-                            
-                            // 목록에 새 과제 추가
-                            setScheduleItems([...scheduleItems, newAssignment]);
-                            
-                            // 폼 초기화
-                            setNewItem({ title: '', description: '', date: '', time: '' });
-                            setSelectedFile(null);
-                            setIsAdding(false);
-                            
-                            return; // 성공 시 여기서 종료
-                        }
-                    } catch (apiError) {
-                        console.error('과제 추가 API 호출 실패:', apiError);
-                        alert('과제 추가에 실패했습니다. 다시 시도해주세요.');
-                        return; // 실패 시 여기서 종료
-                    }
-                } else {
-                    // 일정 추가 API 호출
-                    const scheduleData = {
-                        userId: userId,
-                        studyProjectId: studyProjectId,
-                        content: newItem.title,
-                        schTime: new Date(`${newItem.date}T${newItem.time || '00:00'}`).toISOString()
-                    };
-
-                    console.log('일정 추가 데이터:', scheduleData);
-                    
-                    try {
-                        const response = await apiPost('/schedules/study', scheduleData);
-                        console.log('일정 추가 응답:', response);
-
-                        if (response.data) {
-                            alert('일정이 추가되었습니다!');
-                            
-                            // 폼 초기화
-                            setNewItem({ title: '', description: '', date: '', time: '' });
-                            setSelectedFile(null);
-                            setIsAdding(false);
-                            
-                            // 일정 목록 다시 로드
-                            await loadSchedules();
-                            
-                            return; // 성공 시 여기서 종료
-                        }
-                    } catch (apiError) {
-                        console.error('일정 추가 API 호출 실패:', apiError);
-                        alert('일정 추가에 실패했습니다. 다시 시도해주세요.');
-                        return; // 실패 시 여기서 종료
-                    }
-                }
-
-                // API 호출이 성공하지 않았을 때만 폼 초기화
-                setNewItem({ title: '', description: '', date: '', time: '' });
-                setSelectedFile(null);
-                setIsAdding(false);
-            } catch (error) {
-                console.error('추가 실패:', error);
-                alert('추가에 실패했습니다. 다시 시도해주세요.');
-            }
-        } else {
-            alert('제목과 날짜를 입력해주세요.');
-        }
-    };
-
-    const handleDeleteItem = async (id: string, type: 'assignment' | 'schedule') => {
-        // 확인 창 띄우기
-        const isConfirmed = window.confirm('정말 삭제하시겠습니까?');
-        
-        if (!isConfirmed) {
-            return;
-        }
-
+    
+const handleAddItem = async () => {
+    console.log('handleAddItem 함수 호출됨');
+    console.log('newItem:', newItem);
+    console.log('activeTab:', activeTab);
+    
+    if (newItem.title && newItem.date) {
         try {
-            if (type === 'assignment') {
-                console.log('과제 삭제 요청 - assignmentId:', id);
-                const response = await apiDelete(`/assignments/${id}`);
-                console.log('과제 삭제 응답:', response);
+            if (activeTab === 'assignment') {
+                // 과제 마감일 유효성 검사
+                const selectedDate = new Date(newItem.date);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
 
-                if (response.data) {
-                    alert('과제가 성공적으로 삭제되었습니다.');
-                    // 목록에서 삭제된 과제 제거
-                    setScheduleItems(scheduleItems.filter(item => item.id !== id));
+                if (selectedDate < today) {
+                    alert('과제 마감일은 오늘 이후로 설정해주세요.');
+                    return;
                 }
-            } else {
-                console.log('일정 삭제 요청 - schId:', id);
+
+                // 과제 추가 API 호출
+                const assignmentData = {
+                    studyProjectId: studyProjectId,
+                    memberId: memberId,
+                    title: newItem.title,
+                    description: newItem.description || '',
+                    deadline: new Date(newItem.date).toISOString(),
+                    fileUrl: selectedFile ? selectedFile.name : '' // 임시로 파일명 저장
+                };
+
+                console.log('과제 추가 데이터:', assignmentData);
                 
                 try {
-                    await apiDelete(`/schedules/${id}`);
-                    console.log('일정 삭제 성공');
+                    const response = await apiPost('/assignments', assignmentData);
+                    console.log('과제 추가 응답:', response);
 
-                    // 일정 삭제 성공
-                    alert('일정이 성공적으로 삭제되었습니다.');
-                    // 일정 목록 다시 로드
-                    await loadSchedules();
-                } catch (deleteError: any) {
-                    // JSON 파싱 오류이지만 실제로는 삭제 성공인 경우 처리
-                    if (deleteError.message && deleteError.message.includes('Unexpected end of JSON input')) {
-                        console.log('일정 삭제 성공 (빈 응답)');
-                        alert('일정이 성공적으로 삭제되었습니다.');
-                        // 일정 목록 다시 로드
-                        await loadSchedules();
-                    } else {
-                        // 실제 삭제 실패
-                        throw deleteError;
+                    console.log('response.data 확인:', response.data);
+                    console.log('response.data 타입:', typeof response.data);
+                    console.log('response.data가 truthy인가?', !!response.data);
+                    
+                    if (response.data) {
+                        alert('과제가 추가되었습니다!');
+                        
+                        // 새로 생성된 과제를 목록에 추가
+                        const newAssignment: ScheduleItem = {
+                            id: (response.data as any).assignmentId?.toString() || Date.now().toString(),
+                            title: newItem.title,
+                            type: 'assignment',
+                            date: newItem.date,
+                            description: newItem.description,
+                            fileUrl: selectedFile ? selectedFile.name : '',
+                            createdAt: new Date().toISOString(),
+                            isExpanded: false
+                        };
+                        
+                        // 목록에 새 과제 추가
+                        setScheduleItems(prevItems => [...prevItems, newAssignment]);
+                        
+                        // 폼 초기화
+                        setNewItem({ title: '', description: '', date: '', time: '' });
+                        setSelectedFile(null);
+                        setIsAdding(false);
+                        
+                        return; // 성공 시 여기서 종료
                     }
+                } catch (apiError) {
+                    console.error('과제 추가 API 호출 실패:', apiError);
+                    alert('과제 추가에 실패했습니다. 다시 시도해주세요.');
+                    return; // 실패 시 여기서 종료
+                }
+            } else {
+                // 일정 추가 API 호출
+                const scheduleData = {
+                    userId: userId,
+                    studyProjectId: studyProjectId,
+                    content: newItem.title,
+                    schTime: `${newItem.date}T${newItem.time || '00:00'}`
+                };
+
+                console.log('일정 추가 데이터:', scheduleData);
+                console.log(newItem.time)
+                try {
+                    const response = await apiPost('/schedules/study', scheduleData);
+                    console.log('일정 추가 응답:', response);
+
+                    if (response.data) {
+                        alert('일정이 추가되었습니다!');
+                        
+                        // 새로 생성된 일정을 즉시 상태에 추가
+                        const newSchedule: ScheduleItem = {
+                            id: (response.data as any).schId?.toString() || Date.now().toString(),
+                            title: newItem.title,
+                            type: 'schedule',
+                            date: newItem.date,
+                            time: newItem.time || '00:00',
+                            description: newItem.title,
+                            createdAt: new Date().toISOString(),
+                            isExpanded: false
+                        };
+                        
+                        
+                        // 목록에 새 일정 즉시 추가
+                        setScheduleItems(prevItems => [...prevItems, newSchedule]);
+                        
+                        // 폼 초기화
+                        setNewItem({ title: '', description: '', date: '', time: '' });
+                        setSelectedFile(null);
+                        setIsAdding(false);
+
+                        return; // 성공 시 여기서 종료
+                    }
+                } catch (apiError) {
+                    console.error('일정 추가 API 호출 실패:', apiError);
+                    alert('일정 추가에 실패했습니다. 다시 시도해주세요.');
+                    return; // 실패 시 여기서 종료
                 }
             }
+
+            // API 호출이 성공하지 않았을 때만 폼 초기화
+            setNewItem({ title: '', description: '', date: '', time: '' });
+            setSelectedFile(null);
+            setIsAdding(false);
         } catch (error) {
-            console.error(`${type === 'assignment' ? '과제' : '일정'} 삭제 실패:`, error);
-            alert(`${type === 'assignment' ? '과제' : '일정'} 삭제에 실패했습니다. 다시 시도해주세요.`);
+            console.error('추가 실패:', error);
+            alert('추가에 실패했습니다. 다시 시도해주세요.');
         }
-    };
+    } else {
+        alert('제목과 날짜를 입력해주세요.');
+    }
+};
+
+    const handleDeleteItem = async (id: string, type: 'assignment' | 'schedule') => {
+    // 확인 창 띄우기
+    const isConfirmed = window.confirm('정말 삭제하시겠습니까?');
+    
+    if (!isConfirmed) {
+        return;
+    }
+
+    try {
+        if (type === 'assignment') {
+            console.log('과제 삭제 요청 - assignmentId:', id);
+            const response = await apiDelete(`/assignments/${id}`);
+            console.log('과제 삭제 응답:', response);
+
+            if (response.data) {
+                alert('과제가 성공적으로 삭제되었습니다.');
+                // 목록에서 삭제된 과제 즉시 제거
+                setScheduleItems(prevItems => prevItems.filter(item => item.id !== id));
+            }
+        } else {
+            console.log('일정 삭제 요청 - schId:', id);
+            
+            try {
+                await apiDelete(`/schedules/${id}`);
+                console.log('일정 삭제 성공');
+
+                // 일정 삭제 성공 - 즉시 상태에서 제거
+                alert('일정이 성공적으로 삭제되었습니다.');
+                setScheduleItems(prevItems => prevItems.filter(item => item.id !== id));
+            } catch (deleteError: any) {
+                // JSON 파싱 오류이지만 실제로는 삭제 성공인 경우 처리
+                if (deleteError.message && deleteError.message.includes('Unexpected end of JSON input')) {
+                    console.log('일정 삭제 성공 (빈 응답)');
+                    alert('일정이 성공적으로 삭제되었습니다.');
+                    // 즉시 상태에서 제거
+                    setScheduleItems(prevItems => prevItems.filter(item => item.id !== id));
+                } else {
+                    // 실제 삭제 실패
+                    throw deleteError;
+                }
+            }
+        }
+    } catch (error) {
+        console.error(`${type === 'assignment' ? '과제' : '일정'} 삭제 실패:`, error);
+        alert(`${type === 'assignment' ? '과제' : '일정'} 삭제에 실패했습니다. 다시 시도해주세요.`);
+    }
+};
 
     const handleEditSchedule = (item: ScheduleItem) => {
         setEditingSchedule(item.id);
