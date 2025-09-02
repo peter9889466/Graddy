@@ -39,7 +39,7 @@ const Comments: React.FC<Props> = ({
             setLoading(true);
             const response = await getCommentsByType(postType, postId);
 
-            if (response.success && Array.isArray(response.data)) {
+            if (response.status && Array.isArray(response.data)) {
                 setComments(response.data);
             } else {
                 console.error("댓글 데이터 형식 오류:", response);
@@ -80,13 +80,13 @@ const Comments: React.FC<Props> = ({
                 commentData
             );
 
-            if (response.success) {
+            if (response.status) {
                 setNewComment("");
                 loadComments(); // await 제거 - 비동기 함수가 아님
                 console.log("댓글이 성공적으로 작성되었습니다.");
             } else {
                 throw new Error(
-                    response.message || "댓글 작성에 실패했습니다."
+                    response.statusText || "댓글 작성에 실패했습니다."
                 );
             }
         } catch (error) {
@@ -196,14 +196,14 @@ const CommentItem: React.FC<{
                 comment.commentId,
                 editCommentContent.trim()
             );
-            if (response.success) {
+            if (response.status) {
                 setIsEditingComment(false);
                 setEditCommentContent("");
                 onUpdate(); // await 제거
                 console.log("댓글이 성공적으로 수정되었습니다.");
             } else {
                 throw new Error(
-                    response.message || "댓글 수정에 실패했습니다."
+                    response.statusText || "댓글 수정에 실패했습니다."
                 );
             }
         } catch (error) {
@@ -221,12 +221,12 @@ const CommentItem: React.FC<{
         if (window.confirm("정말로 이 댓글을 삭제하시겠습니까?")) {
             try {
                 const response = await deleteComment(comment.commentId);
-                if (response.success) {
+                if (response.status) {
                     onUpdate(); // await 제거
                     console.log("댓글이 성공적으로 삭제되었습니다.");
                 } else {
                     throw new Error(
-                        response.message || "댓글 삭제에 실패했습니다."
+                        response.statusText || "댓글 삭제에 실패했습니다."
                     );
                 }
             } catch (error) {
