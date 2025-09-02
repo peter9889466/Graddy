@@ -1153,7 +1153,7 @@ const StudyCreate: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* 총 스터디 기간 표시 */}
+                        {/* 총 기간 표시 */}
                         {studyData.startDate && studyData.endDate && (
                             <div className="mt-4 flex justify-center">
                                 <div className="flex flex-col items-center gap-4">
@@ -1165,7 +1165,7 @@ const StudyCreate: React.FC = () => {
                                             }}
                                         ></div>
                                         <label className="text-lg font-semibold text-gray-800">
-                                            총 스터디 기간
+                                            {studyType === "study" ? "총 스터디 기간" : "총 프로젝트 기간"}
                                         </label>
                                     </div>
                                     <div className="relative">

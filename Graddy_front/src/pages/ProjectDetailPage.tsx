@@ -733,81 +733,8 @@ const ProjectDetailPage = () => {
                 );
                 setInterests(data);
 
-                // 태그 카테고리도 설정 (UI용)
+                // 프로젝트 수정의 태그 찾기에서는 포지션만 노출
                 const tagCategories = [
-                    {
-                        id: 1,
-                        name: "프로그래밍 언어",
-                        tags: [
-                            "Python",
-                            "JavaScript",
-                            "HTML/CSS",
-                            "Java",
-                            "C#",
-                            "Swift",
-                            "Kotlin",
-                            "C++",
-                            "TypeScript",
-                            "C",
-                            "assembly",
-                            "go",
-                            "php",
-                            "dart",
-                            "rust",
-                            "Ruby",
-                        ],
-                    },
-                    {
-                        id: 2,
-                        name: "라이브러리 & 프레임워크",
-                        tags: [
-                            "React",
-                            "Spring Boot",
-                            "Spring",
-                            "Node.js",
-                            "Pandas",
-                            "next.js",
-                            "flutter",
-                            "vue",
-                            "flask",
-                            "Django",
-                            "Unity",
-                        ],
-                    },
-                    {
-                        id: 3,
-                        name: "데이터베이스",
-                        tags: ["SQL", "NOSQL", "DBMS/RDBMS"],
-                    },
-                    {
-                        id: 4,
-                        name: "플랫폼/환경",
-                        tags: [
-                            "iOS",
-                            "Android",
-                            "AWS",
-                            "Docker",
-                            "Linux",
-                            "cloud",
-                            "IoT",
-                            "임베디드",
-                        ],
-                    },
-                    {
-                        id: 5,
-                        name: "AI/데이터",
-                        tags: [
-                            "인공지능(AI)",
-                            "머신러닝",
-                            "딥러닝",
-                            "빅데이터",
-                            "데이터 리터러시",
-                            "LLM",
-                            "프롬프트 엔지니어링",
-                            "ChatGPT",
-                            "AI 활용(AX)",
-                        ],
-                    },
                     {
                         id: 6,
                         name: "포지션",
@@ -1163,18 +1090,16 @@ const ProjectDetailPage = () => {
                                     </button>
                                 )}
 
-                                {/* 모집 마감된 경우 상태 표시 */}
+                                {/* 모집 마감된 경우 재시작 버튼 표시 */}
                                 {!isRecruiting && (
-                                    <div
-                                        className="flex-1 px-4 py-2 rounded-lg text-center text-sm sm:text-base border"
-                                        style={{
-                                            backgroundColor: "#F9FAFB",
-                                            color: "#6B7280",
-                                            borderColor: "#D1D5DB",
-                                        }}
+                                    <button
+                                        type="button"
+                                        onClick={handleRecruitmentToggle}
+                                        className="flex-1 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer transition-colors duration-200"
+                                        style={{ backgroundColor: "#10B981" }}
                                     >
-                                        모집 마감
-                                    </div>
+                                        모집 재시작
+                                    </button>
                                 )}
                                 <button
                                     type="button"
@@ -1288,7 +1213,7 @@ const ProjectDetailPage = () => {
                     onClick={handleCloseTagModal}
                 >
                     <div
-                        className="bg-white rounded-lg p-4 w-full max-w-4xl mx-4"
+                        className="bg-white rounded-lg p-4 w-full max-w-3xl mx-4"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="flex justify-center items-center mb-4">
@@ -1314,41 +1239,7 @@ const ProjectDetailPage = () => {
                             />
                         </div>
 
-                        {/* 카테고리 필터 버튼들 */}
-                        <div className="mb-4">
-                            <div className="flex gap-2 flex-wrap">
-                                <button
-                                    type="button"
-                                    onClick={() => setSelectedCategory(null)}
-                                    className={`px-3 py-1.5 text-xs rounded-lg border transition-colors duration-200 whitespace-nowrap ${
-                                        selectedCategory === null
-                                            ? "bg-[#8B85E9] text-white border-[#8B85E9]"
-                                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                                    }`}
-                                >
-                                    전체
-                                </button>
-                                {tagCategories.map((category) => (
-                                    <button
-                                        key={category.id}
-                                        type="button"
-                                        onClick={() =>
-                                            setSelectedCategory(
-                                                category.id.toString()
-                                            )
-                                        }
-                                        className={`px-3 py-1.5 text-xs rounded-lg border transition-colors duration-200 whitespace-nowrap ${
-                                            selectedCategory ===
-                                            category.id.toString()
-                                                ? "bg-[#8B85E9] text-white border-[#8B85E9]"
-                                                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                                        }`}
-                                    >
-                                        {category.name}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+                        {/* 프로젝트에서는 분류 버튼 숨김 */}
 
                         {/* 태그 목록 */}
                         <div
@@ -1379,36 +1270,27 @@ const ProjectDetailPage = () => {
                             {!interestsLoading &&
                             !interestsError &&
                             filteredTags.length > 0 ? (
-                                <div className="space-y-4">
-                                    {filteredTags.map((category) => (
-                                        <div
-                                            key={category.id}
-                                            className="border-b border-gray-200 pb-3 last:border-b-0"
-                                        >
-                                            <h4 className="font-semibold text-gray-800 mb-2 text-sm">
-                                                {category.name}
-                                            </h4>
+                                (() => {
+                                    const allTags = filteredTags.reduce(
+                                        (acc, cat) => acc.concat(cat.tags),
+                                        [] as string[]
+                                    );
+                                    return (
+                                        <div className="space-y-3">
+                                            <h4 className="font-semibold text-gray-800 text-sm">포지션</h4>
                                             <div className="grid grid-cols-3 gap-2">
-                                                {category.tags.map((tag) => {
-                                                    const isSelected =
-                                                        editTags.some(
-                                                            (t) =>
-                                                                t.name === tag
-                                                        );
-
+                                                {allTags.map((tag) => {
+                                                    const isSelected = editTags.some(
+                                                        (t) => t.name === tag
+                                                    );
                                                     return (
                                                         <button
                                                             key={tag}
-                                                            onClick={() =>
-                                                                handleTagSelect(
-                                                                    tag
-                                                                )
-                                                            }
+                                                            onClick={() => handleTagSelect(tag)}
                                                             className={`p-2 text-center rounded-lg border transition-colors duration-200 text-xs select-none ${
                                                                 isSelected
                                                                     ? "bg-[#8B85E9] text-white border-[#8B85E9] cursor-pointer hover:opacity-80"
-                                                                    : editTags.length >=
-                                                                      5
+                                                                    : editTags.length >= 5
                                                                     ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
                                                                     : "bg-white text-gray-700 border-gray-300 hover:bg-[#8B85E9] hover:text-white hover:border-[#8B85E9] cursor-pointer"
                                                             }`}
@@ -1419,8 +1301,8 @@ const ProjectDetailPage = () => {
                                                 })}
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
+                                    );
+                                })()
                             ) : !interestsLoading && !interestsError ? (
                                 <div className="text-center py-8 text-gray-500">
                                     <Search className="w-12 h-12 mx-auto mb-2 text-gray-300" />
