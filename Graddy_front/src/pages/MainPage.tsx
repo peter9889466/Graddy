@@ -9,6 +9,69 @@ import interactionPlugin from "@fullcalendar/interaction";
 import { Plus, Clock, Calendar } from "lucide-react";
 import "./MainPage.css";
 
+// 편집 폼 컴포넌트
+const EditingScheduleForm = ({
+    item,
+    onSave,
+    onCancel,
+}: {
+    item: any;
+    onSave: (title: string, time: string) => void;
+    onCancel: () => void;
+}) => {
+    const [title, setTitle] = useState(item.title);
+    const [time, setTime] = useState(item.startTime);
+
+    const handleSave = () => {
+        if (title.trim() && time) {
+            onSave(title.trim(), time);
+        }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter") {
+            handleSave();
+        } else if (e.key === "Escape") {
+            onCancel();
+        }
+    };
+
+    return (
+        <div className="space-y-2">
+            <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:border-purple-500"
+                onKeyDown={handleKeyDown}
+                placeholder="일정 제목"
+                autoFocus
+            />
+            <input
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:border-purple-500"
+                onKeyDown={handleKeyDown}
+            />
+            <div className="flex gap-2 justify-end">
+                <button
+                    onClick={handleSave}
+                    className="px-3 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600"
+                >
+                    저장
+                </button>
+                <button
+                    onClick={onCancel}
+                    className="px-3 py-1 bg-gray-300 text-gray-700 text-xs rounded hover:bg-gray-400"
+                >
+                    취소
+                </button>
+            </div>
+        </div>
+    );
+};
+
 const MainPage = () => {
     const navigate = useNavigate();
     const authContext = useContext(AuthContext);
@@ -74,47 +137,59 @@ const MainPage = () => {
     // 캘린더 이벤트 데이터 (표시용)
     const events = [
         // 스터디 일정
-        ...studySchedules.map((schedule) => ({
-            id: `study-${schedule.schId}`,
-            title: "",
-            date: new Date(schedule.schTime).toISOString().split("T")[0],
-            backgroundColor: "#EF4444", // 스터디: 빨간색
-            borderColor: "#EF4444",
-            extendedProps: {
-                type: "study",
-                studyName: schedule.studyProjectName || "스터디",
-                content: schedule.content,
-                startTime: new Date(schedule.schTime).toLocaleTimeString(
-                    "ko-KR",
-                    {
+        ...studySchedules.map((schedule) => {
+            const scheduleDate = new Date(schedule.schTime);
+            // 시간대 문제를 해결하기 위해 로컬 날짜로 변환
+            const localDate = new Date(
+                scheduleDate.getTime() -
+                    scheduleDate.getTimezoneOffset() * 60000
+            );
+
+            return {
+                id: `study-${schedule.schId}`,
+                title: "",
+                date: localDate.toISOString().split("T")[0],
+                backgroundColor: "#EF4444", // 스터디: 빨간색
+                borderColor: "#EF4444",
+                extendedProps: {
+                    type: "study",
+                    studyName: schedule.studyProjectName || "스터디",
+                    content: schedule.content,
+                    startTime: scheduleDate.toLocaleTimeString("ko-KR", {
                         hour: "2-digit",
                         minute: "2-digit",
                         hour12: false,
-                    }
-                ),
-            },
-        })),
+                    }),
+                },
+            };
+        }),
         // 과제 일정
-        ...assignments.map((assignment) => ({
-            id: `assignment-${assignment.assignmentId}`,
-            title: "",
-            date: new Date(assignment.deadline).toISOString().split("T")[0],
-            backgroundColor: "#3B82F6", // 과제: 파란색
-            borderColor: "#3B82F6",
-            extendedProps: {
-                type: "assignment",
-                studyName: "스터디", // 스터디명은 별도 조회 필요
-                assignmentName: assignment.title,
-                dueTime: new Date(assignment.deadline).toLocaleTimeString(
-                    "ko-KR",
-                    {
+        ...assignments.map((assignment) => {
+            const deadlineDate = new Date(assignment.deadline);
+            // 시간대 문제를 해결하기 위해 로컬 날짜로 변환
+            const localDate = new Date(
+                deadlineDate.getTime() -
+                    deadlineDate.getTimezoneOffset() * 60000
+            );
+
+            return {
+                id: `assignment-${assignment.assignmentId}`,
+                title: "",
+                date: localDate.toISOString().split("T")[0],
+                backgroundColor: "#3B82F6", // 과제: 파란색
+                borderColor: "#3B82F6",
+                extendedProps: {
+                    type: "assignment",
+                    studyName: "스터디", // 스터디명은 별도 조회 필요
+                    assignmentName: assignment.title,
+                    dueTime: deadlineDate.toLocaleTimeString("ko-KR", {
                         hour: "2-digit",
                         minute: "2-digit",
                         hour12: false,
-                    }
-                ),
-            },
-        })),
+                    }),
+                },
+            };
+        }),
         // 개인 일정
         ...personalSchedules.map((schedule) => ({
             id: `personal-${schedule.id}`,
@@ -310,20 +385,28 @@ const MainPage = () => {
 
                 // 백엔드 데이터를 프론트엔드 형식으로 변환
                 const convertedPersonalSchedules = personalData.map(
-                    (schedule: any) => ({
-                        id: schedule.schId.toString(),
-                        title: schedule.content,
-                        startTime: new Date(
-                            schedule.schTime
-                        ).toLocaleTimeString("ko-KR", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            hour12: false,
-                        }),
-                        date: new Date(schedule.schTime)
-                            .toISOString()
-                            .split("T")[0],
-                    })
+                    (schedule: any) => {
+                        const scheduleDate = new Date(schedule.schTime);
+                        // 시간대 문제를 해결하기 위해 로컬 날짜로 변환
+                        const localDate = new Date(
+                            scheduleDate.getTime() -
+                                scheduleDate.getTimezoneOffset() * 60000
+                        );
+
+                        return {
+                            id: schedule.schId.toString(),
+                            title: schedule.content,
+                            startTime: scheduleDate.toLocaleTimeString(
+                                "ko-KR",
+                                {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    hour12: false,
+                                }
+                            ),
+                            date: localDate.toISOString().split("T")[0],
+                        };
+                    }
                 );
 
                 setPersonalSchedules(convertedPersonalSchedules);
@@ -350,15 +433,37 @@ const MainPage = () => {
         setSelectedDate(dateInfo.dateStr);
     };
 
+    // 일정 타입 정의
+    interface StudyScheduleItem {
+        id: string;
+        type: "study";
+        studyName: string;
+        content: string;
+        startTime: string;
+    }
+
+    interface AssignmentItem {
+        id: string;
+        type: "assignment";
+        studyName: string;
+        assignmentName: string;
+        dueTime: string;
+    }
+
+    type ScheduleItem = StudyScheduleItem | AssignmentItem;
+
     // 선택된 날짜의 일정 가져오기
     const getSchedulesForDate = (date: string) => {
         // 스터디 일정
         const studyItems = studySchedules
-            .filter(
-                (schedule) =>
-                    new Date(schedule.schTime).toISOString().split("T")[0] ===
-                    date
-            )
+            .filter((schedule) => {
+                const scheduleDate = new Date(schedule.schTime);
+                const localDate = new Date(
+                    scheduleDate.getTime() -
+                        scheduleDate.getTimezoneOffset() * 60000
+                );
+                return localDate.toISOString().split("T")[0] === date;
+            })
             .map((schedule) => ({
                 id: `study-${schedule.schId}`,
                 type: "study",
@@ -376,12 +481,14 @@ const MainPage = () => {
 
         // 과제 일정
         const assignmentItems = assignments
-            .filter(
-                (assignment) =>
-                    new Date(assignment.deadline)
-                        .toISOString()
-                        .split("T")[0] === date
-            )
+            .filter((assignment) => {
+                const deadlineDate = new Date(assignment.deadline);
+                const localDate = new Date(
+                    deadlineDate.getTime() -
+                        deadlineDate.getTimezoneOffset() * 60000
+                );
+                return localDate.toISOString().split("T")[0] === date;
+            })
             .map((assignment) => ({
                 id: `assignment-${assignment.assignmentId}`,
                 type: "assignment",
@@ -403,17 +510,23 @@ const MainPage = () => {
         );
 
         // 스터디 일정과 과제 일정을 합쳐서 반환
-        const allStudyItems = [...studyItems, ...assignmentItems];
+        const allStudyItems: ScheduleItem[] = [
+            ...studyItems,
+            ...assignmentItems,
+        ];
 
         return { studyItems: allStudyItems, personalItems };
     };
 
     // 개인 일정 추가 API
-    const addPersonalSchedule = async () => {
+    const addPersonalSchedule = async (
+        title: string = "새 일정",
+        time: string = "09:00"
+    ) => {
         if (!selectedDate || !isLoggedIn || !token) return;
 
         try {
-            const scheduleDateTime = new Date(`${selectedDate}T09:00:00`);
+            const scheduleDateTime = new Date(`${selectedDate}T${time}:00`);
 
             const response = await fetch(
                 "http://localhost:8080/api/schedules/personal",
@@ -424,7 +537,7 @@ const MainPage = () => {
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                        content: "새 일정",
+                        content: title,
                         schTime: scheduleDateTime.toISOString(),
                     }),
                 }
@@ -438,18 +551,14 @@ const MainPage = () => {
                 const newSchedule = {
                     id: data.schId.toString(),
                     title: data.content,
-                    startTime: new Date(data.schTime).toLocaleTimeString(
-                        "ko-KR",
-                        {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            hour12: false,
-                        }
-                    ),
+                    startTime: time,
                     date: selectedDate,
                 };
 
                 setPersonalSchedules((prev) => [...prev, newSchedule]);
+
+                // 생성 후 바로 편집 모드로 전환
+                setEditingSchedule(data.schId.toString());
             } else {
                 console.error("개인 일정 생성 실패:", response.status);
                 alert("일정 추가에 실패했습니다.");
@@ -496,19 +605,32 @@ const MainPage = () => {
         title: string,
         startTime: string
     ) => {
-        if (!isLoggedIn || !token) return;
+        if (!isLoggedIn || !token) {
+            console.error("로그인되지 않았거나 토큰이 없습니다.");
+            return;
+        }
 
         try {
             // 현재 일정의 날짜를 찾아서 새로운 시간과 결합
             const currentSchedule = personalSchedules.find((s) => s.id === id);
-            if (!currentSchedule) return;
+            if (!currentSchedule) {
+                console.error("수정할 일정을 찾을 수 없습니다.");
+                return;
+            }
 
             const scheduleDateTime = new Date(
                 `${currentSchedule.date}T${startTime}:00`
             );
 
+            console.log("개인 일정 수정 요청:", {
+                id,
+                title,
+                startTime,
+                scheduleDateTime: scheduleDateTime.toISOString(),
+            });
+
             const response = await fetch(
-                `http://localhostapi/schedules/${id}`,
+                `http://localhost:8080/api/schedules/${id}`,
                 {
                     method: "PUT",
                     headers: {
@@ -532,12 +654,26 @@ const MainPage = () => {
                     )
                 );
             } else {
-                console.error("개인 일정 수정 실패:", response.status);
-                alert("일정 수정에 실패했습니다.");
+                const errorText = await response.text();
+                console.error(
+                    "개인 일정 수정 실패:",
+                    response.status,
+                    errorText
+                );
+                alert(`일정 수정에 실패했습니다. (${response.status})`);
             }
         } catch (error) {
             console.error("개인 일정 수정 에러:", error);
-            alert("일정 수정 중 오류가 발생했습니다.");
+            if (
+                error instanceof TypeError &&
+                error.message === "Failed to fetch"
+            ) {
+                alert(
+                    "서버에 연결할 수 없습니다. 네트워크 연결을 확인해주세요."
+                );
+            } else {
+                alert("일정 수정 중 오류가 발생했습니다.");
+            }
         }
     };
 
@@ -616,14 +752,20 @@ const MainPage = () => {
                                                                 <div className="text-sm text-gray-700 mb-1">
                                                                     과제:{" "}
                                                                     {
-                                                                        item.assignmentName
+                                                                        (
+                                                                            item as AssignmentItem
+                                                                        )
+                                                                            .assignmentName
                                                                     }
                                                                 </div>
                                                                 <div className="flex items-center gap-1 text-xs text-gray-600">
                                                                     <Clock className="w-3 h-3" />
                                                                     제출 마감:{" "}
                                                                     {
-                                                                        item.dueTime
+                                                                        (
+                                                                            item as AssignmentItem
+                                                                        )
+                                                                            .dueTime
                                                                     }
                                                                 </div>
                                                             </>
@@ -631,14 +773,20 @@ const MainPage = () => {
                                                             <>
                                                                 <div className="text-sm text-gray-700 mb-1">
                                                                     {
-                                                                        item.content
+                                                                        (
+                                                                            item as StudyScheduleItem
+                                                                        )
+                                                                            .content
                                                                     }
                                                                 </div>
                                                                 <div className="flex items-center gap-1 text-xs text-gray-600">
                                                                     <Clock className="w-3 h-3" />
                                                                     시작:{" "}
                                                                     {
-                                                                        item.startTime
+                                                                        (
+                                                                            item as StudyScheduleItem
+                                                                        )
+                                                                            .startTime
                                                                     }
                                                                 </div>
                                                             </>
@@ -656,81 +804,29 @@ const MainPage = () => {
                                                             <div className="flex-1">
                                                                 {editingSchedule ===
                                                                 item.id ? (
-                                                                    <div className="space-y-2">
-                                                                        <input
-                                                                            type="text"
-                                                                            defaultValue={
-                                                                                item.title
-                                                                            }
-                                                                            className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:border-purple-500"
-                                                                            onBlur={(
-                                                                                e
-                                                                            ) => {
-                                                                                updatePersonalSchedule(
-                                                                                    item.id,
-                                                                                    e
-                                                                                        .target
-                                                                                        .value,
-                                                                                    item.startTime
-                                                                                );
-                                                                                setEditingSchedule(
-                                                                                    null
-                                                                                );
-                                                                            }}
-                                                                            onKeyDown={(
-                                                                                e
-                                                                            ) => {
-                                                                                if (
-                                                                                    e.key ===
-                                                                                    "Enter"
-                                                                                ) {
-                                                                                    updatePersonalSchedule(
-                                                                                        item.id,
-                                                                                        e
-                                                                                            .currentTarget
-                                                                                            .value,
-                                                                                        item.startTime
-                                                                                    );
-                                                                                    setEditingSchedule(
-                                                                                        null
-                                                                                    );
-                                                                                }
-                                                                            }}
-                                                                            autoFocus
-                                                                        />
-                                                                        <input
-                                                                            type="time"
-                                                                            defaultValue={
-                                                                                item.startTime
-                                                                            }
-                                                                            className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:border-purple-500"
-                                                                            onBlur={(
-                                                                                e
-                                                                            ) => {
-                                                                                updatePersonalSchedule(
-                                                                                    item.id,
-                                                                                    item.title,
-                                                                                    e
-                                                                                        .target
-                                                                                        .value
-                                                                                );
-                                                                                setEditingSchedule(
-                                                                                    null
-                                                                                );
-                                                                            }}
-                                                                            onChange={(
-                                                                                e
-                                                                            ) => {
-                                                                                updatePersonalSchedule(
-                                                                                    item.id,
-                                                                                    item.title,
-                                                                                    e
-                                                                                        .target
-                                                                                        .value
-                                                                                );
-                                                                            }}
-                                                                        />
-                                                                    </div>
+                                                                    <EditingScheduleForm
+                                                                        item={
+                                                                            item
+                                                                        }
+                                                                        onSave={(
+                                                                            title,
+                                                                            time
+                                                                        ) => {
+                                                                            updatePersonalSchedule(
+                                                                                item.id,
+                                                                                title,
+                                                                                time
+                                                                            );
+                                                                            setEditingSchedule(
+                                                                                null
+                                                                            );
+                                                                        }}
+                                                                        onCancel={() =>
+                                                                            setEditingSchedule(
+                                                                                null
+                                                                            )
+                                                                        }
+                                                                    />
                                                                 ) : (
                                                                     <div
                                                                         onClick={() =>
@@ -786,8 +882,8 @@ const MainPage = () => {
 
                                                 {/* 일정 추가 버튼 */}
                                                 <button
-                                                    onClick={
-                                                        addPersonalSchedule
+                                                    onClick={() =>
+                                                        addPersonalSchedule()
                                                     }
                                                     className="w-full border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-purple-500 hover:bg-purple-50 transition-colors group"
                                                 >
