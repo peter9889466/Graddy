@@ -38,11 +38,11 @@ public class StudyMatchingService {
     private static final double COLLABORATIVE_WEIGHT = 0.3;
     
     // 콘텐츠 기반 필터링 가중치
-    private static final double DAY_MATCH_WEIGHT = 0.3;
-    private static final double TIME_MATCH_WEIGHT = 0.3;
-    private static final double INTEREST_MATCH_WEIGHT = 0.25;
-    private static final double LEVEL_MATCH_WEIGHT = 0.15;
-    
+    private static final double INTEREST_MATCH_WEIGHT = 0.35;
+    private static final double LEVEL_MATCH_WEIGHT = 0.25;
+    private static final double DAY_MATCH_WEIGHT = 0.2;
+    private static final double TIME_MATCH_WEIGHT = 0.2;
+
     private final UserRepository userRepository;
     private final StudyProjectRepository studyProjectRepository;
     private final MemberRepository memberRepository;
