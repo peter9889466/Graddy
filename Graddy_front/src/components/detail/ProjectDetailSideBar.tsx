@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { User, Settings, Trash2 } from "lucide-react";
+import ProfileModal from "../modal/ProfileModal";
 
 interface SideMenuItem {
     name: string;
@@ -35,6 +36,21 @@ interface ProjectDetailSideBarProps {
     onApplyToProject?: () => void;
 }
 
+// 프로젝트 멤버 프로필 타입 (스터디와 동일한 모달을 재사용)
+interface ProjectMemberProfile {
+    nickname: string;
+    githubUrl: string;
+    score: number;
+    interests: Array<{
+        id: number;
+        name: string;
+        category: string;
+        difficulty: string;
+    }>;
+    introduction: string;
+    profileImage?: string;
+}
+
 const ProjectDetailSideBar: React.FC<ProjectDetailSideBarProps> = ({
     activeTab,
     onTabChange,
@@ -45,6 +61,27 @@ const ProjectDetailSideBar: React.FC<ProjectDetailSideBarProps> = ({
     applications = [],
     onProcessApplication,
 }) => {
+    const [selectedMember, setSelectedMember] = useState<ProjectMemberProfile | null>(null);
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
+    // 백엔드 멤버 데이터를 모달에 맞는 구조로 변환
+    const projectMembers: ProjectMemberProfile[] = members.map((member) => ({
+        nickname: member.nick || member.userId,
+        githubUrl: "", // TODO: 백엔드에서 GitHub URL 추가 시 매핑
+        score: 0, // TODO: 점수 데이터 연동 시 교체
+        interests: [], // TODO: 관심사 데이터 연동 시 교체
+        introduction: `${member.memberType === 'leader' ? '리더' : '멤버'}입니다.`,
+    }));
+
+    const handleMemberClick = (member: ProjectMemberProfile) => {
+        setSelectedMember(member);
+        setIsProfileModalOpen(true);
+    };
+
+    const handleCloseProfileModal = () => {
+        setIsProfileModalOpen(false);
+        setSelectedMember(null);
+    };
     const sideMenuItems: SideMenuItem[] = [
         { name: "프로젝트 메인" },
         { name: "커뮤니티", requiresAuth: true, requiresMembership: true },
@@ -161,17 +198,30 @@ const ProjectDetailSideBar: React.FC<ProjectDetailSideBarProps> = ({
                 </div>
                 <hr className="mb-3 border-gray-200" />
                 <div className="bg-gray-50 rounded-lg p-3 pl-6 space-y-3">
-                    {members.length > 0 ? (
-                        members.map((member, index) => (
-                            <div key={index} className="text-sm text-gray-700">
-                                {member.nick || member.userId}
-                            </div>
+                    {projectMembers.length > 0 ? (
+                        projectMembers.map((member, index) => (
+                            <button
+                                key={index}
+                                onClick={() => handleMemberClick(member)}
+                                className="w-full text-left text-sm text-gray-700 hover:text-[#8B85E9] hover:font-medium transition-all duration-200 cursor-pointer"
+                            >
+                                {member.nickname}
+                            </button>
                         ))
                     ) : (
                         <div className="text-sm text-gray-500">멤버가 없습니다.</div>
                     )}
                 </div>
             </div>
+
+            {/* 프로필 모달 */}
+            {selectedMember && (
+                <ProfileModal
+                    isOpen={isProfileModalOpen}
+                    onClose={handleCloseProfileModal}
+                    memberData={selectedMember}
+                />
+            )}
         </>
     );
 };
