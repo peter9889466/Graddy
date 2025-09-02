@@ -56,6 +56,11 @@ public class StudyRecommendationDto {
     private String userId;
     
     /**
+     * 리더 닉네임
+     */
+    private String userNickname;
+    
+    /**
      * 모집 상태 (recruitment, complete, end)
      */
     private String isRecruiting;

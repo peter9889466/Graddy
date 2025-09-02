@@ -52,10 +52,10 @@ public class StudyMatchingService {
     private final UserInterestRepository userInterestRepository;
     
     /**
-     * 사용자에게 스터디/프로젝트 추천
+     * 사용자에게 스터디 추천 (프로젝트 제외)
      * @param userId 사용자 ID
      * @param limit 추천 개수 제한
-     * @return 추천된 스터디/프로젝트 목록
+     * @return 추천된 스터디 목록
      */
     @Transactional(readOnly = true)
     public List<StudyRecommendationDto> recommendStudies(String userId, int limit) {
@@ -66,7 +66,7 @@ public class StudyMatchingService {
             User user = userRepository.findByUserId(userId)
                     .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + userId));
             
-            // 2. 추천 가능한 스터디/프로젝트 조회 (모집 중이고 참여하지 않은 것들)
+            // 2. 추천 가능한 스터디 조회 (모집 중이고 참여하지 않은 스터디만, 프로젝트 제외)
             List<StudyProject> availableStudies = studyProjectRepository.findAvailableStudiesForUser(userId);
             
             if (availableStudies.isEmpty()) {
@@ -114,7 +114,10 @@ public class StudyMatchingService {
         double interestMatchScore = calculateInterestMatchScore(user, study);
         double levelMatchScore = calculateLevelMatchScore(user, study);
         
-        // 5. DTO 생성 및 반환
+        // 5. 리더 닉네임 조회
+        String leaderNickname = getLeaderNickname(study.getUserId());
+        
+        // 6. DTO 생성 및 반환
         return StudyRecommendationDto.builder()
                 .studyProjectId(study.getStudyProjectId())
                 .studyProjectName(study.getStudyProjectName())
@@ -123,6 +126,7 @@ public class StudyMatchingService {
                 .studyLevel(study.getStudyLevel())
                 .typeCheck(study.getTypeCheck().name())
                 .userId(study.getUserId())
+                .userNickname(leaderNickname)
                 .isRecruiting(study.getIsRecruiting().name())
                 .studyProjectStart(timestampToLocalDateTime(study.getStudyProjectStart()))
                 .studyProjectEnd(timestampToLocalDateTime(study.getStudyProjectEnd()))
@@ -540,5 +544,21 @@ public class StudyMatchingService {
             return null;
         }
         return timestamp.toLocalDateTime();
+    }
+    
+    /**
+     * 리더의 닉네임 조회
+     * @param userId 리더의 사용자 ID
+     * @return 리더의 닉네임, 사용자를 찾을 수 없으면 "알 수 없음" 반환
+     */
+    private String getLeaderNickname(String userId) {
+        try {
+            return userRepository.findByUserId(userId)
+                    .map(user -> user.getNick() != null ? user.getNick() : "알 수 없음")
+                    .orElse("알 수 없음");
+        } catch (Exception e) {
+            log.warn("리더 닉네임 조회 중 오류 발생 (userId: {}): {}", userId, e.getMessage());
+            return "알 수 없음";
+        }
     }
 } 

@@ -32,14 +32,14 @@ public class StudyMatchingController {
     private final JwtUtil jwtUtil;
     
     /**
-     * 사용자에게 맞는 스터디/프로젝트 추천
+     * 사용자에게 맞는 스터디 추천 (프로젝트 제외)
      * @param authorizationHeader JWT 인증 헤더
      * @param limit 추천 개수 제한 (기본값: 10)
-     * @return 추천된 스터디/프로젝트 목록
+     * @return 추천된 스터디 목록
      */
     @Operation(
-        summary = "스터디/프로젝트 추천",
-        description = "하이브리드 추천 알고리즘을 사용하여 현재 로그인한 사용자에게 맞는 스터디/프로젝트를 추천합니다."
+        summary = "스터디 추천",
+        description = "하이브리드 추천 알고리즘을 사용하여 현재 로그인한 사용자에게 맞는 스터디를 추천합니다. (프로젝트 제외)"
     )
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -97,14 +97,14 @@ public class StudyMatchingController {
     }
     
     /**
-     * 특정 사용자에게 맞는 스터디/프로젝트 추천 (관리자용)
+     * 특정 사용자에게 맞는 스터디 추천 (관리자용, 프로젝트 제외)
      * @param targetUserId 추천 대상 사용자 ID
      * @param limit 추천 개수 제한 (기본값: 10)
-     * @return 추천된 스터디/프로젝트 목록
+     * @return 추천된 스터디 목록
      */
     @Operation(
-        summary = "특정 사용자 스터디/프로젝트 추천 (관리자용)",
-        description = "관리자가 특정 사용자에게 맞는 스터디/프로젝트를 추천합니다."
+        summary = "특정 사용자 스터디 추천 (관리자용)",
+        description = "관리자가 특정 사용자에게 맞는 스터디를 추천합니다. (프로젝트 제외)"
     )
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
