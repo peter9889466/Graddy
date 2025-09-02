@@ -1,7 +1,7 @@
 // 과제 / 일정 관리
 import React, { useState, useEffect } from 'react';
 import { Plus, BookOpen, Calendar } from 'lucide-react';
-import { apiPost, apiGet, apiDelete } from '../../services/api';
+import { apiPost, apiGet, apiDelete, apiPut } from '../../services/api';
 
 interface ScheduleItem {
     id: string;
@@ -21,6 +21,8 @@ interface ScheduleProps {
     userId?: string;
     memberId?: number;
 }
+
+
 
 const Schedule: React.FC<ScheduleProps> = ({
     isStudyLeader = false,
@@ -47,19 +49,26 @@ const Schedule: React.FC<ScheduleProps> = ({
     const [aiGeneratedAssignment, setAiGeneratedAssignment] = useState<any>(null);
     const [showAIPreview, setShowAIPreview] = useState(false);
 
+    // 일정 수정 관련 상태
+    const [editingSchedule, setEditingSchedule] = useState<string | null>(null);
+    const [editingData, setEditingData] = useState({
+        title: '',
+        date: '',
+        time: ''
+    });
+
     // 과제 및 일정 목록 로드
     useEffect(() => {
         console.log('Schedule 컴포넌트 마운트 - studyProjectId:', studyProjectId);
         if (studyProjectId > 0) {
             loadAssignments();
-            // TODO: 일정 목록 조회 API 구현 후 활성화
-            // loadSchedules();
+            loadSchedules();
         } else {
             console.log('studyProjectId가 0 이하입니다:', studyProjectId);
         }
     }, [studyProjectId]);
 
-        const loadAssignments = async () => {
+    const loadAssignments = async () => {
         setIsLoading(true);
         try {
             console.log('과제 목록 로드 시도 - studyProjectId:', studyProjectId);
@@ -79,52 +88,59 @@ const Schedule: React.FC<ScheduleProps> = ({
                     createdAt: assignment.createdAt,
                     isExpanded: false
                 }));
-                setScheduleItems(assignments);
+                
+                // 기존 일정은 유지하고 과제만 업데이트
+                setScheduleItems(prevItems => {
+                    const existingSchedules = prevItems.filter(item => item.type === 'schedule');
+                    return [...assignments, ...existingSchedules];
+                });
             } else {
                 console.log('과제 데이터가 없거나 배열이 아닙니다:', response.data);
-                setScheduleItems([]);
+                // 일정만 유지하고 과제는 빈 배열로 설정
+                setScheduleItems(prevItems => prevItems.filter(item => item.type === 'schedule'));
             }
 
         } catch (error) {
-            console.log('백엔드 API 호출 실패, 빈 목록으로 설정:', error);
-            setScheduleItems([]);
+            console.log('백엔드 API 호출 실패, 기존 일정만 유지:', error);
+            setScheduleItems(prevItems => prevItems.filter(item => item.type === 'schedule'));
         } finally {
             setIsLoading(false);
         }
     };
 
-    const loadSchedules = async () => {
-        try {
-            console.log('일정 목록 로드 시도 - studyProjectId:', studyProjectId);
+   const loadSchedules = async () => {
+    try {
+        console.log('일정 목록 로드 시도 - studyProjectId:', studyProjectId);
+        
+        // DB에서 일정 목록 가져오기
+        const response = await apiGet(`/schedules/study/${studyProjectId}`);
+        console.log('일정 목록 응답:', response);
+        
+        // **수정된 부분**
+        // response.data 대신 response 자체를 확인합니다.
+        if (Array.isArray(response)) {
+            const schedules = response.map((schedule: any) => ({
+                id: schedule.schId.toString(),
+                title: schedule.content,
+                type: 'schedule' as const,
+                date: new Date(schedule.schTime).toISOString().split('T')[0],
+                time: new Date(schedule.schTime).toISOString().split('T')[1].substring(0, 5),
+                description: schedule.content,
+                createdAt: schedule.schTime,
+                isExpanded: false
+            }));
             
-            // DB에서 일정 목록 가져오기
-            const response = await apiGet(`/schedules/study-project/${studyProjectId}`);
-            console.log('일정 목록 응답:', response);
-            
-            if (response.data && Array.isArray(response.data)) {
-                const schedules = response.data.map((schedule: any) => ({
-                    id: schedule.schId.toString(),
-                    title: schedule.content,
-                    type: 'schedule' as const,
-                    date: new Date(schedule.schTime).toISOString().split('T')[0],
-                    time: new Date(schedule.schTime).toISOString().split('T')[1].substring(0, 5),
-                    description: schedule.content,
-                    createdAt: schedule.schTime,
-                    isExpanded: false
-                }));
-                
-                // 기존 과제 목록에 일정 추가
-                setScheduleItems(prevItems => {
-                    const existingAssignments = prevItems.filter(item => item.type === 'assignment');
-                    return [...existingAssignments, ...schedules];
-                });
-            } else {
-                console.log('일정 데이터가 없거나 배열이 아닙니다:', response.data);
-            }
-        } catch (error) {
-            console.log('일정 목록 로드 실패:', error);
+            setScheduleItems(prevItems => {
+                const existingAssignments = prevItems.filter(item => item.type === 'assignment');
+                return [...existingAssignments, ...schedules];
+            });
+        } else {
+            console.log('일정 데이터가 없거나 배열이 아닙니다:', response);
         }
-    };
+    } catch (error) {
+        console.log('일정 목록 로드 실패:', error);
+    }
+};
 
     const handleAddItem = async () => {
         console.log('handleAddItem 함수 호출됨');
@@ -206,7 +222,7 @@ const Schedule: React.FC<ScheduleProps> = ({
                     console.log('일정 추가 데이터:', scheduleData);
                     
                     try {
-                        const response = await apiPost('/schedules', scheduleData);
+                        const response = await apiPost('/schedules/study', scheduleData);
                         console.log('일정 추가 응답:', response);
 
                         if (response.data) {
@@ -214,12 +230,12 @@ const Schedule: React.FC<ScheduleProps> = ({
                             
                             // 새로 생성된 일정을 목록에 추가
                             const newSchedule: ScheduleItem = {
-                                id: Date.now().toString(),
+                                id: (response.data as any).schId?.toString() || Date.now().toString(),
                                 title: newItem.title,
                                 type: 'schedule',
                                 date: newItem.date,
                                 time: newItem.time,
-                                description: newItem.description,
+                                description: newItem.title,
                                 createdAt: new Date().toISOString(),
                                 isExpanded: false
                             };
@@ -254,7 +270,7 @@ const Schedule: React.FC<ScheduleProps> = ({
         }
     };
 
-    const handleDeleteItem = async (id: string) => {
+    const handleDeleteItem = async (id: string, type: 'assignment' | 'schedule') => {
         // 확인 창 띄우기
         const isConfirmed = window.confirm('정말 삭제하시겠습니까?');
         
@@ -263,19 +279,88 @@ const Schedule: React.FC<ScheduleProps> = ({
         }
 
         try {
-            console.log('과제 삭제 요청 - assignmentId:', id);
-            const response = await apiDelete(`/assignments/${id}`);
-            console.log('과제 삭제 응답:', response);
+            if (type === 'assignment') {
+                console.log('과제 삭제 요청 - assignmentId:', id);
+                const response = await apiDelete(`/assignments/${id}`);
+                console.log('과제 삭제 응답:', response);
 
-            if (response.data) {
-                alert('과제가 성공적으로 삭제되었습니다.');
-                // 목록에서 삭제된 과제 제거
+                if (response.data) {
+                    alert('과제가 성공적으로 삭제되었습니다.');
+                    // 목록에서 삭제된 과제 제거
+                    setScheduleItems(scheduleItems.filter(item => item.id !== id));
+                }
+            } else {
+                console.log('일정 삭제 요청 - schId:', id);
+                const response = await apiDelete(`/schedules/${id}`);
+                console.log('일정 삭제 응답:', response);
+
+                // 일정 삭제는 응답 상태로 성공 여부 확인
+                alert('일정이 성공적으로 삭제되었습니다.');
+                // 목록에서 삭제된 일정 제거
                 setScheduleItems(scheduleItems.filter(item => item.id !== id));
             }
         } catch (error) {
-            console.error('과제 삭제 실패:', error);
-            alert('과제 삭제에 실패했습니다. 다시 시도해주세요.');
+            console.error(`${type === 'assignment' ? '과제' : '일정'} 삭제 실패:`, error);
+            alert(`${type === 'assignment' ? '과제' : '일정'} 삭제에 실패했습니다. 다시 시도해주세요.`);
         }
+    };
+
+    const handleEditSchedule = (item: ScheduleItem) => {
+        setEditingSchedule(item.id);
+        setEditingData({
+            title: item.title,
+            date: item.date,
+            time: item.time || '00:00'
+        });
+    };
+
+    const handleUpdateSchedule = async (id: string) => {
+        if (!editingData.title || !editingData.date) {
+            alert('제목과 날짜를 입력해주세요.');
+            return;
+        }
+
+        try {
+            const updateData = {
+                userId: userId,
+                studyProjectId: studyProjectId,
+                content: editingData.title,
+                schTime: new Date(`${editingData.date}T${editingData.time || '00:00'}`).toISOString()
+            };
+
+            console.log('일정 수정 데이터:', updateData);
+            const response = await apiPut(`/schedules/${id}`, updateData);
+            console.log('일정 수정 응답:', response);
+
+            if (response.data) {
+                alert('일정이 성공적으로 수정되었습니다.');
+                
+                // 목록에서 수정된 일정 업데이트
+                setScheduleItems(scheduleItems.map(item =>
+                    item.id === id
+                        ? {
+                            ...item,
+                            title: editingData.title,
+                            date: editingData.date,
+                            time: editingData.time,
+                            description: editingData.title
+                        }
+                        : item
+                ));
+                
+                // 수정 모드 종료
+                setEditingSchedule(null);
+                setEditingData({ title: '', date: '', time: '' });
+            }
+        } catch (error) {
+            console.error('일정 수정 실패:', error);
+            alert('일정 수정에 실패했습니다. 다시 시도해주세요.');
+        }
+    };
+
+    const handleCancelEdit = () => {
+        setEditingSchedule(null);
+        setEditingData({ title: '', date: '', time: '' });
     };
 
     const handleGenerateAIAssignment = async () => {
@@ -344,7 +429,7 @@ const Schedule: React.FC<ScheduleProps> = ({
                     </div>
                 ) : (
                     <div className="space-y-3">
-                                                {filteredItems.map((item) => {
+                        {filteredItems.map((item) => {
                             // 과제 마감일이 지났는지 확인
                             const isOverdue = item.type === 'assignment' && new Date(item.date) < new Date();
 
@@ -388,7 +473,7 @@ const Schedule: React.FC<ScheduleProps> = ({
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            handleDeleteItem(item.id);
+                                                            handleDeleteItem(item.id, 'assignment');
                                                         }}
                                                         className="text-red-500 hover:text-red-700 transition-colors duration-200 text-sm"
                                                     >
@@ -438,34 +523,104 @@ const Schedule: React.FC<ScheduleProps> = ({
                                             )}
                                         </>
                                     ) : (
-                                        // 일정: 토글 없이 바로 내용 표시
+                                        // 일정: 수정 기능 포함
                                         <div className="p-4">
-                                            <div className="flex items-center gap-3 mb-3">
-                                                <Calendar className="w-4 h-4 text-blue-600" />
-                                                <div className="flex-1">
-                                                    <h4 className="font-medium text-gray-800">{item.title}</h4>
-                                                    <p className="text-sm text-gray-500">
-                                                        일정: {item.date} {item.time}
-                                                    </p>
+                                            {editingSchedule === item.id ? (
+                                                // 수정 모드
+                                                <div className="space-y-3">
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                            일정 제목
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={editingData.title}
+                                                            onChange={(e) => setEditingData({...editingData, title: e.target.value})}
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
+                                                        />
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <div className="flex-1">
+                                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                                날짜
+                                                            </label>
+                                                            <input
+                                                                type="date"
+                                                                value={editingData.date}
+                                                                onChange={(e) => setEditingData({...editingData, date: e.target.value})}
+                                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
+                                                                min={new Date().toISOString().split('T')[0]}
+                                                            />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                                시간
+                                                            </label>
+                                                            <select
+                                                                value={editingData.time}
+                                                                onChange={(e) => setEditingData({...editingData, time: e.target.value})}
+                                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
+                                                            >
+                                                                {Array.from({ length: 24 }, (_, i) => {
+                                                                    const hour = i.toString().padStart(2, '0');
+                                                                    return (
+                                                                        <option key={hour} value={`${hour}:00`}>
+                                                                            {hour}:00
+                                                                        </option>
+                                                                    );
+                                                                })}
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex gap-2 pt-2">
+                                                        <button
+                                                            onClick={() => handleUpdateSchedule(item.id)}
+                                                            className="px-3 py-1.5 bg-[#8B85E9] text-white text-sm rounded-md hover:bg-[#7A73E8] transition-colors duration-200"
+                                                        >
+                                                            저장
+                                                        </button>
+                                                        <button
+                                                            onClick={handleCancelEdit}
+                                                            className="px-3 py-1.5 bg-gray-300 text-gray-700 text-sm rounded-md hover:bg-gray-400 transition-colors duration-200"
+                                                        >
+                                                            취소
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                                <button
-                                                    onClick={() => handleDeleteItem(item.id)}
-                                                    className="text-red-500 hover:text-red-700 transition-colors duration-200 text-sm"
-                                                >
-                                                    삭제
-                                                </button>
-                                            </div>
-                                            {item.description && (
-                                                <div className="mt-2">
-                                                    <p className="text-gray-600 text-sm whitespace-pre-wrap">{item.description}</p>
-                                                </div>
-                                            )}
-                                            {item.createdAt && (
-                                                <div className="mt-2">
-                                                    <p className="text-xs text-gray-400">
-                                                        생성일: {new Date(item.createdAt).toLocaleDateString()}
-                                                    </p>
-                                                </div>
+                                            ) : (
+                                                // 일반 표시 모드
+                                                <>
+                                                    <div className="flex items-center gap-3 mb-3">
+                                                        <Calendar className="w-4 h-4 text-blue-600" />
+                                                        <div className="flex-1">
+                                                            <h4 className="font-medium text-gray-800">{item.title}</h4>
+                                                            <p className="text-sm text-gray-500">
+                                                                일정: {item.date} {item.time}
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <button
+                                                                onClick={() => handleEditSchedule(item)}
+                                                                className="text-blue-500 hover:text-blue-700 transition-colors duration-200 text-sm"
+                                                            >
+                                                                수정
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteItem(item.id, 'schedule')}
+                                                                className="text-red-500 hover:text-red-700 transition-colors duration-200 text-sm"
+                                                            >
+                                                                삭제
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    {item.createdAt && (
+                                                        <div className="mt-2">
+                                                            <p className="text-xs text-gray-400">
+                                                                생성일: {new Date(item.createdAt).toLocaleDateString()}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </>
                                             )}
                                         </div>
                                     )}

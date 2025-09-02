@@ -1,6 +1,6 @@
 import React, { useRef, useState, useContext, useEffect } from 'react'
 import ChartComponent from '../detail/chart/LineChart'; // 위에서 만든 Chart 컴포넌트
-import { LineChart, MessageCircle, Reply, Trash2, User, Paperclip } from 'lucide-react';
+import { LineChart, MessageCircle, Reply, Trash2, User, Paperclip, Edit3 } from 'lucide-react';
 import { AuthContext } from '../../contexts/AuthContext';
 import { useAssignmentContext } from '../../contexts/AssignmentContext';
 
@@ -62,21 +62,26 @@ interface FeedbackResponse {
     }>;
 }
 
-// 댓글/답글 UI 타입
-interface UiReply {
-    id: string;
+// API 댓글 인터페이스
+interface ApiComment {
+    commentId: number;
+    userId: string;
+    nickname: string;
     content: string;
-    author: string;
-    timestamp: string;
-    parentId: string;
+    createdAt: string;
+    updatedAt: string;
 }
 
-interface UiComment {
-    id: string;
-    content: string;
-    author: string;
-    timestamp: string;
-    replies: UiReply[];
+interface CommentResponse {
+    status: number;
+    message: string;
+    data: ApiComment[];
+}
+
+interface SingleCommentResponse {
+    status: number;
+    message: string;
+    data: ApiComment;
 }
 
 interface FeedBackProps {
@@ -92,18 +97,19 @@ interface FeedBackProps {
     }>;
 }
 
-    const FeedBack: React.FC<FeedBackProps> = ({ 
-        studyProjectId, 
-        currentUserId, 
-        members 
-    }) => {
-        // 디버깅을 위한 콘솔 로그
-        console.log('FeedBack 컴포넌트 - 전달받은 데이터:', {
-            studyProjectId,
-            currentUserId,
-            membersCount: members.length,
-            members: members
-        });
+const FeedBack: React.FC<FeedBackProps> = ({ 
+    studyProjectId, 
+    currentUserId, 
+    members 
+}) => {
+    // 디버깅을 위한 콘솔 로그
+    console.log('FeedBack 컴포넌트 - 전달받은 데이터:', {
+        studyProjectId,
+        currentUserId,
+        membersCount: members.length,
+        members: members
+    });
+    
     const [isAssignmentOpen, setIsAssignmentOpen] = useState(false);
     const [isMemberOpen, setIsMemberOpen] = useState(false);
     const [selectedAssignment, setSelectedAssignment] = useState('과제를 선택하세요');
@@ -127,24 +133,224 @@ interface FeedBackProps {
     const [feedbackLoading, setFeedbackLoading] = useState(false);
     const [feedbackScore, setFeedbackScore] = useState<number | null>(null);
 
-    // 인증 헤더 생성 유틸리티
+    // API 댓글 관련 상태
+    const [comments, setComments] = useState<ApiComment[]>([]);
+    const [newComment, setNewComment] = useState('');
+    const [commentLoading, setCommentLoading] = useState(false);
+    const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+    const [editContent, setEditContent] = useState('');
+
+    // JWT 토큰에서 사용자 ID 추출하는 유틸리티 함수 추가
+    const getUserIdFromToken = (): string | null => {
+        try {
+            const token = localStorage.getItem('userToken');
+            if (!token || token === 'null') return null;
+            
+            // JWT는 세 부분으로 나뉘어 있고, 두 번째 부분이 payload
+            const payload = token.split('.')[1];
+            if (!payload) return null;
+            
+            const decoded = JSON.parse(atob(payload));
+            console.log('JWT 디코딩 결과:', decoded);
+            
+            // 백엔드에서 사용하는 사용자 식별자 필드를 확인 (sub, userId, username 등)
+            return decoded.sub || decoded.userId || decoded.username || null;
+        } catch (error) {
+            console.error('JWT 디코딩 실패:', error);
+            return null;
+        }
+    };
+
+    // 인증 헤더 생성 유틸리티 - 디버깅 강화
     const getAuthHeaders = (): HeadersInit => {
         const token = localStorage.getItem('userToken');
+        console.log('토큰 확인:', {
+            token: token ? token.substring(0, 50) + '...' : 'null',
+            tokenExists: !!token,
+            tokenLength: token?.length
+        });
+        
         const headers: HeadersInit = {
             'Content-Type': 'application/json'
         };
         if (token && token !== 'null' && token.trim() !== '') {
             headers['Authorization'] = `Bearer ${token}`;
+        } else {
+            console.warn('JWT 토큰이 없거나 유효하지 않습니다.');
         }
         return headers;
     };
 
-    // 댓글 관련 상태 (기본값 제거)
-    const [comments, setComments] = useState<UiComment[]>([]);
+    // 댓글 목록 조회
+    const fetchComments = async (assignmentId: number) => {
+        if (!assignmentId) return;
+        
+        try {
+            setCommentLoading(true);
+            const response = await fetch(`http://localhost:8080/api/api/comments/assignments/${assignmentId}`, {
+                method: 'GET',
+                headers: getAuthHeaders()
+            });
 
-    const [newComment, setNewComment] = useState('');
-    const [newReply, setNewReply] = useState('');
-    const [replyingTo, setReplyingTo] = useState<string | null>(null);
+            if (!response.ok) {
+                throw new Error(`댓글 목록 조회 실패: ${response.status}`);
+            }
+
+            const data: CommentResponse = await response.json();
+            if (data.status === 200) {
+                setComments(data.data || []);
+            } else {
+                throw new Error(data.message || '댓글 목록 조회 실패');
+            }
+        } catch (err) {
+            console.error('댓글 목록 조회 실패:', err);
+            setError(err instanceof Error ? err.message : '댓글 목록 조회 실패');
+            setComments([]);
+        } finally {
+            setCommentLoading(false);
+        }
+    };
+
+    // 댓글 작성
+    const handleAddComment = async () => {
+        if (!newComment.trim() || !selectedAssignmentId) return;
+
+        try {
+            setCommentLoading(true);
+            const response = await fetch(`http://localhost:8080/api/api/comments/assignments/${selectedAssignmentId}`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                    content: newComment.trim(),
+                    studyProjectId: studyProjectId
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`댓글 작성 실패: ${response.status}`);
+            }
+
+            const data: SingleCommentResponse = await response.json();
+            if (data.status === 201) {
+                setNewComment('');
+                // 댓글 목록 다시 조회
+                await fetchComments(selectedAssignmentId);
+            } else {
+                throw new Error(data.message || '댓글 작성 실패');
+            }
+        } catch (err) {
+            console.error('댓글 작성 실패:', err);
+            setError(err instanceof Error ? err.message : '댓글 작성 실패');
+        } finally {
+            setCommentLoading(false);
+        }
+    };
+
+    // 댓글 수정 - URL 쿼리 파라미터 방식으로 수정
+const handleEditComment = async (commentId: number) => {
+    if (!editContent.trim()) return;
+
+    try {
+        setCommentLoading(true);
+        setError(null);
+        
+        // content를 URL 쿼리 파라미터로 인코딩
+        const encodedContent = encodeURIComponent(editContent.trim());
+        const url = `http://localhost:8080/api/api/comments/${commentId}?content=${encodedContent}`;
+
+        console.log('댓글 수정 요청:', {
+            commentId,
+            content: editContent.trim(),
+            encodedContent,
+            url,
+            currentUserId: currentUserId,
+            authHeaders: getAuthHeaders()
+        });
+
+        const response = await fetch(url, {
+            method: 'PUT',
+            headers: getAuthHeaders()
+            // body는 제거 - 쿼리 파라미터로 전송하므로
+        });
+
+        console.log('댓글 수정 응답 상태:', response.status);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('댓글 수정 실패 응답:', errorText);
+            
+            if (response.status === 403) {
+                throw new Error('댓글 수정 권한이 없습니다. 본인이 작성한 댓글만 수정할 수 있습니다.');
+            } else {
+                throw new Error(`댓글 수정 실패: ${response.status} - ${errorText}`);
+            }
+        }
+
+        const data: SingleCommentResponse = await response.json();
+        console.log('댓글 수정 응답 데이터:', data);
+        
+        if (data.status === 200) {
+            setEditingCommentId(null);
+            setEditContent('');
+            // 댓글 목록 다시 조회
+            if (selectedAssignmentId) {
+                await fetchComments(selectedAssignmentId);
+            }
+        } else {
+            throw new Error(data.message || '댓글 수정 실패');
+        }
+    } catch (err) {
+        console.error('댓글 수정 실패:', err);
+        const errorMessage = err instanceof Error ? err.message : '댓글 수정 실패';
+        setError(errorMessage);
+    } finally {
+        setCommentLoading(false);
+    }
+};
+
+    // 댓글 삭제
+    const handleDeleteComment = async (commentId: number) => {
+        if (!window.confirm('정말로 이 댓글을 삭제하시겠습니까?')) return;
+
+        try {
+            setCommentLoading(true);
+            const response = await fetch(`http://localhost:8080/api/api/comments/${commentId}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders()
+            });
+
+            if (!response.ok) {
+                throw new Error(`댓글 삭제 실패: ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (data.status === 200) {
+                // 댓글 목록 다시 조회
+                if (selectedAssignmentId) {
+                    await fetchComments(selectedAssignmentId);
+                }
+            } else {
+                throw new Error(data.message || '댓글 삭제 실패');
+            }
+        } catch (err) {
+            console.error('댓글 삭제 실패:', err);
+            setError(err instanceof Error ? err.message : '댓글 삭제 실패');
+        } finally {
+            setCommentLoading(false);
+        }
+    };
+
+    // 수정 모드 시작
+    const startEditing = (comment: ApiComment) => {
+        setEditingCommentId(comment.commentId);
+        setEditContent(comment.content);
+    };
+
+    // 수정 취소
+    const cancelEditing = () => {
+        setEditingCommentId(null);
+        setEditContent('');
+    };
     
     const fetchAssignments = async () => {
         try {
@@ -245,7 +451,6 @@ interface FeedBackProps {
                     acc.push({
                         assignmentId: submission.assignmentId,
                         value: `assignment_${submission.assignmentId}`,
-                        // label: assignmentInfo ? assignmentInfo.title : `과제 #${submission.assignmentId}`,
                         label: assignmentInfo ? assignmentInfo.title : null,
                         period: assignmentInfo ? new Date(submission.createdAt).toLocaleDateString('ko-KR', {
                             year: 'numeric',
@@ -254,7 +459,6 @@ interface FeedBackProps {
                             hour: '2-digit',
                             minute: '2-digit'
                         }) : null
-                        // createdAt: assignmentInfo ? submission.createdAt : null
                     });
                 }
             }
@@ -326,6 +530,10 @@ interface FeedBackProps {
         setFeedbackScore(null);
         setCurrentSubmissionData(null);
         setSelectedMemberId(null);
+        
+        // 댓글 관련 상태 초기화 및 댓글 목록 조회
+        setComments([]);
+        await fetchComments(option.assignmentId);
         
         // 선택된 과제의 제출 목록 가져오기
         await fetchAssignmentSubmissions(option.assignmentId);
@@ -426,60 +634,19 @@ interface FeedBackProps {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // 댓글 관련 함수들
-    const handleAddComment = () => {
-        if (newComment.trim()) {
-            const comment = {
-                id: Date.now().toString(),
-                content: newComment,
-                // 닉네임 들어오는 곳
-                author: authContext?.isLoggedIn ? '김개발' : '익명 사용자',
-                timestamp: new Date().toLocaleString('ko-KR'),
-                replies: []
-            };
-            setComments([...comments, comment]);
-            setNewComment('');
-        }
-    };
-
-    const handleAddReply = (parentId: string) => {
-        if (newReply.trim()) {
-            const reply = {
-                id: `${parentId}-${Date.now()}`,
-                content: newReply,
-                author: authContext?.isLoggedIn ? '김개발' : '익명 사용자',
-                timestamp: new Date().toLocaleString('ko-KR'),
-                parentId
-            };
-            
-            setComments(comments.map(comment => 
-                comment.id === parentId 
-                    ? { ...comment, replies: [...comment.replies, reply] }
-                    : comment
-            ));
-            setNewReply('');
-            setReplyingTo(null);
-        }
-    };
-
-    const handleDeleteComment = (commentId: string) => {
-        setComments(comments.filter(comment => comment.id !== commentId));
-    };
-
-    const handleDeleteReply = (commentId: string, replyId: string) => {
-        setComments(comments.map(comment => 
-            comment.id === commentId 
-                ? { ...comment, replies: comment.replies.filter(reply => reply.id !== replyId) }
-                : comment
-        ));
-    };
-
     return (
         <div className="space-y-4 h-[61.5vh] overflow-y-auto p-4 pr-10">
 
         {/* AI 피드백 소제목 */}
         <h2 className="text-xl font-bold mb-6 -mt-5 -ml-4"
             style={{ color: "#8B85E9" }}>과제 피드백</h2>
+
+            {/* 에러 메시지 표시 */}
+            {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                    <p className="text-red-600 text-sm">{error}</p>
+                </div>
+            )}
 
             {/* 드롭다운 선택 영역 */}
             <div className="flex flex-col gap-4 mb-4">
@@ -671,160 +838,156 @@ interface FeedBackProps {
                         <p className="text-gray-400 text-center">과제와 스터디원을 선택하면 AI 피드백이 생성됩니다.</p>
                     )}
                 </div>
-                {/* {currentSubmissionData && !feedbackLoading && (
-                    <div className="mt-2 flex justify-end">
-                        <button
-                            onClick={() => generateAIFeedback(currentSubmissionData.submissionId)}
-                            className="px-4 py-2 text-white rounded-md transition-colors duration-200"
-                            style={{ backgroundColor: "#8B85E9" }}
-                        >
-                            피드백 재생성
-                        </button>
-                    </div>
-                )} */}
             </div>
     
-      {/* 댓글 */}
-        <div>
-            <p className="text-lg font-bold mb-2 text-gray-500">
-                댓글
-            </p>
-            <hr/>
-            
-            {/* 댓글 입력 섹션 */}
-            <div className="bg-white border border-gray-200 rounded-lg p-4 mt-4">
-                <div className="flex items-start space-x-3">
-                    <div className="w-8 h-8 bg-[#8B85E9] rounded-full flex items-center justify-center">
-                        <User className="w-4 h-4 text-white" />
-                    </div>
-                    <div className="flex-1">
-                        <textarea
-                            value={newComment}
-                            onChange={(e) => setNewComment(e.target.value)}
-                            placeholder="댓글을 입력하세요..."
-                            className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
-                            rows={3}
-                        />
-                        <div className="flex justify-end mt-2">
-                            <button
-                                onClick={handleAddComment}
-                                className="px-4 py-2 text-white rounded-md transition-colors duration-200"
-                                style={{ backgroundColor: "#8B85E9" }}
-                            >
-                                댓글 작성
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* 댓글 목록 */}
-            <div className="space-y-4 mt-4">
-                {comments.map((comment) => (
-                    <div key={comment.id} className="bg-white border border-gray-200 rounded-lg p-4">
-                        {/* 메인 댓글 */}
+            {/* 댓글 섹션 */}
+            <div>
+                <p className="text-lg font-bold mb-2 text-gray-500">
+                    댓글
+                </p>
+                <hr/>
+                
+                {/* 댓글 입력 섹션 */}
+                {selectedAssignmentId && (
+                    <div className="bg-white border border-gray-200 rounded-lg p-4 mt-4">
                         <div className="flex items-start space-x-3">
                             <div className="w-8 h-8 bg-[#8B85E9] rounded-full flex items-center justify-center">
                                 <User className="w-4 h-4 text-white" />
                             </div>
                             <div className="flex-1">
-                                <div className="flex items-center space-x-2 mb-1">
-                                    <span className="font-medium text-gray-800">{comment.author}</span>
-                                    <span className="text-sm text-gray-500">{comment.timestamp}</span>
-                                </div>
-                                <p className="text-gray-700 mb-2">{comment.content}</p>
-                                <div className="flex items-center space-x-4">
+                                <textarea
+                                    value={newComment}
+                                    onChange={(e) => setNewComment(e.target.value)}
+                                    placeholder="댓글을 입력하세요..."
+                                    className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
+                                    rows={3}
+                                    disabled={commentLoading}
+                                />
+                                <div className="flex justify-end mt-2">
                                     <button
-                                        onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
-                                        className="flex items-center space-x-1 text-sm text-gray-500 hover:text-[#8B85E9] transition-colors"
+                                        onClick={handleAddComment}
+                                        disabled={commentLoading || !newComment.trim()}
+                                        className="px-4 py-2 text-white rounded-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        style={{ backgroundColor: "#8B85E9" }}
                                     >
-                                        <Reply className="w-3 h-3" />
-                                        <span>답글</span>
-                                    </button>
-                                    <button
-                                        onClick={() => handleDeleteComment(comment.id)}
-                                        className="flex items-center space-x-1 text-sm text-red-500 hover:text-red-700 transition-colors"
-                                    >
-                                        <Trash2 className="w-3 h-3" />
-                                        <span>삭제</span>
+                                        {commentLoading ? '작성중...' : '댓글 작성'}
                                     </button>
                                 </div>
                             </div>
                         </div>
+                    </div>
+                )}
 
-                        {/* 답글 입력 */}
-                        {replyingTo === comment.id && (
-                            <div className="mt-4 ml-11">
+                {/* 댓글 목록 */}
+                <div className="space-y-4 mt-4">
+                    {commentLoading && comments.length === 0 ? (
+                        <div className="text-center py-4">
+                            <p className="text-gray-500">댓글을 불러오는 중...</p>
+                        </div>
+                    ) : comments.length > 0 ? (
+                        comments.map((comment) => (
+                            <div key={comment.commentId} className="bg-white border border-gray-200 rounded-lg p-4">
                                 <div className="flex items-start space-x-3">
-                                    <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">
-                                        <User className="w-3 h-3 text-gray-600" />
+                                    <div className="w-8 h-8 bg-[#8B85E9] rounded-full flex items-center justify-center">
+                                        <User className="w-4 h-4 text-white" />
                                     </div>
                                     <div className="flex-1">
-                                        <textarea
-                                            value={newReply}
-                                            onChange={(e) => setNewReply(e.target.value)}
-                                            placeholder="답글을 입력하세요..."
-                                            className="w-full p-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
-                                            rows={2}
-                                        />
-                                        <div className="flex justify-end mt-2 space-x-2">
-                                            <button
-                                                onClick={() => setReplyingTo(null)}
-                                                className="px-3 py-1 text-gray-600 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
-                                            >
-                                                취소
-                                            </button>
-                                            <button
-                                                onClick={() => handleAddReply(comment.id)}
-                                                className="px-3 py-1 text-white rounded-md transition-colors"
-                                                style={{ backgroundColor: "#8B85E9" }}
-                                            >
-                                                답글 작성
-                                            </button>
+                                        <div className="flex items-center space-x-2 mb-1">
+                                            <span className="font-medium text-gray-800">{comment.nickname}</span>
+                                            <span className="text-sm text-gray-500">
+                                                {new Date(comment.createdAt).toLocaleString('ko-KR')}
+                                            </span>
+                                            {comment.updatedAt !== comment.createdAt && (
+                                                <span className="text-xs text-gray-400">(수정됨)</span>
+                                            )}
                                         </div>
+                                        
+                                        {/* 댓글 내용 (수정 모드가 아닐 때) */}
+                                        {editingCommentId !== comment.commentId ? (
+                                            <>
+                                                <p className="text-gray-700 mb-2">{comment.content}</p>
+                                                <div className="flex items-center space-x-4">
+                                                    {/* JWT 토큰 기반 권한 확인 */}
+                                                    {(() => {
+                                                        const tokenUserId = getUserIdFromToken();
+                                                        const canEdit = tokenUserId === comment.userId;
+                                                        console.log('댓글 권한 확인:', {
+                                                            commentUserId: comment.userId,
+                                                            tokenUserId: tokenUserId,
+                                                            currentUserId: currentUserId,
+                                                            canEdit: canEdit,
+                                                            commentId: comment.commentId
+                                                        });
+                                                        return canEdit;
+                                                    })() && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => startEditing(comment)}
+                                                                className="flex items-center space-x-1 text-sm text-gray-500 hover:text-[#8B85E9] transition-colors"
+                                                                disabled={commentLoading}
+                                                            >
+                                                                <Edit3 className="w-3 h-3" />
+                                                                <span>수정</span>
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteComment(comment.commentId)}
+                                                                className="flex items-center space-x-1 text-sm text-red-500 hover:text-red-700 transition-colors"
+                                                                disabled={commentLoading}
+                                                            >
+                                                                <Trash2 className="w-3 h-3" />
+                                                                <span>삭제</span>
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </>
+                                        ) : (
+                                            /* 댓글 수정 모드 */
+                                            <div className="space-y-2">
+                                                <textarea
+                                                    value={editContent}
+                                                    onChange={(e) => setEditContent(e.target.value)}
+                                                    className="w-full p-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
+                                                    rows={3}
+                                                    disabled={commentLoading}
+                                                />
+                                                <div className="flex justify-end space-x-2">
+                                                    <button
+                                                        onClick={cancelEditing}
+                                                        className="px-3 py-1 text-gray-600 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+                                                        disabled={commentLoading}
+                                                    >
+                                                        취소
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleEditComment(comment.commentId)}
+                                                        disabled={commentLoading || !editContent.trim()}
+                                                        className="px-3 py-1 text-white rounded-md transition-colors disabled:opacity-50"
+                                                        style={{ backgroundColor: "#8B85E9" }}
+                                                    >
+                                                        {commentLoading ? '수정중...' : '수정 완료'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
-                        )}
-
-                        {/* 답글 목록 */}
-                        {comment.replies.length > 0 && (
-                            <div className="mt-4 ml-11 space-y-3">
-                                {comment.replies.map((reply) => (
-                                    <div key={reply.id} className="flex items-start space-x-3">
-                                        <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">
-                                            <User className="w-3 h-3 text-gray-600" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="flex items-center space-x-2 mb-1">
-                                                <span className="font-medium text-gray-800">{reply.author}</span>
-                                                <span className="text-sm text-gray-500">{reply.timestamp}</span>
-                                            </div>
-                                            <p className="text-gray-700 mb-2">{reply.content}</p>
-                                            <button
-                                                onClick={() => handleDeleteReply(comment.id, reply.id)}
-                                                className="flex items-center space-x-1 text-sm text-red-500 hover:text-red-700 transition-colors"
-                                            >
-                                                <Trash2 className="w-3 h-3" />
-                                                <span>삭제</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                ))}
-            </div>
-
-            {comments.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                    <MessageCircle className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                    <p>아직 댓글이 없습니다.</p>
-                    <p className="text-sm">첫 번째 댓글을 작성해보세요!</p>
+                        ))
+                    ) : selectedAssignmentId ? (
+                        <div className="text-center py-8 text-gray-500">
+                            <MessageCircle className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                            <p>아직 댓글이 없습니다.</p>
+                            <p className="text-sm">첫 번째 댓글을 작성해보세요!</p>
+                        </div>
+                    ) : (
+                        <div className="text-center py-8 text-gray-500">
+                            <MessageCircle className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                            <p>과제를 선택하면 댓글을 확인할 수 있습니다.</p>
+                        </div>
+                    )}
                 </div>
-            )}
-        </div>
+            </div>
         </div>
     )
 }
