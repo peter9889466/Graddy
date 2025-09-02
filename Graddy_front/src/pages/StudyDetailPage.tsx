@@ -1337,18 +1337,16 @@ const StudyDetailPage: React.FC = () => {
                                     </button>
                                 )}
 
-                                {/* 모집 마감된 경우 상태 표시 */}
+                                {/* 모집 마감된 경우 재시작 버튼 표시 */}
                                 {!isRecruiting && (
-                                    <div
-                                        className="flex-1 px-4 py-2 rounded-lg text-center text-sm sm:text-base border"
-                                        style={{
-                                            backgroundColor: "#F9FAFB",
-                                            color: "#6B7280",
-                                            borderColor: "#D1D5DB",
-                                        }}
+                                    <button
+                                        type="button"
+                                        onClick={handleRecruitmentToggle}
+                                        className="flex-1 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer transition-colors duration-200"
+                                        style={{ backgroundColor: "#10B981" }}
                                     >
-                                        모집 마감
-                                    </div>
+                                        모집 재시작
+                                    </button>
                                 )}
 
                                 <button

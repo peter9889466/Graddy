@@ -1,63 +1,67 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-import PageLayout from '../components/layout/PageLayout';
-import { CommunityProvider, useCommunityContext } from '../contexts/CommunityContext';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
+import PageLayout from "../components/layout/PageLayout";
+import {
+    CommunityProvider,
+    useCommunityContext,
+} from "../contexts/CommunityContext";
 
 const CommunityCreateInner: React.FC = () => {
     const navigate = useNavigate();
     const { createPost, loading } = useCommunityContext();
 
     const [postData, setPostData] = useState({
-        title: '',
-        content: ''
+        title: "",
+        content: "",
     });
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
     // 디버깅: 토큰 상태 확인
     React.useEffect(() => {
-        const token = localStorage.getItem('userToken') || localStorage.getItem('token');
-        console.log('CommunityCreate - 현재 토큰 상태:', {
-            userToken: localStorage.getItem('userToken'),
-            token: localStorage.getItem('token'),
-            hasToken: !!token
+        const token = localStorage.getItem("userToken");
+        console.log("CommunityCreate - 현재 토큰 상태:", {
+            userToken: localStorage.getItem("userToken"),
+            hasToken: !!token,
         });
     }, []);
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const handleInputChange = (
+        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    ) => {
         const { name, value } = e.target;
-        setPostData(prev => ({
+        setPostData((prev) => ({
             ...prev,
-            [name]: value
+            [name]: value,
         }));
-        
+
         // 에러 메시지 제거
         if (errors[name]) {
-            setErrors(prev => ({
+            setErrors((prev) => ({
                 ...prev,
-                [name]: ""
+                [name]: "",
             }));
         }
     };
 
     const validateForm = () => {
         const newErrors: { [key: string]: string } = {};
-        
+
         if (!postData.title.trim()) {
             newErrors.title = "게시글 제목을 입력해주세요!";
         }
-        
+
         if (!postData.content.trim()) {
             newErrors.content = "게시글 내용을 입력해주세요!";
         }
-        
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (!validateForm()) {
             return;
         }
@@ -67,14 +71,14 @@ const CommunityCreateInner: React.FC = () => {
                 title: postData.title.trim(),
                 content: postData.content.trim(),
             });
-            
+
             alert("게시글이 성공적으로 작성되었습니다!");
             navigate("/community");
         } catch (error: any) {
-            console.error('게시글 생성 실패:', error);
-            
+            console.error("게시글 생성 실패:", error);
+
             let errorMessage = "게시글 작성에 실패했습니다. 다시 시도해주세요.";
-            
+
             if (error?.response?.status === 401) {
                 errorMessage = "로그인이 필요합니다. 다시 로그인해주세요.";
             } else if (error?.response?.status === 403) {
@@ -84,14 +88,18 @@ const CommunityCreateInner: React.FC = () => {
             } else if (error?.message) {
                 errorMessage = error.message;
             }
-            
+
             alert(errorMessage);
         }
     };
 
     const handleCancel = () => {
         if (postData.title || postData.content) {
-            if (window.confirm("작성 중인 내용이 있습니다. 정말로 취소하시겠습니까?")) {
+            if (
+                window.confirm(
+                    "작성 중인 내용이 있습니다. 정말로 취소하시겠습니까?"
+                )
+            ) {
                 navigate("/community");
             }
         } else {
@@ -118,7 +126,10 @@ const CommunityCreateInner: React.FC = () => {
                     {/* 제목 */}
                     <div>
                         <div className="flex items-center gap-2 mb-4">
-                            <div className="w-1 h-5 rounded-full" style={{ backgroundColor: "#8B85E9" }}></div>
+                            <div
+                                className="w-1 h-5 rounded-full"
+                                style={{ backgroundColor: "#8B85E9" }}
+                            ></div>
                             <h3 className="text-lg font-bold text-gray-800">
                                 게시글 제목 *
                             </h3>
@@ -129,21 +140,32 @@ const CommunityCreateInner: React.FC = () => {
                                 name="title"
                                 value={postData.title}
                                 onChange={handleInputChange}
-                                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] placeholder-gray-500 ${errors.title ? 'border-red-500' : 'border-gray-300'}`}
+                                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] placeholder-gray-500 ${
+                                    errors.title
+                                        ? "border-red-500"
+                                        : "border-gray-300"
+                                }`}
                                 placeholder="게시글 제목을 입력해주세요."
-                                style={{ color: errors.title ? '#dc2626' : '#1f2937' }}
+                                style={{
+                                    color: errors.title ? "#dc2626" : "#1f2937",
+                                }}
                                 disabled={loading}
                             />
                         </div>
                         {errors.title && (
-                            <p className="mt-2 text-sm text-red-500">{errors.title}</p>
+                            <p className="mt-2 text-sm text-red-500">
+                                {errors.title}
+                            </p>
                         )}
                     </div>
 
                     {/* 내용 */}
                     <div>
                         <div className="flex items-center gap-2 mb-4">
-                            <div className="w-1 h-5 rounded-full" style={{ backgroundColor: "#8B85E9" }}></div>
+                            <div
+                                className="w-1 h-5 rounded-full"
+                                style={{ backgroundColor: "#8B85E9" }}
+                            ></div>
                             <h3 className="text-lg font-bold text-gray-800">
                                 게시글 내용 *
                             </h3>
@@ -153,15 +175,25 @@ const CommunityCreateInner: React.FC = () => {
                                 name="content"
                                 value={postData.content}
                                 onChange={handleInputChange}
-                                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] resize-none placeholder-gray-500 ${errors.content ? 'border-red-500' : 'border-gray-300'}`}
+                                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] resize-none placeholder-gray-500 ${
+                                    errors.content
+                                        ? "border-red-500"
+                                        : "border-gray-300"
+                                }`}
                                 rows={8}
                                 placeholder="게시글 내용을 입력해주세요."
-                                style={{ color: errors.content ? '#dc2626' : '#1f2937' }}
+                                style={{
+                                    color: errors.content
+                                        ? "#dc2626"
+                                        : "#1f2937",
+                                }}
                                 disabled={loading}
                             />
                         </div>
                         {errors.content && (
-                            <p className="mt-2 text-sm text-red-500">{errors.content}</p>
+                            <p className="mt-2 text-sm text-red-500">
+                                {errors.content}
+                            </p>
                         )}
                     </div>
 

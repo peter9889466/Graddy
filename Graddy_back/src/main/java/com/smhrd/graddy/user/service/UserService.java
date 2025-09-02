@@ -4,7 +4,6 @@ package com.smhrd.graddy.user.service;
 import com.smhrd.graddy.user.dto.JoinRequest;
 import com.smhrd.graddy.user.dto.UserInterestRequest;
 import com.smhrd.graddy.user.dto.UserProfileUpdateRequest;
-import com.smhrd.graddy.user.dto.UserWithdrawalRequest;
 import com.smhrd.graddy.user.entity.User;
 import com.smhrd.graddy.user.entity.UserInterest;
 import com.smhrd.graddy.user.entity.UserAvailableDays;
@@ -552,5 +551,36 @@ public class UserService {
             System.out.println("알람 설정이 동일하여 변경하지 않음: userId=" + userId + ", alarmType=" + alarmType);
             return user;
         }
+    }
+
+    /**
+     * [추가] 사용자 Git 정보 수정 메서드
+     * @param currentUserId 현재 사용자 아이디
+     * @param request Git 정보 수정 요청
+     * @return 수정된 사용자 정보
+     */
+    @Transactional
+    public User updateUserGitInfo(String currentUserId, com.smhrd.graddy.user.dto.UserGitInfoUpdateRequest request) {
+        // 기존 사용자 조회
+        User user = userRepository.findByUserId(currentUserId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        
+        // 수정할 내용이 있는지 확인
+        if (!request.hasNewGitUrl() && !request.hasNewUserRefer()) {
+            throw new IllegalArgumentException("수정할 내용이 없습니다.");
+        }
+        
+        // Git URL 수정
+        if (request.hasNewGitUrl()) {
+            user.setGitUrl(request.getGitUrl());
+        }
+        
+        // 추천인 정보 수정
+        if (request.hasNewUserRefer()) {
+            user.setUserRefer(request.getUserRefer());
+        }
+        
+        // 수정된 사용자 정보 저장
+        return userRepository.save(user);
     }
 }

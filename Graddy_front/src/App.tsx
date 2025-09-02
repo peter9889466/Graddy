@@ -8,9 +8,6 @@ import ErrorFallback from "./pages/error/ErrorFallback";
 import LoadingOverlay from "./components/shared/LoadingOverlay";
 import DeleteModal from "./components/modal/DeleteModal";
 import { MyPage } from "./pages/MyPage";
-import { TestModal } from "./pages/TestModal";
-import { TestDropdown } from "./pages/TestDropdown";
-import { TestAutoCompleteSearch } from "./pages/TestAutoComplete";
 import Join from "./pages/Join";
 import Login from "./pages/Login";
 import Header from "./components/layout/Header";
@@ -25,7 +22,6 @@ import StudyCreate from "./pages/StudyCreate";
 import FindAccount from "./pages/FindAccount";
 import { Ranking } from "./pages/Ranking";
 import { CommunityPage } from "./pages/CommunityPage";
-// import { CommunityCreatePage } from "./pages/CommunityCreatePage";
 import ApiTestComponent from "./components/examples/ApiTestComponent";
 import CommunityCreate from "./pages/CommunityCreate";
 
@@ -44,15 +40,6 @@ function App() {
                                     <Route
                                         path="/delete"
                                         element={<DeleteModal />}
-                                    />
-                                    <Route path="/modal" element={<TestModal />} />
-                                    <Route
-                                        path="/dropdown"
-                                        element={<TestDropdown />}
-                                    />
-                                    <Route
-                                        path="/autocomplete"
-                                        element={<TestAutoCompleteSearch />}
                                     />
                                     <Route path="/join" element={<Join />} />
                                     <Route path="/login" element={<Login />} />

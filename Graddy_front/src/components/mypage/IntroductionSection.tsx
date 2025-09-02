@@ -1,23 +1,48 @@
-import React from "react";
+import React, { useState } from "react";
 import { Edit3 } from "lucide-react";
+import { updateUserIntroduction } from "../../services/userService";
 
 interface IntroductionSectionProps {
     introduction: string;
-    isEditingIntro: boolean;
-    onEditIntro: () => void;
-    onSaveIntro: () => void;
-    onCancelEdit: () => void;
-    onIntroductionChange: (value: string) => void;
+    onIntroductionUpdate: (newIntroduction: string) => void;
 }
 
 const IntroductionSection: React.FC<IntroductionSectionProps> = ({
     introduction,
-    isEditingIntro,
-    onEditIntro,
-    onSaveIntro,
-    onCancelEdit,
-    onIntroductionChange,
+    onIntroductionUpdate,
 }) => {
+    const [isEditingIntro, setIsEditingIntro] = useState(false);
+    const [editedIntroduction, setEditedIntroduction] = useState(introduction);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleEditIntro = () => {
+        setEditedIntroduction(introduction);
+        setIsEditingIntro(true);
+    };
+
+    const handleSaveIntro = async () => {
+        if (editedIntroduction.trim() === introduction) {
+            setIsEditingIntro(false);
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            await updateUserIntroduction(editedIntroduction.trim());
+            onIntroductionUpdate(editedIntroduction.trim());
+            setIsEditingIntro(false);
+        } catch (error) {
+            console.error("소개글 수정 실패:", error);
+            alert("소개글 수정에 실패했습니다. 다시 시도해주세요.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleCancelEdit = () => {
+        setEditedIntroduction(introduction);
+        setIsEditingIntro(false);
+    };
     return (
         <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
@@ -30,7 +55,7 @@ const IntroductionSection: React.FC<IntroductionSectionProps> = ({
                 <div className="flex justify-end mb-4">
                     {!isEditingIntro && (
                         <button
-                            onClick={onEditIntro}
+                            onClick={handleEditIntro}
                             className="flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg  duration-200 group text-sm sm:text-base "
                             style={{
                                 color: "#8B85E9",
@@ -52,41 +77,50 @@ const IntroductionSection: React.FC<IntroductionSectionProps> = ({
                 {isEditingIntro ? (
                     <div className="space-y-4">
                         <textarea
-                            value={introduction}
+                            value={editedIntroduction}
                             onChange={(e) =>
-                                onIntroductionChange(e.target.value)
+                                setEditedIntroduction(e.target.value)
                             }
                             className="w-full p-3 sm:p-4 border rounded-lg resize-none text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400 transition-all"
                             rows={5}
                             placeholder="자신을 소개해보세요..."
+                            disabled={isLoading}
                         />
                         <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
                             <button
-                                onClick={onCancelEdit}
+                                onClick={handleCancelEdit}
                                 className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-200 text-sm sm:text-base border border-gray-300 hover:border-gray-400"
+                                disabled={isLoading}
                             >
                                 취소
                             </button>
                             <button
-                                onClick={onSaveIntro}
+                                onClick={handleSaveIntro}
                                 className="px-4 sm:px-6 py-2 text-white rounded-lg transition-all duration-200 transform hover:scale-105 text-sm sm:text-base shadow-md hover:shadow-lg"
                                 style={{
-                                    backgroundColor: "#8B85E9",
+                                    backgroundColor: isLoading
+                                        ? "#9CA3AF"
+                                        : "#8B85E9",
                                 }}
+                                disabled={isLoading}
                                 onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor =
-                                        "#7A73E0";
-                                    e.currentTarget.style.transform =
-                                        "translateY(-1px) scale(1.02)";
+                                    if (!isLoading) {
+                                        e.currentTarget.style.backgroundColor =
+                                            "#7A73E0";
+                                        e.currentTarget.style.transform =
+                                            "translateY(-1px) scale(1.02)";
+                                    }
                                 }}
                                 onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor =
-                                        "#8B85E9";
-                                    e.currentTarget.style.transform =
-                                        "translateY(0) scale(1)";
+                                    if (!isLoading) {
+                                        e.currentTarget.style.backgroundColor =
+                                            "#8B85E9";
+                                        e.currentTarget.style.transform =
+                                            "translateY(0) scale(1)";
+                                    }
                                 }}
                             >
-                                저장
+                                {isLoading ? "저장 중..." : "저장"}
                             </button>
                         </div>
                     </div>

@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut, apiDelete, ApiResponse } from './api';
+// 사용되지 않는 import 제거됨
 
 // 스터디 가입 신청 데이터 타입
 export interface StudyApplication {
@@ -28,7 +28,7 @@ export class StudyApplicationApiService {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Authorization': `Bearer ${localStorage.getItem('userToken')}`
                 }
             });
 
@@ -66,7 +66,7 @@ export class StudyApplicationApiService {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Authorization': `Bearer ${localStorage.getItem('userToken')}`
                 },
                 body: JSON.stringify({
                     studyProjectId,
@@ -103,7 +103,7 @@ export class StudyApplicationApiService {
             const response = await fetch(`http://localhost:8080/api/study-applications/${applicationId}`, {
                 method: 'DELETE',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Authorization': `Bearer ${localStorage.getItem('userToken')}`
                 }
             });
 
@@ -129,7 +129,7 @@ export class StudyApplicationApiService {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Authorization': `Bearer ${localStorage.getItem('userToken')}`
                 },
                 body: JSON.stringify({ status })
             });
@@ -155,7 +155,7 @@ export class StudyApplicationApiService {
             const response = await fetch(`http://localhost:8080/api/study-applications/study/${studyProjectId}`, {
                 method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Authorization': `Bearer ${localStorage.getItem('userToken')}`
                 }
             });
 

@@ -1,131 +1,80 @@
+import axios, { AxiosResponse } from 'axios';
+
 // API 기본 설정
 const API_BASE_URL = 'http://localhost:8080/api';
 
-// 공통 헤더 설정
-const getHeaders = (): HeadersInit => {
-    const token = localStorage.getItem('userToken');
-    const headers: HeadersInit = {
-        'Content-Type': 'application/json'
-    };
+const api = axios.create({
+    baseURL: API_BASE_URL,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+});
 
-    // 토큰이 있을 때만 Authorization 헤더 추가
-    if (token && token !== 'null' && token.trim() !== '') {
-        headers['Authorization'] = `Bearer ${token}`;
-        console.log('Authorization 헤더 추가됨:', `Bearer ${token.substring(0, 20)}...`);
-    } else {
-        // 임시: 토큰이 없을 때는 헤더를 포함하지 않음
-        console.log('토큰이 없어서 Authorization 헤더를 포함하지 않습니다.');
-        console.log('저장된 토큰:', token);
+// 요청 인터셉터 - JWT 토큰 자동 추가
+api.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('userToken'); // AuthContext와 일치하도록 수정
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
     }
+);
 
-    return headers;
-};
+// 응답 인터셉터 - 에러 처리
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            // 토큰 만료 시 로그인 페이지로 리다이렉트
+            localStorage.removeItem('userToken'); // AuthContext와 일치하도록 수정
+            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('userData');
+            window.location.href = '/login';
+        }
+        return Promise.reject(error);
+    }
+);
 
-// API 응답 타입
-export interface ApiResponse<T> {
+// API 응답 타입 정의
+export interface ApiResponse<T = any> {
     success: boolean;
     message: string;
     data: T;
     timestamp?: string;
 }
 
-// 에러 응답 타입
-export interface ApiError {
-    success: false;
-    message: string;
-    error?: string;
-    timestamp?: string;
-}
-
-// HTTP 메서드별 요청 함수
-export const apiRequest = async <T>(
-    endpoint: string,
-    options: RequestInit = {}
-): Promise<ApiResponse<T>> => {
-    const url = `${API_BASE_URL}${endpoint}`;
-
-    const config: RequestInit = {
-        headers: getHeaders(),
-        ...options,
-    };
-
-    console.log('API 요청 정보:', {
-        url,
-        method: options.method || 'GET',
-        headers: config.headers,
-        body: options.body
-    });
-
-    try {
-        const response = await fetch(url, config);
-
-        if (!response.ok) {
-            const errorData: ApiError = await response.json().catch(() => ({
-                success: false,
-                message: `HTTP ${response.status}: ${response.statusText}`
-            }));
-
-            // JWT 만료 에러 처리
-            if (errorData.message && errorData.message.includes('JWT expired')) {
-                console.log('JWT 토큰이 만료되었습니다. 로그아웃 처리합니다.');
-                // localStorage에서 토큰 제거
-                localStorage.removeItem('userToken');
-                // 로그인 페이지로 리다이렉트
-                window.location.href = '/login';
-                // return;
-            }
-
-            throw new Error(errorData.message || `HTTP ${response.status}`);
-        }
-
-        const data: ApiResponse<T> = await response.json();
-        return data;
-    } catch (error) {
-        console.error('API 요청 실패:', error);
-
-        // JWT 만료 에러 처리 (catch 블록에서도)
-        if (error instanceof Error && error.message.includes('JWT expired')) {
-            console.log('JWT 토큰이 만료되었습니다. 로그아웃 처리합니다.');
-            localStorage.removeItem('userToken');
-            window.location.href = '/login';
-            // return;
-        }
-
-        throw error;
-    }
+// API 함수들
+export const apiGet = async <T = any>(url: string, params?: any): Promise<AxiosResponse<ApiResponse<T>>> => {
+    return api.get(url, { params });
 };
 
-// GET 요청
-export const apiGet = <T>(endpoint: string): Promise<ApiResponse<T>> => {
-    return apiRequest<T>(endpoint, { method: 'GET' });
+export const apiPost = async <T = any>(url: string, data?: any): Promise<AxiosResponse<ApiResponse<T>>> => {
+    return api.post(url, data);
 };
 
-// POST 요청
-export const apiPost = <T>(endpoint: string, data: any): Promise<ApiResponse<T>> => {
-    return apiRequest<T>(endpoint, {
-        method: 'POST',
-        body: JSON.stringify(data)
+export const apiPut = async <T = any>(url: string, data?: any): Promise<AxiosResponse<ApiResponse<T>>> => {
+    return api.put(url, data);
+};
+
+export const apiPatch = async <T = any>(url: string, data?: any): Promise<AxiosResponse<ApiResponse<T>>> => {
+    return api.patch(url, data);
+};
+
+export const apiDelete = async <T = any>(url: string): Promise<AxiosResponse<ApiResponse<T>>> => {
+    return api.delete(url);
+};
+
+// 파일 업로드용 API 함수
+export const apiPostFile = async <T = any>(url: string, formData: FormData): Promise<AxiosResponse<ApiResponse<T>>> => {
+    return api.post(url, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
     });
 };
 
-// PUT 요청
-export const apiPut = <T>(endpoint: string, data: any): Promise<ApiResponse<T>> => {
-    return apiRequest<T>(endpoint, {
-        method: 'PUT',
-        body: JSON.stringify(data)
-    });
-};
-
-// DELETE 요청
-export const apiDelete = <T>(endpoint: string): Promise<ApiResponse<T>> => {
-    return apiRequest<T>(endpoint, { method: 'DELETE' });
-};
-
-// PATCH 요청
-export const apiPatch = <T>(endpoint: string, data?: any): Promise<ApiResponse<T>> => {
-    return apiRequest<T>(endpoint, {
-        method: 'PATCH',
-        ...(data && { body: JSON.stringify(data) })
-    });
-};
-
+export default api;

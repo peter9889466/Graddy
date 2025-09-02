@@ -1,6 +1,6 @@
 // JWT 토큰에서 사용자 정보 추출
 export const getUserFromToken = () => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('userToken');
     if (!token) return null;
 
     try {
@@ -18,7 +18,7 @@ export const getUserFromToken = () => {
 
 // 로그인 상태 확인
 export const isAuthenticated = () => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('userToken');
     if (!token) return false;
 
     try {

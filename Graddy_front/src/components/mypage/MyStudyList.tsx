@@ -1,6 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { myStudyList, MyStudyData } from "../../data/myStudyData";
+import {
+    getUserStudyProjects,
+    StudyProjectListItem,
+} from "../../services/userService";
 
 interface MyStudyListProps {
     userNickname: string;
@@ -9,31 +12,33 @@ interface MyStudyListProps {
 export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
     const navigate = useNavigate();
     const [activeFilter, setActiveFilter] = useState<
-        "all" | "active" | "completed" | "recruiting"
-    >("all");
+        "ALL" | "RECRUITING" | "COMPLETE" | "END"
+    >("ALL");
+    const [studyList, setStudyList] = useState<StudyProjectListItem[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    // 필터링된 스터디 목록
-    const getFilteredStudies = () => {
-        switch (activeFilter) {
-            case "active":
-                return myStudyList.filter((study) => study.status === "active");
-            case "completed":
-                return myStudyList.filter(
-                    (study) => study.status === "completed"
-                );
-            case "recruiting":
-                return myStudyList.filter(
-                    (study) => study.status === "recruiting"
-                );
-            default:
-                return myStudyList;
-        }
-    };
+    // 스터디 목록 조회
+    useEffect(() => {
+        const fetchStudyList = async () => {
+            try {
+                setIsLoading(true);
+                const studies = await getUserStudyProjects(activeFilter);
+                setStudyList(studies);
+            } catch (error) {
+                console.error("스터디 목록 조회 실패:", error);
+                setStudyList([]);
+            } finally {
+                setIsLoading(false);
+            }
+        };
 
-    const userStudies = getFilteredStudies();
+        fetchStudyList();
+    }, [activeFilter]);
 
-    const handleStudyClick = (study: MyStudyData) => {
-        navigate(`/study/${study.id}`, {
+    const userStudies = studyList;
+
+    const handleStudyClick = (study: StudyProjectListItem) => {
+        navigate(`/study/${study.studyProjectId}`, {
             state: {
                 title: study.title,
                 description: study.description,
@@ -49,30 +54,30 @@ export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
 
     const getStatusBadge = (status: string, role: string) => {
         const statusConfig = {
-            active: {
-                bg: "bg-green-50",
-                text: "text-green-700",
-                label: "진행중",
-            },
-            completed: {
-                bg: "bg-gray-50",
-                text: "text-gray-700",
-                label: "완료",
-            },
-            recruiting: {
+            RECRUITING: {
                 bg: "bg-blue-50",
                 text: "text-blue-700",
                 label: "모집중",
             },
+            COMPLETE: {
+                bg: "bg-green-50",
+                text: "text-green-700",
+                label: "진행중",
+            },
+            END: {
+                bg: "bg-gray-50",
+                text: "text-gray-700",
+                label: "완료",
+            },
         };
 
         const roleConfig = {
-            leader: {
+            LEADER: {
                 bg: "bg-purple-50",
                 text: "text-purple-700",
                 label: "리더",
             },
-            member: {
+            MEMBER: {
                 bg: "bg-orange-50",
                 text: "text-orange-700",
                 label: "멤버",
@@ -96,10 +101,10 @@ export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
                     {/* 필터 버튼들 */}
                     <div className="flex gap-2 flex-wrap">
                         {[
-                            { key: "all", label: "전체" },
-                            { key: "active", label: "진행중" },
-                            { key: "completed", label: "완료" },
-                            { key: "recruiting", label: "모집중" },
+                            { key: "ALL", label: "전체" },
+                            { key: "RECRUITING", label: "모집중" },
+                            { key: "COMPLETE", label: "진행중" },
+                            { key: "END", label: "완료" },
                         ].map((filter) => (
                             <button
                                 key={filter.key}
@@ -136,13 +141,13 @@ export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
                             </svg>
                         </div>
                         <h3 className="text-lg font-medium text-gray-900 mb-2">
-                            {activeFilter === "all"
+                            {activeFilter === "ALL"
                                 ? "참여한 스터디가 없습니다"
-                                : activeFilter === "active"
+                                : activeFilter === "RECRUITING"
+                                ? "모집중인 스터디가 없습니다"
+                                : activeFilter === "COMPLETE"
                                 ? "진행중인 스터디가 없습니다"
-                                : activeFilter === "completed"
-                                ? "완료된 스터디가 없습니다"
-                                : "모집중인 스터디가 없습니다"}
+                                : "완료된 스터디가 없습니다"}
                         </h3>
                         <p className="text-gray-500 mb-6">
                             새로운 스터디에 참여해보세요!
@@ -175,10 +180,10 @@ export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
             {/* 필터 버튼들 */}
             <div className="flex gap-2 flex-wrap">
                 {[
-                    { key: "all", label: "전체" },
-                    { key: "applied", label: "승인 대기" },
-                    { key: "participating", label: "참여 중" },
-                    { key: "end", label: "스터디 종료" },
+                    { key: "ALL", label: "전체" },
+                    { key: "RECRUITING", label: "모집중" },
+                    { key: "COMPLETE", label: "진행중" },
+                    { key: "END", label: "완료" },
                 ].map((filter) => (
                     <button
                         key={filter.key}
@@ -193,104 +198,116 @@ export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
                     </button>
                 ))}
             </div>
-            <div className="space-y-4">
-                {userStudies.map((study) => {
-                    const badges = getStatusBadge(study.status, study.role);
-                    return (
-                        <div
-                            key={study.id}
-                            className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 cursor-pointer"
-                            onClick={() => handleStudyClick(study)}
-                        >
-                            <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-3 mb-3 flex-wrap">
-                                        <h3 className="text-lg font-bold text-gray-800">
-                                            {study.title}
-                                        </h3>
+            {isLoading ? (
+                <div className="flex justify-center items-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8B85E9]"></div>
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    {userStudies.map((study) => {
+                        const badges = getStatusBadge(study.status, study.role);
+                        return (
+                            <div
+                                key={study.studyProjectId}
+                                className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 cursor-pointer"
+                                onClick={() => handleStudyClick(study)}
+                            >
+                                <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-3 mb-3 flex-wrap">
+                                            <h3 className="text-lg font-bold text-gray-800">
+                                                {study.title}
+                                            </h3>
 
-                                        <span
-                                            className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                                study.type === "study"
-                                                    ? "bg-blue-50 text-blue-700"
-                                                    : "bg-green-50 text-green-700"
-                                            }`}
-                                        >
-                                            {study.type === "study"
-                                                ? "스터디"
-                                                : "프로젝트"}
-                                        </span>
-                                        <span
-                                            className={`px-2 py-1 rounded-full text-xs font-medium ${badges.status.bg} ${badges.status.text}`}
-                                        >
-                                            {badges.status.label}
-                                        </span>
-                                        <span
-                                            className={`px-2 py-1 rounded-full text-xs font-medium ${badges.role.bg} ${badges.role.text}`}
-                                        >
-                                            {badges.role.label}
-                                        </span>
-                                    </div>
-
-                                    <p className="text-gray-600 mb-3 line-clamp-2">
-                                        {study.description}
-                                    </p>
-
-                                    <div className="flex items-center gap-4 text-sm text-gray-500 mb-3 flex-wrap">
-                                        <span>리더: {study.leader}</span>
-                                        <span>
-                                            기간: {study.startDate} ~{" "}
-                                            {study.endDate}
-                                        </span>
-                                        <span>
-                                            인원: {study.currentMembers}/
-                                            {study.maxMembers}
-                                        </span>
-                                    </div>
-
-                                    {study.meetingDays && study.meetingTime && (
-                                        <div className="text-sm text-gray-500 mb-3">
-                                            <span>
-                                                모임:{" "}
-                                                {study.meetingDays.join(", ")}{" "}
-                                                {study.meetingTime}
+                                            <span
+                                                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                    study.type === "STUDY"
+                                                        ? "bg-blue-50 text-blue-700"
+                                                        : "bg-green-50 text-green-700"
+                                                }`}
+                                            >
+                                                {study.type === "STUDY"
+                                                    ? "스터디"
+                                                    : "프로젝트"}
+                                            </span>
+                                            <span
+                                                className={`px-2 py-1 rounded-full text-xs font-medium ${badges.status.bg} ${badges.status.text}`}
+                                            >
+                                                {badges.status.label}
+                                            </span>
+                                            <span
+                                                className={`px-2 py-1 rounded-full text-xs font-medium ${badges.role.bg} ${badges.role.text}`}
+                                            >
+                                                {badges.role.label}
                                             </span>
                                         </div>
-                                    )}
 
-                                    <div className="flex gap-2 flex-wrap">
-                                        {study.tags.map(
-                                            (tag: string, index: number) => (
-                                                <span
-                                                    key={index}
-                                                    className="bg-gray-100 text-gray-600 px-2 py-1 rounded-lg text-xs"
-                                                >
-                                                    #{tag}
-                                                </span>
-                                            )
-                                        )}
+                                        <p className="text-gray-600 mb-3 line-clamp-2">
+                                            {study.description}
+                                        </p>
+
+                                        <div className="flex items-center gap-4 text-sm text-gray-500 mb-3 flex-wrap">
+                                            <span>리더: {study.leader}</span>
+                                            <span>
+                                                기간: {study.startDate} ~{" "}
+                                                {study.endDate}
+                                            </span>
+                                            <span>
+                                                인원: {study.currentMembers}/
+                                                {study.maxMembers}
+                                            </span>
+                                        </div>
+
+                                        {study.meetingDays &&
+                                            study.meetingTime && (
+                                                <div className="text-sm text-gray-500 mb-3">
+                                                    <span>
+                                                        모임:{" "}
+                                                        {study.meetingDays.join(
+                                                            ", "
+                                                        )}{" "}
+                                                        {study.meetingTime}
+                                                    </span>
+                                                </div>
+                                            )}
+
+                                        <div className="flex gap-2 flex-wrap">
+                                            {study.tags.map(
+                                                (
+                                                    tag: string,
+                                                    index: number
+                                                ) => (
+                                                    <span
+                                                        key={index}
+                                                        className="bg-gray-100 text-gray-600 px-2 py-1 rounded-lg text-xs"
+                                                    >
+                                                        #{tag}
+                                                    </span>
+                                                )
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="ml-4">
+                                        <svg
+                                            className="w-5 h-5 text-gray-400"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M9 5l7 7-7 7"
+                                            />
+                                        </svg>
                                     </div>
                                 </div>
-                                <div className="ml-4">
-                                    <svg
-                                        className="w-5 h-5 text-gray-400"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M9 5l7 7-7 7"
-                                        />
-                                    </svg>
-                                </div>
                             </div>
-                        </div>
-                    );
-                })}
-            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 };
