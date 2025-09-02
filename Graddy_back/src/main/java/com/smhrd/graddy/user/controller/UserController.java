@@ -9,9 +9,10 @@ import com.smhrd.graddy.user.dto.FindIdRequest;
 import com.smhrd.graddy.user.dto.UserInterestsUpdateRequest;
 import com.smhrd.graddy.user.dto.UserProfileUpdateRequest;
 import com.smhrd.graddy.user.dto.UserProfileUpdateResponse;
-import com.smhrd.graddy.user.dto.UserWithdrawalRequest;
 import com.smhrd.graddy.user.dto.MyPageResponse;
 import com.smhrd.graddy.user.dto.StudyProjectListResponse;
+import com.smhrd.graddy.user.dto.UserGitInfoUpdateRequest;
+import com.smhrd.graddy.user.dto.UserGitInfoUpdateResponse;
 import com.smhrd.graddy.user.entity.User;
 import com.smhrd.graddy.user.service.UserService;
 import com.smhrd.graddy.security.jwt.JwtUtil;
@@ -511,6 +512,67 @@ public class UserController {
             List<StudyProjectListResponse> studyProjectList = userService.getStudyProjectList(currentUserId, status);
             
             return ApiResponse.success("스터디/프로젝트 목록 조회가 완료되었습니다.", studyProjectList);
+            
+        } catch (IllegalArgumentException e) {
+            // 예외 발생 시 400 Bad Request 응답
+            return ApiResponse.error(HttpStatus.BAD_REQUEST, e.getMessage(), null);
+        } catch (Exception e) {
+            // JWT 토큰 관련 오류 등 기타 예외 발생 시 401 Unauthorized 응답
+            return ApiResponse.error(HttpStatus.UNAUTHORIZED, "인증에 실패했습니다: " + e.getMessage(), null);
+        }
+    }
+
+    @Operation(
+        summary = "Git 정보 수정",
+        description = "현재 로그인한 사용자의 Git URL과 추천인 정보를 수정합니다. 비어있는 값은 이전 값을 유지합니다."
+    )
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200", 
+            description = "Git 정보 수정 성공",
+            content = @Content(schema = @Schema(implementation = UserGitInfoUpdateResponse.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "400", 
+            description = "잘못된 요청",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "401", 
+            description = "인증 실패",
+            content = @Content(schema = @Schema(implementation = Map.class))
+        )
+    })
+    @PutMapping("/me/git-info")
+    public ResponseEntity<ApiResponse<UserGitInfoUpdateResponse>> updateGitInfo(
+        @Parameter(description = "Git 정보 수정 요청 정보") 
+        @RequestBody UserGitInfoUpdateRequest request,
+        @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiJ9...") 
+        @RequestHeader("Authorization") String authorizationHeader) {
+        try {
+            // JWT 토큰에서 현재 사용자 아이디 추출
+            String token = authorizationHeader.replace("Bearer ", "");
+            String currentUserId = jwtUtil.extractUserId(token);
+            
+            // UserService를 통해 Git 정보 수정 처리
+            User updatedUser = userService.updateUserGitInfo(currentUserId, request);
+            
+            // 수정된 필드들을 응답에 포함
+            Map<String, String> updatedFields = new HashMap<>();
+            if (request.hasNewGitUrl()) {
+                updatedFields.put("gitUrl", updatedUser.getGitUrl());
+            }
+            if (request.hasNewUserRefer()) {
+                updatedFields.put("userRefer", updatedUser.getUserRefer());
+            }
+            
+            // 성공 응답 데이터 생성
+            UserGitInfoUpdateResponse data = new UserGitInfoUpdateResponse(
+                "Git 정보가 성공적으로 수정되었습니다.", 
+                updatedFields
+            );
+            
+            return ApiResponse.success("Git 정보 수정이 완료되었습니다.", data);
             
         } catch (IllegalArgumentException e) {
             // 예외 발생 시 400 Bad Request 응답
