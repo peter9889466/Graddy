@@ -9,12 +9,10 @@ import com.smhrd.graddy.tag.entity.Tag;
 import com.smhrd.graddy.tag.repository.TagRepository;
 import com.smhrd.graddy.user.entity.User;
 import com.smhrd.graddy.user.entity.UserInterest;
-import com.smhrd.graddy.user.entity.UserAvailableDays;
 import com.smhrd.graddy.user.repository.UserRepository;
 import com.smhrd.graddy.user.repository.UserAvailableDaysRepository;
+import com.smhrd.graddy.user.repository.UserInterestRepository;
 import com.smhrd.graddy.study.repository.StudyProjectAvailableDayRepository;
-import com.smhrd.graddy.interest.entity.Interest;
-import com.smhrd.graddy.interest.repository.InterestRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -40,18 +38,18 @@ public class StudyMatchingService {
     private static final double COLLABORATIVE_WEIGHT = 0.3;
     
     // 콘텐츠 기반 필터링 가중치
-    private static final double DAY_MATCH_WEIGHT = 0.3;
-    private static final double TIME_MATCH_WEIGHT = 0.3;
-    private static final double INTEREST_MATCH_WEIGHT = 0.25;
-    private static final double LEVEL_MATCH_WEIGHT = 0.15;
-    
+    private static final double INTEREST_MATCH_WEIGHT = 0.35;
+    private static final double LEVEL_MATCH_WEIGHT = 0.25;
+    private static final double DAY_MATCH_WEIGHT = 0.2;
+    private static final double TIME_MATCH_WEIGHT = 0.2;
+
     private final UserRepository userRepository;
     private final StudyProjectRepository studyProjectRepository;
     private final MemberRepository memberRepository;
     private final TagRepository tagRepository;
     private final UserAvailableDaysRepository userAvailableDaysRepository;
     private final StudyProjectAvailableDayRepository studyProjectAvailableDayRepository;
-    private final InterestRepository interestRepository;
+    private final UserInterestRepository userInterestRepository;
     
     /**
      * 사용자에게 스터디/프로젝트 추천
@@ -267,15 +265,16 @@ public class StudyMatchingService {
      */
     private double calculateInterestMatchScore(User user, StudyProject study) {
         try {
-            // 사용자의 관심사 조회 - 안전하게 처리
+            // 사용자의 관심사 조회 - 직접 Repository에서 조회하여 최신 데이터 보장
             List<Long> userInterestIds = new ArrayList<>();
             try {
-                // userInterests가 이미 초기화되어 있는지 확인
-                if (user.getUserInterests() != null) {
-                    userInterestIds = user.getUserInterests().stream()
-                            .map(userInterest -> userInterest.getInterest().getInterestId())
-                            .collect(Collectors.toList());
-                }
+                // UserInterestRepository에서 직접 조회하여 Lazy Loading 문제 해결
+                List<UserInterest> userInterests = userInterestRepository.findByIdUserId(user.getUserId());
+                userInterestIds = userInterests.stream()
+                        .map(userInterest -> userInterest.getInterest().getInterestId())
+                        .collect(Collectors.toList());
+                
+                log.debug("사용자 {}의 최신 관심사 조회: {}", user.getUserId(), userInterestIds);
             } catch (Exception e) {
                 log.warn("사용자 관심사 조회 중 오류 발생: {}", e.getMessage());
                 // 오류 발생 시 빈 리스트 사용
@@ -325,12 +324,13 @@ public class StudyMatchingService {
                 return 0.5; // 중간 점수 반환
             }
             
-            // 사용자의 관심사별 평균 레벨 계산 - 안전하게 처리
+            // 사용자의 관심사별 평균 레벨 계산 - 직접 Repository에서 조회하여 최신 데이터 보장
             List<UserInterest> userInterests = new ArrayList<>();
             try {
-                if (user.getUserInterests() != null) {
-                    userInterests = user.getUserInterests();
-                }
+                // UserInterestRepository에서 직접 조회하여 Lazy Loading 문제 해결
+                userInterests = userInterestRepository.findByIdUserId(user.getUserId());
+                log.debug("사용자 {}의 최신 관심사 레벨 조회: {}", user.getUserId(), 
+                    userInterests.stream().map(ui -> ui.getInterest().getInterestName() + ":" + ui.getInterestLevel()).collect(Collectors.toList()));
             } catch (Exception e) {
                 log.warn("사용자 관심사 조회 중 오류 발생: {}", e.getMessage());
                 userInterests = new ArrayList<>();
