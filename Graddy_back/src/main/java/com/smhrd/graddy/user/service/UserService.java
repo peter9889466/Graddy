@@ -495,24 +495,39 @@ public class UserService {
      * @return 이름, 아이디, 전화번호, 닉네임을 포함한 Map
      * @throws IllegalArgumentException 사용자를 찾을 수 없는 경우
      */
-    public Map<String, String> getUpdatePageInfo(String userId) {
+    public Map<String, Object> getUpdatePageInfo(String userId) {
         System.out.println("회원 정보 수정 페이지 데이터 조회 시작: userId=" + userId);
-        
+
         // 사용자 정보 조회
         User user = userRepository.findByUserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + userId));
-        
-        // 필요한 정보만 포함하여 Map 생성 (닉네임 추가)
-        Map<String, String> updatePageInfo = Map.of(
-            "name", user.getName(),
-            "userId", user.getUserId(),
-            "tel", user.getTel(),
-            "nick", user.getNick()
-        );
-        
-        System.out.println("회원 정보 수정 페이지 데이터 조회 완료: userId=" + userId + 
-                          ", name=" + user.getName() + ", tel=" + user.getTel() + ", nick=" + user.getNick());
-        
+
+        // 사용자의 가능한 요일 정보 조회
+        List<UserAvailableDays> availableDays = userAvailableDaysRepository.findByIdUserId(userId);
+        List<String> dayNames = availableDays.stream()
+                .map(userAvailableDay -> userAvailableDay.getDays().getDayName())
+                .collect(Collectors.toList());
+
+        // 사용자의 선호 시간대 포맷팅
+        String availableTime = "";
+        if (user.getSoltStart() != null && user.getSoltEnd() != null) {
+            availableTime = new java.text.SimpleDateFormat("HH:mm").format(user.getSoltStart()) + "-" +
+                            new java.text.SimpleDateFormat("HH:mm").format(user.getSoltEnd());
+        }
+
+        // 필요한 정보만 포함하여 Map 생성
+        Map<String, Object> updatePageInfo = new java.util.HashMap<>();
+        updatePageInfo.put("name", user.getName());
+        updatePageInfo.put("userId", user.getUserId());
+        updatePageInfo.put("tel", user.getTel());
+        updatePageInfo.put("nick", user.getNick());
+        updatePageInfo.put("availableDays", dayNames);
+        updatePageInfo.put("availableTime", availableTime);
+
+        System.out.println("회원 정보 수정 페이지 데이터 조회 완료: userId=" + userId +
+                          ", name=" + user.getName() + ", tel=" + user.getTel() + ", nick=" + user.getNick() +
+                          ", availableDays=" + dayNames + ", availableTime=" + availableTime);
+
         return updatePageInfo;
     }
     

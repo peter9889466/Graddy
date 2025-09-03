@@ -23,6 +23,8 @@ export interface UpdatePageInfo {
     userId: string;
     tel: string;
     nick: string; // 백엔드에서 nick 필드 사용
+    availableDays: string[];
+    availableTime: string;
 }
 
 // 회원정보 수정 요청 타입

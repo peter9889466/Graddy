@@ -1,298 +1,461 @@
-import React, { useState, useEffect } from "react";
-import {
-    getUserProfile,
-    updateUserProfile,
-    UserProfile,
-    UserProfileUpdate,
-} from "../../services/userService";
+import React, { useState, useEffect, useRef } from "react";
+import axios from "axios";
+import { Eye, EyeOff, Check, X, AlertCircle, User, Lock, Phone } from "lucide-react";
 
 interface ProfileEditFormProps {
-    onProfileUpdate: (profile: UserProfile) => void;
+    name: string;
+    initialNickname: string;
+    initialPhone: string;
+    initialAvailableDays?: string[];
+    initialAvailableTime?: string;
+    onUpdateProfile: (data: any) => Promise<void>;
 }
 
 const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
-    onProfileUpdate,
+    name,
+    initialNickname,
+    initialPhone,
+    initialAvailableDays,
+    initialAvailableTime,
+    onUpdateProfile,
 }) => {
-    const [profile, setProfile] = useState<UserProfile | null>(null);
+    // Input states
+    const [nickname, setNickname] = useState(initialNickname);
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+
+    const [phonePrefix, setPhonePrefix] = useState("010");
+    const [phoneMiddle, setPhoneMiddle] = useState("");
+    const [phoneLast, setPhoneLast] = useState("");
+
+    const [preferredDays, setPreferredDays] = useState<string[]>(initialAvailableDays || []);
+    const [preferredStartTime, setPreferredStartTime] = useState<string>(initialAvailableTime ? initialAvailableTime.split('-')[0] : "");
+    const [preferredEndTime, setPreferredEndTime] = useState<string>(initialAvailableTime ? initialAvailableTime.split('-')[1] : "");
+
+    // Verification and error states
+    const [nicknameError, setNicknameError] = useState("");
+    const [nicknameChecked, setNicknameChecked] = useState(true); // Assume initial nickname is valid
     const [passwordError, setPasswordError] = useState("");
-    const [isLoading, setIsLoading] = useState(true);
-    const [isSaving, setIsSaving] = useState(false);
+    const [telError, setTelError] = useState("");
 
-    // 프로필 정보 로드
+    const [showVerificationInput, setShowVerificationInput] = useState(false);
+    const [verificationCode, setVerificationCode] = useState("");
+    const [isVerified, setIsVerified] = useState(false);
+    const [verificationTimer, setVerificationTimer] = useState(0);
+
+    // UI states
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [hintMessage, setHintMessage] = useState<string>("");
+    const [showHint, setShowHint] = useState(false);
+
+    const phoneMiddleRef = useRef<HTMLInputElement>(null);
+    const phoneLastRef = useRef<HTMLInputElement>(null);
+
+    // Populate phone fields from initial data
     useEffect(() => {
-        const fetchProfile = async () => {
-            try {
-                const userProfile = await getUserProfile();
-                setProfile(userProfile);
-            } catch (error) {
-                console.error("프로필 조회 실패:", error);
-            } finally {
-                setIsLoading(false);
+        console.log("useEffect for initialPhone triggered. initialPhone:", initialPhone);
+        if (initialPhone) {
+            // 하이픈 제거 후 처리
+            const cleanPhone = initialPhone.replace(/-/g, '');
+            console.log("Cleaned phone:", cleanPhone);
+
+
+            if (cleanPhone.length === 11) {
+                const prefix = cleanPhone.substring(0, 3);
+                const middle = cleanPhone.substring(3, 7);
+                const last = cleanPhone.substring(7, 11);
+                setPhonePrefix(prefix);
+                setPhoneMiddle(middle);
+                setPhoneLast(last);
+                console.log("Phone parts set:", { prefix, middle, last });
+
+                // 초기 전화번호가 있으면 인증된 것으로 간주
+                setIsVerified(true);
+                console.log("setIsVerified(true) called because initialPhone is valid.");
+            } else {
+                console.log("Cleaned phone is not 11 digits:", cleanPhone);
+                // 길이가 맞지 않으면 인증 상태 false로 설정
+                setIsVerified(false);
             }
-        };
-
-        fetchProfile();
-    }, []);
-
-    // 비밀번호 유효성 검사
-    const validatePassword = (pwd: string, confirmPwd: string) => {
-        if (pwd && pwd.length < 8) {
-            return "비밀번호는 8자 이상이어야 합니다.";
+        } else {
+            console.log("initialPhone is empty or undefined");
+            // initialPhone이 없으면 인증 상태 false로 설정
+            setIsVerified(false);
         }
-        if (pwd && confirmPwd && pwd !== confirmPwd) {
-            return "비밀번호가 일치하지 않습니다.";
+    }, [initialPhone]);
+
+    const fullPhoneNumber = phonePrefix + phoneMiddle + phoneLast;
+    const isPhoneModified = initialPhone ? fullPhoneNumber !== initialPhone : false;
+
+    // Reset verification status if phone number is changed
+    useEffect(() => {
+        if (isPhoneModified) {
+            setIsVerified(false);
         }
-        return "";
+    }, [isPhoneModified]);
+
+
+    // Hint message timer
+    useEffect(() => {
+        if (hintMessage) {
+            setShowHint(true);
+            const timer = setTimeout(() => {
+                setShowHint(false);
+                setTimeout(() => setHintMessage(""), 300);
+            }, 4000);
+            return () => clearTimeout(timer);
+        }
+    }, [hintMessage]);
+
+    // Verification code timer
+    useEffect(() => {
+        let interval: ReturnType<typeof setInterval>;
+        if (verificationTimer > 0) {
+            interval = setInterval(() => {
+                setVerificationTimer((prev) => prev - 1);
+            }, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [verificationTimer]);
+
+    // Nickname check
+    const onCheckNickname = async () => {
+        if (!nickname.trim()) {
+            setNicknameError("닉네임을 입력해주세요.");
+            return;
+        }
+        if (nickname === initialNickname) {
+            setNicknameChecked(true);
+            setHintMessage("현재 닉네임입니다.");
+            return;
+        }
+        try {
+            const response = await axios.get("http://localhost:8080/api/join/check-nick", {
+                params: { nick: nickname },
+                validateStatus: () => true,
+            });
+            if (response.data.status === 200 && response.data.data.isAvailable) {
+                setNicknameError("");
+                setNicknameChecked(true);
+                setHintMessage("사용 가능한 닉네임입니다!");
+            } else {
+                setNicknameError("이미 사용 중인 닉네임입니다.");
+                setNicknameChecked(false);
+            }
+        } catch (error) {
+            setNicknameError("닉네임 중복 확인 중 오류가 발생했습니다.");
+            setNicknameChecked(false);
+        }
     };
 
-    const handlePasswordChange = (value: string) => {
-        setPassword(value);
-        setPasswordError(validatePassword(value, confirmPassword));
+    // Phone number verification
+    const handleSendVerification = async () => {
+        if (isLoading) return;
+        const phoneNumber = phonePrefix + phoneMiddle + phoneLast;
+        if (phoneNumber.length !== 11) {
+            setHintMessage("올바른 전화번호를 입력해주세요!");
+            return;
+        }
+        setIsLoading(true);
+        try {
+            const response = await axios.post("http://localhost:8080/api/api/phone-verification/unified", {
+                tel: phoneNumber,
+                purpose: "UPDATE", // Changed purpose
+            }, {
+                validateStatus: () => true,
+            });
+            if (response.data.status === 200 && response.data.data.smsSent) {
+                setTelError("");
+                setShowVerificationInput(true);
+                setVerificationTimer(300); // 5 minutes
+                setHintMessage("인증번호가 발송되었습니다!");
+            } else {
+                setTelError(response.data.message || "인증번호 발송에 실패했습니다.");
+            }
+        } catch (error) {
+            setTelError("처리 중 오류가 발생했습니다.");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    const handleConfirmPasswordChange = (value: string) => {
-        setConfirmPassword(value);
-        setPasswordError(validatePassword(password, value));
+    const handleVerifyCode = async () => {
+        if (verificationCode.trim().length !== 6) {
+            setHintMessage("인증번호 6자리를 입력해주세요!");
+            return;
+        }
+        const phoneNumber = phonePrefix + phoneMiddle + phoneLast;
+        try {
+            const response = await axios.post("http://localhost:8080/api/auth/verify-code", {
+                phoneNumber: phoneNumber,
+                code: verificationCode,
+            }, {
+                validateStatus: () => true,
+            });
+            if (response.data.status === 200) {
+                setIsVerified(true);
+                setVerificationTimer(0);
+                setHintMessage("전화번호 인증이 완료되었습니다!");
+            } else {
+                setHintMessage(response.data.message || "인증번호가 올바르지 않거나 만료되었습니다.");
+            }
+        } catch (error) {
+            setHintMessage("인증 확인 중 오류가 발생했습니다.");
+        }
     };
 
-    const handleUpdateProfile = async () => {
-        if (!profile) return;
+    const handleDayToggle = (day: string) => {
+        console.log("handleDayToggle called with day:", day);
+        setPreferredDays(prev =>
+            prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
+        );
+    };
 
-        if (password && passwordError) {
-            alert("비밀번호를 확인해주세요.");
+    const formatTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        console.log("formatTime called with seconds:", seconds);
+        return `${mins}:${secs.toString().padStart(2, "0")}`;
+    };
+
+    const handleUpdate = async () => {
+        // 비밀번호 확인만 체크 (비밀번호를 입력한 경우에만)
+        if (password && password !== confirmPassword) {
+            setPasswordError("비밀번호가 일치하지 않습니다.");
             return;
         }
 
-        setIsSaving(true);
+        // 닉네임 중복 확인 비활성화 (테스트용)
+        // if (!nicknameChecked) {
+        //     setHintMessage("닉네임 중복 확인을 해주세요.");
+        //     return;
+        // }
+
+        // 전화번호 조합 (빈 값도 허용)
+        const fullPhoneNumber = phonePrefix && phoneMiddle && phoneLast
+            ? phonePrefix + phoneMiddle + phoneLast
+            : "";
+
+        // 전화번호 인증 체크 비활성화 (테스트용)
+        // if (isPhoneModified && !isVerified) {
+        //     setHintMessage("전화번호 인증을 완료해주세요.");
+        //     return;
+        // }
+
+        // 시간 검증 (시간을 둘 다 입력한 경우에만)
+        if (preferredStartTime && preferredEndTime && parseInt(preferredStartTime) >= parseInt(preferredEndTime)) {
+            setHintMessage("종료 시간은 시작 시간보다 나중이어야 합니다.");
+            return;
+        }
+
+        // 업데이트 데이터 구성 - 변경된 값만 전송하도록 수정
+        const updateData: any = {};
+
+        // 닉네임이 실제로 변경되었을 때만 추가 (원본 닉네임과 비교)
+        // 원본 닉네임을 props나 context에서 가져와서 비교해야 합니다
+        // 예시: const originalNickname = authContext?.user?.nickname;
+        // if (nickname && nickname.trim() && nickname.trim() !== originalNickname) {
+        //     updateData.newNickname = nickname.trim();
+        // }
+
+        // 테스트용으로 닉네임 전송 비활성화
+        // if (nickname && nickname.trim()) {
+        //     updateData.newNickname = nickname.trim();
+        // }
+
+        if (fullPhoneNumber) {
+            updateData.newTel = fullPhoneNumber;
+        }
+
+        if (preferredDays && preferredDays.length > 0) {
+            updateData.availableDays = preferredDays;
+        }
+
+        if (preferredStartTime && preferredEndTime) {
+            updateData.availableTime = `${preferredStartTime}-${preferredEndTime}`;
+        }
+
+        if (password && password.trim()) {
+            updateData.newPassword = password.trim();
+        }
+
+        // 최소한 하나의 변경사항이 있는지 확인 (선택사항)
+        // if (Object.keys(updateData).length === 0) {
+        //     setHintMessage("변경할 정보를 입력해주세요.");
+        //     return;
+        // }
+
+        console.log("전송할 데이터:", updateData); // 디버깅용
+
         try {
-            const updateData: UserProfileUpdate = {
-                nickname: profile.nickname,
-                phone: profile.phone,
-            };
-
-            if (password) {
-                updateData.password = password;
-            }
-
-            const updatedProfile = await updateUserProfile(updateData);
-            onProfileUpdate(updatedProfile);
-            alert("프로필이 성공적으로 수정되었습니다.");
-
-            // 비밀번호 필드 초기화
-            setPassword("");
-            setConfirmPassword("");
-            setPasswordError("");
+            await onUpdateProfile(updateData);
         } catch (error) {
-            console.error("프로필 수정 실패:", error);
-            alert("프로필 수정에 실패했습니다. 다시 시도해주세요.");
-        } finally {
-            setIsSaving(false);
+            console.error("업데이트 실패:", error);
+            setHintMessage("회원정보 수정에 실패했습니다.");
         }
     };
 
-    if (isLoading) {
-        return (
-            <div className="flex justify-center items-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8B85E9]"></div>
-            </div>
-        );
-    }
+    const daysOfWeek = ["월", "화", "수", "목", "금", "토", "일"];
+    const hours = Array.from({ length: 25 }, (_, i) => i.toString().padStart(2, '0'));
 
-    if (!profile) {
-        return (
-            <div className="text-center py-12">
-                <p className="text-gray-500">
-                    프로필 정보를 불러올 수 없습니다.
-                </p>
-            </div>
-        );
-    }
     return (
         <div className="space-y-6 sm:space-y-8">
             <h2 className="text-xl sm:text-2xl font-bold">회원정보 수정</h2>
 
-            {/* 회원정보 수정 폼 */}
             <div className="bg-white rounded-xl p-6 sm:p-8 shadow-sm">
                 <div className="space-y-6">
-                    {/* 이름 */}
+                    {/* Name (Read-only) */}
                     <div>
-                        <label
-                            className="block text-sm font-medium mb-2"
-                            style={{ color: "#8B85E9" }}
-                        >
-                            이름
-                        </label>
-                        <input
-                            type="text"
-                            value={profile.name}
-                            disabled
-                            className="w-full px-4 py-3 bg-gray-100 border rounded-full text-gray-500 cursor-not-allowed"
-                            style={{
-                                borderColor: "#E5E7EB",
-                            }}
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                            이름은 변경할 수 없습니다.
-                        </p>
+                        <label className="block text-sm font-medium mb-2" style={{ color: "#8B85E9" }}>이름</label>
+                        <input type="text" value={name} disabled className="w-full px-4 py-3 bg-gray-100 border rounded-full text-gray-500 cursor-not-allowed" />
                     </div>
 
-                    {/* 닉네임 */}
+                    {/* Nickname */}
                     <div>
-                        <label
-                            className="block text-sm font-medium mb-2"
-                            style={{ color: "#8B85E9" }}
-                        >
-                            닉네임
-                        </label>
-                        <input
-                            type="text"
-                            value={profile.nickname}
-                            onChange={(e) =>
-                                setProfile({
-                                    ...profile,
-                                    nickname: e.target.value,
-                                })
-                            }
-                            placeholder="변경할 닉네임을 입력해주세요"
-                            className="w-full px-4 py-3 border rounded-full"
-                            style={{
-                                borderColor: "#777777",
-                            }}
-                        />
+                        <label className="block text-sm font-medium mb-2" style={{ color: "#8B85E9" }}>닉네임</label>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={nickname}
+                                onChange={(e) => {
+                                    setNickname(e.target.value);
+                                    setNicknameChecked(false);
+                                }}
+                                placeholder="변경할 닉네임을 입력해주세요"
+                                className="w-full px-4 py-3 border rounded-full"
+                            />
+                            <button onClick={onCheckNickname} className="px-4 py-3 text-sm text-white rounded-lg font-medium" style={{ backgroundColor: "#8B85E9" }}>중복확인</button>
+                        </div>
+                        {nicknameError && <p className="text-red-500 text-xs mt-1">{nicknameError}</p>}
+                        {nicknameChecked && !nicknameError && <p className="text-green-500 text-xs mt-1">사용 가능한 닉네임입니다.</p>}
                     </div>
 
-                    {/* 아이디 */}
+                    {/* Password */}
                     <div>
-                        <label
-                            className="block text-sm font-medium mb-2"
-                            style={{ color: "#8B85E9" }}
-                        >
-                            아이디
-                        </label>
+                        <label className="block text-sm font-medium mb-2" style={{ color: "#8B85E9" }}>새 비밀번호</label>
                         <input
-                            type="text"
-                            value={profile.userId}
-                            disabled
-                            className="w-full px-4 py-3 bg-gray-100 border rounded-full text-gray-500 cursor-not-allowed"
-                            style={{
-                                borderColor: "#E5E7EB",
-                            }}
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                            아이디는 변경할 수 없습니다.
-                        </p>
-                    </div>
-
-                    {/* 비밀번호 */}
-                    <div>
-                        <label
-                            className="block text-sm font-medium mb-2"
-                            style={{ color: "#8B85E9" }}
-                        >
-                            비밀번호
-                        </label>
-                        <input
-                            type="password"
+                            type={showPassword ? "text" : "password"}
                             value={password}
-                            onChange={(e) =>
-                                handlePasswordChange(e.target.value)
-                            }
-                            placeholder="변경할 비밀번호를 입력해주세요"
-                            className={`w-full px-4 py-3 border rounded-full ${
-                                passwordError ? "border-red-500" : ""
-                            }`}
-                            style={{
-                                borderColor: passwordError
-                                    ? "#EF4444"
-                                    : "#777777",
-                            }}
-                        />
-                    </div>
-
-                    {/* 비밀번호 확인 */}
-                    <div>
-                        <label
-                            className="block text-sm font-medium mb-2"
-                            style={{ color: "#8B85E9" }}
-                        >
-                            비밀번호 확인
-                        </label>
-                        <input
-                            type="password"
-                            value={confirmPassword}
-                            onChange={(e) =>
-                                handleConfirmPasswordChange(e.target.value)
-                            }
-                            placeholder="비밀번호를 다시 입력하세요"
-                            className={`w-full px-4 py-3 border rounded-full ${
-                                passwordError ? "border-red-500" : ""
-                            }`}
-                            style={{
-                                borderColor: passwordError
-                                    ? "#EF4444"
-                                    : "#777777",
-                            }}
-                        />
-                        {passwordError && (
-                            <p className="text-red-500 text-xs mt-1 flex items-center">
-                                <span className="mr-1">⚠️</span>
-                                {passwordError}
-                            </p>
-                        )}
-                    </div>
-
-                    {/* 전화번호 */}
-                    <div>
-                        <label
-                            className="block text-sm font-medium mb-2"
-                            style={{ color: "#8B85E9" }}
-                        >
-                            전화번호
-                        </label>
-                        <input
-                            type="tel"
-                            value={profile.phone}
-                            onChange={(e) =>
-                                setProfile({
-                                    ...profile,
-                                    phone: e.target.value,
-                                })
-                            }
-                            placeholder="전화번호를 입력해주세요 (예: 010-1234-5678)"
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="변경할 경우에만 입력하세요"
                             className="w-full px-4 py-3 border rounded-full"
-                            style={{
-                                borderColor: "#777777",
-                            }}
                         />
                     </div>
 
-                    {/* 저장 버튼 */}
+                    {/* Confirm Password */}
+                    <div>
+                        <label className="block text-sm font-medium mb-2" style={{ color: "#8B85E9" }}>새 비밀번호 확인</label>
+                        <input
+                            type={showConfirmPassword ? "text" : "password"}
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            placeholder="비밀번호를 다시 입력하세요"
+                            className={`w-full px-4 py-3 border rounded-full ${passwordError ? "border-red-500" : ""}`}
+                        />
+                        {passwordError && <p className="text-red-500 text-xs mt-1">{passwordError}</p>}
+                    </div>
+
+                    {/* Phone Number */}
+                    <div>
+                        <label className="block text-sm font-medium mb-2" style={{ color: "#8B85E9" }}>전화번호</label>
+                        <div className="flex gap-2 items-center">
+                            <select value={phonePrefix} onChange={e => setPhonePrefix(e.target.value)} className="w-28 px-4 py-3 border rounded-full bg-white">
+                                <option value="010">010</option>
+                                <option value="011">011</option>
+                            </select>
+                            -
+                            <input type="tel" ref={phoneMiddleRef} value={phoneMiddle} onChange={e => setPhoneMiddle(e.target.value.replace(/\D/g, ""))} maxLength={4} className="w-full px-4 py-3 border rounded-full text-center" />
+                            -
+                            <input type="tel" ref={phoneLastRef} value={phoneLast} onChange={e => setPhoneLast(e.target.value.replace(/\D/g, ""))} maxLength={4} className="w-full px-4 py-3 border rounded-full text-center" />
+                        </div>
+                        {isPhoneModified &&
+                            <button onClick={handleSendVerification} disabled={isLoading || isVerified} className="w-full mt-2 py-3 px-6 text-white rounded-full" style={{ backgroundColor: isVerified ? "#4ade80" : "#8B85E9" }}>
+                                {isVerified ? "인증 완료" : "인증번호 발송"}
+                            </button>
+                        }
+                        {telError && <p className="text-red-500 text-xs mt-1">{telError}</p>}
+                    </div>
+
+                    {/* Verification Code */}
+                    {isPhoneModified && showVerificationInput && !isVerified && (
+                        <div className="mt-4 p-4 bg-gray-50 rounded-xl border">
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm font-medium">인증번호를 입력해주세요</span>
+                                {verificationTimer > 0 && <span className="text-sm text-red-500 font-mono">{formatTime(verificationTimer)}</span>}
+                            </div>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={verificationCode}
+                                    onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ""))}
+                                    maxLength={6}
+                                    placeholder="6자리 인증번호"
+                                    className="flex-1 px-4 py-3 border rounded-xl"
+                                />
+                                <button onClick={handleVerifyCode} className="px-6 py-3 text-white rounded-xl" style={{ backgroundColor: "#8B85E9" }}>
+                                    인증 확인
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Preferred Days */}
+                    <div>
+                        <label className="block text-sm font-medium mb-2" style={{ color: "#8B85E9" }}>선호 요일</label>
+                        <div className="flex flex-wrap gap-2">
+                            {daysOfWeek.map(day => (
+                                <button
+                                    key={day}
+                                    onClick={() => handleDayToggle(day)}
+                                    className={`px-4 py-2 border rounded-full text-sm ${preferredDays.includes(day) ? "bg-indigo-300 text-white" : "bg-white text-gray-700"}`}
+                                >
+                                    {day}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Preferred Time */}
+                    <div>
+                        <label className="block text-sm font-medium mb-2" style={{ color: "#8B85E9" }}>선호 시간대</label>
+                        <div className="flex items-center gap-2">
+                            <select value={preferredStartTime} onChange={e => setPreferredStartTime(e.target.value)} className="w-full px-4 py-3 border rounded-full bg-white">
+                                <option value="">시작 시간</option>
+                                {hours.map(hour => (
+                                    <option key={`start-${hour}`} value={hour}>{hour}:00</option>
+                                ))}
+                            </select>
+                            <span>~</span>
+                            <select value={preferredEndTime} onChange={e => setPreferredEndTime(e.target.value)} className="w-full px-4 py-3 border rounded-full bg-white">
+                                <option value="">종료 시간</option>
+                                {hours.map(hour => (
+                                    <option key={`end-${hour}`} value={hour}>{hour}:00</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Hint Message */}
+                    {hintMessage && (
+                        <div className={`transition-all duration-300 ${showHint ? "opacity-100" : "opacity-0"}`}>
+                            <div className="flex items-center gap-2 p-4 rounded-xl border bg-emerald-50 border-emerald-200">
+                                <AlertCircle className="w-5 h-5 text-emerald-600" />
+                                <span className="text-sm font-medium text-emerald-800">{hintMessage}</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Update Button */}
                     <div className="pt-4">
                         <button
-                            onClick={handleUpdateProfile}
-                            disabled={isSaving}
-                            className="w-full py-3 px-6 text-white rounded-full font-medium transition-all duration-200 hover:opacity-90 transform hover:scale-[1.02]"
-                            style={{
-                                backgroundColor: isSaving
-                                    ? "#9CA3AF"
-                                    : "#8B85E9",
-                            }}
-                            onMouseEnter={(e) => {
-                                if (!isSaving) {
-                                    e.currentTarget.style.backgroundColor =
-                                        "#7A73E0";
-                                }
-                            }}
-                            onMouseLeave={(e) => {
-                                if (!isSaving) {
-                                    e.currentTarget.style.backgroundColor =
-                                        "#8B85E9";
-                                }
-                            }}
+                            onClick={handleUpdate}
+                            disabled={isLoading}
+                            className="w-full py-3 px-6 text-white rounded-full font-medium"
+                            style={{ backgroundColor: isLoading ? "#9CA3AF" : "#8B85E9" }}
                         >
-                            {isSaving ? "수정 중..." : "회원정보 수정"}
+                            {isLoading ? "수정 중..." : "회원정보 수정"}
                         </button>
                     </div>
                 </div>
