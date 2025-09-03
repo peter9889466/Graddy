@@ -38,6 +38,7 @@ import {
     InterestApiService,
     InterestForFrontend,
 } from "../services/interestApi";
+import { useCommunityContext } from "@/contexts/CommunityContext";
 
 const StudyDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -159,7 +160,7 @@ const StudyDetailPage: React.FC = () => {
         Array<{
             memberId: number;
             userId: string;
-            nick: string;
+            nick: string;  // 닉네임
             memberType: string;
             memberStatus: string;
             joinedAt: string;
@@ -317,7 +318,7 @@ const StudyDetailPage: React.FC = () => {
                                 (member: {
                                     userId: string;
                                     memberType: string;
-                                    nick: string;
+                                    nick: string;  // 커뮤니티에서 게시글 작성 시 제목에 아이디 대신 닉네임이 나와야 함.
                                 }) => {
                                     // 정확한 매치
                                     const exactMatch =
@@ -1519,7 +1520,7 @@ const StudyDetailPage: React.FC = () => {
                 return (
                     <Community
                         studyProjectId={parseInt(id!, 10)}
-                        currentUserId={authContext?.user?.nickname || "사용자"}
+                        currentUserId={authContext?.user?.nickname || "나"}
                     />
                 );
         }

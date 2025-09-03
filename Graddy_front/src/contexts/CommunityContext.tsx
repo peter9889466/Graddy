@@ -18,7 +18,7 @@ export interface Reply {
     postId: string;
     parentCommentId: string; // 상위 댓글 ID
     content: string;
-    author: string;
+    nickname: string;
     createdAt: string;
 }
 
@@ -26,7 +26,7 @@ export interface Comment {
     id: string;
     postId: string;
     content: string;
-    author: string;
+    nickname: string;  // 닉네임
     createdAt: string;
 }
 
@@ -34,12 +34,12 @@ export interface Post {
     id: string;
     type: PostType;
     title: string;
-    author: string;
+    nickname: string;
     content: string;
     createdAt: string;
 }
 
-interface CommunityContextType {
+export interface CommunityContextType {
     posts: Post[];
     comments: Comment[];
     replies: Reply[];
@@ -49,12 +49,12 @@ interface CommunityContextType {
     deletePost: (postId: string) => Promise<void>;
     updatePost: (postId: string, data: CreatePostRequest) => Promise<void>;
     refreshPosts: () => Promise<void>;
-    addComment: (postId: string, content: string, author: string) => void;
+    addComment: (postId: string, content: string, nickname: string) => void;
     addReply: (
         postId: string,
         parentCommentId: string,
         content: string,
-        author: string
+        nickname: string
     ) => void;
     updateComment: (commentId: string, content: string) => void;
     deleteComment: (commentId: string) => void;
@@ -93,7 +93,7 @@ export const CommunityProvider: React.FC<ProviderProps> = ({ children }) => {
         id: apiPost.frPostId.toString(),
         type: "project", // 기본값, 필요시 API에서 타입 정보 추가
         title: apiPost.title,
-        author: apiPost.nick || apiPost.userId,
+        nickname: apiPost.nick || apiPost.userId,
         content: apiPost.content,
         createdAt: new Date(apiPost.createdAt).toLocaleString("ko-KR"),
     });
@@ -186,12 +186,12 @@ export const CommunityProvider: React.FC<ProviderProps> = ({ children }) => {
         refreshPosts();
     }, []);
 
-    const addComment = (postId: string, content: string, author: string) => {
+    const addComment = (postId: string, content: string, nickname: string) => {
         const newComment: Comment = {
             id: `${Date.now()}-${Math.random()}`,
             postId,
             content,
-            author,
+            nickname,
             createdAt: new Date().toLocaleString("ko-KR"),
         };
         setComments((prev) => [...prev, newComment]);
@@ -201,14 +201,14 @@ export const CommunityProvider: React.FC<ProviderProps> = ({ children }) => {
         postId: string,
         parentCommentId: string,
         content: string,
-        author: string
+        nickname: string
     ) => {
         const newReply: Reply = {
             id: `${Date.now()}-${Math.random()}`,
             postId,
             parentCommentId,
             content,
-            author,
+            nickname,
             createdAt: new Date().toLocaleString("ko-KR"),
         };
         setReplies((prev) => [...prev, newReply]);
