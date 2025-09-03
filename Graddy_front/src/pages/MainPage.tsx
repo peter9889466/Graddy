@@ -142,7 +142,7 @@ const MainPage = () => {
             // 시간대 문제를 해결하기 위해 로컬 날짜로 변환
             const localDate = new Date(
                 scheduleDate.getTime() -
-                    scheduleDate.getTimezoneOffset() * 60000
+                scheduleDate.getTimezoneOffset() * 60000
             );
 
             return {
@@ -169,7 +169,7 @@ const MainPage = () => {
             // 시간대 문제를 해결하기 위해 로컬 날짜로 변환
             const localDate = new Date(
                 deadlineDate.getTime() -
-                    deadlineDate.getTimezoneOffset() * 60000
+                deadlineDate.getTimezoneOffset() * 60000
             );
 
             return {
@@ -207,6 +207,7 @@ const MainPage = () => {
 
     // 추천 스터디 데이터 상태 - 백엔드 DTO 구조에 맞게 타입 정의
     interface RecommendedStudy {
+        userNickname: string;
         studyProjectId: number;
         studyProjectName: string;
         studyProjectTitle: string;
@@ -268,8 +269,7 @@ const MainPage = () => {
                 const errorText = await response.text();
                 console.error("API 에러 응답:", errorText);
                 throw new Error(
-                    `서버 오류 (${response.status}): ${
-                        errorText || "알 수 없는 오류"
+                    `서버 오류 (${response.status}): ${errorText || "알 수 없는 오류"
                     }`
                 );
             }
@@ -390,7 +390,7 @@ const MainPage = () => {
                         // 시간대 문제를 해결하기 위해 로컬 날짜로 변환
                         const localDate = new Date(
                             scheduleDate.getTime() -
-                                scheduleDate.getTimezoneOffset() * 60000
+                            scheduleDate.getTimezoneOffset() * 60000
                         );
 
                         return {
@@ -460,7 +460,7 @@ const MainPage = () => {
                 const scheduleDate = new Date(schedule.schTime);
                 const localDate = new Date(
                     scheduleDate.getTime() -
-                        scheduleDate.getTimezoneOffset() * 60000
+                    scheduleDate.getTimezoneOffset() * 60000
                 );
                 return localDate.toISOString().split("T")[0] === date;
             })
@@ -485,7 +485,7 @@ const MainPage = () => {
                 const deadlineDate = new Date(assignment.deadline);
                 const localDate = new Date(
                     deadlineDate.getTime() -
-                        deadlineDate.getTimezoneOffset() * 60000
+                    deadlineDate.getTimezoneOffset() * 60000
                 );
                 return localDate.toISOString().split("T")[0] === date;
             })
@@ -510,7 +510,7 @@ const MainPage = () => {
         );
 
         // 스터디 일정과 과제 일정을 합쳐서 반환
-        const allStudyItems: ScheduleItem[] = [
+        const allStudyItems: any[] = [
             ...studyItems,
             ...assignmentItems,
         ];
@@ -729,25 +729,23 @@ const MainPage = () => {
                                                 {studyItems.map((item) => (
                                                     <div
                                                         key={item.id}
-                                                        className={`schedule-card border-l-4 p-3 rounded-r-lg ${
-                                                            item.type ===
-                                                            "assignment"
+                                                        className={`schedule-card border-l-4 p-3 rounded-r-lg ${item.type ===
+                                                                "assignment"
                                                                 ? "border-blue-500 bg-blue-50"
                                                                 : "border-red-500 bg-red-50"
-                                                        }`}
+                                                            }`}
                                                     >
                                                         <div
-                                                            className={`font-medium mb-1 ${
-                                                                item.type ===
-                                                                "assignment"
+                                                            className={`font-medium mb-1 ${item.type ===
+                                                                    "assignment"
                                                                     ? "text-blue-600"
                                                                     : "text-red-600"
-                                                            }`}
+                                                                }`}
                                                         >
                                                             {item.studyName}
                                                         </div>
                                                         {item.type ===
-                                                        "assignment" ? (
+                                                            "assignment" ? (
                                                             <>
                                                                 <div className="text-sm text-gray-700 mb-1">
                                                                     과제:{" "}
@@ -803,7 +801,7 @@ const MainPage = () => {
                                                         <div className="flex justify-between items-start">
                                                             <div className="flex-1">
                                                                 {editingSchedule ===
-                                                                item.id ? (
+                                                                    item.id ? (
                                                                     <EditingScheduleForm
                                                                         item={
                                                                             item
@@ -854,17 +852,17 @@ const MainPage = () => {
                                                             <div className="flex gap-1 ml-2">
                                                                 {editingSchedule !==
                                                                     item.id && (
-                                                                    <button
-                                                                        onClick={() =>
-                                                                            setEditingSchedule(
-                                                                                item.id
-                                                                            )
-                                                                        }
-                                                                        className="text-blue-500 hover:text-blue-700 text-xs"
-                                                                    >
-                                                                        수정
-                                                                    </button>
-                                                                )}
+                                                                        <button
+                                                                            onClick={() =>
+                                                                                setEditingSchedule(
+                                                                                    item.id
+                                                                                )
+                                                                            }
+                                                                            className="text-blue-500 hover:text-blue-700 text-xs"
+                                                                        >
+                                                                            수정
+                                                                        </button>
+                                                                    )}
                                                                 <button
                                                                     onClick={() =>
                                                                         deletePersonalSchedule(
@@ -1020,7 +1018,7 @@ const MainPage = () => {
                                                     {formatDate(
                                                         study.studyProjectEnd
                                                     )}{" "}
-                                                    / 리더: {study.userId}
+                                                    / 리더: {study.userNickname}
                                                 </div>
                                             </div>
 
@@ -1029,15 +1027,14 @@ const MainPage = () => {
                                                 {study.typeCheck === "study" &&
                                                     study.studyLevel && (
                                                         <span
-                                                            className={`px-2 py-0.5 rounded-xl text-xs font-medium ${
-                                                                study.studyLevel ===
-                                                                1
+                                                            className={`px-2 py-0.5 rounded-xl text-xs font-medium ${study.studyLevel ===
+                                                                    1
                                                                     ? "bg-green-100 text-green-700"
                                                                     : study.studyLevel ===
-                                                                      2
-                                                                    ? "bg-yellow-100 text-yellow-700"
-                                                                    : "bg-red-100 text-red-700"
-                                                            }`}
+                                                                        2
+                                                                        ? "bg-yellow-100 text-yellow-700"
+                                                                        : "bg-red-100 text-red-700"
+                                                                }`}
                                                         >
                                                             레벨{" "}
                                                             {study.studyLevel}
@@ -1069,12 +1066,11 @@ const MainPage = () => {
                                                 <div className="flex gap-2">
                                                     {/* 타입 뱃지 */}
                                                     <span
-                                                        className={`px-2 py-1 rounded-full text-xs font-bold ${
-                                                            study.typeCheck ===
-                                                            "study"
+                                                        className={`px-2 py-1 rounded-full text-xs font-bold ${study.typeCheck ===
+                                                                "study"
                                                                 ? "bg-green-50 text-green-700"
                                                                 : "bg-orange-50 text-orange-700"
-                                                        }`}
+                                                            }`}
                                                     >
                                                         {getTypeLabel(
                                                             study.typeCheck
@@ -1082,15 +1078,14 @@ const MainPage = () => {
                                                     </span>
                                                     {/* 모집 상태 뱃지 */}
                                                     <span
-                                                        className={`px-2 py-1 rounded-full text-xs font-bold ${
-                                                            study.isRecruiting ===
-                                                            "recruitment"
+                                                        className={`px-2 py-1 rounded-full text-xs font-bold ${study.isRecruiting ===
+                                                                "recruitment"
                                                                 ? "bg-blue-50 text-blue-700"
                                                                 : study.isRecruiting ===
-                                                                  "complete"
-                                                                ? "bg-purple-50 text-purple-700"
-                                                                : "bg-gray-50 text-gray-700"
-                                                        }`}
+                                                                    "complete"
+                                                                    ? "bg-purple-50 text-purple-700"
+                                                                    : "bg-gray-50 text-gray-700"
+                                                            }`}
                                                     >
                                                         {getRecruitmentStatus(
                                                             study.isRecruiting

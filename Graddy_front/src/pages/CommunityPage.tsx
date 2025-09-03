@@ -250,12 +250,7 @@ const SearchAndCreate: React.FC = () => {
                                 </div>
 
                                 {/* 게시글 제목 */}
-                                <div
-                                    className="text-lg font-bold text-gray-800 mb-2 cursor-pointer hover:text-[#8B85E9] transition-colors duration-200"
-                                    onClick={() =>
-                                        navigate(`/community/${post.id}`)
-                                    }
-                                >
+                                <div className="text-lg font-bold text-gray-800 mb-2 cursor-pointer transition-colors duration-200">
                                     {post.title}
                                 </div>
 

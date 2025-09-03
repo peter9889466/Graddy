@@ -26,7 +26,7 @@ interface ProfileSectionProps {
     onGithubSave: () => void;
     onGithubCancel: () => void;
     onGithubChange: (value: string) => void;
-    fileInputRef: React.RefObject<HTMLInputElement>;
+    fileInputRef: React.RefObject<HTMLInputElement | null>;
 }
 
 const ProfileSection: React.FC<ProfileSectionProps> = ({
