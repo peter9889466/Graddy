@@ -134,4 +134,42 @@ export const communityApi = {
             throw error;
         }
     },
+
+        // 댓글 목록 조회
+    async getComments(stPrPostId: number) {
+        const response = await apiClient.get<ApiResponse<Comment[]>>(
+            `/comments/study-posts/${stPrPostId}`
+        );
+        return response.data.data;
+    },
+
+    // 댓글 작성
+    async addComment(stPrPostId: number, studyProjectId: number, content: string) {
+        const response = await apiClient.post<ApiResponse<Comment>>(
+            `/api/comments/study-posts/${stPrPostId}`,
+            { content, studyProjectId }
+        );
+        return response.data.data;
+    },
+
+    // 댓글 수정
+    async updateComment(commentId: number, content: string) {
+        const response = await apiClient.put<ApiResponse<Comment>>(
+            `/api/comments/${commentId}?content=${encodeURIComponent(content)}`
+        );
+        return response.data.data;
+    },
+
+    // 댓글 삭제
+    async deleteComment(commentId: number) {
+        await apiClient.delete(`/api/comments/${commentId}`);
+    },
+
+    // 댓글 수 조회
+    async getCommentCount(stPrPostId: number) {
+        const response = await apiClient.get<ApiResponse<number>>(
+            `/api/comments/study-posts/${stPrPostId}/count`
+        );
+        return response.data.data;
+    },
 };

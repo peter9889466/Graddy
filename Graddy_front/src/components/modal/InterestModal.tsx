@@ -3,9 +3,8 @@ import { Search, X, AlertCircle } from "lucide-react";
 import {
     getAllInterests,
     updateUserInterests,
-    Interest,
     UserInterest,
-} from "../../services/userService";
+} from "../../services/userApi";
 
 // 타입 정의
 interface InterestItem {
@@ -18,10 +17,18 @@ interface SelectedInterestItem extends InterestItem {
     difficulty: string;
 }
 
+// InterestModal에서 사용하는 UserInterest 타입 (프론트엔드용)
+interface ModalUserInterest {
+    id: number;
+    name: string;
+    category: string;
+    difficulty: string;
+}
+
 interface InterestProps {
     maxSelections?: number;
-    initialSelections?: UserInterest[];
-    onComplete?: (selectedInterests: UserInterest[]) => void;
+    initialSelections?: ModalUserInterest[];
+    onComplete?: (selectedInterests: ModalUserInterest[]) => void;
     onCancel?: () => void;
 }
 
@@ -78,7 +85,8 @@ const InterestSelection: React.FC<InterestProps> = ({
         const fetchInterests = async () => {
             try {
                 setIsLoading(true);
-                const interests = await getAllInterests();
+                const response = await getAllInterests();
+                const interests = response.data.data;
                 const mappedInterests = interests.map((interest) => ({
                     id: interest.interestId,
                     name: interest.interestName,
@@ -247,6 +255,54 @@ const InterestSelection: React.FC<InterestProps> = ({
 
     // 완료 버튼 클릭
     const handleComplete = async (): Promise<void> => {
+        console.log("🔍 [DEBUG] InterestModal handleComplete 시작");
+        console.log("🔍 [DEBUG] 선택된 관심분야:", selectedInterests);
+        
+        // 토큰 상태 확인
+        const token = localStorage.getItem('userToken');
+        const userData = localStorage.getItem('userData');
+        console.log("🔍 [DEBUG] 현재 토큰 상태:", token ? "토큰 존재" : "토큰 없음");
+        console.log("🔍 [DEBUG] 토큰 값:", token);
+        console.log("🔍 [DEBUG] 사용자 데이터:", userData);
+        
+        // 토큰에서 사용자 ID 추출 시도 (JWT 디코딩)
+        if (token) {
+            try {
+                const tokenParts = token.split('.');
+                if (tokenParts.length === 3) {
+                    const payload = JSON.parse(atob(tokenParts[1]));
+                    console.log("🔍 [DEBUG] JWT 페이로드:", payload);
+                    console.log("🔍 [DEBUG] JWT에서 추출한 사용자 ID:", payload.sub || payload.userId);
+                    console.log("🔍 [DEBUG] JWT 토큰 타입:", payload.type);
+                    console.log("🔍 [DEBUG] JWT 만료 시간:", new Date(payload.exp * 1000));
+                    console.log("🔍 [DEBUG] JWT 발급 시간:", new Date(payload.iat * 1000));
+                    
+                    // 토큰 타입이 access가 아닌 경우 경고
+                    if (payload.type !== 'access') {
+                        console.warn("🔍 [DEBUG] 토큰 타입이 'access'가 아닙니다:", payload.type);
+                    }
+                }
+            } catch (e) {
+                console.log("🔍 [DEBUG] JWT 디코딩 실패:", e);
+            }
+        }
+        
+        // 토큰이 없으면 에러 처리
+        if (!token) {
+            console.error("🔍 [DEBUG] 토큰이 없습니다. 로그인이 필요합니다.");
+            setHintMessage("로그인이 필요합니다. 다시 로그인해주세요.");
+            setIsSaving(false);
+            return;
+        }
+
+        // 토큰 형식 검증
+        if (!token.includes('.')) {
+            console.error("🔍 [DEBUG] 토큰 형식이 올바르지 않습니다.");
+            setHintMessage("인증 토큰이 유효하지 않습니다. 다시 로그인해주세요.");
+            setIsSaving(false);
+            return;
+        }
+        
         if (selectedInterests.length === 0) {
             setHintMessage("최소 하나 이상의 관심분야를 선택해주세요!");
             return;
@@ -254,7 +310,61 @@ const InterestSelection: React.FC<InterestProps> = ({
 
         setIsSaving(true);
         try {
-            const userInterests: UserInterest[] = selectedInterests.map(
+            // 먼저 사용자 정보 조회로 사용자 존재 여부 확인
+            console.log("🔍 [DEBUG] 사용자 정보 조회 시도...");
+            try {
+                const userInfoResponse = await fetch('http://localhost:8080/api/me', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                console.log("🔍 [DEBUG] 사용자 정보 조회 응답:", userInfoResponse.status, userInfoResponse.statusText);
+                if (!userInfoResponse.ok) {
+                    throw new Error(`사용자 정보 조회 실패: ${userInfoResponse.status} ${userInfoResponse.statusText}`);
+                }
+                const userInfo = await userInfoResponse.json();
+                console.log("🔍 [DEBUG] 사용자 정보:", userInfo);
+            } catch (userInfoError) {
+                console.error("🔍 [DEBUG] 사용자 정보 조회 실패:", userInfoError);
+                setHintMessage("사용자 정보를 확인할 수 없습니다. 다시 로그인해주세요.");
+                setIsSaving(false);
+                return;
+            }
+
+            // 난이도를 숫자로 변환하는 함수
+            const convertDifficultyToNumber = (difficulty: string): number => {
+                switch (difficulty) {
+                    case "초급": return 1;
+                    case "중급": return 2;
+                    case "고급": return 3;
+                    default: return 1;
+                }
+            };
+
+            const requestData = {
+                interests: selectedInterests.map((item) => ({
+                    interestId: item.id,
+                    interestLevel: convertDifficultyToNumber(item.difficulty),
+                })),
+            };
+            console.log("🔍 [DEBUG] InterestModal API 요청 데이터:", requestData);
+
+            const response = await updateUserInterests(requestData);
+            console.log("🔍 [DEBUG] InterestModal API 응답:", response);
+
+            // 숫자를 문자열로 변환하는 함수
+            const convertNumberToDifficulty = (level: number): string => {
+                switch (level) {
+                    case 1: return "초급";
+                    case 2: return "중급";
+                    case 3: return "고급";
+                    default: return "초급";
+                }
+            };
+
+            const userInterests: ModalUserInterest[] = selectedInterests.map(
                 (item) => ({
                     id: item.id,
                     name: item.name,
@@ -262,12 +372,20 @@ const InterestSelection: React.FC<InterestProps> = ({
                     difficulty: item.difficulty,
                 })
             );
-
-            await updateUserInterests(userInterests);
+            console.log("🔍 [DEBUG] InterestModal onComplete 호출 - userInterests:", userInterests);
             onComplete?.(userInterests);
         } catch (error) {
-            console.error("관심분야 저장 실패:", error);
-            alert("관심분야 저장에 실패했습니다. 다시 시도해주세요.");
+            console.error("🔍 [DEBUG] InterestModal 관심분야 저장 실패:", error);
+            
+            // 403 오류인 경우 특별 처리
+            if (error && typeof error === 'object' && 'response' in error && (error as any).response?.status === 403) {
+                console.log("🔍 [DEBUG] 403 오류 발생 - 백엔드 권한 문제로 추정");
+                setHintMessage("서버에서 권한을 거부했습니다. 관리자에게 문의해주세요.");
+            } else {
+                setHintMessage("관심분야 저장에 실패했습니다. 다시 시도해주세요.");
+            }
+            
+            handleCancel();
         } finally {
             setIsSaving(false);
         }

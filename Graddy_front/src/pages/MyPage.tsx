@@ -18,8 +18,10 @@ import {
     updateUserInterests,
     updateUserGitInfo,
     withdrawUser,
+    getAllInterests, // userService에서 userApi로 이동
     UserProfileUpdateRequest,
     UserInterestsUpdateRequest,
+    UserInterest,
 } from "../services/userApi";
 
 // InterestModal과 동일한 타입 정의
@@ -29,6 +31,22 @@ interface SelectedInterestItem {
     category: string;
     difficulty: string;
 }
+
+// 카테고리 ID를 문자열로 변환하는 함수
+const getCategoryString = (interestDivision: number): string => {
+    switch (interestDivision) {
+        case 1:
+            return "language";
+        case 2:
+            return "framework";
+        case 3:
+            return "tool";
+        case 4:
+            return "platform";
+        default:
+            return "other";
+    }
+};
 
 export const MyPage = () => {
     const authContext = useContext(AuthContext);
@@ -65,6 +83,12 @@ export const MyPage = () => {
             try {
                 setLoading(true);
                 if (activeTab === "마이페이지") {
+                    // 1. Fetch all possible interests to create a lookup map
+                    const allInterestsResponse = await getAllInterests();
+                    const allInterests: UserInterest[] = allInterestsResponse.data.data || [];
+                    const interestMap = new Map<string, UserInterest>(allInterests.map(i => [i.interestName, i]));
+
+                    // 2. Fetch user's page info (which includes interest names)
                     const myPageResponse = await getMyPageInfo();
                     if (myPageResponse.data.data) {
                         const data = myPageResponse.data.data;
@@ -72,17 +96,29 @@ export const MyPage = () => {
                         setUserScore(data.userScore || 0);
                         setGithubUrl(data.gitUrl || "");
                         setIntroduction(data.userRefer || "");
+
+                        // 3. Enrich user's interest names with full details
+                        console.log("🔍 [DEBUG] 마이페이지 데이터 로드 - interests:", data.interests);
                         if (data.interests && Array.isArray(data.interests)) {
-                            const interests = data.interests.map(
-                                (interestName: string, index: number) => ({
-                                    id: index + 1,
-                                    name: interestName,
-                                    category: "framework",
-                                    difficulty: "초급",
-                                })
-                            );
-                            setUserInterests(interests);
+                            const enrichedInterests = data.interests.map((interestName: string) => {
+                                const fullInterest = interestMap.get(interestName);
+                                if (fullInterest) {
+                                    return {
+                                        id: fullInterest.interestId,
+                                        name: fullInterest.interestName,
+                                        category: getCategoryString(fullInterest.interestDivision),
+                                        // 백엔드에서 난이도 정보를 제공하지 않으므로 기본값 사용
+                                        difficulty: "초급",
+                                    };
+                                }
+                                // Fallback for safety, though this shouldn't happen if data is consistent
+                                return { id: -1, name: interestName, category: 'other', difficulty: '초급' };
+                            }).filter(i => i.id !== -1); // Filter out any that weren't found
+
+                            console.log("🔍 [DEBUG] 매핑된 관심분야:", enrichedInterests);
+                            setUserInterests(enrichedInterests);
                         } else {
+                            console.log("🔍 [DEBUG] 관심분야 데이터가 없음, 빈 배열로 설정");
                             setUserInterests([]);
                         }
                     } else {
@@ -163,21 +199,42 @@ export const MyPage = () => {
     };
 
     const handleInterestComplete = async (selectedInterests: SelectedInterestItem[]) => {
+        console.log("🔍 [DEBUG] handleInterestComplete 시작");
+        console.log("🔍 [DEBUG] 선택된 관심분야:", selectedInterests);
+        
         try {
+            // 난이도를 숫자로 변환하는 함수
+            const convertDifficultyToNumber = (difficulty: string): number => {
+                switch (difficulty) {
+                    case "초급": return 1;
+                    case "중급": return 2;
+                    case "고급": return 3;
+                    default: return 1;
+                }
+            };
+
             const requestData: UserInterestsUpdateRequest = {
                 interests: selectedInterests.map((interest) => ({
                     interestId: interest.id,
-                    interestLevel: interest.difficulty,
+                    interestLevel: convertDifficultyToNumber(interest.difficulty),
                 })),
             };
+            console.log("🔍 [DEBUG] API 요청 데이터:", requestData);
+            
             const response = await updateUserInterests(requestData);
+            console.log("🔍 [DEBUG] API 응답:", response);
+            
             if (response.data.data) {
+                console.log("🔍 [DEBUG] 상태 업데이트 전 userInterests:", userInterests);
                 setUserInterests(selectedInterests);
+                console.log("🔍 [DEBUG] 상태 업데이트 후 userInterests:", selectedInterests);
                 setShowInterestModal(false);
                 alert("관심분야가 성공적으로 수정되었습니다.");
+            } else {
+                console.error("🔍 [DEBUG] API 응답에 data가 없음:", response);
             }
         } catch (error) {
-            console.error("관심분야 수정 실패:", error);
+            console.error("🔍 [DEBUG] 관심분야 수정 실패:", error);
             alert("관심분야 수정에 실패했습니다.");
         }
     };
@@ -202,6 +259,20 @@ export const MyPage = () => {
 
     const handleInterestCancel = () => {
         setShowInterestModal(false);
+    };
+
+    const handleGithubEdit = () => {
+        setTempGithubUrl(githubUrl);
+        setIsEditingGithub(true);
+    };
+
+    const handleGithubCancel = () => {
+        setTempGithubUrl("");
+        setIsEditingGithub(false);
+    };
+
+    const handleGithubChange = (value: string) => {
+        setTempGithubUrl(value);
     };
 
     // 회원정보 수정 제출 핸들러
@@ -295,13 +366,10 @@ export const MyPage = () => {
                                             onImageChange={handleImageChange}
                                             onInterestEdit={handleInterestEdit}
                                             onGithubSave={handleGithubSave}
-                                            fileInputRef={fileInputRef} onGithubEdit={function (): void {
-                                                throw new Error("Function not implemented.");
-                                            }} onGithubCancel={function (): void {
-                                                throw new Error("Function not implemented.");
-                                            }} onGithubChange={function (value: string): void {
-                                                throw new Error("Function not implemented.");
-                                            }} />
+                                            onGithubEdit={handleGithubEdit}
+                                            onGithubCancel={handleGithubCancel}
+                                            onGithubChange={handleGithubChange}
+                                            fileInputRef={fileInputRef} />
 
                                         <hr
                                             style={{
@@ -316,9 +384,8 @@ export const MyPage = () => {
                                             isEditingIntro={isEditingIntro}
                                             onSaveIntro={handleSaveIntro}
                                             onCancelEdit={() => setIsEditingIntro(false)}
-                                            onIntroductionChange={setIntroduction} onEditIntro={function (): void {
-                                                throw new Error("Function not implemented.");
-                                            }} />
+                                            onIntroductionChange={setIntroduction}
+                                            onEditIntro={() => setIsEditingIntro(true)} />
                                     </div>
                                 )}
 
@@ -362,7 +429,3 @@ export const MyPage = () => {
         </>
     );
 };
-function setUserId(arg0: string) {
-    throw new Error("Function not implemented.");
-}
-

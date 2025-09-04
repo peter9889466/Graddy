@@ -15,10 +15,8 @@ export const getUserIdFromToken = (): string | null => {
         }
 
         const decoded = jwtDecode<JwtPayload>(token);
-        console.log('JWT 디코딩 결과:', decoded);
         
         if (decoded && decoded.sub) {
-            console.log('사용자 ID 추출:', decoded.sub);
             return decoded.sub;
         }
         

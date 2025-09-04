@@ -397,7 +397,7 @@ const ProjectDetailPage = () => {
     console.log("canAccessMemberFeatures:", canAccessMemberFeatures);
 
     // 디버깅을 위한 콘솔 로그
-    console.log("현재 사용자 닉네임:", authContext?.user?.nickname);
+    console.log("현재 사용자 아이디:", authContext?.user?.nickname);
     console.log("프로젝트장 ID:", studyLeader);
     console.log("프로젝트장 닉네임:", leaderNickname);
     console.log("프로젝트장 여부:", isStudyLeader);
