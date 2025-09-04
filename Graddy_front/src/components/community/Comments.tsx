@@ -118,8 +118,23 @@ const Comments: React.FC<Props> = ({
     };
 
     useEffect(() => {
-        loadComments();
-    }, [isExpanded, postId, postType]);
+    // isExpanded와 상관없이 댓글 수를 항상 로드
+    const loadCommentCount = async () => {
+        try {
+            const response = await commentApi.getCommentsByType(postType, postId);
+            if (response.status === 200 && Array.isArray(response.data)) {
+                setComments(response.data);
+            } else {
+                setComments([]);
+            }
+        } catch (error) {
+            console.error("댓글 수 로드 실패:", error);
+            setComments([]);
+        }
+    };
+
+    loadCommentCount();
+}, [postId, postType]);
 
     const handleAddComment = async () => {
         if (!isLoggedIn) {

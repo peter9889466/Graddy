@@ -441,7 +441,7 @@ const StudyDetailPage: React.FC = () => {
     console.log("userMemberType:", userMemberType);
     console.log("isStudyLeader:", isStudyLeader);
     console.log("canAccessMemberFeatures:", canAccessMemberFeatures);
-    console.log("현재 사용자 닉네임:", authContext?.user?.nickname);
+    console.log("현재 사용자 아이디:", authContext?.user?.nickname);
 
     console.log("스터디장:", studyLeader);
     console.log("스터디장 여부:", isStudyLeader);
@@ -1499,10 +1499,7 @@ const StudyDetailPage: React.FC = () => {
             case "커뮤니티":
                 if (
                     !isLoggedIn ||
-                    !(
-                        userMemberType === "leader" ||
-                        userMemberType === "member"
-                    )
+                    !(userMemberType === "leader" || userMemberType === "member")
                 ) {
                     return (
                         <div className="flex items-center justify-center h-64">
@@ -1517,10 +1514,15 @@ const StudyDetailPage: React.FC = () => {
                         </div>
                     );
                 }
+
+                // ✅ members 콘솔에 찍기
+                console.log("Community로 전달되는 members:", members);
+
                 return (
                     <Community
                         studyProjectId={parseInt(id!, 10)}
                         currentUserId={authContext?.user?.nickname || "나"}
+                        members={members} // 이미 타입 정의가 되어 있어야 함
                     />
                 );
         }
