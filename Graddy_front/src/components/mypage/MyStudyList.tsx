@@ -9,12 +9,38 @@ interface MyStudyListProps {
     userNickname: string;
 }
 
+interface Member {
+    memberId: number;
+    userId: string;
+    nick: string;
+    memberType: "leader" | "member";
+    memberStatus: "approved" | "pending" | "rejected";
+    joinedAt: string;
+}
+
+interface StudyProject {
+    studyProjectId: number;
+    studyProjectName: string;
+    studyProjectTitle: string;
+    studyProjectDesc: string;
+    studyLevel: number;
+    typeCheck: "STUDY" | "PROJECT";
+    userId: string;
+    isRecruiting: "RECRUITING" | "COMPLETE" | "END";
+    studyProjectStart: string;
+    studyProjectEnd: string;
+    studyProjectTotal: number;
+    currentMembers: number;
+    tagNames: string[];
+    members: Member[];
+}
+
 export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
     const navigate = useNavigate();
     const [activeFilter, setActiveFilter] = useState<
         "ALL" | "RECRUITING" | "COMPLETE" | "END"
     >("ALL");
-    const [studyList, setStudyList] = useState<StudyProjectListItem[]>([]);
+    const [studyList, setStudyList] = useState<StudyProject[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     // 스터디 목록 조회
@@ -22,8 +48,13 @@ export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
         const fetchStudyList = async () => {
             try {
                 setIsLoading(true);
-                const studies = await getUserStudyProjects(activeFilter);
-                setStudyList(studies);
+                const response = await getUserStudyProjects(activeFilter);
+                const mappedList: StudyProject[] = response.map((item: any) => ({
+                    ...item,
+                    currentMembers: item.currentMembers ?? (item.members ? item.members.length : 0),
+                    tagNames: item.tagNames ?? [],
+                }));
+                setStudyList(mappedList);
             } catch (error) {
                 console.error("스터디 목록 조회 실패:", error);
                 setStudyList([]);
@@ -35,62 +66,56 @@ export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
         fetchStudyList();
     }, [activeFilter]);
 
-    const userStudies = studyList;
-
-    const handleStudyClick = (study: StudyProjectListItem) => {
+    const handleStudyClick = (study: StudyProject) => {
         navigate(`/study/${study.studyProjectId}`, {
             state: {
-                title: study.title,
-                description: study.description,
-                leader: study.leader,
-                period: `${study.startDate}~${study.endDate}`,
-                tags: study.tags,
-                type: study.type,
-                status: study.status,
-                role: study.role,
+                title: study.studyProjectTitle,
+                description: study.studyProjectDesc,
+                leader: study.userId,
+                period: `${study.studyProjectStart.split("T")[0]} ~ ${
+                    study.studyProjectEnd.split("T")[0]
+                }`,
+                tags: study.tagNames,
+                type: study.typeCheck,
+                status: study.isRecruiting,
             },
         });
     };
 
-    const getStatusBadge = (status: string, role: string) => {
-        const statusConfig = {
-            RECRUITING: {
-                bg: "bg-blue-50",
-                text: "text-blue-700",
-                label: "모집중",
-            },
-            COMPLETE: {
-                bg: "bg-green-50",
-                text: "text-green-700",
-                label: "진행중",
-            },
-            END: {
-                bg: "bg-gray-50",
-                text: "text-gray-700",
-                label: "완료",
-            },
-        };
-
-        const roleConfig = {
-            LEADER: {
-                bg: "bg-purple-50",
-                text: "text-purple-700",
-                label: "리더",
-            },
-            MEMBER: {
-                bg: "bg-orange-50",
-                text: "text-orange-700",
-                label: "멤버",
-            },
-        };
-
-        return {
-            status: statusConfig[status as keyof typeof statusConfig],
-            role: roleConfig[role as keyof typeof roleConfig],
-        };
+    // API 응답의 isRecruiting 값을 한국어로 매핑
+    const getStatusLabel = (status: string) => {
+        switch (status) {
+            case "recruitment":
+                return "모집중";
+            case "complete":
+                return "모집완료";
+            case "end":
+                return "종료";
+            default:
+                return status;
+        }
     };
 
-    if (userStudies.length === 0) {
+    // API 응답의 typeCheck 값을 한국어로 매핑
+    const getTypeLabel = (type: string) => {
+        return type === "study" ? "스터디" : "프로젝트";
+    };
+
+    // 리더의 닉네임 추출
+    const getLeaderNickname = (study: StudyProject) => {
+        if (study.members && study.members.length > 0) {
+            const leader = study.members.find(
+                (member) => member.memberType === "leader"
+            );
+            if (leader && leader.nick && leader.nick.trim() !== "") {
+                return leader.nick;
+            }
+        }
+        // 닉네임이 없거나 비어있으면 userId 반환
+        return study.userId;
+    };
+
+    if (studyList.length === 0 && !isLoading) {
         return (
             <div className="space-y-6 sm:space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -177,6 +202,7 @@ export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
                     생성
                 </button>
             </div>
+
             {/* 필터 버튼들 */}
             <div className="flex gap-2 flex-wrap">
                 {[
@@ -198,114 +224,108 @@ export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
                     </button>
                 ))}
             </div>
+
             {isLoading ? (
                 <div className="flex justify-center items-center py-12">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8B85E9]"></div>
                 </div>
             ) : (
                 <div className="space-y-4">
-                    {userStudies.map((study) => {
-                        const badges = getStatusBadge(study.status, study.role);
-                        return (
-                            <div
-                                key={study.studyProjectId}
-                                className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 cursor-pointer"
-                                onClick={() => handleStudyClick(study)}
-                            >
-                                <div className="flex items-start justify-between">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-3 mb-3 flex-wrap">
-                                            <h3 className="text-lg font-bold text-gray-800">
-                                                {study.title}
-                                            </h3>
+                    {studyList.map((study) => (
+                        <div
+                            key={study.studyProjectId}
+                            className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 cursor-pointer"
+                            onClick={() => handleStudyClick(study)}
+                        >
+                            <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-3 mb-3 flex-wrap">
+                                        <h3 className="text-lg font-bold text-gray-800">
+                                            {study.studyProjectTitle}
+                                        </h3>
 
-                                            <span
-                                                className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                                    study.type === "STUDY"
-                                                        ? "bg-blue-50 text-blue-700"
-                                                        : "bg-green-50 text-green-700"
-                                                }`}
-                                            >
-                                                {study.type === "STUDY"
-                                                    ? "스터디"
-                                                    : "프로젝트"}
-                                            </span>
-                                            <span
-                                                className={`px-2 py-1 rounded-full text-xs font-medium ${badges.status.bg} ${badges.status.text}`}
-                                            >
-                                                {badges.status.label}
-                                            </span>
-                                            <span
-                                                className={`px-2 py-1 rounded-full text-xs font-medium ${badges.role.bg} ${badges.role.text}`}
-                                            >
-                                                {badges.role.label}
-                                            </span>
-                                        </div>
-
-                                        <p className="text-gray-600 mb-3 line-clamp-2">
-                                            {study.description}
-                                        </p>
-
-                                        <div className="flex items-center gap-4 text-sm text-gray-500 mb-3 flex-wrap">
-                                            <span>리더: {study.leader}</span>
-                                            <span>
-                                                기간: {study.startDate} ~{" "}
-                                                {study.endDate}
-                                            </span>
-                                            <span>
-                                                인원: {study.currentMembers}/
-                                                {study.maxMembers}
-                                            </span>
-                                        </div>
-
-                                        {study.meetingDays &&
-                                            study.meetingTime && (
-                                                <div className="text-sm text-gray-500 mb-3">
-                                                    <span>
-                                                        모임:{" "}
-                                                        {study.meetingDays.join(
-                                                            ", "
-                                                        )}{" "}
-                                                        {study.meetingTime}
-                                                    </span>
-                                                </div>
-                                            )}
-
-                                        <div className="flex gap-2 flex-wrap">
-                                            {study.tags.map(
-                                                (
-                                                    tag: string,
-                                                    index: number
-                                                ) => (
-                                                    <span
-                                                        key={index}
-                                                        className="bg-gray-100 text-gray-600 px-2 py-1 rounded-lg text-xs"
-                                                    >
-                                                        #{tag}
-                                                    </span>
-                                                )
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="ml-4">
-                                        <svg
-                                            className="w-5 h-5 text-gray-400"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
+                                        <span
+                                            className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                study.typeCheck === "STUDY"
+                                                    ? "bg-blue-50 text-blue-700"
+                                                    : "bg-green-50 text-green-700"
+                                            }`}
                                         >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M9 5l7 7-7 7"
-                                            />
-                                        </svg>
+                                            {getTypeLabel(study.typeCheck)}
+                                        </span>
+
+                                        <span
+                                            className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                study.isRecruiting ===
+                                                "RECRUITING"
+                                                    ? "bg-blue-50 text-blue-700"
+                                                    : study.isRecruiting ===
+                                                      "COMPLETE"
+                                                    ? "bg-green-50 text-green-700"
+                                                    : "bg-gray-50 text-gray-700"
+                                            }`}
+                                        >
+                                            {getStatusLabel(study.isRecruiting)}
+                                        </span>
+                                    </div>
+
+                                    <p className="text-gray-600 mb-3 line-clamp-2">
+                                        {study.studyProjectDesc}
+                                    </p>
+
+                                    <div className="flex items-center gap-4 text-sm text-gray-500 mb-3 flex-wrap">
+                                        <span>리더: {getLeaderNickname(study)}</span>
+                                        <span>
+                                            기간:{" "}
+                                            {
+                                                study.studyProjectStart.split(
+                                                    "T"
+                                                )[0]
+                                            }{" "}
+                                            ~{" "}
+                                            {
+                                                study.studyProjectEnd.split(
+                                                    "T"
+                                                )[0]
+                                            }
+                                        </span>
+                                        <span>
+                                            인원: {study.currentMembers}/
+                                            {study.studyProjectTotal}
+                                        </span>
+                                    </div>
+
+                                    <div className="flex gap-2 flex-wrap">
+                                        {(study.tagNames || []).map(
+                                            (tag: string, index: number) => (
+                                                <span
+                                                    key={index}
+                                                    className="bg-gray-100 text-gray-600 px-2 py-1 rounded-lg text-xs"
+                                                >
+                                                    #{tag}
+                                                </span>
+                                            )
+                                        )}
                                     </div>
                                 </div>
+                                <div className="ml-4">
+                                    <svg
+                                        className="w-5 h-5 text-gray-400"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M9 5l7 7-7 7"
+                                        />
+                                    </svg>
+                                </div>
                             </div>
-                        );
-                    })}
+                        </div>
+                    ))}
                 </div>
             )}
         </div>

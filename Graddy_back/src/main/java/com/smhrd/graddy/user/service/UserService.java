@@ -27,6 +27,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import com.smhrd.graddy.auth.dto.UnifiedPhoneVerificationResponse;
 import com.smhrd.graddy.user.dto.MyPageResponse;
 import com.smhrd.graddy.study.repository.StudyProjectRepository;
@@ -246,6 +248,60 @@ public class UserService {
         
         return savedUser; // 저장된 User 정보를 컨트롤러로 반환
     }
+    
+    /**
+     * 사용자 선호 요일 업데이트
+     * @param userId 사용자 ID
+     * @param availableDays 새로운 선호 요일 목록 (빈 리스트면 기존 값 유지)
+     */
+    @Transactional
+    private void updateUserAvailableDays(String userId, List<Integer> availableDays) {
+        // 빈 리스트가 아닌 경우에만 업데이트
+        if (availableDays != null && !availableDays.isEmpty()) {
+            // 기존 선호 요일 삭제
+            userAvailableDaysRepository.deleteByIdUserId(userId);
+            
+            // 새로운 선호 요일 저장
+            for (Integer dayId : availableDays) {
+                // Days 엔티티 조회
+                Optional<Days> daysOpt = daysRepository.findById(dayId);
+                if (daysOpt.isPresent()) {
+                    UserAvailableDays userAvailableDays = new UserAvailableDays();
+                    UserAvailableDays.UserAvailableDaysId id = new UserAvailableDays.UserAvailableDaysId(userId, dayId);
+                    userAvailableDays.setId(id);
+                    userAvailableDays.setUser(userRepository.findByUserId(userId).orElse(null));
+                    userAvailableDays.setDays(daysOpt.get());
+                    
+                    userAvailableDaysRepository.save(userAvailableDays);
+                }
+            }
+        }
+        // 빈 리스트인 경우 기존 값 유지 (아무것도 하지 않음)
+    }
+    
+    /**
+     * 사용자 선호 시간 업데이트 (기존 날짜 유지하고 시간만 변경)
+     * @param user 사용자 엔티티
+     * @param startHour 시작 시간 (0-23)
+     * @param endHour 끝 시간 (0-23)
+     */
+    private void updateUserTimePreference(User user, Integer startHour, Integer endHour) {
+        // 기존 Timestamp에서 날짜 부분 추출 (시간은 새로 설정)
+        Timestamp currentSoltStart = user.getSoltStart();
+        Timestamp currentSoltEnd = user.getSoltEnd();
+        
+        // 기존 날짜가 없으면 현재 날짜 사용
+        LocalDateTime baseDateTime = currentSoltStart != null ? 
+            currentSoltStart.toLocalDateTime().toLocalDate().atStartOfDay() :
+            LocalDateTime.now().toLocalDate().atStartOfDay();
+        
+        // 새로운 시간으로 Timestamp 생성
+        LocalDateTime newStartDateTime = baseDateTime.withHour(startHour).withMinute(0).withSecond(0);
+        LocalDateTime newEndDateTime = baseDateTime.withHour(endHour).withMinute(0).withSecond(0);
+        
+        user.setSoltStart(Timestamp.valueOf(newStartDateTime));
+        user.setSoltEnd(Timestamp.valueOf(newEndDateTime));
+    }
 
     /**
      * [추가] 통합된 회원 정보 수정 메서드
@@ -281,6 +337,18 @@ public class UserService {
         // 새 전화번호 수정
         if (request.hasNewTel()) {
             user.setTel(request.getNewTel());
+        }
+        
+        // 선호 요일 수정
+        if (request.hasAvailableDays()) {
+            updateUserAvailableDays(currentUserId, request.getAvailableDays());
+        }
+        
+        // 선호 시간 수정
+        if (request.hasValidTimePreference()) {
+            updateUserTimePreference(user, request.getSoltStartHour(), request.getSoltEndHour());
+        } else if (request.hasTimePreference()) {
+            throw new IllegalArgumentException("시간 범위가 올바르지 않습니다. (0-23 사이의 값이어야 합니다)");
         }
         
         // 수정된 사용자 정보 저장
@@ -495,24 +563,39 @@ public class UserService {
      * @return 이름, 아이디, 전화번호, 닉네임을 포함한 Map
      * @throws IllegalArgumentException 사용자를 찾을 수 없는 경우
      */
-    public Map<String, String> getUpdatePageInfo(String userId) {
+    public Map<String, Object> getUpdatePageInfo(String userId) {
         System.out.println("회원 정보 수정 페이지 데이터 조회 시작: userId=" + userId);
-        
+
         // 사용자 정보 조회
         User user = userRepository.findByUserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + userId));
-        
-        // 필요한 정보만 포함하여 Map 생성 (닉네임 추가)
-        Map<String, String> updatePageInfo = Map.of(
-            "name", user.getName(),
-            "userId", user.getUserId(),
-            "tel", user.getTel(),
-            "nick", user.getNick()
-        );
-        
-        System.out.println("회원 정보 수정 페이지 데이터 조회 완료: userId=" + userId + 
-                          ", name=" + user.getName() + ", tel=" + user.getTel() + ", nick=" + user.getNick());
-        
+
+        // 사용자의 가능한 요일 정보 조회
+        List<UserAvailableDays> availableDays = userAvailableDaysRepository.findByIdUserId(userId);
+        List<String> dayNames = availableDays.stream()
+                .map(userAvailableDay -> userAvailableDay.getDays().getDayName())
+                .collect(Collectors.toList());
+
+        // 사용자의 선호 시간대 포맷팅
+        String availableTime = "";
+        if (user.getSoltStart() != null && user.getSoltEnd() != null) {
+            availableTime = new java.text.SimpleDateFormat("HH:mm").format(user.getSoltStart()) + "-" +
+                            new java.text.SimpleDateFormat("HH:mm").format(user.getSoltEnd());
+        }
+
+        // 필요한 정보만 포함하여 Map 생성
+        Map<String, Object> updatePageInfo = new java.util.HashMap<>();
+        updatePageInfo.put("name", user.getName());
+        updatePageInfo.put("userId", user.getUserId());
+        updatePageInfo.put("tel", user.getTel());
+        updatePageInfo.put("nick", user.getNick());
+        updatePageInfo.put("availableDays", dayNames);
+        updatePageInfo.put("availableTime", availableTime);
+
+        System.out.println("회원 정보 수정 페이지 데이터 조회 완료: userId=" + userId +
+                          ", name=" + user.getName() + ", tel=" + user.getTel() + ", nick=" + user.getNick() +
+                          ", availableDays=" + dayNames + ", availableTime=" + availableTime);
+
         return updatePageInfo;
     }
     

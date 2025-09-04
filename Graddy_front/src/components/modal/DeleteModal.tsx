@@ -3,9 +3,10 @@ import { Button } from "../ui/button";
 
 interface DeleteModalProps {
     onClose?: () => void;
+    onConfirm?: () => Promise<void>;
 }
 
-export default function DeleteModal({ onClose }: DeleteModalProps) {
+export default function DeleteModal({ onClose, onConfirm }: DeleteModalProps) {
     return (
         <div
             className="fixed inset-0 bg-gray-900/60 flex items-center justify-center z-[200] p-4"
@@ -70,12 +71,10 @@ export default function DeleteModal({ onClose }: DeleteModalProps) {
                     {/* 버튼 그룹 */}
                     <div className="flex gap-3">
                         <Button
-                            // onClick={handleDelete}
-                            // disabled={!isPhraseValid || isDeleting}
+                            onClick={onConfirm}
                             className="bg-rose-400 hover:bg-rose-500 text-white font-semibold flex-1 py-3 disabled:bg-gray-300 disabled:cursor-not-allowed"
                         >
                             계정 영구 삭제
-                            {/* {isDeleting ? "삭제 중..." : "계정 영구 삭제"} */}
                         </Button>
                         <Button
                             variant="outline"
