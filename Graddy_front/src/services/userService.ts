@@ -43,12 +43,7 @@ export interface Interest {
     interestDivision: number;
 }
 
-export interface UserInterest {
-    id: number;
-    name: string;
-    category: string;
-    difficulty: string;
-}
+// UserInterest 타입은 userApi.ts에서 import하여 사용
 
 // 사용자 프로필 조회
 export const getUserProfile = async (): Promise<UserProfile> => {
@@ -81,16 +76,7 @@ export const getAllInterests = async (): Promise<Interest[]> => {
     return response.data.data;
 };
 
-// 사용자 관심분야 조회
-export const getUserInterests = async (): Promise<UserInterest[]> => {
-    const response = await apiGet('/me/interests');
-    return response.data.data;
-};
-
-// 사용자 관심분야 수정
-export const updateUserInterests = async (interests: UserInterest[]): Promise<void> => {
-    await apiPut('/me/interests', { interests });
-};
+// 사용자 관심분야 조회 및 수정 함수는 userApi.ts에서 제공
 
 // 사용자 소개글 수정
 export const updateUserIntroduction = async (introduction: string): Promise<void> => {

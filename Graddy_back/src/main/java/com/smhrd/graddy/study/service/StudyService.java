@@ -823,4 +823,33 @@ public class StudyService {
         // 종료일이 설정되지 않은 경우 모집 상태로 판단
         return studyProject.getIsRecruiting() != StudyProject.RecruitingStatus.end;
     }
+
+    /**
+     * 스터디/프로젝트 커리큘럼 텍스트 업데이트
+     * 특정 스터디/프로젝트의 커리큘럼 텍스트를 직접 수정합니다.
+     * 
+     * @param studyProjectId 수정할 스터디/프로젝트의 ID
+     * @param curText 수정할 커리큘럼 텍스트 (마크다운 형식)
+     * @param userId 요청한 사용자 ID (권한 확인용)
+     * @return 수정된 스터디/프로젝트 정보
+     * @throws IllegalArgumentException 권한이 없거나 스터디/프로젝트를 찾을 수 없는 경우
+     */
+    @Transactional
+    public StudyResponse updateCurriculumText(Long studyProjectId, String curText, String userId) {
+        // 스터디/프로젝트 조회
+        StudyProject studyProject = studyProjectRepository.findById(studyProjectId)
+                .orElseThrow(() -> new IllegalArgumentException("스터디/프로젝트를 찾을 수 없습니다: " + studyProjectId));
+
+        // 권한 확인: 스터디/프로젝트 생성자만 수정 가능
+        if (!userId.equals(studyProject.getUserId())) {
+            throw new IllegalArgumentException("커리큘럼 텍스트 수정 권한이 없습니다. 스터디/프로젝트 생성자만 수정할 수 있습니다.");
+        }
+
+        // 커리큘럼 텍스트 업데이트
+        studyProject.setCurText(curText);
+        StudyProject savedStudyProject = studyProjectRepository.save(studyProject);
+
+        // StudyResponse로 변환하여 반환
+        return convertToResponse(savedStudyProject);
+    }
 }

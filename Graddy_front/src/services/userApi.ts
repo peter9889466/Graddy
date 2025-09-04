@@ -6,6 +6,7 @@ export interface UserInterest {
     interestId: number;
     interestName: string;
     interestLevel: string;
+    interestDivision: number;
 }
 
 // 마이페이지 응답 타입 (백엔드 응답 구조에 맞게 수정)
@@ -44,7 +45,7 @@ export interface UserProfileUpdateResponse {
 export interface UserInterestsUpdateRequest {
     interests: Array<{
         interestId: number;
-        interestLevel: string;
+        interestLevel: number;
     }>;
 }
 
@@ -70,6 +71,13 @@ export const getMyPageInfo = (): Promise<AxiosResponse<ApiResponse<MyPageRespons
 export const getUpdatePageInfo = (): Promise<AxiosResponse<ApiResponse<UpdatePageInfo>>> => {
     return apiGet<UpdatePageInfo>('/me/update');
 };
+
+// 관심분야 전체 목록 조회 (userApi.ts로 통합)
+export const getAllInterests = (): Promise<AxiosResponse<ApiResponse<UserInterest[]>>> => {
+    return apiGet<UserInterest[]>('/interests');
+};
+
+// 회원정보 수정
 
 // 회원정보 수정
 export const updateUserProfile = (data: UserProfileUpdateRequest): Promise<AxiosResponse<ApiResponse<UserProfileUpdateResponse>>> => {
