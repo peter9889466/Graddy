@@ -93,9 +93,9 @@ const Community: React.FC<CommunityProps> = ({
         (member) => member.userId === currentUserId
         );
     console.log("스터디 멤버 여부:", isStudyMember);
-
+        
     console.log("스터디 멤버 배열:", members);
-console.log("현재 사용자 ID:", currentUserId);
+    console.log("현재 사용자 ID:", currentUserId);
 
         
     const handleChangeComment = (postId: string, value: string) => {
@@ -106,7 +106,8 @@ console.log("현재 사용자 ID:", currentUserId);
     const fetchCommentCount = async (postId: string) => {
         try {
             const response = await fetch(
-                `http://localhost:8080/api/api/comments/study-posts/${postId}/count`
+                `http://localhost:8080/api/api/comments/study-posts/${postId}/count`,
+                { headers: getAuthHeaders() }
             );
             if (!response.ok) throw new Error("댓글 수 조회 실패");
             const result = await response.json();
@@ -117,73 +118,74 @@ console.log("현재 사용자 ID:", currentUserId);
             console.error("댓글 수 조회 실패:", error);
         }
     };
+    
 
     // 댓글 목록 조회
     const fetchComments = async (postId: string) => {
-  try {
-    const response = await fetch(
-      `http://localhost:8080/api/api/comments/study-posts/${postId}`,
-      { headers: getAuthHeaders() }
-    );
-    if (!response.ok) throw new Error(`댓글 목록 조회 실패: HTTP ${response.status}`);
-    const result = await response.json();
-    console.log(`postId ${postId} 댓글 목록 확인:`, result);
-    setPosts((prev) =>
-      prev.map((post) =>
-        post.id === postId ? { ...post, comments: result.data } : post
-      )
-    );
-    setCommentCounts((prev) => ({ ...prev, [postId]: result.data.length }));
-  } catch (error) {
-    console.error("댓글 목록 조회 실패:", error);
-  }
-};
+        try {
+            const response = await fetch(
+            `http://localhost:8080/api/api/comments/study-posts/${postId}`,
+            { headers: getAuthHeaders() }
+            );
+            if (!response.ok) throw new Error(`댓글 목록 조회 실패: HTTP ${response.status}`);
+            const result = await response.json();
+            console.log(`postId ${postId} 댓글 목록 확인:`, result);
+            setPosts((prev) =>
+            prev.map((post) =>
+                post.id === postId ? { ...post, comments: result.data } : post
+            )
+            );
+            setCommentCounts((prev) => ({ ...prev, [postId]: result.data.length }));
+        } catch (error) {
+            console.error("댓글 목록 조회 실패:", error);
+        }
+    };
 
     // 댓글 작성
     const handleAddComment = async (postId: string) => {
-    const content = (newComments[postId] || "").trim();
-    if (!content) return;
+        const content = (newComments[postId] || "").trim();
+        if (!content) return;
 
-    // studyProjectId 타입 확인
-    console.log("studyProjectId 타입:", typeof studyProjectId, "값:", studyProjectId);
-    
+        // studyProjectId 타입 확인
+        console.log("studyProjectId 타입:", typeof studyProjectId, "값:", studyProjectId);
+        console.log("postId",postId)
 
-    const payload = {
-        content,
-        studyProjectId: Number(studyProjectId)  // 숫자형으로 강제 변환
-    };
+        const payload = {
+            content,
+            studyProjectId: Number(studyProjectId)  // 숫자형으로 강제 변환
+        };
 
-    console.log("보낼 payload:", payload);
-    console.log("Authorization 헤더:", getAuthHeaders());
+        console.log("보낼 payload:", payload);
+        console.log("Authorization 헤더:", getAuthHeaders());
 
-    try {
-        const response = await fetch(
-            `http://localhost:8080/api/api/comments/study-posts/${postId}`,
-            {
-                method: "POST",
-                headers: getAuthHeaders(),
-                body: JSON.stringify(payload),
+        try {
+            const response = await fetch(
+                `http://localhost:8080/api/api/comments/study-posts/${postId}`,
+                {
+                    method: "POST",
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(payload),
+                }
+            );
+
+            console.log("서버 응답 status:", response.status);
+
+            const result = await response.json();
+            console.log("서버 응답 body:", result);
+
+            if (!response.ok) {
+                throw new Error(result?.message || `HTTP error! status: ${response.status}`);
             }
-        );
 
-        console.log("서버 응답 status:", response.status);
+            setNewComments((prev) => ({ ...prev, [postId]: "" }));
+            fetchComments(postId);
+            fetchCommentCount(postId);
 
-        const result = await response.json();
-        console.log("서버 응답 body:", result);
-
-        if (!response.ok) {
-            throw new Error(result?.message || `HTTP error! status: ${response.status}`);
+        } catch (error) {
+            console.error("댓글 작성 실패:", error);
+            alert(error instanceof Error ? error.message : "댓글 작성에 실패했습니다.");
         }
-
-        setNewComments((prev) => ({ ...prev, [postId]: "" }));
-        fetchComments(postId);
-        fetchCommentCount(postId);
-
-    } catch (error) {
-        console.error("댓글 작성 실패:", error);
-        alert(error instanceof Error ? error.message : "댓글 작성에 실패했습니다.");
-    }
-};
+    };
 
     // 댓글 수정 시작
     const handleEditComment = (comment: Comment) => {
@@ -193,22 +195,45 @@ console.log("현재 사용자 ID:", currentUserId);
 
     // 댓글 수정 저장
     const handleSaveCommentEdit = async (postId: string) => {
-        if (!editingCommentId || !editCommentContent.trim()) return;
 
+
+        if (!editingCommentId || !editCommentContent.trim()) return;
+            
         try {
             const response = await fetch(
-                `http://localhost:8080/api/api/comments/${editingCommentId}?content=${encodeURIComponent(editCommentContent)}`,
-                { method: "PUT", headers: { "Content-Type": "application/json" } }
+                `http://localhost:8080/api/api/comments/${editingCommentId}`,
+                {
+                    method: "PUT",
+                    headers: {
+                        ...getAuthHeaders(),
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ content: editCommentContent }),
+                }
             );
-            if (!response.ok) throw new Error("댓글 수정 실패");
-            const result = await response.json();
-            if (result.status === 200) {
-                setEditingCommentId(null);
-                setEditCommentContent("");
-                fetchComments(postId);
+
+            if (!response.ok) {
+                // 서버가 오류 메시지를 JSON으로 줄 수도 있고 아닐 수도 있음
+                let errMsg = `댓글 수정 실패: HTTP ${response.status}`;
+                try {
+                    const errData = await response.json();
+                    if (errData?.message) errMsg = errData.message;
+                } catch {}
+                throw new Error(errMsg);
             }
+
+            // JSON 바디가 없는 경우를 대비
+            if (response.status !== 200) {
+                await response.json(); // 성공 메시지 읽기 (있으면)
+            }
+
+            setEditingCommentId(null);
+            setEditCommentContent("");
+            fetchComments(postId);
+            fetchCommentCount(postId);
         } catch (error) {
             console.error("댓글 수정 실패:", error);
+            alert(error instanceof Error ? error.message : "댓글 수정에 실패했습니다.");
         }
     };
 
@@ -220,22 +245,27 @@ console.log("현재 사용자 ID:", currentUserId);
 
     // 댓글 삭제
     const handleDeleteComment = async (postId: string, commentId: string) => {
-        if (!confirm("정말로 이 댓글을 삭제하시겠습니까?")) return;
+    if (!confirm("정말로 이 댓글을 삭제하시겠습니까?")) return;
 
-        try {
-            const response = await fetch(`http://localhost:8080/api/api/comments/${commentId}`, {
-                method: "DELETE",
-            });
-            if (!response.ok) throw new Error("댓글 삭제 실패");
-            const result = await response.json();
-            if (result.status === 200) {
-                fetchComments(postId);
-                fetchCommentCount(postId);
-            }
-        } catch (error) {
-            console.error("댓글 삭제 실패:", error);
+    try {
+        const response = await fetch(
+            `http://localhost:8080/api/api/comments/${commentId}`,
+            { method: "DELETE", headers: getAuthHeaders() }
+        );
+
+        if (!response.ok) throw new Error("댓글 삭제 실패");
+
+        const result = await response.json();
+
+        if (result.status === 200) {
+            fetchComments(postId); // 댓글 목록 최신화
+            fetchCommentCount(postId); // 댓글 수 최신화
         }
-    };
+    } catch (error) {
+        console.error("댓글 삭제 실패:", error);
+        alert(error instanceof Error ? error.message : "댓글 삭제에 실패했습니다.");
+    }
+};
 
     // 댓글 토글
     const toggleComments = (postId: string) => {
@@ -246,8 +276,6 @@ console.log("현재 사용자 ID:", currentUserId);
             fetchComments(postId);
         }
     };
-
-    
 
     // 게시글 목록
     const fetchPosts = async () => {
@@ -260,8 +288,8 @@ console.log("현재 사용자 ID:", currentUserId);
             const response = await fetch(
                 `http://localhost:8080/api/posts/study-project/${studyProjectId}`,
                 {
-                method: "GET",
-                headers: getAuthHeaders(),
+                    method: "GET",
+                    headers: getAuthHeaders(),
                 }
             );
 
@@ -273,23 +301,28 @@ console.log("현재 사용자 ID:", currentUserId);
 
             if (result.status === 200 && result.data) {
                 const transformedPosts: Post[] = result.data.map((backendPost: BackendPost) => ({
-                id: backendPost.stPrPostId.toString(),
-                author: backendPost.memberId,
-                title: backendPost.title,
-                content: backendPost.content,
-                timestamp: new Date(backendPost.createdAt).toLocaleString(),
-                comments: [],
-                canEdit: backendPost.memberId === currentUserId,
+                    id: backendPost.stPrPostId.toString(),
+                    author: backendPost.memberId,
+                    title: backendPost.title,
+                    content: backendPost.content,
+                    timestamp: new Date(backendPost.createdAt).toLocaleString(),
+                    comments: [],
+                    canEdit: backendPost.memberId === currentUserId,
                 }));
 
                 setPosts(transformedPosts);
+
+                // ✅ 각 게시글에 대한 댓글 수 조회
+                transformedPosts.forEach((post) => {
+                    fetchCommentCount(post.id);
+                });
             } else {
                 throw new Error(result.message || "게시글을 불러오는데 실패했습니다.");
             }
-            } catch (error) {
+        } catch (error) {
             console.error("게시글 로드 실패:", error);
             setError(error instanceof Error ? error.message : "게시글을 불러오는데 실패했습니다.");
-            } finally {
+        } finally {
             setLoading(false);
         }
     };
@@ -703,75 +736,75 @@ console.log("현재 사용자 ID:", currentUserId);
                         <div className="mt-4 pt-4 border-t border-gray-100">
                             {/* 댓글 목록 */}
                             <div className="space-y-3 mb-4">
-                            {post.comments.map((comment) => (
-                                <div key={comment.commentId} className="flex items-start space-x-3">
-                                <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
-                                    <span className="text-gray-600 font-medium text-xs">
-                                    {comment.userId[0].toUpperCase()}
-                                    </span>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center space-x-2 mb-1">
-                                    <span className="font-medium text-sm text-gray-900">
-                                        {comment.userId}
-                                    </span>
-                                    <span className="text-xs text-gray-500">
-                                        {formatTimestamp(comment.createdAt)}
-                                    </span>
-                                    </div>
+                                {post.comments.map((comment) => (
+                                    <div key={comment.commentId} className="flex items-start space-x-3">
+                                        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+                                            <span className="text-gray-600 font-medium text-xs">
+                                                {comment.userId[0].toUpperCase()}
+                                            </span>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center space-x-2 mb-1">
+                                                <span className="font-medium text-sm text-gray-900">
+                                                    {comment.userId}
+                                                </span>
+                                                <span className="text-xs text-gray-500">
+                                                    {formatTimestamp(comment.createdAt)}
+                                                </span>
+                                            </div>
 
-                                    {editingCommentId === comment.commentId.toString() ? (
-                                    <div className="space-y-2">
-                                        <textarea
-                                        value={editCommentContent}
-                                        onChange={(e) => setEditCommentContent(e.target.value)}
-                                        className="w-full p-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] text-sm"
-                                        rows={2}
-                                        />
-                                        <div className="flex justify-end space-x-2">
-                                        <button
-                                            onClick={handleCancelCommentEdit}
-                                            className="px-2 py-1 text-xs text-gray-600 hover:text-gray-800"
-                                        >
-                                            취소
-                                        </button>
-                                        <button
-                                            onClick={() => handleSaveCommentEdit(post.id)}
-                                            disabled={!editCommentContent.trim()}
-                                            className="px-2 py-1 text-xs bg-[#8B85E9] hover:bg-[#7A75D8] disabled:bg-gray-300 text-white rounded transition-colors disabled:cursor-not-allowed"
-                                        >
-                                            저장
-                                        </button>
+                                            {editingCommentId === comment.commentId.toString() ? (
+                                                <div className="space-y-2">
+                                                    <textarea
+                                                        value={editCommentContent}
+                                                        onChange={(e) => setEditCommentContent(e.target.value)}
+                                                        className="w-full p-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] text-sm"
+                                                        rows={2}
+                                                    />
+                                                    <div className="flex justify-end space-x-2">
+                                                        <button
+                                                            onClick={handleCancelCommentEdit}
+                                                            className="px-2 py-1 text-xs text-gray-600 hover:text-gray-800"
+                                                        >
+                                                            취소
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleSaveCommentEdit(post.id)}
+                                                            disabled={!editCommentContent.trim()}
+                                                            className="px-2 py-1 text-xs bg-[#8B85E9] hover:bg-[#7A75D8] disabled:bg-gray-300 text-white rounded transition-colors disabled:cursor-not-allowed"
+                                                        >
+                                                            저장
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-start justify-between">
+                                                    <p className="text-sm text-gray-800 leading-relaxed">
+                                                        {comment.content}
+                                                    </p>
+                                                    {comment.userId === currentUserId && (
+                                                    <div className="flex items-center space-x-1 ml-2">
+                                                        <button
+                                                            onClick={() => handleEditComment(comment)}
+                                                            className="p-1 hover:bg-gray-100 rounded text-gray-500 hover:text-gray-700"
+                                                        >
+                                                            <Edit className="w-3 h-3" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() =>
+                                                                handleDeleteComment(post.id, comment.commentId.toString())
+                                                            }
+                                                            className="p-1 hover:bg-gray-100 rounded text-gray-500 hover:text-red-600"
+                                                        >
+                                                            <Trash2 className="w-3 h-3" />
+                                                        </button>
+                                                    </div>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
-                                    ) : (
-                                    <div className="flex items-start justify-between">
-                                        <p className="text-sm text-gray-800 leading-relaxed">
-                                        {comment.content}
-                                        </p>
-                                        {comment.userId === currentUserId && (
-                                        <div className="flex items-center space-x-1 ml-2">
-                                            <button
-                                            onClick={() => handleEditComment(comment)}
-                                            className="p-1 hover:bg-gray-100 rounded text-gray-500 hover:text-gray-700"
-                                            >
-                                            <Edit className="w-3 h-3" />
-                                            </button>
-                                            <button
-                                            onClick={() =>
-                                                handleDeleteComment(post.id, comment.commentId.toString())
-                                            }
-                                            className="p-1 hover:bg-gray-100 rounded text-gray-500 hover:text-red-600"
-                                            >
-                                            <Trash2 className="w-3 h-3" />
-                                            </button>
-                                        </div>
-                                        )}
-                                    </div>
-                                    )}
-                                </div>
-                                </div>
-                            ))}
+                                ))}
                             </div>
 
                             {/* 새 댓글 작성 */}
@@ -788,29 +821,28 @@ console.log("현재 사용자 ID:", currentUserId);
                                         </p>
                                     ) : (
                                         <>
-                                        <textarea
-    value={newComments[post.id] || ""}
-    onChange={(e) => handleChangeComment(post.id, e.target.value)}
-    placeholder="댓글을 작성하세요..."
-    className="w-full p-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] text-sm"
-    rows={2}
-/>
-<div className="flex justify-end mt-2">
-    <button
-        onClick={() => handleAddComment(post.id)}
-        disabled={!(newComments[post.id]?.trim())}
-        className="px-3 py-1 text-sm bg-[#8B85E9] hover:bg-[#7A75D8] disabled:bg-gray-300 text-white rounded transition-colors disabled:cursor-not-allowed"
-    >
-        댓글 작성
-    </button>
-</div>
+                                            <textarea
+                                                value={newComments[post.id] || ""}
+                                                onChange={(e) => handleChangeComment(post.id, e.target.value)}
+                                                placeholder="댓글을 작성하세요..."
+                                                className="w-full p-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] text-sm"
+                                                rows={2}
+                                            />
+                                            <div className="flex justify-end mt-2">
+                                                <button
+                                                    onClick={() => handleAddComment(post.id)}
+                                                    disabled={!(newComments[post.id]?.trim())}
+                                                    className="px-3 py-1 text-sm bg-[#8B85E9] hover:bg-[#7A75D8] disabled:bg-gray-300 text-white rounded transition-colors disabled:cursor-not-allowed"
+                                                >
+                                                    댓글 작성
+                                                </button>
+                                            </div>
                                         </>
                                     )}
                                 </div>
                             </div>
                         </div>
                         )}
-
                     </div>
                 ))}
             </div>
