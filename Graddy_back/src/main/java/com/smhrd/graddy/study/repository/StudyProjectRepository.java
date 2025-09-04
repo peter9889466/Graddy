@@ -58,11 +58,11 @@ public interface StudyProjectRepository extends JpaRepository<StudyProject, Long
      * @return 추천 가능한 스터디 목록
      */
     @Query("SELECT sp FROM StudyProject sp " +
-           "WHERE sp.isRecruiting = 'recruitment' " +
+           "WHERE sp.isRecruiting = com.smhrd.graddy.study.entity.StudyProject$RecruitingStatus.recruitment " +
            "AND sp.typeCheck = com.smhrd.graddy.study.entity.StudyProject$TypeCheck.study " +
            "AND sp.userId != :userId " +
            "AND sp.studyProjectId NOT IN " +
-           "(SELECT m.studyProjectId FROM Member m WHERE m.userId = :userId) " +
+           "(SELECT m.studyProjectId FROM com.smhrd.graddy.member.entity.Member m WHERE m.userId = :userId) " +
            "ORDER BY sp.createdAt DESC")
     List<StudyProject> findAvailableStudiesForUser(@Param("userId") String userId);
     
@@ -86,7 +86,7 @@ public interface StudyProjectRepository extends JpaRepository<StudyProject, Long
      * @return 사용자가 참여한 스터디/프로젝트 목록
      */
     @Query("SELECT DISTINCT sp FROM StudyProject sp " +
-           "JOIN Member m ON sp.studyProjectId = m.studyProjectId " +
+           "JOIN com.smhrd.graddy.member.entity.Member m ON sp.studyProjectId = m.studyProjectId " +
            "WHERE m.userId = :userId " +
            "ORDER BY sp.createdAt DESC")
     List<StudyProject> findStudyProjectsByUserId(@Param("userId") String userId);
@@ -99,7 +99,7 @@ public interface StudyProjectRepository extends JpaRepository<StudyProject, Long
      * @return 해당 상태의 스터디/프로젝트 목록
      */
     @Query("SELECT DISTINCT sp FROM StudyProject sp " +
-           "JOIN Member m ON sp.studyProjectId = m.studyProjectId " +
+           "JOIN com.smhrd.graddy.member.entity.Member m ON sp.studyProjectId = m.studyProjectId " +
            "WHERE m.userId = :userId AND sp.isRecruiting = :recruitingStatus " +
            "ORDER BY sp.createdAt DESC")
     List<StudyProject> findStudyProjectsByUserIdAndRecruitingStatus(

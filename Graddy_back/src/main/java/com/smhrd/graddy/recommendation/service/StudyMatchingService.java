@@ -227,31 +227,28 @@ public class StudyMatchingService {
                 return 0.0;
             }
             
-            // 시간대 겹침 계산
-            LocalDateTime userStart = timestampToLocalDateTime(user.getSoltStart());
-            LocalDateTime userEnd = timestampToLocalDateTime(user.getSoltEnd());
-            LocalDateTime studyStart = timestampToLocalDateTime(study.getSoltStart());
-            LocalDateTime studyEnd = timestampToLocalDateTime(study.getSoltEnd());
+            // 시간대만 추출 (연월일 제거)
+            int userStartHour = extractHourFromTimestamp(user.getSoltStart());
+            int userEndHour = extractHourFromTimestamp(user.getSoltEnd());
+            int studyStartHour = extractHourFromTimestamp(study.getSoltStart());
+            int studyEndHour = extractHourFromTimestamp(study.getSoltEnd());
             
-            // 겹치는 시작 시간과 끝 시간 계산
-            LocalDateTime overlapStart = userStart.isAfter(studyStart) ? userStart : studyStart;
-            LocalDateTime overlapEnd = userEnd.isBefore(studyEnd) ? userEnd : studyEnd;
+            // 자정을 넘나드는 시간대 처리
+            int userDuration = calculateDuration(userStartHour, userEndHour);
+            int studyDuration = calculateDuration(studyStartHour, studyEndHour);
+            int overlapDuration = calculateOverlapDuration(userStartHour, userEndHour, studyStartHour, studyEndHour);
             
             // 겹치는 시간이 있는지 확인
-            if (overlapStart.isAfter(overlapEnd)) {
+            if (overlapDuration <= 0) {
                 return 0.0;
             }
             
-            // 겹치는 시간과 전체 시간 범위 계산
-            long overlapMinutes = ChronoUnit.MINUTES.between(overlapStart, overlapEnd);
-            long totalUserMinutes = ChronoUnit.MINUTES.between(userStart, userEnd);
-            long totalStudyMinutes = ChronoUnit.MINUTES.between(studyStart, studyEnd);
-            long totalMinutes = totalUserMinutes + totalStudyMinutes - overlapMinutes;
+            // 시간 일치도 점수 계산 (겹치는 시간 / 더 긴 시간 범위)
+            int maxDuration = Math.max(userDuration, studyDuration);
+            double timeMatchScore = maxDuration > 0 ? (double) overlapDuration / maxDuration : 0.0;
             
-            double timeMatchScore = totalMinutes > 0 ? (double) overlapMinutes / totalMinutes : 0.0;
-            
-            log.debug("시간 일치도 계산: 겹치는 시간={}분, 전체 시간={}분, 점수={}",
-                    overlapMinutes, totalMinutes, timeMatchScore);
+            log.debug("시간 일치도 계산: 사용자({}시-{}시, {}시간), 스터디({}시-{}시, {}시간), 겹치는 시간={}시간, 점수={}",
+                    userStartHour, userEndHour, userDuration, studyStartHour, studyEndHour, studyDuration, overlapDuration, timeMatchScore);
             
             return timeMatchScore;
             
@@ -544,6 +541,99 @@ public class StudyMatchingService {
             return null;
         }
         return timestamp.toLocalDateTime();
+    }
+    
+    /**
+     * Timestamp에서 시간대만 추출 (연월일 제거)
+     * @param timestamp 시간 정보가 포함된 Timestamp
+     * @return 시간 (0-23)
+     */
+    private int extractHourFromTimestamp(Timestamp timestamp) {
+        if (timestamp == null) {
+            return 0;
+        }
+        return timestamp.toLocalDateTime().getHour();
+    }
+    
+    /**
+     * 시간 범위의 지속 시간 계산 (자정을 넘나드는 경우 고려)
+     * @param startHour 시작 시간 (0-23)
+     * @param endHour 끝 시간 (0-23)
+     * @return 지속 시간 (시간 단위)
+     */
+    private int calculateDuration(int startHour, int endHour) {
+        if (endHour >= startHour) {
+            // 같은 날 내의 시간 범위 (예: 10시-13시 = 3시간)
+            return endHour - startHour;
+        } else {
+            // 자정을 넘나드는 시간 범위 (예: 23시-01시 = 2시간)
+            return (24 - startHour) + endHour;
+        }
+    }
+    
+    /**
+     * 두 시간 범위 간의 겹치는 시간 계산 (자정을 넘나드는 경우 고려)
+     * @param start1 첫 번째 범위 시작 시간
+     * @param end1 첫 번째 범위 끝 시간
+     * @param start2 두 번째 범위 시작 시간
+     * @param end2 두 번째 범위 끝 시간
+     * @return 겹치는 시간 (시간 단위)
+     */
+    private int calculateOverlapDuration(int start1, int end1, int start2, int end2) {
+        // 두 범위 모두 자정을 넘나드는지 확인
+        boolean range1CrossesMidnight = end1 < start1;
+        boolean range2CrossesMidnight = end2 < start2;
+        
+        if (range1CrossesMidnight && range2CrossesMidnight) {
+            // 둘 다 자정을 넘나드는 경우
+            return calculateOverlapForCrossingRanges(start1, end1, start2, end2);
+        } else if (range1CrossesMidnight) {
+            // 첫 번째 범위만 자정을 넘나드는 경우
+            return calculateOverlapWithCrossingRange(start1, end1, start2, end2);
+        } else if (range2CrossesMidnight) {
+            // 두 번째 범위만 자정을 넘나드는 경우
+            return calculateOverlapWithCrossingRange(start2, end2, start1, end1);
+        } else {
+            // 둘 다 같은 날 내의 범위인 경우
+            int overlapStart = Math.max(start1, start2);
+            int overlapEnd = Math.min(end1, end2);
+            return overlapStart < overlapEnd ? overlapEnd - overlapStart : 0;
+        }
+    }
+    
+    /**
+     * 자정을 넘나드는 두 범위 간의 겹치는 시간 계산
+     */
+    private int calculateOverlapForCrossingRanges(int start1, int end1, int start2, int end2) {
+        // 자정 이전 부분과 자정 이후 부분으로 나누어 계산
+        int beforeMidnight1 = 24 - start1;
+        int afterMidnight1 = end1;
+        int beforeMidnight2 = 24 - start2;
+        int afterMidnight2 = end2;
+        
+        int overlapBefore = Math.min(beforeMidnight1, beforeMidnight2);
+        int overlapAfter = Math.min(afterMidnight1, afterMidnight2);
+        
+        return overlapBefore + overlapAfter;
+    }
+    
+    /**
+     * 자정을 넘나드는 범위와 일반 범위 간의 겹치는 시간 계산
+     */
+    private int calculateOverlapWithCrossingRange(int crossStart, int crossEnd, int normalStart, int normalEnd) {
+        int overlap = 0;
+        
+        // 자정 이전 부분과 겹치는지 확인
+        if (normalStart < 24 && normalEnd > crossStart) {
+            overlap += Math.min(24 - crossStart, normalEnd) - Math.max(crossStart, normalStart);
+        }
+        
+        // 자정 이후 부분과 겹치는지 확인
+        if (normalStart < crossEnd && normalEnd > 0) {
+            overlap += Math.min(crossEnd, normalEnd) - Math.max(0, normalStart);
+        }
+        
+        return Math.max(0, overlap);
     }
     
     /**

@@ -94,7 +94,7 @@ public class StudyProject {
 
     // 타입 구분 enum
     public enum TypeCheck {
-        STUDY, PROJECT
+        study, project
     }
 
     // 모집 상태 enum
