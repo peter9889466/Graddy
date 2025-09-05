@@ -219,4 +219,33 @@ public class MemberController {
             return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "인원수 조회에 실패했습니다.", null);
         }
     }
+
+    /**
+     * 본인 탈퇴 처리 (member_id 기준)
+     * 해당 멤버가 스스로 자신의 상태를 withdraw로 변경합니다.
+     *
+     * @param memberId 멤버 ID (study_project_member.member_id)
+     * @param authorization JWT 토큰 (Bearer)
+     */
+    @PatchMapping("/{memberId}/withdraw")
+    @Operation(summary = "멤버 본인 탈퇴",
+              description = "member_id 기준으로 본인이 자신의 상태를 withdraw로 변경합니다. 리더 권한 불필요, 본인만 가능")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<ApiResponse<String>> withdrawSelf(
+            @Parameter(description = "멤버 ID", example = "123", required = true)
+            @PathVariable Long memberId,
+            @Parameter(description = "JWT 토큰 (Bearer 형식)", required = true)
+            @RequestHeader(name = "Authorization", required = true) String authorization) {
+        try {
+            String token = authorization.replace("Bearer ", "");
+            String requesterUserId = jwtUtil.extractUserId(token);
+
+            memberService.withdrawSelfByMemberId(memberId, requesterUserId);
+            return ApiResponse.success("탈퇴가 완료되었습니다.", "withdraw");
+        } catch (IllegalArgumentException e) {
+            return ApiResponse.error(HttpStatus.BAD_REQUEST, e.getMessage(), null);
+        } catch (Exception e) {
+            return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "탈퇴 처리 중 오류가 발생했습니다.", null);
+        }
+    }
 }
