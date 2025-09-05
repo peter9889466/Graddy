@@ -700,6 +700,12 @@ const MainPage = () => {
                                 eventDisplay="block"
                                 dayMaxEvents={3}
                                 moreLinkText={(count) => `+${count}`}
+                                moreLinkClick={(info) => {
+                                    // 기본 동작(팝오버)을 완전히 차단
+                                    info.jsEvent.preventDefault();
+                                    info.jsEvent.stopPropagation();
+                                    // void 반환 (아무것도 하지 않음)
+                                }}
                                 eventTextColor="white"
                                 dayCellClassNames="hover:bg-gray-50 cursor-pointer"
                                 eventClassNames="pointer-events-none"
