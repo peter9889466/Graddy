@@ -6,6 +6,7 @@ import com.smhrd.graddy.comment.entity.Comment;
 import com.smhrd.graddy.comment.repository.CommentRepository;
 import com.smhrd.graddy.user.repository.UserRepository;
 import com.smhrd.graddy.study.repository.StudyProjectMemberRepository;
+import com.smhrd.graddy.post.repository.PostRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,7 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final UserRepository userRepository;
     private final StudyProjectMemberRepository studyProjectMemberRepository;
+    private final PostRepository postRepository;
 
     /**
      * 과제 댓글 작성
@@ -126,24 +128,31 @@ public class CommentService {
      * 해당 사용자가 스터디의 멤버인지 확인
      * 
      * @param userId 사용자 ID
-     * @param stPrPostId 스터디 커뮤니티 ID
+     * @param stPrPostId 스터디 커뮤니티 게시글 ID
      * @throws IllegalArgumentException 멤버가 아닌 경우
      */
     private void validateStudyMembership(String userId, Long stPrPostId) {
         log.info("스터디 멤버십 검증 시작: userId={}, stPrPostId={}", userId, stPrPostId);
         
         try {
+            // 게시글 ID로 스터디 ID 조회
+            Long studyProjectId = getStudyProjectIdByPostId(stPrPostId);
+            if (studyProjectId == null) {
+                log.warn("게시글에 해당하는 스터디를 찾을 수 없음: stPrPostId={}", stPrPostId);
+                throw new IllegalArgumentException("해당 게시글의 스터디를 찾을 수 없습니다.");
+            }
+            
             // 스터디 멤버십 확인
             Optional<com.smhrd.graddy.member.entity.Member> memberOpt = 
-                    studyProjectMemberRepository.findByUserIdAndStudyProjectId(userId, stPrPostId);
+                    studyProjectMemberRepository.findByUserIdAndStudyProjectId(userId, studyProjectId);
             
             if (memberOpt.isEmpty()) {
-                log.warn("스터디 멤버가 아님: userId={}, stPrPostId={}", userId, stPrPostId);
+                log.warn("스터디 멤버가 아님: userId={}, studyProjectId={}", userId, studyProjectId);
                 throw new IllegalArgumentException("해당 스터디의 멤버가 아니므로 댓글을 작성할 수 없습니다.");
             }
             
-            log.info("스터디 멤버십 검증 완료: userId={}, stPrPostId={}, memberId={}", 
-                    userId, stPrPostId, memberOpt.get().getMemberId());
+            log.info("스터디 멤버십 검증 완료: userId={}, studyProjectId={}, memberId={}", 
+                    userId, studyProjectId, memberOpt.get().getMemberId());
             
         } catch (IllegalArgumentException e) {
             // 이미 검증된 예외는 그대로 던지기
@@ -151,6 +160,25 @@ public class CommentService {
         } catch (Exception e) {
             log.error("스터디 멤버십 검증 중 오류 발생: userId={}, stPrPostId={}", userId, stPrPostId, e);
             throw new IllegalArgumentException("스터디 멤버십 확인 중 오류가 발생했습니다.");
+        }
+    }
+
+    /**
+     * 게시글 ID로 스터디 ID 조회
+     * 
+     * @param stPrPostId 스터디 커뮤니티 게시글 ID
+     * @return 스터디 ID
+     */
+    private Long getStudyProjectIdByPostId(Long stPrPostId) {
+        try {
+            Optional<com.smhrd.graddy.post.entity.Post> postOpt = postRepository.findById(stPrPostId);
+            if (postOpt.isPresent()) {
+                return postOpt.get().getStudyProjectId();
+            }
+            return null;
+        } catch (Exception e) {
+            log.error("게시글 ID로 스터디 ID 조회 중 오류 발생: stPrPostId={}", stPrPostId, e);
+            return null;
         }
     }
 
