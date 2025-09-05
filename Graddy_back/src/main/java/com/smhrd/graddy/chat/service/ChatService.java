@@ -13,6 +13,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 /**
  * 채팅 관련 비즈니스 로직을 처리하는 서비스 클래스
@@ -78,7 +84,7 @@ public class ChatService {
 
         // 4. 응답 DTO 생성 및 반환
         ChatMessageResponse response = ChatMessageResponse.from(
-                savedMessage, senderNick, request.getMessageType());
+                savedMessage, senderNick, userId, request.getMessageType());
         
         log.info("채팅 메시지 처리 완료: messageId={}, sender={}", 
                 savedMessage.getMessageId(), senderNick);
@@ -137,5 +143,51 @@ public class ChatService {
      */
     public long getMessageCount(Long studyProjectId) {
         return chatMessageRepository.countByStudyProjectId(studyProjectId);
+    }
+
+    /**
+     * 특정 스터디방의 채팅 이력을 조회
+     * 
+     * @param studyProjectId 스터디/프로젝트 ID
+     * @return 채팅 메시지 목록
+     */
+    public List<ChatMessageResponse> getChatHistory(Long studyProjectId) {
+        log.info("채팅 이력 조회 시작: studyProjectId={}", studyProjectId);
+        
+        // 최근 100개 메시지를 최신순으로 조회
+        Pageable pageable = PageRequest.of(0, 100, Sort.by("createdAt").descending());
+        Page<ChatMessage> messagePage = chatMessageRepository.findByStudyProjectIdOrderByCreatedAtDesc(studyProjectId, pageable);
+        
+        List<ChatMessage> messages = messagePage.getContent();
+        log.info("채팅 이력 조회 완료: studyProjectId={}, messageCount={}", studyProjectId, messages.size());
+        
+        // ChatMessageResponse로 변환하고 역순으로 정렬 (오래된 것부터 최신 순으로)
+        return messages.stream()
+                .map(message -> {
+                    String senderNick = getSenderNickname(message.getMemberId());
+                    String userId = getUserIdByMemberId(message.getMemberId());
+                    return ChatMessageResponse.from(message, senderNick, userId, ChatMessageRequest.MessageType.TEXT);
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * memberId로 userId 조회
+     * 
+     * @param memberId 멤버 ID
+     * @return 사용자 ID
+     */
+    private String getUserIdByMemberId(Long memberId) {
+        try {
+            Optional<Member> memberOpt = memberRepository.findById(memberId);
+            if (memberOpt.isEmpty()) {
+                log.warn("멤버 정보를 찾을 수 없음: memberId={}", memberId);
+                return "알 수 없음";
+            }
+            return memberOpt.get().getUserId();
+        } catch (Exception e) {
+            log.error("사용자 ID 조회 중 오류 발생: memberId={}", memberId, e);
+            return "알 수 없음";
+        }
     }
 }
