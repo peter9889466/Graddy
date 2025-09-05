@@ -664,11 +664,11 @@ const StudyDetailPage: React.FC = () => {
             try {
                 await cancelStudyApplication(parseInt(id, 10));
                 setIsApplied(false);
-                alert("가입 신청이 취소되었습니다.");
+                // alert("가입 신청이 취소되었습니다.");
                 window.location.reload();
             } catch (error: any) {
                 console.error("신청 취소 실패:", error);
-                alert(error.message || "신청 취소에 실패했습니다.");
+                // alert(error.message || "신청 취소에 실패했습니다.");
             }
         }
     };
@@ -767,6 +767,21 @@ const StudyDetailPage: React.FC = () => {
             setIsApplied(false);
         }
     };
+
+    const handleLeaveStudy = async () => {
+    if (!id) return;
+
+    if (confirm("스터디를 탈퇴하시겠습니까?")) {
+        try {
+            // await leaveStudyProject(parseInt(id, 10)); // 탈퇴 API 호출
+            alert("스터디에서 탈퇴되었습니다.");
+            window.location.reload();
+        } catch (error: any) {
+            console.error("스터디 탈퇴 실패:", error);
+            alert("스터디 탈퇴에 실패했습니다.");
+        }
+    }
+};
 
     // 태그 데이터 가져오기
     useEffect(() => {
@@ -1365,32 +1380,43 @@ const StudyDetailPage: React.FC = () => {
                               userMemberType === null) ? (
                             // 일반 사용자이거나 멤버인 경우 (수정 모드가 아닐 때만 표시)
                             <div className="w-full mt-3">
-                                {!isApplied ? (
-                                    <button
-                                        type="button"
-                                        onClick={handleApplyToStudy}
-                                        disabled={isApplying}
-                                        className="w-full px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer"
-                                        style={{
-                                            backgroundColor: isApplying
-                                                ? "#6B7280"
-                                                : "#8B85E9",
-                                        }}
-                                    >
-                                        {isApplying
-                                            ? "신청 중..."
-                                            : "스터디 가입 신청"}
-                                    </button>
-                                ) : (
-                                    <button
-                                        type="button"
-                                        onClick={handleCancelApplication}
-                                        className="w-full px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer hover:bg-gray-700 transition-colors"
-                                        style={{ backgroundColor: "#6B7280" }}
-                                    >
-                                        승인 대기 중
-                                    </button>
-                                )}
+                                {userMemberType === "member" ? (
+    <button
+        type="button"
+        onClick={handleLeaveStudy}
+        className="w-full px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer hover:bg-red-700 transition-colors"
+        style={{ backgroundColor: "#DC2626" }}
+    >
+        스터디 탈퇴
+    </button>
+) : userMemberType !== "leader" && (
+    !isApplied ? (
+        <button
+            type="button"
+            onClick={handleApplyToStudy}
+            disabled={isApplying}
+            className="w-full px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer"
+            style={{
+                backgroundColor: isApplying
+                    ? "#6B7280"
+                    : "#8B85E9",
+            }}
+        >
+            {isApplying
+                ? "신청 중..."
+                : "스터디 가입 신청"}
+        </button>
+    ) : (
+        <button
+            type="button"
+            onClick={handleCancelApplication}
+            className="w-full px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer hover:bg-gray-700 transition-colors"
+            style={{ backgroundColor: "#6B7280" }}
+        >
+            승인 대기 중
+        </button>
+    )
+)}
                             </div>
                         ) : null}
                     </div>

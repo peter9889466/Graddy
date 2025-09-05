@@ -22,6 +22,15 @@ interface ScheduleProps {
     memberId?: number;
 }
 
+
+// 과제 수정 데이터 타입 정의
+interface UpdateAssignmentData {
+    title: string;
+    description: string;
+    deadline: string;
+    fileUrl?: string;
+}
+
 const Schedule: React.FC<ScheduleProps> = ({
     isStudyLeader = false,
     studyProjectId = 0,
@@ -259,6 +268,83 @@ const Schedule: React.FC<ScheduleProps> = ({
         }
     };
 
+    // const handleEditItem
+    // 과제 수정을 위한 상태 추가 (기존 일정 수정 상태와 함께)
+const [editingAssignment, setEditingAssignment] = useState<string | null>(null);
+const [editingAssignmentData, setEditingAssignmentData] = useState({
+    title: '',
+    description: '',
+    date: '',
+    fileUrl: ''
+});
+
+// 과제 수정 시작 함수
+const handleEditAssignment = (item: ScheduleItem) => {
+    setEditingAssignment(item.id);
+    setEditingAssignmentData({
+        title: item.title,
+        description: item.description || '',
+        date: item.date,
+        fileUrl: item.fileUrl || ''
+    });
+};
+
+// 과제 수정 완료 함수
+const handleUpdateAssignment = async (assignmentId: string) => {
+    if (!editingAssignmentData.title || !editingAssignmentData.date) {
+        alert('제목과 마감일을 입력해주세요.');
+        return;
+    }
+
+    // 마감일 유효성 검사
+    const selectedDate = new Date(editingAssignmentData.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (selectedDate < today) {
+        alert('과제 마감일은 오늘 이후로 설정해주세요.');
+        return;
+    }
+
+    try {
+        const updateData = {
+            title: editingAssignmentData.title,
+            description: editingAssignmentData.description,
+            deadline: new Date(editingAssignmentData.date).toISOString(),
+            fileUrl: editingAssignmentData.fileUrl
+        };
+
+        console.log('과제 수정 데이터:', updateData);
+        const response = await apiPut(`/assignments/${assignmentId}`, updateData);
+        console.log('과제 수정 응답:', response);
+
+        const responseData = response?.data || response;
+        if (responseData) {
+            alert('과제가 성공적으로 수정되었습니다.');
+            
+            // 수정 모드 종료
+            setEditingAssignment(null);
+            setEditingAssignmentData({ title: '', description: '', date: '', fileUrl: '' });
+            
+            // 과제 목록 다시 로드
+            await loadAssignments();
+        } else {
+            throw new Error('과제 수정에 실패했습니다.');
+        }
+        
+    } catch (error) {
+        console.error('과제 수정 중 오류 발생:', error);
+        const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
+        alert(`과제 수정 실패: ${errorMessage}`);
+    }
+};
+
+// 과제 수정 취소 함수
+const handleCancelAssignmentEdit = () => {
+    setEditingAssignment(null);
+    setEditingAssignmentData({ title: '', description: '', date: '', fileUrl: '' });
+};
+
     const handleDeleteItem = async (id: string, type: 'assignment' | 'schedule') => {
         // 확인 창 띄우기
         const isConfirmed = window.confirm('정말 삭제하시겠습니까?');
@@ -459,8 +545,7 @@ const Schedule: React.FC<ScheduleProps> = ({
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            // TODO: 수정 기능 구현
-                                                            alert('수정 기능은 추후 구현 예정입니다.');
+                                                            handleEditAssignment(item);
                                                         }}
                                                         className="text-blue-500 hover:text-blue-700 transition-colors duration-200 text-sm"
                                                     >
@@ -484,6 +569,72 @@ const Schedule: React.FC<ScheduleProps> = ({
                                             {/* 상세 내용 (토글) */}
                                             {item.isExpanded && (
                                                 <div className="px-4 pb-4 border-t border-gray-100">
+                                                    {editingAssignment === item.id ? (
+                                                        // 과제 수정 기능 포함
+                                                        <div className="space-y-3 mt-3">
+                                                            <div>
+                                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                                    과제 제목
+                                                                </label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={editingAssignmentData.title}
+                                                                    onChange={(e) => setEditingAssignmentData({...editingAssignmentData, title: e.target.value})}
+                                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                                    과제 설명
+                                                                </label>
+                                                                <textarea
+                                                                    value={editingAssignmentData.description}
+                                                                    onChange={(e) => setEditingAssignmentData({...editingAssignmentData, description: e.target.value})}
+                                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
+                                                                    rows={3}
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                                    마감일
+                                                                </label>
+                                                                <input
+                                                                    type="date"
+                                                                    value={editingAssignmentData.date}
+                                                                    onChange={(e) => setEditingAssignmentData({...editingAssignmentData, date: e.target.value})}
+                                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
+                                                                    min={new Date().toISOString().split('T')[0]}
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                                    파일 URL
+                                                                </label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={editingAssignmentData.fileUrl}
+                                                                    onChange={(e) => setEditingAssignmentData({...editingAssignmentData, fileUrl: e.target.value})}
+                                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
+                                                                />
+                                                            </div>
+                                                            <div className="flex gap-2 pt-2">
+                                                                <button
+                                                                    onClick={() => handleUpdateAssignment(item.id)}
+                                                                    className="px-3 py-1.5 bg-[#8B85E9] text-white text-sm rounded-md hover:bg-[#7A73E8] transition-colors duration-200"
+                                                                >
+                                                                    저장
+                                                                </button>
+                                                                <button
+                                                                    onClick={handleCancelAssignmentEdit}
+                                                                    className="px-3 py-1.5 bg-gray-300 text-gray-700 text-sm rounded-md hover:bg-gray-400 transition-colors duration-200"
+                                                                >
+                                                                    취소
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                    <>
+                                                    <div className="flex items-center gap-3">
                                                     {item.description && (
                                                         <div className="mt-3">
                                                             <p className="text-gray-600 text-sm whitespace-pre-wrap">{item.description}</p>
@@ -515,8 +666,13 @@ const Schedule: React.FC<ScheduleProps> = ({
                                                             </p>
                                                         </div>
                                                     )}
+                                                    </div>
+                                                    </>
+                                                    
+                                                    )}
                                                 </div>
                                             )}
+                                            
                                         </>
                                     ) : (
                                         // 일정: 수정 기능 포함
