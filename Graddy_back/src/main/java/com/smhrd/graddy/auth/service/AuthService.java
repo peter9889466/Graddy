@@ -46,7 +46,7 @@ public class AuthService {
                 .tokenType("Bearer")
                 .userId(user.getUserId())
                 .nickname(user.getNick())
-                .expiresIn(3600L) // 1시간 (3600초)
+                .expiresIn(43200L) // 12시간 (43200초)
                 .build();
     }
 }

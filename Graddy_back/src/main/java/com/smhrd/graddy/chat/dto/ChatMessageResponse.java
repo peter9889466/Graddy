@@ -30,6 +30,11 @@ public class ChatMessageResponse {
     private Long memberId;
     
     /**
+     * 발신자 사용자 ID (users 테이블의 user_id)
+     */
+    private String userId;
+    
+    /**
      * 발신자 닉네임 (users 테이블에서 조회)
      */
     private String senderNick;
@@ -61,17 +66,19 @@ public class ChatMessageResponse {
     private Long studyProjectId;
 
     /**
-     * ChatMessage 엔티티와 발신자 닉네임을 조합하여 Response DTO를 생성
+     * ChatMessage 엔티티와 발신자 정보를 조합하여 Response DTO를 생성
      * 
      * @param message 저장된 ChatMessage 엔티티
      * @param senderNick 발신자 닉네임
+     * @param userId 발신자 사용자 ID
      * @param messageType 메시지 타입
      * @return ChatMessageResponse DTO
      */
-    public static ChatMessageResponse from(ChatMessage message, String senderNick, ChatMessageRequest.MessageType messageType) {
+    public static ChatMessageResponse from(ChatMessage message, String senderNick, String userId, ChatMessageRequest.MessageType messageType) {
         return ChatMessageResponse.builder()
                 .messageId(message.getMessageId())
                 .memberId(message.getMemberId())
+                .userId(userId)
                 .senderNick(senderNick)
                 .content(message.getContent())
                 .fileUrl(message.getFileUrl())

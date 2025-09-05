@@ -1204,7 +1204,7 @@ const ProjectDetailPage = () => {
                     {renderMainContent()}
                 </ResponsiveMainContent>
             </ResponsiveContainer>
-            <DraggableChatWidget />
+            <DraggableChatWidget studyProjectId={parseInt(id!, 10)} />
 
             {/* 태그 모달 */}
             {isTagModalOpen && (

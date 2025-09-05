@@ -17,8 +17,8 @@ public class JwtUtil {
     // 실제에서는 설정 파일 등에서 관리
     private final Key secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS256);
 
-    // 2. Access Token 만료 시간 (3시간)
-    private static final long ACCESS_TOKEN_EXPIRATION_TIME = 1000 * 60 * 60 * 3; // 3시간
+    // 2. Access Token 만료 시간 (12시간)
+    private static final long ACCESS_TOKEN_EXPIRATION_TIME = 1000 * 60 * 60 * 12; // 12시간
 
     // 3. Refresh Token 만료 시간 (1시간)
     private static final long REFRESH_TOKEN_EXPIRATION_TIME = 1000 * 60 * 60; // 1시간

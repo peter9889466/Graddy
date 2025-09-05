@@ -1,3 +1,8 @@
+// Polyfill for global
+if (typeof global === 'undefined') {
+    (window as any).global = window;
+}
+
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import "./index.css";

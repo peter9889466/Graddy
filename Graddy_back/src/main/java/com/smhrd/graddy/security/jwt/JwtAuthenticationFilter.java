@@ -32,9 +32,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     // JWT 필터를 적용하지 않을 경로들
     private static final String[] PUBLIC_PATHS = {
-        "/api/auth/login",
-        "/api/auth/refresh", 
-        "/api/auth/logout",
+        "/auth/login",
+        "/auth/refresh", 
+        "/auth/logout",
         "/login", // 추가된 경로
         "/swagger-ui",
         "/swagger-ui.html",
@@ -42,7 +42,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         "/v3/api-docs",
         "/swagger-resources",
         "/webjars",
-        "/api/ws",
+        "/ws-stomp",
         "/api/swagger-ui",
         "/api/api-docs"
     };
