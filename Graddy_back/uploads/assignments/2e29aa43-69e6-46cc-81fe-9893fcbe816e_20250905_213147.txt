@@ -1,0 +1,539 @@
+======================================================================
+ Spring Boot + JavaScript RESTful CRUD To-Do 애플리케이션
+======================================================================
+
+이 파일은 Spring Boot 백엔드와 순수 JavaScript 프론트엔드로 구성된 To-Do 리스트 애플리케이션의 전체 소스 코드를 포함하고 있습니다.
+
+### 실행 방법
+
+1.  **백엔드 (Spring Boot) 실행:**
+    * 아래의 Java 파일들과 `pom.xml`을 IDE(IntelliJ, Eclipse 등)를 사용하여 Spring Boot 프로젝트로 구성합니다.
+    * `TodoApplication.java` 파일을 실행하여 내장된 Tomcat 서버를 시작합니다. (기본 포트: 8080)
+    * 서버가 시작되면 `http://localhost:8080/h2-console`에 접속하여 H2 데이터베이스를 확인할 수 있습니다. (JDBC URL: `jdbc:h2:mem:testdb`, 사용자명: `sa`, 비밀번호: 비워둠)
+
+2.  **프론트엔드 (JavaScript) 실행:**
+    * `index.html`, `style.css`, `script.js` 파일을 한 폴더에 저장합니다.
+    * `index.html` 파일을 웹 브라우저에서 엽니다. (VS Code의 'Live Server'와 같은 확장 프로그램을 사용하면 편리합니다.)
+    * 브라우저 화면에서 To-Do 리스트를 추가, 조회, 수정, 삭제할 수 있습니다.
+
+----------------------------------------------------------------------
+## 1. 백엔드: Spring Boot
+----------------------------------------------------------------------
+
+### **`pom.xml` (프로젝트 의존성 관리)**
+
+<details>
+<summary>pom.xml 보기</summary>
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="[http://maven.apache.org/POM/4.0.0](http://maven.apache.org/POM/4.0.0)" xmlns:xsi="[http://www.w3.org/2001/XMLSchema-instance](http://www.w3.org/2001/XMLSchema-instance)"
+         xsi:schemaLocation="[http://maven.apache.org/POM/4.0.0](http://maven.apache.org/POM/4.0.0) [https://maven.apache.org/xsd/maven-4.0.0.xsd](https://maven.apache.org/xsd/maven-4.0.0.xsd)">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.5</version> <relativePath/> </parent>
+    <groupId>com.example</groupId>
+    <artifactId>todo-app</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>todo-app</name>
+    <description>Todo list application with Spring Boot</description>
+    <properties>
+        <java.version>17</java.version>
+    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+</details>
+
+src/main/resources/application.properties (애플리케이션 설정)
+<details>
+<summary>application.properties 보기</summary>
+
+Properties
+
+# H2 데이터베이스 콘솔 활성화
+spring.h2.console.enabled=true
+# H2 콘솔 경로 설정
+spring.h2.console.path=/h2-console
+
+# 데이터베이스 연결 정보 (인메모리 모드)
+spring.datasource.url=jdbc:h2:mem:testdb
+spring.datasource.driverClassName=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=
+
+# JPA 설정
+spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
+# 애플리케이션 실행 시 스키마 생성 및 초기화
+spring.jpa.hibernate.ddl-auto=update
+</details>
+
+src/main/java/com/example/todoapp/model/Todo.java (데이터 모델)
+<details>
+<summary>Todo.java 보기</summary>
+
+Java
+
+package com.example.todoapp.model;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import lombok.Getter;
+import lombok.Setter;
+
+@Entity // 이 클래스가 JPA 엔티티임을 나타냅니다.
+@Getter   // Lombok을 사용하여 getter 메서드를 자동 생성합니다.
+@Setter   // Lombok을 사용하여 setter 메서드를 자동 생성합니다.
+public class Todo {
+
+    @Id // 기본 키(Primary Key) 필드임을 나타냅니다.
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // 기본 키 생성을 데이터베이스에 위임합니다.
+    private Long id;
+
+    private String title; // 할 일의 제목
+
+    private boolean completed; // 할 일의 완료 여부
+}
+</details>
+
+src/main/java/com/example/todoapp/repository/TodoRepository.java (데이터 저장소)
+<details>
+<summary>TodoRepository.java 보기</summary>
+
+Java
+
+package com.example.todoapp.repository;
+
+import com.example.todoapp.model.Todo;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository // 이 인터페이스가 데이터 저장소(Repository)임을 나타냅니다.
+public interface TodoRepository extends JpaRepository<Todo, Long> {
+    // JpaRepository를 상속받아 기본적인 CRUD 메서드(save, findById, findAll, deleteById 등)를 자동으로 사용할 수 있습니다.
+}
+</details>
+
+src/main/java/com/example/todoapp/controller/TodoController.java (REST 컨트롤러)
+<details>
+<summary>TodoController.java 보기</summary>
+
+Java
+
+package com.example.todoapp.controller;
+
+import com.example.todoapp.model.Todo;
+import com.example.todoapp.repository.TodoRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Optional;
+
+@RestController // 이 클래스가 RESTful API의 컨트롤러임을 나타냅니다.
+@RequestMapping("/api/todos") // 이 컨트롤러의 모든 요청은 '/api/todos' 경로로 매핑됩니다.
+@CrossOrigin(origins = "*") // 모든 도메인에서의 요청을 허용합니다 (CORS 설정). 개발 환경에서만 사용을 권장합니다.
+public class TodoController {
+
+    @Autowired // Spring이 TodoRepository의 인스턴스를 자동으로 주입합니다.
+    private TodoRepository todoRepository;
+
+    // READ: 모든 To-Do 항목 조회 (GET /api/todos)
+    @GetMapping
+    public List<Todo> getAllTodos() {
+        return todoRepository.findAll();
+    }
+
+    // CREATE: 새로운 To-Do 항목 추가 (POST /api/todos)
+    @PostMapping
+    public Todo createTodo(@RequestBody Todo todo) {
+        return todoRepository.save(todo);
+    }
+
+    // UPDATE: 기존 To-Do 항목 수정 (PUT /api/todos/{id})
+    @PutMapping("/{id}")
+    public ResponseEntity<Todo> updateTodo(@PathVariable Long id, @RequestBody Todo todoDetails) {
+        Optional<Todo> optionalTodo = todoRepository.findById(id);
+
+        if (optionalTodo.isPresent()) {
+            Todo todo = optionalTodo.get();
+            todo.setTitle(todoDetails.getTitle());
+            todo.setCompleted(todoDetails.isCompleted());
+            final Todo updatedTodo = todoRepository.save(todo);
+            return ResponseEntity.ok(updatedTodo);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    // DELETE: To-Do 항목 삭제 (DELETE /api/todos/{id})
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteTodo(@PathVariable Long id) {
+        Optional<Todo> optionalTodo = todoRepository.findById(id);
+
+        if (optionalTodo.isPresent()) {
+            todoRepository.delete(optionalTodo.get());
+            return ResponseEntity.ok().build();
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+}
+</details>
+
+src/main/java/com/example/todoapp/TodoApplication.java (메인 애플리케이션)
+<details>
+<summary>TodoApplication.java 보기</summary>
+
+Java
+
+package com.example.todoapp;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication // 이 클래스가 Spring Boot 애플리케이션의 시작점임을 나타냅니다.
+public class TodoApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(TodoApplication.class, args);
+    }
+
+}
+</details>
+
+<br>
+
+2. 프론트엔드: HTML, CSS, JavaScript
+index.html (웹 페이지 구조)
+<details>
+<summary>index.html 보기</summary>
+
+HTML
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spring Boot & JS To-Do App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>📝 To-Do List</h1>
+        <div class="input-area">
+            <input type="text" id="todo-input" placeholder="새로운 할 일을 입력하세요...">
+            <button id="add-btn">추가</button>
+        </div>
+        <ul id="todo-list">
+            </ul>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+</details>
+
+style.css (웹 페이지 스타일)
+<details>
+<summary>style.css 보기</summary>
+
+CSS
+
+@import url('[https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap](https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap)');
+
+body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background-color: #f4f7f6;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    color: #333;
+}
+
+.container {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 500px;
+}
+
+h1 {
+    text-align: center;
+    color: #2c3e50;
+    margin-bottom: 25px;
+}
+
+.input-area {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 25px;
+}
+
+#todo-input {
+    flex-grow: 1;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: border-color 0.3s;
+}
+
+#todo-input:focus {
+    outline: none;
+    border-color: #4a90e2;
+}
+
+#add-btn {
+    padding: 12px 20px;
+    border: none;
+    background-color: #4a90e2;
+    color: white;
+    font-size: 16px;
+    font-weight: 500;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+#add-btn:hover {
+    background-color: #357abd;
+}
+
+#todo-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.todo-item {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.3s;
+}
+
+.todo-item:last-child {
+    border-bottom: none;
+}
+
+.todo-item:hover {
+    background-color: #fafafa;
+}
+
+.todo-item span {
+    flex-grow: 1;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.todo-item.completed span {
+    text-decoration: line-through;
+    color: #aaa;
+}
+
+.delete-btn {
+    padding: 6px 12px;
+    border: none;
+    background-color: #e74c3c;
+    color: white;
+    font-size: 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.delete-btn:hover {
+    background-color: #c0392b;
+}
+</details>
+
+script.js (프론트엔드 로직)
+<details>
+<summary>script.js 보기</summary>
+
+JavaScript
+
+document.addEventListener('DOMContentLoaded', () => {
+    const todoInput = document.getElementById('todo-input');
+    const addBtn = document.getElementById('add-btn');
+    const todoList = document.getElementById('todo-list');
+
+    const apiUrl = 'http://localhost:8080/api/todos';
+
+    // (READ) 서버에서 모든 To-Do 항목을 가져와 화면에 렌더링
+    const fetchTodos = async () => {
+        try {
+            const response = await fetch(apiUrl);
+            if (!response.ok) {
+                throw new Error('서버에서 데이터를 가져오는 데 실패했습니다.');
+            }
+            const todos = await response.json();
+            renderTodos(todos);
+        } catch (error) {
+            console.error('Fetch Error:', error);
+            todoList.innerHTML = '<li>데이터를 불러올 수 없습니다. 백엔드 서버가 실행 중인지 확인하세요.</li>';
+        }
+    };
+
+    // To-Do 리스트를 화면에 그리는 함수
+    const renderTodos = (todos) => {
+        todoList.innerHTML = ''; // 기존 목록 초기화
+        todos.forEach(todo => {
+            const li = document.createElement('li');
+            li.classList.add('todo-item');
+            if (todo.completed) {
+                li.classList.add('completed');
+            }
+            li.dataset.id = todo.id;
+
+            const span = document.createElement('span');
+            span.textContent = todo.title;
+            // 텍스트 클릭 시 완료 상태 토글
+            span.addEventListener('click', () => toggleComplete(todo));
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = '삭제';
+            deleteBtn.classList.add('delete-btn');
+            // 삭제 버튼 클릭 시 항목 삭제
+            deleteBtn.addEventListener('click', () => deleteTodo(todo.id));
+
+            li.appendChild(span);
+            li.appendChild(deleteBtn);
+            todoList.appendChild(li);
+        });
+    };
+
+    // (CREATE) 새로운 To-Do 항목 추가
+    const addTodo = async () => {
+        const title = todoInput.value.trim();
+        if (title === '') {
+            alert('할 일을 입력하세요.');
+            return;
+        }
+
+        const newTodo = {
+            title: title,
+            completed: false
+        };
+
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(newTodo),
+            });
+            if (!response.ok) {
+                throw new Error('항목 추가에 실패했습니다.');
+            }
+            todoInput.value = ''; // 입력 필드 초기화
+            fetchTodos(); // 목록 새로고침
+        } catch (error) {
+            console.error('Add Error:', error);
+        }
+    };
+
+    // (UPDATE) To-Do 항목의 완료 상태를 토글
+    const toggleComplete = async (todo) => {
+        const updatedTodo = {
+            ...todo,
+            completed: !todo.completed
+        };
+
+        try {
+            const response = await fetch(`${apiUrl}/${todo.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updatedTodo),
+            });
+            if (!response.ok) {
+                throw new Error('상태 업데이트에 실패했습니다.');
+            }
+            fetchTodos(); // 목록 새로고침
+        } catch (error) {
+            console.error('Update Error:', error);
+        }
+    };
+
+    // (DELETE) To-Do 항목 삭제
+    const deleteTodo = async (id) => {
+        try {
+            const response = await fetch(`${apiUrl}/${id}`, {
+                method: 'DELETE',
+            });
+            if (!response.ok) {
+                throw new Error('삭제에 실패했습니다.');
+            }
+            fetchTodos(); // 목록 새로고침
+        } catch (error) {
+            console.error('Delete Error:', error);
+        }
+    };
+
+    // 이벤트 리스너 설정
+    addBtn.addEventListener('click', addTodo);
+    todoInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            addTodo();
+        }
+    });
+
+    // 페이지 로드 시 To-Do 목록 가져오기
+    fetchTodos();
+});
+</details>

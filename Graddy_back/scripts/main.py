@@ -777,12 +777,18 @@ async def generate_feedback(request: FeedbackRequest):
             if line.startswith('점수:'):
                 try:
                     score_text = line.replace('점수:', '').strip()
-                    score = int(score_text)
-                    # 점수 범위 제한 (-5 ~ 10)
-                    score = max(-5, min(10, score))
-                    print(f"📊 [DEBUG] 점수 파싱 성공: {score}")
-                except ValueError:
-                    print(f"⚠️ [DEBUG] 점수 파싱 실패: {line}")
+                    # "7점", "점수: 7", "7" 등 다양한 형태 처리
+                    import re
+                    score_match = re.search(r'(-?\d+)', score_text)
+                    if score_match:
+                        score = int(score_match.group(1))
+                        # 점수 범위 제한 (-5 ~ 10)
+                        score = max(-5, min(10, score))
+                        print(f"📊 [DEBUG] 점수 파싱 성공: {score} (원본: '{score_text}')")
+                    else:
+                        print(f"⚠️ [DEBUG] 점수 파싱 실패 - 숫자를 찾을 수 없음: {line}")
+                except Exception as e:
+                    print(f"⚠️ [DEBUG] 점수 파싱 예외: {line}, 오류: {e}")
                     # 점수 파싱 실패 시 기본값을 사용하지 않고, 관련도 기반 점수 산정
                     pass
             elif line.startswith('코멘트:'):
@@ -829,8 +835,18 @@ async def generate_feedback(request: FeedbackRequest):
             subm_tokens = _normalize_text(request.submission_content or "")
             print(f"🔍 [CRITICAL] 관련도 계산에 제출 내용만 사용")
             
+        # 기존 Jaccard 유사도와 향상된 관련도 둘 다 계산
         relevance = _jaccard_similarity(assign_tokens, subm_tokens)
-        print(f"📊 [CRITICAL] 과제-제출물 관련도: {relevance:.3f}")
+        enhanced_relevance = _enhanced_relevance_score(
+            assignment_title=request.assignment_title or "",
+            assignment_desc=request.assignment_description or "",
+            submission_content=request.submission_content or "",
+            file_content=file_content if file_reading_success else ""
+        )
+        print(f"📊 [CRITICAL] 과제-제출물 관련도: {relevance:.3f} (향상된: {enhanced_relevance:.3f})")
+        
+        # 향상된 관련도를 주로 사용
+        relevance = enhanced_relevance
 
         # 아주 낮은 관련도 또는 극단적 길이 불일치 시, 일반 피드백 대신 불일치 안내를 반환
         try:
@@ -844,35 +860,77 @@ async def generate_feedback(request: FeedbackRequest):
         except Exception:
             length_ratio = 0.0
 
-        mismatch = (relevance < 0.12) or (length_ratio < 0.08)
-        print(f"🎭 [CRITICAL] 불일치 여부: {mismatch} (관련도: {relevance:.3f}, 길이비율: {length_ratio:.3f})")
+        # 불일치 감지 로직을 더 관대하게 조정
+        # 코드 제출물이고 첨부파일이 있으면 더욱 관대하게
+        if is_code_submission and file_reading_success:
+            relevance_threshold = 0.02
+            length_threshold = 0.02
+        elif file_reading_success:
+            relevance_threshold = 0.04
+            length_threshold = 0.03
+        elif is_code_submission:
+            relevance_threshold = 0.05
+            length_threshold = 0.04
+        else:
+            relevance_threshold = 0.06
+            length_threshold = 0.05
+        
+        mismatch = (relevance < relevance_threshold) and (length_ratio < length_threshold)
+        print(f"🎭 [CRITICAL] 불일치 여부: {mismatch} (관련도: {relevance:.3f} >= {relevance_threshold}, 길이비율: {length_ratio:.3f} >= {length_threshold})")
 
-        if mismatch and not file_reading_success:  # 첨부파일 읽기 성공 시에는 불일치 판정 완화
-            print(f"⚠️ [CRITICAL] 과제-제출물 불일치 감지 (첨부파일 읽기 실패)")
-            # 점수가 비정상적으로 높은 경우 하향 조정
+        # 불일치 감지 조건을 더 엄격하게 설정
+        # 불일치 처리 로직 개선: 더 신중하고 관대하게
+        if mismatch:
+            print(f"⚠️ [CRITICAL] 과제-제출물 불일치 감지")
+            print(f"⚠️ [CRITICAL]   - 첨부파일 읽기 성공: {file_reading_success}")
+            print(f"⚠️ [CRITICAL]   - 코드 제출물: {is_code_submission}")
+            print(f"⚠️ [CRITICAL]   - 현재 점수: {score}")
+            
+            # 1. 점수가 아예 없으면 관련도 기반으로 산정
             if score is None:
                 score = derive_score_from_relevance(
                     assignment_title=request.assignment_title,
                     assignment_description=request.assignment_description,
                     submission_content=request.submission_content
                 )
+                print(f"⚠️ [CRITICAL] 점수 없어서 관련도 기반으로 산정: {score}")
+            
+            # 2. 첨부파일 읽기에 실패한 경우에만 점수 조정 고려
+            elif not file_reading_success:
+                # 매우 높은 점수만 제한적으로 조정 (코드가 아닌 경우에만)
+                if score > 8 and not is_code_submission:
+                    old_score = score
+                    score = max(3, min(score, 6))  # 3~6점으로 제한
+                    print(f"⚠️ [CRITICAL] 비코드 제출물의 과도한 고점 조정: {old_score} -> {score}")
+                elif score > 9:
+                    old_score = score
+                    score = min(score, 8)  # 최대 8점으로 제한
+                    print(f"⚠️ [CRITICAL] 과도한 고점 제한: {old_score} -> {score}")
+                else:
+                    print(f"✅ [CRITICAL] 점수 유지: {score} (적절한 범위)")
             else:
-                score = max(-5, min(10, min(score, -3)))
+                print(f"✅ [CRITICAL] 첨부파일 읽기 성공으로 점수 유지: {score}")
 
-            mismatch_comment = "제출된 내용이 과제 내용과 일치하지 않습니다. 요구사항에 맞는 내용을 다시 제출해주세요."
-            mismatch_detail = (
-                f"제출물이 과제와의 관련도가 매우 낮게 판단되었습니다.\n\n"
-                f"- 과제 제목: {request.assignment_title}\n"
-                f"- 관련도(간이 지표): {relevance:.2f}\n"
-                f"- 제출물 길이/과제 설명 길이 비율: {length_ratio:.2f}\n"
-                f"- 첨부파일 읽기 성공: {file_reading_success}\n\n"
-                f"아래 가이드를 참고하여 다시 작성해 주세요:\n"
-                f"1) 과제 설명에 기재된 요구사항을 충족하는지 점검\n"
-                f"2) 핵심 개념/키워드를 포함\n"
-                f"3) 충분한 분량과 구체적인 근거 또는 코드/예시 제시"
-            )
-            integrated_comment = create_integrated_comment(mismatch_comment, mismatch_detail, is_code_submission)
-            detailed_feedback = mismatch_detail
+            # 불일치 메시지를 덜 공격적으로 수정
+            if not file_reading_success and score < 3:
+                mismatch_comment = "제출된 내용이 과제 요구사항과 다소 다를 수 있습니다. 추가 설명이나 체크를 다시 해주세요."
+                mismatch_detail = (
+                    f"제출물 검토 결과:\n\n"
+                    f"- 과제 제목: {request.assignment_title}\n"
+                    f"- 관련도 지표: {relevance:.2f}\n"
+                    f"- 제출물 길이 비율: {length_ratio:.2f}\n"
+                    f"- 첨부파일 읽기: {'성공' if file_reading_success else '실패 또는 없음'}\n\n"
+                    f"개선 방향:\n"
+                    f"1) 과제 설명의 핵심 요구사항 재확인\n"
+                    f"2) 관련 기술/개념 키워드 추가\n"
+                    f"3) 구체적인 구현 예시나 설명 보강\n"
+                    f"4) 첨부파일이 있다면 파일 경로 확인"
+                )
+                integrated_comment = create_integrated_comment(mismatch_comment, mismatch_detail, is_code_submission)
+                detailed_feedback = mismatch_detail
+            else:
+                # 정상적인 피드백 사용
+                integrated_comment = create_integrated_comment(comment, detailed_feedback, is_code_submission)
         else:
             print(f"✅ [CRITICAL] 정상 채점 결과 반환 (첨부파일 읽기: {file_reading_success})")
             # 코멘트와 상세 피드백을 하나로 통합
@@ -954,7 +1012,8 @@ def _normalize_text(text: str) -> list:
     try:
         import re
         text = text.lower()
-        text = re.sub(r"[^a-z0-9가-힣\s]", " ", text)
+        # 코드 키워드를 보존하고, 특수 문자를 더 관대하게 처리
+        text = re.sub(r"[^a-z0-9가-힣\s._-]", " ", text)
         tokens = [t for t in text.split() if len(t) > 1]
         return tokens
     except Exception:
@@ -971,26 +1030,56 @@ def _jaccard_similarity(a_tokens: list, b_tokens: list) -> float:
         return 0.0
     return inter / union
 
+def _enhanced_relevance_score(assignment_title: str, assignment_desc: str, submission_content: str, file_content: str = "") -> float:
+    """
+    향상된 관련도 계산 - 단순 Jaccard 유사도보다 더 정교하게 계산
+    """
+    # 기본 Jaccard 유사도
+    title_tokens = _normalize_text(assignment_title or "")
+    desc_tokens = _normalize_text(assignment_desc or "")
+    assign_tokens = title_tokens + desc_tokens
+    
+    full_submission = (submission_content or "") + " " + (file_content or "")
+    subm_tokens = _normalize_text(full_submission)
+    
+    jaccard_sim = _jaccard_similarity(assign_tokens, subm_tokens)
+    
+    # 코드 제출물인 경우 관련도를 더 관대하게 계산
+    is_code = detect_code_submission(full_submission)
+    if is_code:
+        # 코드 제출물의 경우 더 관대한 점수 부여
+        jaccard_sim *= 1.5
+        
+        # 코드 키워드 보너스
+        code_keywords = ['class', 'function', 'def', 'public', 'private', 'import', 'package']
+        bonus = sum(1 for keyword in code_keywords if keyword in full_submission.lower()) * 0.02
+        jaccard_sim += min(bonus, 0.1)  # 최대 0.1 보너스
+    
+    # 길이 보정 - 너무 짧지 않으면 보너스
+    if len(subm_tokens) >= 20:  # 20단어 이상이면 보너스
+        length_bonus = min(0.05, len(subm_tokens) / 1000)  # 최대 0.05 보너스
+        jaccard_sim += length_bonus
+    
+    return min(1.0, jaccard_sim)  # 1.0을 초과하지 않도록 제한
+
 def derive_score_from_relevance(assignment_title: str, assignment_description: str, submission_content: str) -> int:
     """
     LLM이 점수를 명시하지 않았을 때, 과제 내용과 제출물의 관련도를 기반으로 점수 산정.
-    - 유사도가 매우 낮으면 강하게 감점 (-5 ~ -3)
-    - 중간이면 0 ~ 3
-    - 높으면 4 ~ 6 (기본 값은 주지 않음)
     점수는 최종적으로 -5 ~ 10 범위로 클램프.
     """
     # 비어있거나 매우 짧은 제출물은 강한 감점
-    if not submission_content or len(submission_content.strip()) < 20:
+    if not submission_content or len(submission_content.strip()) < 10:
         return -5
 
-    title_tokens = _normalize_text(assignment_title or "")
-    desc_tokens = _normalize_text(assignment_description or "")
-    assign_tokens = title_tokens + desc_tokens
-    subm_tokens = _normalize_text(submission_content or "")
+    # 향상된 관련도 계산 사용
+    enhanced_sim = _enhanced_relevance_score(
+        assignment_title=assignment_title or "",
+        assignment_desc=assignment_description or "",
+        submission_content=submission_content or "",
+        file_content=""  # 여기서는 파일 내용 없음
+    )
 
-    sim = _jaccard_similarity(assign_tokens, subm_tokens)
-
-    # 길이 기반 보정: 제출물이 과제 설명의 10% 미만 길이면 감점
+    # 길이 기반 보정
     try:
         desc_len = max(1, len((assignment_description or "").split()))
         sub_len = len((submission_content or "").split())
@@ -998,25 +1087,29 @@ def derive_score_from_relevance(assignment_title: str, assignment_description: s
     except Exception:
         length_ratio = 0.0
 
-    # 휴리스틱 맵핑
-    if sim < 0.05:
+    # 더 관대한 휴리스틱 맵핑
+    if enhanced_sim < 0.02:
         base = -5
-    elif sim < 0.15:
-        base = -3
-    elif sim < 0.30:
+    elif enhanced_sim < 0.05:
+        base = -2
+    elif enhanced_sim < 0.1:
         base = 0
-    elif sim < 0.50:
-        base = 3
+    elif enhanced_sim < 0.2:
+        base = 2
+    elif enhanced_sim < 0.4:
+        base = 4
     else:
-        base = 5
+        base = 6
 
-    # 너무 짧으면 추가 감점
-    if length_ratio < 0.1:
+    # 길이 보정 - 덜 엄격하게
+    if length_ratio < 0.05:
         base -= 2
-
-    # 단어 수가 매우 적으면 감점
-    if len(subm_tokens) < 30:
+    elif length_ratio < 0.1:
         base -= 1
+
+    # 코드 제출물인 경우 보너스
+    if detect_code_submission(submission_content):
+        base += 1
 
     # 범위 제한
     return max(-5, min(10, int(base)))
