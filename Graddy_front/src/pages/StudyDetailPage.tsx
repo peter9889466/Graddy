@@ -769,16 +769,45 @@ const StudyDetailPage: React.FC = () => {
     };
 
     const handleLeaveStudy = async () => {
-    if (!id) return;
+    if (!id || !memberId) {
+        alert("멤버 정보를 찾을 수 없습니다.");
+        return;
+    }
 
     if (confirm("스터디를 탈퇴하시겠습니까?")) {
         try {
-            // await leaveStudyProject(parseInt(id, 10)); // 탈퇴 API 호출
-            alert("스터디에서 탈퇴되었습니다.");
-            window.location.reload();
+            console.log("멤버 아이디",memberId)
+            const response = await fetch(
+                `http://localhost:8080/api/members/${memberId}/withdraw`,
+                {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${localStorage.getItem("userToken")}`, // 필요 시
+                    },
+                }
+            );
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || "탈퇴 요청 실패");
+            }
+
+            const result = await response.json();
+            console.log("탈퇴 API 응답:", result);
+            localStorage.setItem("accessToken", "내JWT토큰");
+            console.log(localStorage.getItem("accessToken")); // "내JWT토큰"이 찍혀야 정상
+
+            alert(result.message || "스터디에서 탈퇴되었습니다.");
+
+            // 🔥 상태 초기화 (버튼이 다시 "가입 신청"으로 보이게 됨)
+            setUserMemberType(null);
+            setIsStudyMember(false);
+            setIsApplied(false);
+
         } catch (error: any) {
             console.error("스터디 탈퇴 실패:", error);
-            alert("스터디 탈퇴에 실패했습니다.");
+            alert(error.message || "스터디 탈퇴에 실패했습니다.");
         }
     }
 };
@@ -1381,42 +1410,42 @@ const StudyDetailPage: React.FC = () => {
                             // 일반 사용자이거나 멤버인 경우 (수정 모드가 아닐 때만 표시)
                             <div className="w-full mt-3">
                                 {userMemberType === "member" ? (
-    <button
-        type="button"
-        onClick={handleLeaveStudy}
-        className="w-full px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer hover:bg-red-700 transition-colors"
-        style={{ backgroundColor: "#DC2626" }}
-    >
-        스터디 탈퇴
-    </button>
-) : userMemberType !== "leader" && (
-    !isApplied ? (
-        <button
-            type="button"
-            onClick={handleApplyToStudy}
-            disabled={isApplying}
-            className="w-full px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer"
-            style={{
-                backgroundColor: isApplying
-                    ? "#6B7280"
-                    : "#8B85E9",
-            }}
-        >
-            {isApplying
-                ? "신청 중..."
-                : "스터디 가입 신청"}
-        </button>
-    ) : (
-        <button
-            type="button"
-            onClick={handleCancelApplication}
-            className="w-full px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer hover:bg-gray-700 transition-colors"
-            style={{ backgroundColor: "#6B7280" }}
-        >
-            승인 대기 중
-        </button>
-    )
-)}
+                                    <button
+                                        type="button"
+                                        onClick={handleLeaveStudy}
+                                        className="w-full px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer hover:bg-red-700 transition-colors"
+                                        style={{ backgroundColor: "#DC2626" }}
+                                    >
+                                        스터디 탈퇴
+                                    </button>
+                                ) : userMemberType !== "leader" && (
+                                    !isApplied ? (
+                                        <button
+                                            type="button"
+                                            onClick={handleApplyToStudy}
+                                            disabled={isApplying}
+                                            className="w-full px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer"
+                                            style={{
+                                                backgroundColor: isApplying
+                                                    ? "#6B7280"
+                                                    : "#8B85E9",
+                                            }}
+                                        >
+                                            {isApplying
+                                                ? "신청 중..."
+                                                : "스터디 가입 신청"}
+                                        </button>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={handleCancelApplication}
+                                            className="w-full px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer hover:bg-gray-700 transition-colors"
+                                            style={{ backgroundColor: "#6B7280" }}
+                                        >
+                                            승인 대기 중
+                                        </button>
+                                    )
+                                )}
                             </div>
                         ) : null}
                     </div>
