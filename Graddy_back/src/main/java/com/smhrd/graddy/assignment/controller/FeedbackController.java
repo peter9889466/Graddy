@@ -123,4 +123,23 @@ public class FeedbackController {
                 "평균 점수 조회에 실패했습니다.", null);
         }
     }
+
+    /**
+     * 피드백 수동 재생성 (디버깅용)
+     */
+    @PostMapping("/submission/{submissionId}/regenerate")
+    @Operation(summary = "피드백 수동 재생성",
+              description = "특정 제출물에 대한 피드백을 삭제하고 다시 생성합니다. (디버깅용)")
+    public ResponseEntity<ApiResponse<String>> regenerateFeedback(
+            @Parameter(description = "제출 ID", example = "1", required = true)
+            @PathVariable Long submissionId) {
+        try {
+            feedbackService.regenerateFeedbackForSubmission(submissionId);
+            return ApiResponse.success("피드백이 성공적으로 재생성되었습니다.", 
+                    "submissionId: " + submissionId + "에 대한 피드백이 재생성되었습니다.");
+        } catch (Exception e) {
+            return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, 
+                "피드백 재생성에 실패했습니다: " + e.getMessage(), null);
+        }
+    }
 }

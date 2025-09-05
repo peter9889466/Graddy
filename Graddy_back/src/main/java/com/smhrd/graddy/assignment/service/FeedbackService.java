@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -151,13 +152,27 @@ public class FeedbackService {
             }
 
             // 2. 이미 피드백이 있는지 확인
-            if (feedbackRepository.findBySubmissionIdAndMemberId(submission.getSubmissionId(), submission.getMemberId()).isPresent()) {
-                log.info("제출 {}에 대한 피드백이 이미 존재합니다. 건너뜁니다.", submission.getSubmissionId());
+            Optional<Feedback> existingFeedback = feedbackRepository.findBySubmissionIdAndMemberId(submission.getSubmissionId(), submission.getMemberId());
+            if (existingFeedback.isPresent()) {
+                log.info("⚠️ [DEBUG] 제출 {}에 대한 피드백이 이미 존재합니다. 점수 재반영을 시도합니다.", submission.getSubmissionId());
+                Feedback feedback = existingFeedback.get();
+                log.info("📊 [DEBUG] 기존 피드백 정보: feedId={}, score={}, memberId={}", 
+                        feedback.getFeedId(), feedback.getScore(), feedback.getMemberId());
+                
+                // 기존 피드백이 있으면 점수를 다시 반영
+                if (feedback.getScore() != null) {
+                    log.info("🔄 [DEBUG] 기존 피드백 점수 재반영 시도: score={}", feedback.getScore());
+                    updateUserScoreFromFeedback(feedback.getMemberId(), feedback.getScore());
+                } else {
+                    log.warn("⚠️ [DEBUG] 기존 피드백에 점수가 없습니다: feedId={}", feedback.getFeedId());
+                }
                 return;
             }
 
             // 3. AI 피드백 생성
             Map<String, Object> aiFeedback = generateAiFeedback(assignment, submission);
+            log.info("🎯 [DEBUG] AI 피드백 생성 결과: score={}, comment={}", 
+                    aiFeedback.get("score"), aiFeedback.get("comment") != null ? "있음" : "없음");
             
             // 4. 피드백을 데이터베이스에 저장
             Feedback feedback = new Feedback();
@@ -169,10 +184,12 @@ public class FeedbackService {
 
             Feedback savedFeedback = feedbackRepository.save(feedback);
             
-            log.info("제출 {}에 대한 AI 피드백 생성 및 저장 완료: feedId={}, score={}", 
+            log.info("✅ [DEBUG] 제출 {}에 대한 AI 피드백 생성 및 저장 완료: feedId={}, score={}", 
                     submission.getSubmissionId(), savedFeedback.getFeedId(), savedFeedback.getScore());
             
             // 5. AI 피드백 점수를 사용자의 총 점수에 반영 (가중치 없이 그대로 반영)
+            log.info("🚀 [DEBUG] 사용자 점수 반영 시작: memberId={}, 피드백점수={}", 
+                    submission.getMemberId(), savedFeedback.getScore());
             updateUserScoreFromFeedback(submission.getMemberId(), savedFeedback.getScore());
             
         } catch (Exception e) {
@@ -310,6 +327,42 @@ public class FeedbackService {
                 feedback.getComment(),
                 feedback.getCreatedAt()
         );
+    }
+
+    /**
+     * 특정 제출물의 피드백 수동 재생성 (디버깅용)
+     */
+    @Transactional
+    public void regenerateFeedbackForSubmission(Long submissionId) {
+        try {
+            log.info("🔧 [DEBUG] 피드백 수동 재생성 시작: submissionId={}", submissionId);
+            
+            // 제출물 조회
+            Optional<Submission> submissionOpt = submissionRepository.findById(submissionId);
+            if (submissionOpt.isEmpty()) {
+                log.error("❌ [DEBUG] 제출물을 찾을 수 없음: submissionId={}", submissionId);
+                return;
+            }
+            
+            Submission submission = submissionOpt.get();
+            log.info("📄 [DEBUG] 제출물 정보: assignmentId={}, memberId={}, fileUrl={}", 
+                    submission.getAssignmentId(), submission.getMemberId(), submission.getFileUrl());
+            
+            // 기존 피드백 삭제
+            Optional<Feedback> existingFeedback = feedbackRepository.findBySubmissionIdAndMemberId(
+                    submission.getSubmissionId(), submission.getMemberId());
+            if (existingFeedback.isPresent()) {
+                log.info("🗑️ [DEBUG] 기존 피드백 삭제: feedId={}", existingFeedback.get().getFeedId());
+                feedbackRepository.delete(existingFeedback.get());
+            }
+            
+            // 새 피드백 생성
+            generateFeedbackForSubmission(submission);
+            log.info("✅ [DEBUG] 피드백 수동 재생성 완료: submissionId={}", submissionId);
+            
+        } catch (Exception e) {
+            log.error("❌ [DEBUG] 피드백 수동 재생성 실패: submissionId={}, error={}", submissionId, e.getMessage());
+        }
     }
 
     /**

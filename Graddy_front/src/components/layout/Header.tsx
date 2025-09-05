@@ -1,11 +1,12 @@
 import React, { useContext, useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../../contexts/AuthContext"; // AuthContext 가져오기
 
 const Header: React.FC = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
     const profileMenuRef = useRef<HTMLDivElement>(null);
     const authContext = useContext(AuthContext); // Context를 가져옴
 
@@ -16,6 +17,11 @@ const Header: React.FC = () => {
         );
     }
     const { isLoggedIn, logout } = authContext;
+
+    // 현재 경로에 따른 활성 상태 확인 함수
+    const isActiveRoute = (route: string) => {
+        return location.pathname === route;
+    };
 
     const handleLogin = () => {
         navigate("/login");
@@ -98,25 +104,43 @@ const Header: React.FC = () => {
                         <>
                             <button
                                 onClick={handleStudySearch}
-                                className={`relative group transition-colors duration-200 font-medium `}
+                                className={`relative group transition-colors duration-200 font-medium ${
+                                    isActiveRoute('/search') ? 'text-[#8B85E9]' : 'text-gray-700 hover:text-[#8B85E9]'
+                                }`}
                             >
                                 찾기
-                                <div className="absolute -bottom-1 left-1/2 w-0 h-0.5 bg-[#8B85E9] group-hover:w-full group-hover:left-0 transition-all duration-300 ease-in-out transform -translate-x-1/2 group-hover:translate-x-0"></div>
+                                <div className={`absolute -bottom-1 left-0 h-0.5 bg-[#8B85E9] transition-all duration-300 ease-in-out ${
+                                    isActiveRoute('/search') 
+                                        ? 'w-full' 
+                                        : 'w-0 group-hover:w-full'
+                                }`}></div>
                             </button>
                             <button
                                 onClick={handleRanking}
-                                className={`relative group transition-colors duration-200 font-medium `}
+                                className={`relative group transition-colors duration-200 font-medium ${
+                                    isActiveRoute('/ranking') ? 'text-[#8B85E9]' : 'text-gray-700 hover:text-[#8B85E9]'
+                                }`}
                             >
                                 랭킹
-                                <div className="absolute -bottom-1 left-1/2 w-0 h-0.5 bg-[#8B85E9] group-hover:w-full group-hover:left-0 transition-all duration-300 ease-in-out transform -translate-x-1/2 group-hover:translate-x-0"></div>
+                                <div className={`absolute -bottom-1 left-0 h-0.5 bg-[#8B85E9] transition-all duration-300 ease-in-out ${
+                                    isActiveRoute('/ranking') 
+                                        ? 'w-full' 
+                                        : 'w-0 group-hover:w-full'
+                                }`}></div>
                             </button>
 
                             <button
                                 onClick={handleCommunity}
-                                className={`relative group transition-colors duration-200 font-medium`}
+                                className={`relative group transition-colors duration-200 font-medium ${
+                                    isActiveRoute('/community') ? 'text-[#8B85E9]' : 'text-gray-700 hover:text-[#8B85E9]'
+                                }`}
                             >
                                 커뮤니티
-                                <div className="absolute -bottom-1 left-1/2 w-0 h-0.5 bg-[#8B85E9] group-hover:w-full group-hover:left-0 transition-all duration-300 ease-in-out transform -translate-x-1/2 group-hover:translate-x-0"></div>
+                                <div className={`absolute -bottom-1 left-0 h-0.5 bg-[#8B85E9] transition-all duration-300 ease-in-out ${
+                                    isActiveRoute('/community') 
+                                        ? 'w-full' 
+                                        : 'w-0 group-hover:w-full'
+                                }`}></div>
                             </button>
                         </>
                     </div>
