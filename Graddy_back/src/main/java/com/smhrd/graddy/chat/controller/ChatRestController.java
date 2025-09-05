@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 /**
  * REST API를 통한 채팅 메시지 전송을 위한 테스트용 컨트롤러
@@ -250,6 +251,32 @@ public class ChatRestController {
             
         } catch (Exception e) {
             log.error("메시지 개수 조회 중 오류 발생: studyProjectId={}", studyProjectId, e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
+     * 특정 스터디방의 채팅 이력 조회
+     * 
+     * @param studyProjectId 스터디/프로젝트 ID
+     * @return 채팅 메시지 목록
+     */
+    @GetMapping("/history/{studyProjectId}")
+    @Operation(
+        summary = "스터디방 채팅 이력 조회",
+        description = "특정 스터디방의 채팅 이력을 조회합니다."
+    )
+    public ResponseEntity<List<ChatMessageResponse>> getChatHistory(
+            @Parameter(description = "스터디/프로젝트 ID", example = "1")
+            @PathVariable Long studyProjectId) {
+        
+        try {
+            List<ChatMessageResponse> history = chatService.getChatHistory(studyProjectId);
+            log.info("스터디방 채팅 이력 조회: studyProjectId={}, messageCount={}", studyProjectId, history.size());
+            return ResponseEntity.ok(history);
+            
+        } catch (Exception e) {
+            log.error("채팅 이력 조회 중 오류 발생: studyProjectId={}", studyProjectId, e);
             return ResponseEntity.internalServerError().build();
         }
     }

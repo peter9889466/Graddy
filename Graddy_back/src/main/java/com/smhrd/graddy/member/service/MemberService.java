@@ -166,4 +166,23 @@ public class MemberService {
         }
         return timestamp.toLocalDateTime();
     }
+
+    // member_id 기준 본인 탈퇴 처리 (study_project_check = withdraw)
+    @Transactional
+    public void withdrawSelfByMemberId(Long memberId, String requesterUserId) {
+        Optional<Member> memberOpt = memberRepository.findById(memberId);
+        if (memberOpt.isEmpty()) {
+            throw new IllegalArgumentException("멤버를 찾을 수 없습니다.");
+        }
+
+        Member member = memberOpt.get();
+
+        // 본인 확인
+        if (!member.getUserId().equals(requesterUserId)) {
+            throw new IllegalArgumentException("본인만 탈퇴할 수 있습니다.");
+        }
+
+        member.setStudyProjectCheck(Member.MemberStatus.withdraw);
+        memberRepository.save(member);
+    }
 }
