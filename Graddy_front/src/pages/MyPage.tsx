@@ -77,6 +77,12 @@ export const MyPage = () => {
     // 사용자 닉네임
     const userNickname = nickname;
 
+    // 프로필 이미지는 사용자 정보에서 가져옴 (로컬스토리지 사용 중단)
+    useEffect(() => {
+        // 프로필 이미지는 서버에서 관리되므로 별도 설정 불필요
+        // setProfileImage는 서버 데이터로부터 설정됨
+    }, []);
+
     // 데이터 로드
     useEffect(() => {
         const loadData = async () => {
@@ -185,16 +191,53 @@ export const MyPage = () => {
         fileInputRef.current?.click();
     };
 
-    const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                setProfileImage(e.target?.result as string);
-                // TODO: Server upload logic
-                alert("프로필 이미지가 변경되었습니다. (서버 업로드 기능은 추후 구현 예정)");
-            };
-            reader.readAsDataURL(file);
+            try {
+                // 파일 크기 검증 (5MB 제한)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert("파일 크기는 5MB 이하여야 합니다.");
+                    return;
+                }
+
+                // 파일 타입 검증
+                if (!file.type.startsWith('image/')) {
+                    alert("이미지 파일만 업로드할 수 있습니다.");
+                    return;
+                }
+
+                // FormData로 서버에 업로드
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await fetch('http://localhost:8080/api/files/upload', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('userToken')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`프로필 이미지 업로드 실패: ${response.status}`);
+                }
+
+                const result = await response.json();
+                const imageUrl = result.data?.fileUrl;
+
+                if (imageUrl) {
+                    setProfileImage(imageUrl);
+                    alert("프로필 이미지가 성공적으로 변경되었습니다.");
+                    // TODO: 사용자 프로필에 이미지 URL 저장하는 API 호출 필요
+                } else {
+                    throw new Error('이미지 URL을 받지 못했습니다.');
+                }
+
+            } catch (error) {
+                console.error('프로필 이미지 업로드 오류:', error);
+                alert('프로필 이미지 업로드에 실패했습니다.');
+            }
         }
     };
 

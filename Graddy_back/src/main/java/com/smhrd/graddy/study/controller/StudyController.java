@@ -460,21 +460,33 @@ public class StudyController {
             @Parameter(description = "수정할 커리큘럼 텍스트 정보", required = true) @RequestBody Map<String, String> request,
             @Parameter(description = "JWT 토큰 (Bearer 형식)", example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", required = true) @RequestHeader(name = "Authorization", required = true) String authorization) {
         try {
+            System.out.println("🔍 [DEBUG] updateCurriculumText 호출 - studyProjectId: " + studyProjectId);
+            System.out.println("🔍 [DEBUG] updateCurriculumText 호출 - request: " + request);
+            System.out.println("🔍 [DEBUG] updateCurriculumText 호출 - authorization: " + (authorization != null ? "토큰 존재" : "토큰 없음"));
+            
             // JWT 토큰에서 user_id 추출하여 권한 확인
             String token = authorization.replace("Bearer ", "");
             String userId = jwtUtil.extractUserId(token);
+            System.out.println("🔍 [DEBUG] updateCurriculumText - 추출된 userId: " + userId);
 
             // 커리큘럼 텍스트 추출
             String curText = request.get("curText");
+            System.out.println("🔍 [DEBUG] updateCurriculumText - curText: " + (curText != null ? "텍스트 존재 (길이: " + curText.length() + ")" : "null"));
+            
             if (curText == null || curText.trim().isEmpty()) {
+                System.out.println("❌ [DEBUG] updateCurriculumText - 커리큘럼 텍스트가 비어있음");
                 return ApiResponse.error(HttpStatus.BAD_REQUEST, "커리큘럼 텍스트는 필수입니다.", null);
             }
 
             StudyResponse response = studyService.updateCurriculumText(studyProjectId, curText, userId);
+            System.out.println("✅ [DEBUG] updateCurriculumText - 성공적으로 완료");
             return ApiResponse.success("커리큘럼 텍스트가 성공적으로 업데이트되었습니다.", response);
         } catch (IllegalArgumentException e) {
+            System.out.println("❌ [DEBUG] updateCurriculumText - IllegalArgumentException: " + e.getMessage());
             return ApiResponse.error(HttpStatus.FORBIDDEN, e.getMessage(), null);
         } catch (Exception e) {
+            System.out.println("❌ [DEBUG] updateCurriculumText - Exception: " + e.getMessage());
+            e.printStackTrace();
             return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "커리큘럼 텍스트 업데이트 중 오류가 발생했습니다: " + e.getMessage(),
                     null);
         }

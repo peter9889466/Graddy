@@ -153,36 +153,111 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
     }
   }, [memberId]);
 
-  // 파일 업로드 API (실제 구현 필요)
+  // 파일 업로드 API
   const uploadFile = useCallback(async (file: File): Promise<string> => {
-    // 실제 파일 업로드 로직 구현 필요
-    // 현재는 임시로 파일명 반환
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(`uploaded/${file.name}`);
-      }, 1000);
+    console.log("🚀 [DEBUG] 파일 업로드 시작:", file.name);
+    console.log("📄 [DEBUG] 파일 정보:", {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      lastModified: file.lastModified
     });
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      console.log("📡 [DEBUG] FormData 생성 완료, 서버 요청 시작");
+
+      const response = await fetch('http://localhost:8080/api/files/upload/assignment', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('userToken')}`
+        }
+      });
+
+      console.log("📡 [DEBUG] 서버 응답 받음:", response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("❌ [DEBUG] 파일 업로드 실패:", response.status, errorText);
+        throw new Error(`파일 업로드 실패: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("✅ [DEBUG] 파일 업로드 성공:", result);
+      
+      // 스토리지 타입 및 상세 정보 디버깅
+      console.log("🏗️ [DEBUG] 업로드 응답 상세 분석:", {
+        fullResponse: result,
+        storageType: result.data?.storageType || 'unknown',
+        fileName: result.data?.fileName,
+        fileUrl: result.data?.fileUrl,
+        uploadTime: new Date().toISOString()
+      });
+      
+      const fileUrl = result.data?.fileUrl;
+      const storageType = result.data?.storageType || 'unknown';
+      
+      if (!fileUrl) {
+        console.error("❌ [DEBUG] 파일 URL이 응답에 없음:", result);
+        throw new Error('파일 URL을 받지 못했습니다.');
+      }
+
+      // URL 타입 분석
+      const isS3Url = fileUrl.includes('s3.') || fileUrl.includes('localhost:4566') || fileUrl.includes('graddy-files');
+      const isLocalUrl = fileUrl.startsWith('/api/files/');
+      
+      console.log("📎 [DEBUG] 파일 업로드 결과 분석:", {
+        storageType,
+        fileUrl,
+        isS3Url,
+        isLocalUrl,
+        urlLength: fileUrl.length,
+        urlDomain: new URL(fileUrl, window.location.origin).hostname
+      });
+      
+      // 🚫 로컬스토리지 저장 중단 확인
+      console.log("💾 [DEBUG] 로컬스토리지 저장 중단됨 - S3/서버 기반 파일 관리 사용");
+
+      return fileUrl;
+
+    } catch (error) {
+      console.error("💥 [DEBUG] 파일 업로드 오류:", error);
+      throw error;
+    }
   }, []);
 
   // 과제 제출 API
   const submitAssignment = useCallback(async () => {
+    console.log("🚀 [DEBUG] 과제 제출 시작");
+    console.log("👤 [DEBUG] 인증 상태:", authContext?.isLoggedIn);
+    console.log("📋 [DEBUG] 선택된 과제:", selectedAssignment?.assignmentId);
+    console.log("📝 [DEBUG] 제출 내용 길이:", assignmentContent.trim().length);
+    console.log("📎 [DEBUG] 첨부 파일:", selectedFile?.name || '없음');
+
     if (!authContext?.isLoggedIn || !authContext.user?.nickname) {
+      console.error("❌ [DEBUG] 로그인 필요");
       setError("로그인이 필요합니다.");
       return;
     }
 
     if (!selectedAssignment) {
+      console.error("❌ [DEBUG] 과제 미선택");
       setError("과제를 선택해주세요.");
       return;
     }
 
     // 이미 제출한 과제인지 확인
     if (selectedAssignment.isSubmitted) {
+      console.error("❌ [DEBUG] 이미 제출한 과제");
       setError("이미 제출한 과제입니다. 한 과제당 한 번만 제출할 수 있습니다.");
       return;
     }
 
     if (!assignmentContent.trim()) {
+      console.error("❌ [DEBUG] 제출 내용 없음");
       setError("과제 내용을 작성해주세요.");
       return;
     }
@@ -194,7 +269,11 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
       // 파일 업로드 처리
       let fileUrl: string | null = null;
       if (selectedFile) {
+        console.log("📎 [DEBUG] 파일 업로드 시작");
         fileUrl = await uploadFile(selectedFile);
+        console.log("✅ [DEBUG] 파일 업로드 완료:", fileUrl);
+      } else {
+        console.log("📎 [DEBUG] 첨부 파일 없음");
       }
 
       // 과제 제출 API 호출
@@ -205,16 +284,22 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
         fileUrl: fileUrl
       };
 
+      console.log("📦 [DEBUG] 제출 데이터:", submissionData);
+
+      console.log("🌐 [DEBUG] 서버에 제출 요청 시작");
       const response = await fetch('http://localhost:8080/api/submissions/submit', {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify(submissionData)
       });
 
+      console.log("📡 [DEBUG] 서버 응답 받음:", response.status);
       const responseData: SubmissionResponse = await response.json();
+      console.log("📋 [DEBUG] 응답 데이터:", responseData);
 
       if (response.ok && responseData.status === 200) {
         // 제출 성공
+        console.log("✅ [DEBUG] 과제 제출 성공");
         setIsSubmitted(true);
         setShowSuccessMessage(true);
         setSubmitMessage(responseData.message);
@@ -228,7 +313,7 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
           )
         );
         
-        console.log("과제 제출 성공:", responseData.data);
+        console.log("📄 [DEBUG] 제출 완료 데이터:", responseData.data);
 
         // 성공 메시지 자동 숨김
         setTimeout(() => {
@@ -237,13 +322,17 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
 
       } else {
         // 서버 에러 응답
+        console.error("❌ [DEBUG] 제출 실패:", responseData);
         throw new Error(responseData.message || '과제 제출에 실패했습니다.');
       }
 
     } catch (err: any) {
-      console.error("과제 제출 오류:", err);
+      console.error("💥 [DEBUG] 과제 제출 오류:", err);
+      console.error("💥 [DEBUG] 오류 타입:", typeof err);
+      console.error("💥 [DEBUG] 오류 메시지:", err.message);
       setError(err.message || '과제 제출 중 오류가 발생했습니다.');
     } finally {
+      console.log("🏁 [DEBUG] 과제 제출 프로세스 완료");
       setIsSubmitting(false);
     }
   }, [authContext, selectedAssignment, assignmentContent, selectedFile, uploadFile]);

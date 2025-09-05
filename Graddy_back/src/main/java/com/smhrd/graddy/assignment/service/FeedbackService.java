@@ -187,8 +187,16 @@ public class FeedbackService {
      */
     private Map<String, Object> generateAiFeedback(Assignment assignment, Submission submission) {
         try {
+            log.info("🚀 [DEBUG] AI 피드백 생성 시작");
+            log.info("📝 [DEBUG] 과제 정보 - ID: {}, 제목: {}", assignment.getAssignmentId(), assignment.getTitle());
+            log.info("📄 [DEBUG] 제출 정보 - ID: {}, 회원ID: {}, 내용길이: {}", 
+                    submission.getSubmissionId(), submission.getMemberId(), 
+                    submission.getContent() != null ? submission.getContent().length() : 0);
+            log.info("📎 [DEBUG] 첨부파일 URL: {}", submission.getFileUrl());
+            
             // FastAPI 서버에 피드백 생성 요청
             String url = fastApiServerUrl + "/generate-feedback";
+            log.info("🌐 [DEBUG] FastAPI 서버 URL: {}", url);
             
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -200,34 +208,56 @@ public class FeedbackService {
             requestBody.put("submission_content", submission.getContent());
             requestBody.put("submission_file_url", submission.getFileUrl());
 
+            log.info("📦 [DEBUG] 요청 데이터:");
+            log.info("  - assignment_title: {}", assignment.getTitle());
+            log.info("  - assignment_description 길이: {}", assignment.getDescription() != null ? assignment.getDescription().length() : 0);
+            log.info("  - submission_content 길이: {}", submission.getContent() != null ? submission.getContent().length() : 0);
+            log.info("  - submission_file_url: {}", submission.getFileUrl());
+
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
-            log.info("FastAPI 서버 호출: {}", url);
+            log.info("🌐 [DEBUG] FastAPI 서버 호출 시작: {}", url);
             Map<String, Object> response = restTemplate.postForObject(url, entity, Map.class);
+            log.info("✅ [DEBUG] FastAPI 서버 응답 받음");
 
             if (response != null) {
+                log.info("📊 [DEBUG] FastAPI 응답 분석:");
+                log.info("  - 응답 키들: {}", response.keySet());
+                
                 // 응답에서 피드백 정보 추출
                 Integer score = (Integer) response.get("score");
                 String comment = (String) response.get("comment");
                 String detailedFeedback = (String) response.get("detailed_feedback");
+
+                log.info("📊 [DEBUG] 추출된 데이터:");
+                log.info("  - score: {}", score);
+                log.info("  - comment 길이: {}", comment != null ? comment.length() : 0);
+                log.info("  - detailed_feedback 길이: {}", detailedFeedback != null ? detailedFeedback.length() : 0);
 
                 Map<String, Object> result = new HashMap<>();
                 result.put("score", score != null ? score : 5);
                 result.put("comment", comment != null ? comment : "피드백이 생성되었습니다.");
                 result.put("detailed_feedback", detailedFeedback);
 
+                log.info("✅ [DEBUG] AI 피드백 생성 완료 - 점수: {}", result.get("score"));
                 return result;
             } else {
+                log.error("❌ [DEBUG] FastAPI 서버로부터 null 응답 받음");
                 throw new RuntimeException("FastAPI 서버로부터 응답을 받지 못했습니다.");
             }
 
         } catch (Exception e) {
-            log.error("AI 피드백 생성 중 오류 발생", e);
+            log.error("💥 [DEBUG] AI 피드백 생성 중 오류 발생", e);
+            log.error("💥 [DEBUG] 오류 타입: {}", e.getClass().getSimpleName());
+            log.error("💥 [DEBUG] 오류 메시지: {}", e.getMessage());
+            
             // 기본 피드백 반환
             Map<String, Object> defaultFeedback = new HashMap<>();
             defaultFeedback.put("score", 5);
             defaultFeedback.put("comment", "AI 피드백 생성에 실패하여 기본 피드백을 제공합니다.");
             defaultFeedback.put("detailed_feedback", "과제 제출이 확인되었습니다.");
+            
+            log.warn("⚠️ [DEBUG] 기본 피드백 반환 - 점수: {}", defaultFeedback.get("score"));
             return defaultFeedback;
         }
     }

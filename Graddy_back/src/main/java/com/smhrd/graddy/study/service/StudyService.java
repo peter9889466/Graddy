@@ -836,18 +836,29 @@ public class StudyService {
      */
     @Transactional
     public StudyResponse updateCurriculumText(Long studyProjectId, String curText, String userId) {
+        System.out.println("🔍 [DEBUG] StudyService.updateCurriculumText 호출 - studyProjectId: " + studyProjectId + ", userId: " + userId);
+        
         // 스터디/프로젝트 조회
         StudyProject studyProject = studyProjectRepository.findById(studyProjectId)
                 .orElseThrow(() -> new IllegalArgumentException("스터디/프로젝트를 찾을 수 없습니다: " + studyProjectId));
 
+        System.out.println("🔍 [DEBUG] StudyService.updateCurriculumText - 스터디/프로젝트 조회 성공: " + studyProject.getStudyProjectName());
+        System.out.println("🔍 [DEBUG] StudyService.updateCurriculumText - 스터디/프로젝트 생성자 ID: " + studyProject.getUserId());
+        System.out.println("🔍 [DEBUG] StudyService.updateCurriculumText - 요청자 ID: " + userId);
+
         // 권한 확인: 스터디/프로젝트 생성자만 수정 가능
         if (!userId.equals(studyProject.getUserId())) {
+            System.out.println("❌ [DEBUG] StudyService.updateCurriculumText - 권한 없음: " + userId + " != " + studyProject.getUserId());
             throw new IllegalArgumentException("커리큘럼 텍스트 수정 권한이 없습니다. 스터디/프로젝트 생성자만 수정할 수 있습니다.");
         }
+
+        System.out.println("✅ [DEBUG] StudyService.updateCurriculumText - 권한 확인 통과");
 
         // 커리큘럼 텍스트 업데이트
         studyProject.setCurText(curText);
         StudyProject savedStudyProject = studyProjectRepository.save(studyProject);
+
+        System.out.println("✅ [DEBUG] StudyService.updateCurriculumText - 데이터베이스 저장 완료");
 
         // StudyResponse로 변환하여 반환
         return convertToResponse(savedStudyProject);
