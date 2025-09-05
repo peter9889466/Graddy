@@ -1,0 +1,59 @@
+# 로컬 개발 환경용 Docker Compose 파일
+# AWS S3 대신 LocalStack을 사용하여 테스트할 수 있습니다.
+# 사용법: docker-compose -f docker-compose.dev.yml up -d
+
+services:
+    # LocalStack - AWS 서비스 로컬 시뮬레이션
+    localstack:
+        container_name: graddy-localstack
+        image: localstack/localstack:latest
+        ports:
+            - "4566:4566"  # LocalStack 엣지 포트
+        environment:
+            - SERVICES=s3  # S3 서비스만 활성화
+            - DEBUG=1
+            - DATA_DIR=/tmp/localstack/data
+            - PERSISTENCE=1  # 데이터 지속성 활성화
+            - AWS_DEFAULT_REGION=ap-northeast-2
+            - AWS_ACCESS_KEY_ID=test
+            - AWS_SECRET_ACCESS_KEY=test
+        volumes:
+            - "./localstack-data:/var/lib/localstack"
+            - "/var/run/docker.sock:/var/run/docker.sock"
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://localhost:4566/health"]
+            interval: 30s
+            timeout: 10s
+            retries: 5
+        networks:
+            - graddy-dev-net
+
+    # LocalStack 초기화 컨테이너 (S3 버킷 자동 생성)
+    localstack-setup:
+        image: amazon/aws-cli:latest
+        depends_on:
+            localstack:
+                condition: service_healthy
+        environment:
+            - AWS_ACCESS_KEY_ID=test
+            - AWS_SECRET_ACCESS_KEY=test
+            - AWS_DEFAULT_REGION=ap-northeast-2
+        command: >
+            sh -c "
+                aws --endpoint-url=http://localstack:4566 s3 mb s3://graddy-files || true &&
+                aws --endpoint-url=http://localstack:4566 s3api put-bucket-cors --bucket graddy-files --cors-configuration '{
+                    \"CORSRules\": [{
+                        \"AllowedHeaders\": [\"*\"],
+                        \"AllowedMethods\": [\"GET\", \"PUT\", \"POST\", \"DELETE\"],
+                        \"AllowedOrigins\": [\"*\"],
+                        \"ExposeHeaders\": [\"ETag\"]
+                    }]
+                }' || true &&
+                echo 'LocalStack S3 setup completed!'
+            "
+        networks:
+            - graddy-dev-net
+
+networks:
+    graddy-dev-net:
+        driver: bridge

@@ -1,8 +1,7 @@
 import { updateCurriculumText } from "@/services/studyApi";
 import { Edit, Save, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+
 interface CurriculumProps {
     curriculumText: string;
     isStudyLeader: boolean;
@@ -28,16 +27,26 @@ const Curriculum: React.FC<CurriculumProps> = ({
         if (isEditing) {
             console.log('💾 커리큘럼 저장 시작...');
             console.log('   - Study Project ID:', studyProjectId);
-            console.log('   - Editing Text:', editingText);
+            console.log('   - Editing Text Length:', editingText.length);
             console.log('   - Is Study Leader:', isStudyLeader);
+            console.log('   - Current User Token:', localStorage.getItem('userToken') ? '토큰 존재' : '토큰 없음');
+            console.log('   - Current User Data:', localStorage.getItem('userData'));
 
             if (!isStudyLeader) {
+                console.log('❌ 권한 없음: isStudyLeader가 false입니다.');
                 alert('스터디 리더만 커리큘럼을 수정할 수 있습니다.');
                 return;
             }
 
             try {
                 // 백엔드에 curText 업데이트 API 호출
+                console.log('🔍 [DEBUG] Curriculum 컴포넌트 - API 호출 전:', {
+                    studyProjectId,
+                    editingTextLength: editingText.length,
+                    isStudyLeader,
+                    token: localStorage.getItem('userToken') ? '토큰 존재' : '토큰 없음'
+                });
+                
                 await updateCurriculumText(studyProjectId, editingText);
                 
                 if (onCurriculumUpdate) {
@@ -48,9 +57,25 @@ const Curriculum: React.FC<CurriculumProps> = ({
                 console.log('✅ 커리큘럼 저장 성공!');
                 alert('커리큘럼이 성공적으로 업데이트되었습니다.');
 
-            } catch (error) {
+            } catch (error: any) {
                 console.error('❌ 커리큘럼 업데이트 실패:', error);
-                alert('커리큘럼 업데이트에 실패했습니다. 자세한 내용은 콘솔을 확인해주세요.');
+                console.error('❌ 에러 상세 정보:', {
+                    status: error.response?.status,
+                    statusText: error.response?.statusText,
+                    data: error.response?.data,
+                    message: error.message
+                });
+                
+                let errorMessage = '커리큘럼 업데이트에 실패했습니다.';
+                if (error.response?.status === 403) {
+                    errorMessage = '권한이 없습니다. 스터디 리더만 커리큘럼을 수정할 수 있습니다.';
+                } else if (error.response?.status === 401) {
+                    errorMessage = '로그인이 필요합니다. 다시 로그인해주세요.';
+                } else if (error.response?.data?.message) {
+                    errorMessage = error.response.data.message;
+                }
+                
+                alert(errorMessage);
             }
         } else {
             setIsEditing(true);
@@ -102,25 +127,19 @@ const Curriculum: React.FC<CurriculumProps> = ({
             <div className="bg-white rounded-xl shadow-sm border-2 p-6">
                 {isEditing ? (
                     <div className="space-y-4">
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                            <p className="text-sm text-blue-800">
-                                💡 <strong>마크다운 팁:</strong> 제목은 #, ##, ###로 작성하고, 목록은 - 또는 *로 작성하세요. 
-                                <strong>**굵은 글씨**</strong>, <em>*기울임*</em>, `코드` 등도 사용할 수 있습니다.
-                            </p>
-                        </div>
                         <textarea
                             value={editingText}
                             onChange={(e) => setEditingText(e.target.value)}
                             className="w-full text-gray-700 bg-gray-50 border border-gray-300 rounded px-3 py-2 min-h-[400px] resize-y font-mono text-sm"
-                            placeholder="# 커리큘럼 제목&#10;&#10;## 1주차&#10;- 학습 목표: ...&#10;- 주요 내용: ...&#10;&#10;## 2주차&#10;- 학습 목표: ...&#10;- 주요 내용: ..."
+                            placeholder="커리큘럼을 입력하세요..."
                         />
                     </div>
                 ) : (
-                    <div className="text-gray-700 min-h-[400px] prose prose-sm max-w-none prose-headings:text-gray-800 prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-p:text-gray-700 prose-strong:text-gray-800 prose-code:bg-gray-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-gray-50 prose-pre:border prose-pre:border-gray-200 prose-ul:list-disc prose-ol:list-decimal prose-li:text-gray-700">
+                    <div className="text-gray-700 min-h-[400px]">
                         {curriculumText ? (
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            <pre className="whitespace-pre-wrap font-sans text-sm">
                                 {curriculumText}
-                            </ReactMarkdown>
+                            </pre>
                         ) : (
                             <div className="text-center py-12">
                                 <p className="text-gray-500 italic text-lg">커리큘럼이 아직 작성되지 않았습니다.</p>

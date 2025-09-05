@@ -234,17 +234,6 @@ const handleProcessApplication = async (userId: string, status: 'APPROVED' | 'RE
                     ))}
                 </div>
                 
-                {/* 가입 신청 버튼 - 로그인했고 멤버가 아닌 경우만 표시 */}
-                {isLoggedIn && !isStudyMember && userMemberType !== 'leader' && (
-                    <div className="mt-3">
-                        <button
-                            onClick={onApplyToStudy}   // ✅ Page에서 내려주는 함수 사용
-                            className="w-full px-3 py-2 bg-[#8B85E9] text-white rounded-lg text-sm font-medium hover:bg-[#7C76D8] transition-colors duration-200"
-                        >
-                            {isProject ? "프로젝트 가입 신청" : "스터디 가입 신청"}
-                        </button>
-                    </div>
-                )}
             </div>
 
             {/* 프로필 모달 */}

@@ -1,4 +1,4 @@
-import React, { useRef, useState, useContext, useEffect } from 'react'
+import React, { useRef, useState, useContext, useEffect, useMemo } from 'react'
 import ChartComponent from '../detail/chart/LineChart'; // 위에서 만든 Chart 컴포넌트
 import { LineChart, MessageCircle, Reply, Trash2, User, Paperclip } from 'lucide-react';
 import { AuthContext } from '../../contexts/AuthContext';
@@ -97,6 +97,8 @@ interface FeedBackProps {
         currentUserId, 
         members 
     }) => {
+        // 디버깅 함수 제거됨 - 로컬스토리지 의존성 제거
+
         // 디버깅을 위한 콘솔 로그
         console.log('FeedBack 컴포넌트 - 전달받은 데이터:', {
             studyProjectId,
@@ -139,6 +141,63 @@ interface FeedBackProps {
         return headers;
     };
 
+    // 안전한 날짜 포맷팅 유틸리티 - 오류 방지
+    const formatDate = (dateString: string | undefined | null): string => {
+        if (!dateString) return '날짜 없음';
+        
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) {
+                console.warn('⚠️ [DEBUG] 잘못된 날짜 형식:', dateString);
+                return '유효하지 않은 날짜';
+            }
+            
+            return date.toLocaleDateString('ko-KR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch (error) {
+            console.error('❌ [DEBUG] 날짜 포맷팅 오류:', error, '원본:', dateString);
+            return '날짜 오류';
+        }
+    };
+
+    // 스토리지 상태 종합 디버깅 함수
+    const debugStorageStatus = () => {
+        console.log('🔍 [DEBUG] =============== 스토리지 상태 종합 분석 ===============');
+        
+        // 로컬스토리지 상태 확인
+        const allKeys = Object.keys(localStorage);
+        const attachmentKeys = allKeys.filter(key => key.startsWith('attachment_'));
+        const submissionKeys = allKeys.filter(key => key.startsWith('submission_'));
+        
+        console.log('💾 [DEBUG] 로컬스토리지 현황:', {
+            totalKeys: allKeys.length,
+            attachmentKeys: attachmentKeys.length,
+            submissionKeys: submissionKeys.length,
+            shouldBeEmpty: '로컬스토리지는 더 이상 첨부파일 저장용으로 사용되지 않음'
+        });
+        
+        // 현재 제출 데이터 분석
+        if (currentSubmissionData?.fileUrl) {
+            const fileUrl = currentSubmissionData.fileUrl;
+            const isS3Url = fileUrl.includes('s3.') || fileUrl.includes('localhost:4566') || fileUrl.includes('graddy-files');
+            const isLocalUrl = fileUrl.startsWith('/api/files/');
+            
+            console.log('📎 [DEBUG] 현재 첨부파일 분석:', {
+                fileUrl,
+                urlType: isS3Url ? 'S3' : isLocalUrl ? 'Local Server' : 'Unknown',
+                storageSystem: isS3Url ? '☁️ S3 스토리지' : '💽 로컬 서버',
+                submissionId: currentSubmissionData.submissionId
+            });
+        }
+        
+        console.log('🔍 [DEBUG] ========================================================');
+    };
+
     // 댓글 관련 상태 (기본값 제거)
     const [comments, setComments] = useState<UiComment[]>([]);
 
@@ -148,21 +207,32 @@ interface FeedBackProps {
     
     const fetchAssignments = async () => {
         try {
+            console.log('📋 [DEBUG] 과제 목록 조회 시작 - studyProjectId:', studyProjectId);
+            
             const response = await fetch(`http://localhost:8080/api/assignments/study-project/${studyProjectId}`,
                 { method: 'GET', headers: getAuthHeaders() }
             );
+            
+            console.log('📋 [DEBUG] 과제 목록 조회 응답:', response.status);
+            
             if (!response.ok) {
                 throw new Error(`과제 목록 조회 실패: ${response.status}`);
             }
+            
             const data = await response.json();
+            console.log('📋 [DEBUG] 과제 목록 데이터:', data);
+            
             if (data.status === 200) {
-                setAssignments(data.data || []);
+                const assignmentList = data.data || [];
+                setAssignments(assignmentList);
+                console.log('📋 [DEBUG] 과제 목록 설정 완료:', assignmentList.length, '개');
             } else {
                 throw new Error(data.message || '과제 목록 조회 실패');
             }
         } catch (err) {
-            console.error('과제 목록 조회 실패:', err);
+            console.error('❌ [DEBUG] 과제 목록 조회 실패:', err);
             setError(err instanceof Error ? err.message : '과제 목록 조회 실패');
+            setAssignments([]); // 실패 시 빈 배열로 초기화
         }
     };
 
@@ -213,8 +283,37 @@ interface FeedBackProps {
             const data: SingleSubmissionResponse = await response.json();
             
             if (data.status === 200) {
-                setCurrentSubmissionData(data.data);
-                setAssignmentContent(data.data.content);
+                // 과제 제출 데이터 설정 및 상세 분석
+                console.log('🔍 [DEBUG] 과제 제출 데이터 로드:', data.data);
+                
+                const submissionData = data.data;
+                const fileUrl = submissionData.fileUrl;
+                
+                // 첨부파일 상세 분석
+                if (fileUrl) {
+                    const isS3Url = fileUrl.includes('s3.') || fileUrl.includes('localhost:4566') || fileUrl.includes('graddy-files');
+                    const isLocalUrl = fileUrl.startsWith('/api/files/');
+                    const isFullUrl = fileUrl.startsWith('http');
+                    
+                    console.log('📎 [DEBUG] 첨부파일 상세 분석:', {
+                        fileUrl,
+                        isS3Url,
+                        isLocalUrl,
+                        isFullUrl,
+                        urlLength: fileUrl.length,
+                        submissionId: submissionData.submissionId,
+                        createdAt: submissionData.createdAt
+                    });
+                    
+                    // 🚫 로컬스토리지 저장 완전 중단
+                    console.log('💾 [DEBUG] 로컬스토리지 저장 중단 - 첨부파일은 서버에서 관리됨');
+                    
+                } else {
+                    console.log('📎 [DEBUG] 첨부파일 없음');
+                }
+                
+                setCurrentSubmissionData(submissionData);
+                setAssignmentContent(submissionData.content);
                 
                 // 과제 내용을 가져온 후 AI 피드백 자동 생성
                 await generateAIFeedback(data.data.submissionId);
@@ -233,36 +332,43 @@ interface FeedBackProps {
         }
     };
 
-    const getAssignmentOptions = () => {
-        if (submissions.length === 0) return [];
+    // useMemo로 과제 옵션 최적화 - assignments가 변경될 때만 재계산
+    const assignmentOptions = useMemo(() => {
+        console.log('📋 [DEBUG] assignmentOptions 재계산 - assignments:', assignments.length);
         
-        // assignmentId별로 그룹화하여 중복 제거
-        const uniqueAssignments = submissions.reduce((acc, submission) => {
-            if (!acc.some(item => item.assignmentId === submission.assignmentId)) {
-                // assignments 배열에서 해당 과제 정보 찾기 (과제 제목을 가져오기 위해)
-                const assignmentInfo = assignments.find(a => a.assignmentId === submission.assignmentId);
-                if(assignmentInfo != null){
-                    acc.push({
-                        assignmentId: submission.assignmentId,
-                        value: `assignment_${submission.assignmentId}`,
-                        // label: assignmentInfo ? assignmentInfo.title : `과제 #${submission.assignmentId}`,
-                        label: assignmentInfo ? assignmentInfo.title : null,
-                        period: assignmentInfo ? new Date(submission.createdAt).toLocaleDateString('ko-KR', {
-                            year: 'numeric',
-                            month: '2-digit',
-                            day: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        }) : null
-                        // createdAt: assignmentInfo ? submission.createdAt : null
-                    });
-                }
-            }
-            return acc;
-        }, [] as any[]);
+        if (assignments.length === 0) return [];
         
-        return uniqueAssignments.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    };
+        // assignments 배열을 기반으로 과제 옵션 생성 (모든 과제 표시)
+        const options = assignments.map(assignment => {
+            const option = {
+                assignmentId: assignment.assignmentId,
+                value: `assignment_${assignment.assignmentId}`,
+                label: assignment.title || `과제 #${assignment.assignmentId}`,
+                period: formatDate(assignment.createdAt),
+                deadline: formatDate(assignment.deadline),
+                // 정렬을 위한 원본 날짜 보존
+                _createdAt: assignment.createdAt,
+                _deadline: assignment.deadline
+            };
+            
+            console.log('📋 [DEBUG] 과제 옵션 생성:', {
+                id: option.assignmentId,
+                title: option.label,
+                created: option.period,
+                deadline: option.deadline
+            });
+            
+            return option;
+        }).sort((a, b) => {
+            // 안전한 날짜 정렬
+            const dateA = new Date(a._createdAt || 0);
+            const dateB = new Date(b._createdAt || 0);
+            return dateB.getTime() - dateA.getTime();
+        });
+        
+        console.log('📋 [DEBUG] assignmentOptions 생성 완료:', options.length, '개');
+        return options;
+    }, [assignments]);
 
     const fetchAssignmentSubmissions = async (assignmentId: number) => {
         try {
@@ -290,16 +396,16 @@ interface FeedBackProps {
             setLoading(false);
         }
     };
-    
-    const assignmentOptions = getAssignmentOptions();
 
-    // 과제 제출한 사람들의 목록을 동적으로 생성
-    const getMemberOptions = () => {
+    // useMemo로 멤버 옵션 최적화 - assignmentSubmissions, members, selectedAssignment가 변경될 때만 재계산
+    const memberOptions = useMemo(() => {
+        console.log('👥 [DEBUG] memberOptions 재계산 - assignmentSubmissions:', assignmentSubmissions.length, 'selectedAssignment:', selectedAssignment);
+        
         if (selectedAssignment === '과제를 선택하세요' || assignmentSubmissions.length === 0) {
             return [];
         }
         
-        return assignmentSubmissions.map(submission => {
+        const options = assignmentSubmissions.map(submission => {
             // members prop에서 해당 멤버 정보 찾기
             const member = members.find(m => m.memberId === submission.memberId);
             
@@ -310,9 +416,10 @@ interface FeedBackProps {
                 submissionData: submission
             };
         });
-    };
-
-    const memberOptions = getMemberOptions();
+        
+        console.log('👥 [DEBUG] memberOptions 생성 완료:', options.length, '개');
+        return options;
+    }, [assignmentSubmissions, members, selectedAssignment]);
     
     const handleAssignmentClick = async (option: { assignmentId: number; value: string; label: string; period: string }) => {
         setSelectedAssignment(option.label);
@@ -399,17 +506,40 @@ interface FeedBackProps {
     // 컴포넌트 마운트 시 API 호출
     useEffect(() => {
         const fetchData = async () => {
+            console.log('📋 [DEBUG] 데이터 초기 로딩 시작');
             await Promise.all([
                 fetchSubmissions(),
                 fetchAssignments() // 과제 기본 정보 가져오기
             ]);
+            console.log('📋 [DEBUG] 데이터 초기 로딩 완료');
         };
         
-        fetchData();
-    }, []);
+        if (studyProjectId && members.length > 0) {
+            fetchData();
+        } else {
+            console.log('📋 [DEBUG] 데이터 로딩 대기 중 - studyProjectId:', studyProjectId, 'members:', members.length);
+        }
+    }, [studyProjectId, members.length]); // 의존성 배열 추가
 
-    // 선택된 과제의 기간 찾기
-    const selectedAssignmentData = assignmentOptions.find(option => option.label === selectedAssignment);
+    // 선택된 과제의 데이터 찾기 - useMemo로 최적화
+    const selectedAssignmentData = useMemo(() => {
+        const data = assignmentOptions.find(option => option.label === selectedAssignment);
+        console.log('📊 [DEBUG] selectedAssignmentData 재계산:', data?.label || 'none');
+        return data;
+    }, [assignmentOptions, selectedAssignment]);
+
+    // 전체 상태 디버깅을 위한 useEffect
+    useEffect(() => {
+        console.log('🔄 [DEBUG] 상태 변화 감지:', {
+            assignmentsCount: assignments.length,
+            assignmentOptionsCount: assignmentOptions.length,
+            memberOptionsCount: memberOptions.length,
+            selectedAssignment,
+            selectedMember,
+            loading,
+            error: error || 'none'
+        });
+    }, [assignments.length, assignmentOptions.length, memberOptions.length, selectedAssignment, selectedMember, loading, error]);
 
     // 드롭다운 외부 클릭 처리
     React.useEffect(() => {
@@ -503,20 +633,27 @@ interface FeedBackProps {
                     
                     {isAssignmentOpen && (
                         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-xl shadow-lg z-10 overflow-hidden">
-                            {assignmentOptions.map((option, index) => (
-                                <div
-                                    key={option.value}
-                                    onClick={() => handleAssignmentClick(option)}
-                                    className={`px-4 py-2 cursor-pointer transition-colors hover:bg-gray-50 ${index !== assignmentOptions.length - 1 ? 'border-b border-gray-100' : ''}`}
-                                    style={{ 
-                                        backgroundColor: selectedAssignment === option.label ? '#E8E6FF' : '#FFFFFF',
-                                        color: selectedAssignment === option.label ? '#8B85E9' : '#374151'
-                                    }}
-                                >
-                                    <div className="font-medium">{option.label}</div>
-                                    <div className="text-xs text-gray-500 mt-1">{option.period}</div>
+                            {assignmentOptions.length > 0 ? (
+                                assignmentOptions.map((option, index) => (
+                                    <div
+                                        key={option.value}
+                                        onClick={() => handleAssignmentClick(option)}
+                                        className={`px-4 py-2 cursor-pointer transition-colors hover:bg-gray-50 ${index !== assignmentOptions.length - 1 ? 'border-b border-gray-100' : ''}`}
+                                        style={{ 
+                                            backgroundColor: selectedAssignment === option.label ? '#E8E6FF' : '#FFFFFF',
+                                            color: selectedAssignment === option.label ? '#8B85E9' : '#374151'
+                                        }}
+                                    >
+                                        <div className="font-medium">{option.label}</div>
+                                        <div className="text-xs text-gray-500 mt-1">생성일: {option.period}</div>
+                                        <div className="text-xs text-gray-500">마감일: {option.deadline}</div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="px-4 py-3 text-gray-500 text-center">
+                                    {loading ? '과제 목록을 불러오는 중...' : '등록된 과제가 없습니다.'}
                                 </div>
-                            ))}
+                            )}
                         </div>
                     )}
                 </div>
@@ -610,11 +747,73 @@ interface FeedBackProps {
                                             <div className="flex-1">
                                                 <button 
                                                     className="text-sm font-medium text-[#8B85E9] hover:text-[#7A75D8] hover:underline transition-colors text-left"
-                                                    onClick={() => {
-                                                        window.open(currentSubmissionData.fileUrl, '_blank');
-                                                    }}
-                                                >
-                                                    첨부파일 보기
+                                                    onClick={async () => {
+                                                        // 간소화된 첨부파일 다운로드
+                                                        const fileUrl = currentSubmissionData.fileUrl;
+                                                        
+                                                        if (!fileUrl) {
+                                                            alert('첨부파일이 없습니다.');
+                                                            return;
+                                                        }
+
+                                                        try {
+                                                            let downloadUrl: string;
+                                                            
+                                                            if (fileUrl.startsWith('/api/files/')) {
+                                                                downloadUrl = `http://localhost:8080${fileUrl}`;
+                                                            } else if (fileUrl.startsWith('http')) {
+                                                                downloadUrl = fileUrl;
+                                                            } else {
+                                                                throw new Error('알 수 없는 URL 형식입니다.');
+                                                            }
+                                                            
+                                                            console.log('📥 [DEBUG] 파일 다운로드:', downloadUrl);
+                                                            
+                                                            const response = await fetch(downloadUrl);
+                                                            
+                                                            if (!response.ok) {
+                                                                throw new Error(`파일 다운로드 실패: ${response.status}`);
+                                                            }
+                                                            
+                                                            // 파일명 추출
+                                                            let fileName = 'attachment';
+                                                            const contentDisposition = response.headers.get('content-disposition');
+                                                            
+                                                            if (contentDisposition) {
+                                                                const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                                                                if (match) {
+                                                                    fileName = match[1].replace(/['"]/g, '');
+                                                                }
+                                                            } else {
+                                                                const urlParts = downloadUrl.split('/');
+                                                                const lastPart = urlParts[urlParts.length - 1];
+                                                                if (lastPart && lastPart.includes('.')) {
+                                                                    fileName = lastPart;
+                                                                }
+                                                            }
+                                                            
+                                                            // 파일 다운로드
+                                                            const blob = await response.blob();
+                                                            const url = window.URL.createObjectURL(blob);
+                                                            
+                                                            const link = document.createElement('a');
+                                                            link.href = url;
+                                                            link.download = fileName;
+                                                            link.style.display = 'none';
+                                                            document.body.appendChild(link);
+                                                            link.click();
+                                                            document.body.removeChild(link);
+                                                            
+                                                            window.URL.revokeObjectURL(url);
+                                                            
+                                                            console.log('✅ [DEBUG] 파일 다운로드 완료:', fileName);
+                                                            
+                                                        } catch (error) {
+                                                            console.error('💥 [DEBUG] 파일 다운로드 오류:', error);
+                                                            alert(`파일 다운로드에 실패했습니다: ${error}`);
+                                                        }
+                                                    }}>
+                                                    파일 다운로드
                                                 </button>
                                             </div>
                                         </div>

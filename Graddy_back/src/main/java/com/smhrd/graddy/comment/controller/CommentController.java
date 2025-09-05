@@ -228,12 +228,12 @@ public class CommentController {
             responseCode = "400", 
             description = "잘못된 요청",
             content = @Content(schema = @Schema(implementation = String.class))
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "401", 
-            description = "인증 실패, 권한 없음 또는 스터디 멤버가 아님",
-            content = @Content(schema = @Schema(implementation = String.class))
         )
+        // @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        //     responseCode = "401", 
+        //     description = "인증 실패, 권한 없음 또는 스터디 멤버가 아님",
+        //     content = @Content(schema = @Schema(implementation = String.class))
+        // )
     })
     @PutMapping("/{commentId}")
     public ResponseEntity<ApiResponse<CommentResponse>> updateComment(

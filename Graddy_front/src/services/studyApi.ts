@@ -322,9 +322,24 @@ export const getUserApplicationStatus = async (studyProjectId: number): Promise<
     }
 };
 
-// 커리큘럼 텍스                                                                                                         트 업데이트 함수
+// 커리큘럼 텍스트 업데이트 함수
 export const updateCurriculumText = async (studyProjectId: number, curText: string): Promise<void> => {
-    await apiPatch(`/studies-projects/${studyProjectId}/curriculum`, curText);
+    try {
+        console.log('🔍 [DEBUG] updateCurriculumText 호출:', {
+            studyProjectId,
+            curText: curText.substring(0, 100) + '...', // 텍스트가 길 수 있으므로 일부만 로그
+            requestData: { curText }
+        });
+        
+        const response = await apiPatch(`/studies-projects/${studyProjectId}/curriculum`, { curText });
+        console.log('✅ [DEBUG] updateCurriculumText 성공:', response);
+        
+        // void 반환 타입에 맞게 수정
+        return;
+    } catch (error) {
+        console.error('❌ [DEBUG] updateCurriculumText 실패:', error);
+        throw error;
+    }
 };
 
 // 게시글 작성
