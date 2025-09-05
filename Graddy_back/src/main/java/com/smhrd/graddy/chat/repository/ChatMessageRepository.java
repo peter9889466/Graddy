@@ -39,6 +39,20 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
     );
     
     /**
+     * 특정 스터디방의 메시지들을 생성 시간 순으로 조회
+     * 채팅 이력에서 최신 메시지가 맨 아래에 오도록 정렬
+     * 
+     * @param studyProjectId 스터디/프로젝트 ID
+     * @param pageable 페이징 정보
+     * @return 페이징된 메시지 목록
+     */
+    @Query("SELECT cm FROM ChatMessage cm WHERE cm.studyProjectId = :studyProjectId ORDER BY cm.createdAt ASC")
+    Page<ChatMessage> findByStudyProjectIdOrderByCreatedAtAsc(
+            @Param("studyProjectId") Long studyProjectId, 
+            Pageable pageable
+    );
+    
+    /**
      * 특정 스터디방의 특정 시간 이후 메시지들을 조회
      * 실시간 채팅에서 새 메시지만 가져올 때 사용
      * 

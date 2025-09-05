@@ -26,7 +26,7 @@ interface ProfileSectionProps {
     onGithubSave: () => void;
     onGithubCancel: () => void;
     onGithubChange: (value: string) => void;
-    fileInputRef: React.RefObject<HTMLInputElement>;
+    fileInputRef: React.RefObject<HTMLInputElement | null>;
 }
 
 const ProfileSection: React.FC<ProfileSectionProps> = ({
@@ -44,6 +44,8 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
     onGithubChange,
     fileInputRef,
 }) => {
+    console.log("🔍 [DEBUG] ProfileSection 렌더링 - userInterests:", userInterests);
+    
     const handleGithubChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         onGithubChange(value);
@@ -244,7 +246,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                             </div>
                         ) : (
                             <div className="flex flex-wrap gap-2">
-                                {userInterests.map((interest) => {
+                                {userInterests.map((interest: any) => {
                                     // InterestModal.tsx와 동일한 난이도별 Tailwind 색상 매핑
                                     const getDifficultyColors = (
                                         difficulty: string
@@ -290,10 +292,10 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
 
                                     return (
                                         <span
-                                            key={interest.id}
+                                            key={interest.id || interest.interestId}
                                             className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs sm:text-sm font-medium border ${bgColor} ${textColor} ${borderColor}`}
                                         >
-                                            <span>{interest.name}</span>
+                                            <span>{interest.name || interest.interestName}</span>
                                             <span
                                                 className={`text-xs px-1.5 py-0.5 rounded ${textColor} bg-white bg-opacity-50`}
                                             >

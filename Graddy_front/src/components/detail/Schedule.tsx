@@ -75,17 +75,28 @@ const Schedule: React.FC<ScheduleProps> = ({
             const response = await apiGet(`/assignments/study-project/${studyProjectId}`);
             console.log('과제 목록 응답:', response);
             
-            if (response.data && Array.isArray(response.data)) {
-                const assignments = response.data.map((assignment: any) => ({
+            // API 응답 구조 확인 - response.data.data 구조 처리
+            let assignmentsData = null;
+            
+            if (response?.data?.data && Array.isArray(response.data.data)) {
+                assignmentsData = response.data.data;
+            } else if (response?.data && Array.isArray(response.data)) {
+                assignmentsData = response.data;
+            }
+            
+            if (assignmentsData) {
+                const assignments = assignmentsData.map((assignment: any) => ({
                     id: assignment.assignmentId.toString(),
                     title: assignment.title,
                     type: 'assignment' as const,
                     date: new Date(assignment.deadline).toISOString().split('T')[0],
-                    description: assignment.description,
+                    description: assignment.description || '',
                     fileUrl: assignment.fileUrl || '',
                     createdAt: assignment.createdAt,
                     isExpanded: false
                 }));
+                
+                console.log('변환된 과제 목록:', assignments);
                 
                 // 기존 일정은 유지하고 과제만 업데이트
                 setScheduleItems(prevItems => {
@@ -93,13 +104,14 @@ const Schedule: React.FC<ScheduleProps> = ({
                     return [...assignments, ...existingSchedules];
                 });
             } else {
-                console.log('과제 데이터가 없거나 배열이 아닙니다:', response.data);
+                console.log('과제 데이터가 없거나 예상과 다른 구조:', response);
                 // 일정만 유지하고 과제는 빈 배열로 설정
                 setScheduleItems(prevItems => prevItems.filter(item => item.type === 'schedule'));
             }
 
         } catch (error) {
-            console.log('백엔드 API 호출 실패, 기존 일정만 유지:', error);
+            console.error('과제 목록 로드 실패:', error);
+            console.log('백엔드 API 호출 실패, 기존 일정만 유지');
             setScheduleItems(prevItems => prevItems.filter(item => item.type === 'schedule'));
         } finally {
             setIsLoading(false);
@@ -115,15 +127,15 @@ const Schedule: React.FC<ScheduleProps> = ({
             console.log('일정 목록 응답:', response);
             
             // 응답이 직접 배열인 경우와 data 프로퍼티에 배열이 있는 경우 모두 처리
-            const scheduleData = response.data || response;
+            const scheduleData = response?.data || response;
             
             if (scheduleData && Array.isArray(scheduleData)) {
                 const schedules = scheduleData.map((schedule: any) => ({
                     id: schedule.schId.toString(),
                     title: schedule.content,
                     type: 'schedule' as const,
-                    date: new Date(schedule.schTime).toISOString().split('T')[0],
-                    time: new Date(schedule.schTime).toISOString().split('T')[1].substring(0, 5),
+                    date: schedule.schTime.split('T')[0],
+                    time: schedule.schTime.split('T')[1].substring(0, 5),
                     description: schedule.content,
                     createdAt: schedule.schTime,
                     isExpanded: false
@@ -138,7 +150,7 @@ const Schedule: React.FC<ScheduleProps> = ({
                 console.log('일정 데이터가 없거나 배열이 아닙니다:', scheduleData);
             }
         } catch (error) {
-            console.log('일정 목록 로드 실패:', error);
+            console.error('일정 목록 로드 실패:', error);
         }
     };
 
@@ -176,34 +188,25 @@ const Schedule: React.FC<ScheduleProps> = ({
                         const response = await apiPost('/assignments', assignmentData);
                         console.log('과제 추가 응답:', response);
 
-                        console.log('response.data 확인:', response.data);
-                        console.log('response.data 타입:', typeof response.data);
-                        console.log('response.data가 truthy인가?', !!response.data);
+                        // 응답 구조 확인 및 처리
+                        const responseData = response?.data || response;
+                        console.log('response 전체:', response);
+                        console.log('responseData:', responseData);
                         
-                        if (response.data) {
+                        if (responseData) {
                             alert('과제가 추가되었습니다!');
-                            
-                            // 새로 생성된 과제를 목록에 추가
-                            const newAssignment: ScheduleItem = {
-                                id: (response.data as any).assignmentId?.toString() || Date.now().toString(),
-                                title: newItem.title,
-                                type: 'assignment',
-                                date: newItem.date,
-                                description: newItem.description,
-                                fileUrl: selectedFile ? selectedFile.name : '',
-                                createdAt: new Date().toISOString(),
-                                isExpanded: false
-                            };
-                            
-                            // 목록에 새 과제 추가
-                            setScheduleItems([...scheduleItems, newAssignment]);
                             
                             // 폼 초기화
                             setNewItem({ title: '', description: '', date: '', time: '' });
                             setSelectedFile(null);
                             setIsAdding(false);
                             
+                            // 과제 목록 다시 로드
+                            await loadAssignments();
+                            
                             return; // 성공 시 여기서 종료
+                        } else {
+                            throw new Error('응답 데이터가 없습니다');
                         }
                     } catch (apiError) {
                         console.error('과제 추가 API 호출 실패:', apiError);
@@ -216,7 +219,7 @@ const Schedule: React.FC<ScheduleProps> = ({
                         userId: userId,
                         studyProjectId: studyProjectId,
                         content: newItem.title,
-                        schTime: new Date(`${newItem.date}T${newItem.time || '00:00'}`).toISOString()
+                        schTime: `${newItem.date}T${newItem.time || '00:00'}`
                     };
 
                     console.log('일정 추가 데이터:', scheduleData);
@@ -225,7 +228,8 @@ const Schedule: React.FC<ScheduleProps> = ({
                         const response = await apiPost('/schedules/study', scheduleData);
                         console.log('일정 추가 응답:', response);
 
-                        if (response.data) {
+                        const responseData = response?.data || response;
+                        if (responseData) {
                             alert('일정이 추가되었습니다!');
                             
                             // 폼 초기화
@@ -237,6 +241,8 @@ const Schedule: React.FC<ScheduleProps> = ({
                             await loadSchedules();
                             
                             return; // 성공 시 여기서 종료
+                        } else {
+                            throw new Error('응답 데이터가 없습니다');
                         }
                     } catch (apiError) {
                         console.error('일정 추가 API 호출 실패:', apiError);
@@ -244,11 +250,6 @@ const Schedule: React.FC<ScheduleProps> = ({
                         return; // 실패 시 여기서 종료
                     }
                 }
-
-                // API 호출이 성공하지 않았을 때만 폼 초기화
-                setNewItem({ title: '', description: '', date: '', time: '' });
-                setSelectedFile(null);
-                setIsAdding(false);
             } catch (error) {
                 console.error('추가 실패:', error);
                 alert('추가에 실패했습니다. 다시 시도해주세요.');
@@ -272,10 +273,11 @@ const Schedule: React.FC<ScheduleProps> = ({
                 const response = await apiDelete(`/assignments/${id}`);
                 console.log('과제 삭제 응답:', response);
 
-                if (response.data) {
+                const responseData = response?.data || response;
+                if (responseData !== undefined) { // null이나 빈 객체도 성공으로 처리
                     alert('과제가 성공적으로 삭제되었습니다.');
-                    // 목록에서 삭제된 과제 제거
-                    setScheduleItems(scheduleItems.filter(item => item.id !== id));
+                    // 과제 목록 다시 로드
+                    await loadAssignments();
                 }
             } else {
                 console.log('일정 삭제 요청 - schId:', id);
@@ -308,6 +310,7 @@ const Schedule: React.FC<ScheduleProps> = ({
     };
 
     const handleEditSchedule = (item: ScheduleItem) => {
+        
         setEditingSchedule(item.id);
         setEditingData({
             title: item.title,
@@ -369,14 +372,15 @@ const Schedule: React.FC<ScheduleProps> = ({
             const response = await apiPost('/assignments/ai/generate', aiRequestData);
             console.log('AI 과제 생성 응답:', response);
 
-            if (response.data) {
-                setAiGeneratedAssignment(response.data);
+            const responseData = response?.data || response;
+            if (responseData) {
+                setAiGeneratedAssignment(responseData);
                 setShowAIPreview(true);
                 // AI 생성된 내용을 폼에 미리보기로 채우기
                 setNewItem({
-                    title: (response.data as any).title || '',
-                    description: (response.data as any).description || '',
-                    date: new Date((response.data as any).deadline).toISOString().split('T')[0],
+                    title: (responseData as any).title || '',
+                    description: (responseData as any).description || '',
+                    date: new Date((responseData as any).deadline).toISOString().split('T')[0],
                     time: ''
                 });
             }
@@ -582,7 +586,7 @@ const Schedule: React.FC<ScheduleProps> = ({
                                             ) : (
                                                 // 일반 표시 모드
                                                 <>
-                                                    <div className="flex items-center gap-3 mb-3">
+                                                    <div className="flex items-center gap-3">
                                                         <Calendar className="w-4 h-4 text-blue-600" />
                                                         <div className="flex-1">
                                                             <h4 className="font-medium text-gray-800">{item.title}</h4>
@@ -605,13 +609,14 @@ const Schedule: React.FC<ScheduleProps> = ({
                                                             </button>
                                                         </div>
                                                     </div>
-                                                    {item.createdAt && (
+                                                    {/* {item.createdAt 
+                                                    && (
                                                         <div className="mt-2">
                                                             <p className="text-xs text-gray-400">
                                                                 생성일: {new Date(item.createdAt).toLocaleDateString()}
                                                             </p>
                                                         </div>
-                                                    )}
+                                                    )} */}
                                                 </>
                                             )}
                                         </div>

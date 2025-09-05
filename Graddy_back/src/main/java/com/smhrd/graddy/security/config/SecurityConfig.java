@@ -35,6 +35,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         // 인증 관련 엔드포인트는 JWT 검증 없이 허용
                         .requestMatchers("/auth/login", "/auth/refresh", "/auth/logout", "/interests", "/studies-projects", "/scores/ranking/**" , "/free/posts", "/studies-projects/**").permitAll()
+                        // 채팅 관련 엔드포인트 허용 (JWT 인증 필요)
+                        .requestMatchers("/chat/**").authenticated()
+                        // WebSocket 엔드포인트 허용
+                        .requestMatchers("/ws-stomp/**").permitAll()
                         // Swagger UI 관련 경로 허용
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/api-docs/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**", "/api/swagger-ui/**", "/api/api-docs/**").permitAll()
                         // 나머지 요청은 인증 필요

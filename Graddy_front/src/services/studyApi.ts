@@ -9,7 +9,7 @@ export interface BackendStudyProjectData {
     studyLevel: number;
     typeCheck: string;
     userId: string;
-    isRecruiting: 'recruitment' | 'complete' | 'end';
+    isRecruiting: 'RECRUITING' | 'COMPLETE' | 'END';
     studyProjectStart: string;
     studyProjectEnd: string;
     studyProjectTotal: number;
@@ -322,9 +322,9 @@ export const getUserApplicationStatus = async (studyProjectId: number): Promise<
     }
 };
 
-// 커리큘럼 텍스트 업데이트 함수
+// 커리큘럼 텍스                                                                                                         트 업데이트 함수
 export const updateCurriculumText = async (studyProjectId: number, curText: string): Promise<void> => {
-    await apiPatch(`/studies-projects/${studyProjectId}/curriculum`, { curText });
+    await apiPatch(`/studies-projects/${studyProjectId}/curriculum`, curText);
 };
 
 // 게시글 작성

@@ -454,7 +454,7 @@ public class UserController {
         )
     })
     @GetMapping("/me/update")
-    public ResponseEntity<ApiResponse<Map<String, String>>> getUpdatePageInfo(
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getUpdatePageInfo(
         @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiJ9...") 
         @RequestHeader("Authorization") String authorizationHeader) {
         try {
@@ -463,7 +463,7 @@ public class UserController {
             String currentUserId = jwtUtil.extractUserId(token);
             
             // UserService를 통해 회원 정보 수정 페이지 데이터 조회
-            Map<String, String> updatePageInfo = userService.getUpdatePageInfo(currentUserId);
+            Map<String, Object> updatePageInfo = userService.getUpdatePageInfo(currentUserId);
             
             return ApiResponse.success("회원 정보 수정 페이지 데이터 조회가 완료되었습니다.", updatePageInfo);
             

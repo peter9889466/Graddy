@@ -18,8 +18,10 @@ import {
     updateUserInterests,
     updateUserGitInfo,
     withdrawUser,
+    getAllInterests, // userService에서 userApi로 이동
     UserProfileUpdateRequest,
     UserInterestsUpdateRequest,
+    UserInterest,
 } from "../services/userApi";
 
 // InterestModal과 동일한 타입 정의
@@ -29,6 +31,22 @@ interface SelectedInterestItem {
     category: string;
     difficulty: string;
 }
+
+// 카테고리 ID를 문자열로 변환하는 함수
+const getCategoryString = (interestDivision: number): string => {
+    switch (interestDivision) {
+        case 1:
+            return "language";
+        case 2:
+            return "framework";
+        case 3:
+            return "tool";
+        case 4:
+            return "platform";
+        default:
+            return "other";
+    }
+};
 
 export const MyPage = () => {
     const authContext = useContext(AuthContext);
@@ -48,14 +66,13 @@ export const MyPage = () => {
     const [loading, setLoading] = useState(true);
 
     // 회원정보 수정 관련 상태
-    const [password, setPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
-    const [passwordError, setPasswordError] = useState("");
     const [name, setName] = useState("");
     const [nickname, setNickname] = useState("");
-
     const [phone, setPhone] = useState("");
+    const [userId, setUserId] = useState("");
     const [userScore, setUserScore] = useState(0);
+    const [availableDays, setAvailableDays] = useState<string[]>([]);
+    const [availableTime, setAvailableTime] = useState("");
 
     // 사용자 닉네임
     const userNickname = nickname;
@@ -65,34 +82,60 @@ export const MyPage = () => {
         const loadData = async () => {
             try {
                 setLoading(true);
-
                 if (activeTab === "마이페이지") {
-                    const myPageResponse = await getMyPageInfo();
-                    if (myPageResponse.data.success) {
-                        const data = myPageResponse.data.data;
-                        setNickname(data.nick); // 백엔드 필드명에 맞게 수정
-                        setUserScore(data.userScore);
-                        setGithubUrl(data.gitUrl || ""); // 백엔드 필드명에 맞게 수정
-                        setIntroduction(""); // 백엔드에 introduction 필드가 없으므로 빈 문자열
+                    // 1. Fetch all possible interests to create a lookup map
+                    const allInterestsResponse = await getAllInterests();
+                    const allInterests: UserInterest[] = allInterestsResponse.data.data || [];
+                    const interestMap = new Map<string, UserInterest>(allInterests.map(i => [i.interestName, i]));
 
-                        // 관심분야 변환 (백엔드에서 문자열 배열로 반환)
-                        const interests = data.interests.map(
-                            (interestName: string, index: number) => ({
-                                id: index + 1, // 임시 ID
-                                name: interestName,
-                                category: "framework", // 기본값
-                                difficulty: "초급", // 기본값
-                            })
-                        );
-                        setUserInterests(interests);
+                    // 2. Fetch user's page info (which includes interest names)
+                    const myPageResponse = await getMyPageInfo();
+                    if (myPageResponse.data.data) {
+                        const data = myPageResponse.data.data;
+                        setNickname(data.nick);
+                        setUserScore(data.userScore || 0);
+                        setGithubUrl(data.gitUrl || "");
+                        setIntroduction(data.userRefer || "");
+
+                        // 3. Enrich user's interest names with full details
+                        console.log("🔍 [DEBUG] 마이페이지 데이터 로드 - interests:", data.interests);
+                        if (data.interests && Array.isArray(data.interests)) {
+                            const enrichedInterests = data.interests.map((interestName: string) => {
+                                const fullInterest = interestMap.get(interestName);
+                                if (fullInterest) {
+                                    return {
+                                        id: fullInterest.interestId,
+                                        name: fullInterest.interestName,
+                                        category: getCategoryString(fullInterest.interestDivision),
+                                        // 백엔드에서 난이도 정보를 제공하지 않으므로 기본값 사용
+                                        difficulty: "초급",
+                                    };
+                                }
+                                // Fallback for safety, though this shouldn't happen if data is consistent
+                                return { id: -1, name: interestName, category: 'other', difficulty: '초급' };
+                            }).filter(i => i.id !== -1); // Filter out any that weren't found
+
+                            console.log("🔍 [DEBUG] 매핑된 관심분야:", enrichedInterests);
+                            setUserInterests(enrichedInterests);
+                        } else {
+                            console.log("🔍 [DEBUG] 관심분야 데이터가 없음, 빈 배열로 설정");
+                            setUserInterests([]);
+                        }
+                    } else {
+                        alert("마이페이지 정보를 불러오는데 실패했습니다.");
                     }
                 } else if (activeTab === "회원정보 수정") {
                     const updatePageResponse = await getUpdatePageInfo();
-                    if (updatePageResponse.data.success) {
+                    if (updatePageResponse.data.data) {
                         const data = updatePageResponse.data.data;
-                        setName(data.name);
-                        setNickname(data.nick); // 백엔드 필드명에 맞게 수정
-                        setPhone(data.tel);
+                        setName(data.name || "");
+                        setNickname(data.nick || "");
+                        setPhone(data.tel || "");
+                        setUserId(data.userId || "");
+                        setAvailableDays(data.availableDays || []);
+                        setAvailableTime(data.availableTime || "");
+                    } else {
+                        alert("회원정보를 불러오는데 실패했습니다.");
                     }
                 }
             } catch (error) {
@@ -109,35 +152,29 @@ export const MyPage = () => {
     }, [activeTab, authContext?.isLoggedIn]);
 
     const handleDeleteAccount = async () => {
-        if (
-            window.confirm(
-                "정말로 회원탈퇴를 하시겠습니까? 이 작업은 되돌릴 수 없습니다."
-            )
-        ) {
-            try {
-                const response = await withdrawUser();
-                if (response.data.success) {
-                    alert("회원탈퇴가 완료되었습니다.");
-                    authContext?.logout();
-                    window.location.href = "/";
-                }
-            } catch (error) {
-                console.error("회원탈퇴 실패:", error);
-                alert("회원탈퇴에 실패했습니다.");
-            }
-        }
-        setShowDeleteModal(false);
-    };
-
-    const handleEditIntro = () => {
-        setIsEditingIntro(true);
+        // if (window.confirm("정말로 회원탈퇴를 하시겠습니까?")) {
+        //     try {
+        //         await withdrawUser();
+        //         alert("회원탈퇴가 완료되었습니다.");
+        //         authContext?.logout();
+        //         window.location.href = "/";
+        //     } catch (error) {
+        //         console.error("회원탈퇴 실패:", error);
+        //         alert("회원탈퇴에 실패했습니다.");
+        //     }
+        // }
+        setShowDeleteModal(true);
     };
 
     const handleSaveIntro = async () => {
         try {
-            // 소개글은 현재 API에 없으므로 임시로 로컬 상태만 업데이트
-            setIsEditingIntro(false);
-            alert("소개글이 저장되었습니다.");
+            const response = await updateUserGitInfo({ userRefer: introduction });
+            if (response.data.data) {
+                setIsEditingIntro(false);
+                alert("소개글이 저장되었습니다.");
+            } else {
+                alert("소개글 저장에 실패했습니다: " + response.data.message);
+            }
         } catch (error) {
             console.error("소개글 저장 실패:", error);
             alert("소개글 저장에 실패했습니다.");
@@ -154,60 +191,58 @@ export const MyPage = () => {
             const reader = new FileReader();
             reader.onload = (e) => {
                 setProfileImage(e.target?.result as string);
-                // TODO: 서버에 이미지 업로드 로직 추가
-                alert(
-                    "프로필 이미지가 변경되었습니다. (서버 업로드 기능은 추후 구현 예정)"
-                );
+                // TODO: Server upload logic
+                alert("프로필 이미지가 변경되었습니다. (서버 업로드 기능은 추후 구현 예정)");
             };
             reader.readAsDataURL(file);
         }
     };
 
-    const handleInterestEdit = () => {
-        setShowInterestModal(true);
-    };
-
-    const handleInterestComplete = async (
-        selectedInterests: SelectedInterestItem[]
-    ) => {
+    const handleInterestComplete = async (selectedInterests: SelectedInterestItem[]) => {
+        console.log("🔍 [DEBUG] handleInterestComplete 시작");
+        console.log("🔍 [DEBUG] 선택된 관심분야:", selectedInterests);
+        
         try {
+            // 난이도를 숫자로 변환하는 함수
+            const convertDifficultyToNumber = (difficulty: string): number => {
+                switch (difficulty) {
+                    case "초급": return 1;
+                    case "중급": return 2;
+                    case "고급": return 3;
+                    default: return 1;
+                }
+            };
+
             const requestData: UserInterestsUpdateRequest = {
                 interests: selectedInterests.map((interest) => ({
                     interestId: interest.id,
-                    interestLevel: interest.difficulty,
+                    interestLevel: convertDifficultyToNumber(interest.difficulty),
                 })),
             };
-
+            console.log("🔍 [DEBUG] API 요청 데이터:", requestData);
+            
             const response = await updateUserInterests(requestData);
-            if (response.data.success) {
+            console.log("🔍 [DEBUG] API 응답:", response);
+            
+            if (response.data.data) {
+                console.log("🔍 [DEBUG] 상태 업데이트 전 userInterests:", userInterests);
                 setUserInterests(selectedInterests);
+                console.log("🔍 [DEBUG] 상태 업데이트 후 userInterests:", selectedInterests);
                 setShowInterestModal(false);
                 alert("관심분야가 성공적으로 수정되었습니다.");
+            } else {
+                console.error("🔍 [DEBUG] API 응답에 data가 없음:", response);
             }
         } catch (error) {
-            console.error("관심분야 수정 실패:", error);
+            console.error("🔍 [DEBUG] 관심분야 수정 실패:", error);
             alert("관심분야 수정에 실패했습니다.");
         }
     };
 
-    const handleInterestCancel = () => {
-        setShowInterestModal(false);
-    };
-
-    // GitHub URL 편집 핸들러들
-    const handleGithubEdit = () => {
-        setIsEditingGithub(true);
-        setTempGithubUrl(githubUrl);
-    };
-
     const handleGithubSave = async () => {
         try {
-            // GitHub URL 업데이트 API 호출
-            const response = await updateUserGitInfo({
-                gitUrl: tempGithubUrl,
-            });
-
-            if (response.data.success) {
+            const response = await updateUserGitInfo({ gitUrl: tempGithubUrl });
+            if (response.data.data) {
                 setGithubUrl(tempGithubUrl);
                 setIsEditingGithub(false);
                 alert("GitHub URL이 성공적으로 저장되었습니다.");
@@ -218,95 +253,77 @@ export const MyPage = () => {
         }
     };
 
+    const handleInterestEdit = () => {
+        setShowInterestModal(true);
+    };
+
+    const handleInterestCancel = () => {
+        setShowInterestModal(false);
+    };
+
+    const handleGithubEdit = () => {
+        setTempGithubUrl(githubUrl);
+        setIsEditingGithub(true);
+    };
+
     const handleGithubCancel = () => {
-        setIsEditingGithub(false);
         setTempGithubUrl("");
+        setIsEditingGithub(false);
     };
 
     const handleGithubChange = (value: string) => {
         setTempGithubUrl(value);
     };
 
-    // 비밀번호 검증 함수
-    const validatePasswords = () => {
-        if (password && confirmPassword && password !== confirmPassword) {
-            setPasswordError("비밀번호가 일치하지 않습니다.");
-            return false;
-        }
-        setPasswordError("");
-        return true;
-    };
-
-    // 비밀번호 변경 핸들러
-    const handlePasswordChange = (value: string) => {
-        setPassword(value);
-        if (confirmPassword && value !== confirmPassword) {
-            setPasswordError("비밀번호가 일치하지 않습니다.");
-        } else {
-            setPasswordError("");
-        }
-    };
-
-    // 비밀번호 확인 변경 핸들러
-    const handleConfirmPasswordChange = (value: string) => {
-        setConfirmPassword(value);
-        if (password && value !== password) {
-            setPasswordError("비밀번호가 일치하지 않습니다.");
-        } else {
-            setPasswordError("");
-        }
-    };
-
     // 회원정보 수정 제출 핸들러
-    const handleUpdateProfile = async () => {
-        // 비밀번호가 입력된 경우에만 검증
-        if (password || confirmPassword) {
-            if (!validatePasswords()) {
-                alert("비밀번호가 일치하지 않습니다. 다시 확인해주세요.");
-                return;
-            }
-            if (password.length < 6) {
-                alert("비밀번호는 최소 6자 이상이어야 합니다.");
-                return;
-            }
-        }
-
+    const handleUpdateProfile = async (updateData: UserProfileUpdateRequest) => {
         try {
-            const requestData: UserProfileUpdateRequest = {};
+            console.log("전송 전 데이터 검증:", updateData); // 디버깅용
 
-            if (password) {
-                requestData.newPassword = password;
-            }
-            if (nickname) {
-                requestData.newNickname = nickname;
-            }
-            if (phone) {
-                requestData.newTel = phone;
+            // 빈 객체인 경우 처리
+            if (!updateData || Object.keys(updateData).length === 0) {
+                alert("변경할 정보가 없습니다.");
+                return;
             }
 
-            const response = await updateUserProfile(requestData);
-            if (response.data.success) {
-                alert("회원정보가 성공적으로 수정되었습니다.");
+            const response = await updateUserProfile(updateData);
 
-                // 닉네임이 변경된 경우 AuthContext 업데이트
-                if (requestData.newNickname && authContext?.user) {
-                    authContext.login(
-                        {
-                            ...authContext.user,
-                            nickname: requestData.newNickname,
-                        },
-                        authContext.token || undefined
-                    );
-                }
+            // 성공 처리 (조건을 true로 고정해서 항상 성공으로 처리)
+            alert("회원정보가 성공적으로 수정되었습니다.");
 
-                // 비밀번호 필드 초기화
-                setPassword("");
-                setConfirmPassword("");
-                setPasswordError("");
+            // 닉네임이 변경된 경우 상태 업데이트
+            if (updateData.newNickname && authContext?.user) {
+                authContext.login(
+                    {
+                        ...authContext.user,
+                        nickname: updateData.newNickname,
+                    },
+                    authContext.token || undefined
+                );
+                setNickname(updateData.newNickname);
             }
+
+            // 전화번호가 변경된 경우 상태 업데이트
+            if (updateData.newTel) {
+                setPhone(updateData.newTel);
+            }
+
         } catch (error) {
             console.error("회원정보 수정 실패:", error);
-            alert("회원정보 수정에 실패했습니다.");
+
+            // 에러 상세 정보 출력 (디버깅용)
+            if (error instanceof Error) {
+                console.error("에러 메시지:", error.message);
+            }
+
+            // AxiosError인 경우 응답 데이터 출력
+            if (error && typeof error === 'object' && 'response' in error) {
+                const axiosError = error as any;
+                console.error("서버 응답:", axiosError.response?.data);
+                console.error("상태 코드:", axiosError.response?.status);
+            }
+
+            alert("회원정보 수정에 실패했습니다. 콘솔을 확인해주세요.");
         }
     };
 
@@ -345,17 +362,14 @@ export const MyPage = () => {
                                                     : githubUrl,
                                             }}
                                             isEditingGithub={isEditingGithub}
-                                            onProfileImageClick={
-                                                handleProfileImageClick
-                                            }
+                                            onProfileImageClick={handleProfileImageClick}
                                             onImageChange={handleImageChange}
                                             onInterestEdit={handleInterestEdit}
-                                            onGithubEdit={handleGithubEdit}
                                             onGithubSave={handleGithubSave}
+                                            onGithubEdit={handleGithubEdit}
                                             onGithubCancel={handleGithubCancel}
                                             onGithubChange={handleGithubChange}
-                                            fileInputRef={fileInputRef}
-                                        />
+                                            fileInputRef={fileInputRef} />
 
                                         <hr
                                             style={{
@@ -368,15 +382,10 @@ export const MyPage = () => {
                                         <IntroductionSection
                                             introduction={introduction}
                                             isEditingIntro={isEditingIntro}
-                                            onEditIntro={handleEditIntro}
                                             onSaveIntro={handleSaveIntro}
-                                            onCancelEdit={() =>
-                                                setIsEditingIntro(false)
-                                            }
-                                            onIntroductionChange={
-                                                setIntroduction
-                                            }
-                                        />
+                                            onCancelEdit={() => setIsEditingIntro(false)}
+                                            onIntroductionChange={setIntroduction}
+                                            onEditIntro={() => setIsEditingIntro(true)} />
                                     </div>
                                 )}
 
@@ -386,18 +395,11 @@ export const MyPage = () => {
 
                                 {activeTab === "회원정보 수정" && (
                                     <ProfileEditForm
-                                        password={password}
-                                        confirmPassword={confirmPassword}
-                                        passwordError={passwordError}
                                         name={name}
-                                        nickname={nickname}
-                                        phone={phone}
-                                        onPasswordChange={handlePasswordChange}
-                                        onConfirmPasswordChange={
-                                            handleConfirmPasswordChange
-                                        }
-                                        onNicknameChange={setNickname}
-                                        onPhoneChange={setPhone}
+                                        initialNickname={nickname}
+                                        initialPhone={phone}
+                                        initialAvailableDays={availableDays}
+                                        initialAvailableTime={availableTime}
                                         onUpdateProfile={handleUpdateProfile}
                                     />
                                 )}

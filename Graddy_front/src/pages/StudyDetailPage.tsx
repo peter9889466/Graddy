@@ -38,6 +38,7 @@ import {
     InterestApiService,
     InterestForFrontend,
 } from "../services/interestApi";
+import { useCommunityContext } from "@/contexts/CommunityContext";
 
 const StudyDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -159,7 +160,7 @@ const StudyDetailPage: React.FC = () => {
         Array<{
             memberId: number;
             userId: string;
-            nick: string;
+            nick: string;  // 닉네임
             memberType: string;
             memberStatus: string;
             joinedAt: string;
@@ -317,7 +318,7 @@ const StudyDetailPage: React.FC = () => {
                                 (member: {
                                     userId: string;
                                     memberType: string;
-                                    nick: string;
+                                    nick: string;  // 커뮤니티에서 게시글 작성 시 제목에 아이디 대신 닉네임이 나와야 함.
                                 }) => {
                                     // 정확한 매치
                                     const exactMatch =
@@ -440,7 +441,7 @@ const StudyDetailPage: React.FC = () => {
     console.log("userMemberType:", userMemberType);
     console.log("isStudyLeader:", isStudyLeader);
     console.log("canAccessMemberFeatures:", canAccessMemberFeatures);
-    console.log("현재 사용자 닉네임:", authContext?.user?.nickname);
+    console.log("현재 사용자 아이디:", authContext?.user?.nickname);
 
     console.log("스터디장:", studyLeader);
     console.log("스터디장 여부:", isStudyLeader);
@@ -1498,10 +1499,7 @@ const StudyDetailPage: React.FC = () => {
             case "커뮤니티":
                 if (
                     !isLoggedIn ||
-                    !(
-                        userMemberType === "leader" ||
-                        userMemberType === "member"
-                    )
+                    !(userMemberType === "leader" || userMemberType === "member")
                 ) {
                     return (
                         <div className="flex items-center justify-center h-64">
@@ -1516,10 +1514,15 @@ const StudyDetailPage: React.FC = () => {
                         </div>
                     );
                 }
+
+                // ✅ members 콘솔에 찍기
+                console.log("Community로 전달되는 members:", members);
+
                 return (
                     <Community
                         studyProjectId={parseInt(id!, 10)}
-                        currentUserId={authContext?.user?.nickname || "사용자"}
+                        currentUserId={authContext?.user?.nickname || "나"}
+                        members={members} // 이미 타입 정의가 되어 있어야 함
                     />
                 );
         }
@@ -1560,7 +1563,7 @@ const StudyDetailPage: React.FC = () => {
                     {renderMainContent()}
                 </ResponsiveMainContent>
             </ResponsiveContainer>
-            <DraggableChatWidget />
+            <DraggableChatWidget studyProjectId={parseInt(id!, 10)} />
 
             {/* 태그 모달 */}
             {isTagModalOpen && (

@@ -8,7 +8,7 @@ import React, {
 } from "react";
 
 interface User {
-    nickname: string;
+    nickname: string;  // 닉네임이 아닌 Id임.
 }
 
 interface AuthContextType {
@@ -70,4 +70,12 @@ export const AuthProvider: React.FC<PropsWithChildren> = ({ children }) => {
     return (
         <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
     );
+};
+
+export const useAuth = () => {
+    const context = React.useContext(AuthContext);
+    if (context === undefined) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
 };

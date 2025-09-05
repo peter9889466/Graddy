@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useContext } from "react";
+// 스터디별 커뮤니티
+import React, { useState, useEffect, useRef } from "react";
 import {
     MessageCircle,
     MoreHorizontal,
@@ -7,7 +8,7 @@ import {
     Trash2,
     AlertCircle,
 } from "lucide-react";
-import { AuthContext } from "@/contexts/AuthContext";
+
 interface BackendPost {
     stPrPostId: number;
     studyProjectId: number;
@@ -18,11 +19,12 @@ interface BackendPost {
 }
 
 interface Comment {
-    id: string;
-    author: string;
+    commentId: number;
+    userId: string;
+    nickname: string;
     content: string;
-    timestamp: string;
-    editedAt?: string;
+    createdAt: string;
+    updatedAt: string;
 }
 
 interface Post {
@@ -36,13 +38,22 @@ interface Post {
 }
 
 interface CommunityProps {
-    studyProjectId?: number;
-    currentUserId?: string;
+    studyProjectId: number;
+    currentUserId: string;
+    members: {
+        memberId: number;
+        userId: string;
+        nick: string;
+        memberType: string;
+        memberStatus: string;
+        joinedAt: string;
+    }[];
 }
 
 const Community: React.FC<CommunityProps> = ({
     studyProjectId = 55, // 기본값으로 55 사용
     currentUserId = "나", // 기본값
+    members, 
 }) => {
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
@@ -57,31 +68,188 @@ const Community: React.FC<CommunityProps> = ({
     const [editContent, setEditContent] = useState("");
     const [editTitle, setEditTitle] = useState("");
 
-    // 댓글 관련 상태
     const [showComments, setShowComments] = useState<string | null>(null);
     const [newComment, setNewComment] = useState("");
-    const [editingCommentId, setEditingCommentId] = useState<string | null>(
-        null
-    );
+    const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
     const [editCommentContent, setEditCommentContent] = useState("");
+    const [comments, setComments] = useState<Record<string, Comment[]>>({});
+    const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
+    const [newComments, setNewComments] = useState<{ [postId: string]: string }>({});
 
     const menuRef = useRef<HTMLDivElement>(null);
 
-    const { user } = useContext(AuthContext)!;
+    // const { user, token, isLoggedIn } = useContext(AuthContext)!;
 
-    // 인증 헤더 생성 유틸리티
     const getAuthHeaders = (): HeadersInit => {
-        const token = localStorage.getItem('userToken');
-        const headers: HeadersInit = {
-            'Content-Type': 'application/json'
+        const token = localStorage.getItem("userToken") || "";
+        return {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : "",
         };
-        if (token && token !== 'null' && token.trim() !== '') {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
-        return headers;
     };
 
-    // API 함수들
+
+    const isStudyMember = members.some(
+        (member) => member.userId === currentUserId
+        );
+    console.log("스터디 멤버 여부:", isStudyMember);
+
+    console.log("스터디 멤버 배열:", members);
+console.log("현재 사용자 ID:", currentUserId);
+
+        
+    const handleChangeComment = (postId: string, value: string) => {
+        setNewComments((prev) => ({ ...prev, [postId]: value }));
+    };
+
+    // 댓글 수 조회
+    const fetchCommentCount = async (postId: string) => {
+        try {
+            const response = await fetch(
+                `http://localhost:8080/api/api/comments/study-posts/${postId}/count`
+            );
+            if (!response.ok) throw new Error("댓글 수 조회 실패");
+            const result = await response.json();
+            if (result.status === 200) {
+                setCommentCounts((prev) => ({ ...prev, [postId]: result.data }));
+            }
+        } catch (error) {
+            console.error("댓글 수 조회 실패:", error);
+        }
+    };
+
+    // 댓글 목록 조회
+    const fetchComments = async (postId: string) => {
+  try {
+    const response = await fetch(
+      `http://localhost:8080/api/api/comments/study-posts/${postId}`,
+      { headers: getAuthHeaders() }
+    );
+    if (!response.ok) throw new Error(`댓글 목록 조회 실패: HTTP ${response.status}`);
+    const result = await response.json();
+    console.log(`postId ${postId} 댓글 목록 확인:`, result);
+    setPosts((prev) =>
+      prev.map((post) =>
+        post.id === postId ? { ...post, comments: result.data } : post
+      )
+    );
+    setCommentCounts((prev) => ({ ...prev, [postId]: result.data.length }));
+  } catch (error) {
+    console.error("댓글 목록 조회 실패:", error);
+  }
+};
+
+    // 댓글 작성
+    const handleAddComment = async (postId: string) => {
+    const content = (newComments[postId] || "").trim();
+    if (!content) return;
+
+    // studyProjectId 타입 확인
+    console.log("studyProjectId 타입:", typeof studyProjectId, "값:", studyProjectId);
+    
+
+    const payload = {
+        content,
+        studyProjectId: Number(studyProjectId)  // 숫자형으로 강제 변환
+    };
+
+    console.log("보낼 payload:", payload);
+    console.log("Authorization 헤더:", getAuthHeaders());
+
+    try {
+        const response = await fetch(
+            `http://localhost:8080/api/api/comments/study-posts/${postId}`,
+            {
+                method: "POST",
+                headers: getAuthHeaders(),
+                body: JSON.stringify(payload),
+            }
+        );
+
+        console.log("서버 응답 status:", response.status);
+
+        const result = await response.json();
+        console.log("서버 응답 body:", result);
+
+        if (!response.ok) {
+            throw new Error(result?.message || `HTTP error! status: ${response.status}`);
+        }
+
+        setNewComments((prev) => ({ ...prev, [postId]: "" }));
+        fetchComments(postId);
+        fetchCommentCount(postId);
+
+    } catch (error) {
+        console.error("댓글 작성 실패:", error);
+        alert(error instanceof Error ? error.message : "댓글 작성에 실패했습니다.");
+    }
+};
+
+    // 댓글 수정 시작
+    const handleEditComment = (comment: Comment) => {
+        setEditingCommentId(comment.commentId.toString());
+        setEditCommentContent(comment.content);
+    };
+
+    // 댓글 수정 저장
+    const handleSaveCommentEdit = async (postId: string) => {
+        if (!editingCommentId || !editCommentContent.trim()) return;
+
+        try {
+            const response = await fetch(
+                `http://localhost:8080/api/api/comments/${editingCommentId}?content=${encodeURIComponent(editCommentContent)}`,
+                { method: "PUT", headers: { "Content-Type": "application/json" } }
+            );
+            if (!response.ok) throw new Error("댓글 수정 실패");
+            const result = await response.json();
+            if (result.status === 200) {
+                setEditingCommentId(null);
+                setEditCommentContent("");
+                fetchComments(postId);
+            }
+        } catch (error) {
+            console.error("댓글 수정 실패:", error);
+        }
+    };
+
+    // 댓글 수정 취소
+    const handleCancelCommentEdit = () => {
+        setEditingCommentId(null);
+        setEditCommentContent("");
+    };
+
+    // 댓글 삭제
+    const handleDeleteComment = async (postId: string, commentId: string) => {
+        if (!confirm("정말로 이 댓글을 삭제하시겠습니까?")) return;
+
+        try {
+            const response = await fetch(`http://localhost:8080/api/api/comments/${commentId}`, {
+                method: "DELETE",
+            });
+            if (!response.ok) throw new Error("댓글 삭제 실패");
+            const result = await response.json();
+            if (result.status === 200) {
+                fetchComments(postId);
+                fetchCommentCount(postId);
+            }
+        } catch (error) {
+            console.error("댓글 삭제 실패:", error);
+        }
+    };
+
+    // 댓글 토글
+    const toggleComments = (postId: string) => {
+        if (showComments === postId) {
+            setShowComments(null);
+        } else {
+            setShowComments(postId);
+            fetchComments(postId);
+        }
+    };
+
+    
+
+    // 게시글 목록
     const fetchPosts = async () => {
         if (!studyProjectId) return;
 
@@ -92,8 +260,8 @@ const Community: React.FC<CommunityProps> = ({
             const response = await fetch(
                 `http://localhost:8080/api/posts/study-project/${studyProjectId}`,
                 {
-                    method: 'GET',
-                    headers: getAuthHeaders()
+                method: "GET",
+                headers: getAuthHeaders(),
                 }
             );
 
@@ -104,140 +272,127 @@ const Community: React.FC<CommunityProps> = ({
             const result = await response.json();
 
             if (result.status === 200 && result.data) {
-                // 백엔드 데이터를 프론트엔드 형식으로 변환
-                const transformedPosts: Post[] = result.data.map(
-                    (backendPost: BackendPost) => ({
-                        id: backendPost.stPrPostId.toString(),
-                        author: backendPost.memberId,
-                        title: backendPost.title,
-                        content: backendPost.content,
-                        timestamp: formatTimestamp(backendPost.createdAt),
-                        comments: [], // 현재는 댓글 API가 없으므로 빈 배열
-                        canEdit: backendPost.memberId === currentUserId,
-                    })
-                );
+                const transformedPosts: Post[] = result.data.map((backendPost: BackendPost) => ({
+                id: backendPost.stPrPostId.toString(),
+                author: backendPost.memberId,
+                title: backendPost.title,
+                content: backendPost.content,
+                timestamp: new Date(backendPost.createdAt).toLocaleString(),
+                comments: [],
+                canEdit: backendPost.memberId === currentUserId,
+                }));
 
                 setPosts(transformedPosts);
             } else {
-                throw new Error(
-                    result.message || "게시글을 불러오는데 실패했습니다."
-                );
+                throw new Error(result.message || "게시글을 불러오는데 실패했습니다.");
             }
-        } catch (error) {
+            } catch (error) {
             console.error("게시글 로드 실패:", error);
-            setError(
-                error instanceof Error
-                    ? error.message
-                    : "게시글을 불러오는데 실패했습니다."
-            );
-        } finally {
+            setError(error instanceof Error ? error.message : "게시글을 불러오는데 실패했습니다.");
+            } finally {
             setLoading(false);
         }
     };
 
+    useEffect(() => {
+        fetchPosts();
+    }, [studyProjectId]);
+
     const formatTimestamp = (isoString: string) => {
-        const date = new Date(isoString);
-        return date.toLocaleString("ko-KR", {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-        });
-    };
-
-    const createPost = async (title: string, content: string) => {
-        // studyProjectId와 사용자의 nickname이 모두 존재하는지 확인합니다.
-        if (
-            !studyProjectId ||
-            !user?.nickname ||
-            !title.trim() ||
-            !content.trim()
-        )
-            return;
-
-        setIsSubmitting(true);
-
         try {
-            const response = await fetch(
-                "http://localhost:8080/api/posts",
-                {
-                    method: "POST",
-                    headers: getAuthHeaders(),
-                    body: JSON.stringify({
-                        studyProjectId: studyProjectId,
-                        memberId: user.nickname, // ✅ AuthContext에서 가져온 nickname을 memberId로 사용
-                        title: title.trim(),
-                        content: content.trim(),
-                    }),
-                }
-            );
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            const date = new Date(isoString);
+            if (isNaN(date.getTime())) {
+                return '날짜 형식 오류';
             }
-
-            // 성공적으로 게시글을 작성한 후 목록을 새로고침합니다.
-            await fetchPosts();
-            setNewPost("");
-            setNewPostTitle("");
+            return date.toLocaleString("ko-KR", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+            });
         } catch (error) {
-            console.error("게시글 작성 실패:", error);
-            alert("게시글 작성에 실패했습니다.");
-        } finally {
-            setIsSubmitting(false);
+            console.error('날짜 포맷팅 오류:', error);
+            return '날짜 오류';
         }
     };
 
-    const updatePost = async (
-        postId: string,
-        title: string,
-        content: string
-    ) => {
-        try {
-            // URL에 stPrPostId(게시글 ID)와 currentMemberId(현재 로그인 사용자 ID)를 포함합니다.
-            const response = await fetch(`http://localhost:8080/api/posts/${postId}?currentMemberId=${user?.nickname}`, {
-                method: 'PUT',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({
-                    title: title.trim(),
-                    content: content.trim()
-                })
-            });
-            
-            if (!response.ok) {
-                // HTTP 오류가 발생했을 때 상세 메시지를 확인
-                const errorData = await response.json();
-                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-            }
+    const createPost = async (title: string, content: string) => {
+    if (!studyProjectId || !title.trim() || !content.trim()) return;
 
-            // 게시글 수정 성공 후 목록 새로고침
-            await fetchPosts();
+    setIsSubmitting(true);
+
+    try {
+        const response = await fetch("http://localhost:8080/api/posts", {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+            studyProjectId,
+            memberId: currentUserId,
+            title: title.trim(),
+            content: content.trim(),
+            }),
+        });
+
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+        await fetchPosts();
+        setNewPost("");
+        setNewPostTitle("");
         } catch (error) {
-            console.error('게시글 수정 실패:', error);
-            alert(`게시글 수정에 실패했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
+        console.error("게시글 작성 실패:", error);
+        alert("게시글 작성에 실패했습니다.");
+        } finally {
+        setIsSubmitting(false);
+        }
+    };
+
+    const updatePost = async (postId: string, title: string, content: string) => {
+    try {
+        const response = await fetch(
+            `http://localhost:8080/api/posts/${postId}?currentMemberId=${currentUserId}`,
+            {
+            method: "PUT",
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ title: title.trim(), content: content.trim() }),
+            }
+        );
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        }
+
+        await fetchPosts();
+        } catch (error) {
+        console.error("게시글 수정 실패:", error);
+        alert(
+            `게시글 수정에 실패했습니다: ${error instanceof Error ? error.message : "알 수 없는 오류"}`
+        );
         }
     };
 
     const deletePost = async (postId: string) => {
-        try {
-            // URL에 게시글 ID와 현재 로그인한 사용자 ID를 쿼리 파라미터로 포함합니다.
-            const response = await fetch(`http://localhost:8080/api/posts/${postId}?currentMemberId=${user?.nickname}`, {
-                method: 'DELETE',
-                headers: getAuthHeaders()
-            });
-            
-            if (!response.ok) {
-                // HTTP 오류가 발생했을 때 상세 메시지를 확인합니다.
-                const errorData = await response.json();
-                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    try {
+        const response = await fetch(
+            `http://localhost:8080/api/posts/${postId}?currentMemberId=${currentUserId}`,
+            {
+            method: "DELETE",
+            headers: getAuthHeaders(),
             }
-            
-            // 성공적으로 삭제되면 게시글 목록을 새로고침하여 화면을 업데이트합니다.
-            await fetchPosts();
+        );
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        }
+
+        await fetchPosts();
         } catch (error) {
-            console.error('게시글 삭제 실패:', error);
-            alert(`게시글 삭제에 실패했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
+        console.error("게시글 삭제 실패:", error);
+        alert(
+            `게시글 삭제에 실패했습니다: ${error instanceof Error ? error.message : "알 수 없는 오류"}`
+        );
         }
     };
 
@@ -290,83 +445,6 @@ const Community: React.FC<CommunityProps> = ({
 
     const toggleMenu = (postId: string) => {
         setOpenMenuId(openMenuId === postId ? null : postId);
-    };
-
-    // 댓글 관련 함수들 (현재는 로컬 상태만 사용)
-    const handleAddComment = (postId: string) => {
-        if (!newComment.trim()) return;
-
-        const comment: Comment = {
-            id: Date.now().toString(),
-            author: currentUserId,
-            content: newComment,
-            timestamp: new Date().toLocaleString("ko-KR"),
-        };
-
-        setPosts((prev) =>
-            prev.map((post) =>
-                post.id === postId
-                    ? { ...post, comments: [...post.comments, comment] }
-                    : post
-            )
-        );
-        setNewComment("");
-    };
-
-    const handleEditComment = (postId: string, commentId: string) => {
-        const post = posts.find((p) => p.id === postId);
-        const comment = post?.comments.find((c) => c.id === commentId);
-        if (comment) {
-            setEditingCommentId(commentId);
-            setEditCommentContent(comment.content);
-        }
-    };
-
-    const handleSaveCommentEdit = (postId: string) => {
-        if (!editingCommentId || !editCommentContent.trim()) return;
-
-        setPosts((prev) =>
-            prev.map((post) =>
-                post.id === postId
-                    ? {
-                          ...post,
-                          comments: post.comments.map((comment) =>
-                              comment.id === editingCommentId
-                                  ? { ...comment, content: editCommentContent }
-                                  : comment
-                          ),
-                      }
-                    : post
-            )
-        );
-        setEditingCommentId(null);
-        setEditCommentContent("");
-    };
-
-    const handleCancelCommentEdit = () => {
-        setEditingCommentId(null);
-        setEditCommentContent("");
-    };
-
-    const handleDeleteComment = (postId: string, commentId: string) => {
-        if (confirm("정말로 이 댓글을 삭제하시겠습니까?")) {
-            setPosts((prev) =>
-                prev.map((post) =>
-                    post.id === postId
-                        ? {
-                              ...post,
-                              comments: post.comments.filter(
-                                  (c) => c.id !== commentId
-                              ),
-                          }
-                        : post
-                )
-            );
-        }
-    };
-
-    const toggleComments = (postId: string) => {
-        setShowComments(showComments === postId ? null : postId);
     };
 
     // 외부 클릭 감지
@@ -450,7 +528,7 @@ const Community: React.FC<CommunityProps> = ({
                 <div className="flex items-start space-x-3">
                     <div className="w-10 h-10 bg-[#8B85E9] rounded-full flex items-center justify-center">
                         <span className="text-white font-medium text-sm">
-                            {currentUserId[0]}
+                            {currentUserId?.[0]?.toUpperCase() || 'U'}
                         </span>
                     </div>
                     <div className="flex-1 space-y-3">
@@ -502,7 +580,7 @@ const Community: React.FC<CommunityProps> = ({
                             <div className="flex items-center space-x-3">
                                 <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
                                     <span className="text-gray-600 font-medium text-sm">
-                                        {post.author[0]}
+                                        {post.author[0]?.toUpperCase()}
                                     </span>
                                 </div>
                                 <div>
@@ -614,7 +692,7 @@ const Community: React.FC<CommunityProps> = ({
                                 >
                                     <MessageCircle className="w-4 h-4" />
                                     <span className="text-sm">
-                                        {post.comments.length}
+                                        {commentCounts[post.id] || 0}
                                     </span>
                                 </button>
                             </div>
@@ -622,139 +700,117 @@ const Community: React.FC<CommunityProps> = ({
 
                         {/* 댓글 섹션 */}
                         {showComments === post.id && (
-                            <div className="mt-4 pt-4 border-t border-gray-100">
-                                {/* 댓글 목록 */}
-                                <div className="space-y-3 mb-4">
-                                    {post.comments.map((comment) => (
-                                        <div
-                                            key={comment.id}
-                                            className="flex items-start space-x-3"
-                                        >
-                                            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
-                                                <span className="text-gray-600 font-medium text-xs">
-                                                    {comment.author[0]}
-                                                </span>
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center space-x-2 mb-1">
-                                                    <span className="font-medium text-sm text-gray-900">
-                                                        {comment.author}
-                                                    </span>
-                                                    <span className="text-xs text-gray-500">
-                                                        {comment.timestamp}
-                                                    </span>
-                                                </div>
-                                                {editingCommentId ===
-                                                comment.id ? (
-                                                    <div className="space-y-2">
-                                                        <textarea
-                                                            value={
-                                                                editCommentContent
-                                                            }
-                                                            onChange={(e) =>
-                                                                setEditCommentContent(
-                                                                    e.target
-                                                                        .value
-                                                                )
-                                                            }
-                                                            className="w-full p-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] text-sm"
-                                                            rows={2}
-                                                        />
-                                                        <div className="flex justify-end space-x-2">
-                                                            <button
-                                                                onClick={
-                                                                    handleCancelCommentEdit
-                                                                }
-                                                                className="px-2 py-1 text-xs text-gray-600 hover:text-gray-800"
-                                                            >
-                                                                취소
-                                                            </button>
-                                                            <button
-                                                                onClick={() =>
-                                                                    handleSaveCommentEdit(
-                                                                        post.id
-                                                                    )
-                                                                }
-                                                                disabled={
-                                                                    !editCommentContent.trim()
-                                                                }
-                                                                className="px-2 py-1 text-xs bg-[#8B85E9] hover:bg-[#7A75D8] disabled:bg-gray-300 text-white rounded transition-colors disabled:cursor-not-allowed"
-                                                            >
-                                                                저장
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex items-start justify-between">
-                                                        <p className="text-sm text-gray-800 leading-relaxed">
-                                                            {comment.content}
-                                                        </p>
-                                                        {comment.author ===
-                                                            currentUserId && (
-                                                            <div className="flex items-center space-x-1 ml-2">
-                                                                <button
-                                                                    onClick={() =>
-                                                                        handleEditComment(
-                                                                            post.id,
-                                                                            comment.id
-                                                                        )
-                                                                    }
-                                                                    className="p-1 hover:bg-gray-100 rounded text-gray-500 hover:text-gray-700"
-                                                                >
-                                                                    <Edit className="w-3 h-3" />
-                                                                </button>
-                                                                <button
-                                                                    onClick={() =>
-                                                                        handleDeleteComment(
-                                                                            post.id,
-                                                                            comment.id
-                                                                        )
-                                                                    }
-                                                                    className="p-1 hover:bg-gray-100 rounded text-gray-500 hover:text-red-600"
-                                                                >
-                                                                    <Trash2 className="w-3 h-3" />
-                                                                </button>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
+                        <div className="mt-4 pt-4 border-t border-gray-100">
+                            {/* 댓글 목록 */}
+                            <div className="space-y-3 mb-4">
+                            {post.comments.map((comment) => (
+                                <div key={comment.commentId} className="flex items-start space-x-3">
+                                <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <span className="text-gray-600 font-medium text-xs">
+                                    {comment.userId[0].toUpperCase()}
+                                    </span>
                                 </div>
-
-                                {/* 새 댓글 작성 */}
-                                <div className="flex items-start space-x-3">
-                                    <div className="w-8 h-8 bg-[#8B85E9] rounded-full flex items-center justify-center flex-shrink-0">
-                                        <span className="text-white font-medium text-xs">
-                                            {currentUserId[0]}
-                                        </span>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center space-x-2 mb-1">
+                                    <span className="font-medium text-sm text-gray-900">
+                                        {comment.userId}
+                                    </span>
+                                    <span className="text-xs text-gray-500">
+                                        {formatTimestamp(comment.createdAt)}
+                                    </span>
                                     </div>
-                                    <div className="flex-1">
+
+                                    {editingCommentId === comment.commentId.toString() ? (
+                                    <div className="space-y-2">
                                         <textarea
-                                            value={newComment}
-                                            onChange={(e) =>
-                                                setNewComment(e.target.value)
-                                            }
-                                            placeholder="댓글을 작성하세요..."
-                                            className="w-full p-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] text-sm"
-                                            rows={2}
+                                        value={editCommentContent}
+                                        onChange={(e) => setEditCommentContent(e.target.value)}
+                                        className="w-full p-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] text-sm"
+                                        rows={2}
                                         />
-                                        <div className="flex justify-end mt-2">
+                                        <div className="flex justify-end space-x-2">
+                                        <button
+                                            onClick={handleCancelCommentEdit}
+                                            className="px-2 py-1 text-xs text-gray-600 hover:text-gray-800"
+                                        >
+                                            취소
+                                        </button>
+                                        <button
+                                            onClick={() => handleSaveCommentEdit(post.id)}
+                                            disabled={!editCommentContent.trim()}
+                                            className="px-2 py-1 text-xs bg-[#8B85E9] hover:bg-[#7A75D8] disabled:bg-gray-300 text-white rounded transition-colors disabled:cursor-not-allowed"
+                                        >
+                                            저장
+                                        </button>
+                                        </div>
+                                    </div>
+                                    ) : (
+                                    <div className="flex items-start justify-between">
+                                        <p className="text-sm text-gray-800 leading-relaxed">
+                                        {comment.content}
+                                        </p>
+                                        {comment.userId === currentUserId && (
+                                        <div className="flex items-center space-x-1 ml-2">
                                             <button
-                                                onClick={() =>
-                                                    handleAddComment(post.id)
-                                                }
-                                                disabled={!newComment.trim()}
-                                                className="px-3 py-1 text-sm bg-[#8B85E9] hover:bg-[#7A75D8] disabled:bg-gray-300 text-white rounded transition-colors disabled:cursor-not-allowed"
+                                            onClick={() => handleEditComment(comment)}
+                                            className="p-1 hover:bg-gray-100 rounded text-gray-500 hover:text-gray-700"
                                             >
-                                                댓글 작성
+                                            <Edit className="w-3 h-3" />
+                                            </button>
+                                            <button
+                                            onClick={() =>
+                                                handleDeleteComment(post.id, comment.commentId.toString())
+                                            }
+                                            className="p-1 hover:bg-gray-100 rounded text-gray-500 hover:text-red-600"
+                                            >
+                                            <Trash2 className="w-3 h-3" />
                                             </button>
                                         </div>
+                                        )}
                                     </div>
+                                    )}
+                                </div>
+                                </div>
+                            ))}
+                            </div>
+
+                            {/* 새 댓글 작성 */}
+                            <div className="flex items-start space-x-3">
+                                <div className="w-8 h-8 bg-[#8B85E9] rounded-full flex items-center justify-center flex-shrink-0">
+                                    <span className="text-white font-medium text-xs">
+                                        {currentUserId[0].toUpperCase()}
+                                    </span>
+                                </div>
+                                <div className="flex-1">
+                                    {!isStudyMember ? (
+                                        <p className="text-sm text-gray-500">
+                                            스터디 멤버만 댓글을 작성할 수 있습니다.
+                                        </p>
+                                    ) : (
+                                        <>
+                                        <textarea
+    value={newComments[post.id] || ""}
+    onChange={(e) => handleChangeComment(post.id, e.target.value)}
+    placeholder="댓글을 작성하세요..."
+    className="w-full p-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] text-sm"
+    rows={2}
+/>
+<div className="flex justify-end mt-2">
+    <button
+        onClick={() => handleAddComment(post.id)}
+        disabled={!(newComments[post.id]?.trim())}
+        className="px-3 py-1 text-sm bg-[#8B85E9] hover:bg-[#7A75D8] disabled:bg-gray-300 text-white rounded transition-colors disabled:cursor-not-allowed"
+    >
+        댓글 작성
+    </button>
+</div>
+                                        </>
+                                    )}
                                 </div>
                             </div>
+                        </div>
                         )}
+
                     </div>
                 ))}
             </div>
