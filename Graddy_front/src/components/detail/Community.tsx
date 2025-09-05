@@ -35,6 +35,7 @@ interface Post {
     timestamp: string;
     comments: Comment[];
     canEdit?: boolean;
+    nick?:string;
 }
 
 interface CommunityProps {
@@ -195,26 +196,24 @@ const Community: React.FC<CommunityProps> = ({
 
     // 댓글 수정 저장
     const handleSaveCommentEdit = async (postId: string) => {
-
-
         if (!editingCommentId || !editCommentContent.trim()) return;
             
         try {
             const response = await fetch(
-                `http://localhost:8080/api/api/comments/${editingCommentId}`,
+                `http://localhost:8080/api/api/comments/${editingCommentId}?content=${encodeURIComponent(editCommentContent)}`,
                 {
                     method: "PUT",
                     headers: {
                         ...getAuthHeaders(),
                         "Content-Type": "application/json",
                     },
-                    body: JSON.stringify({ content: editCommentContent }),
+                    // body: JSON.stringify({ content: editCommentContent }),
                 }
             );
 
             if (!response.ok) {
                 // 서버가 오류 메시지를 JSON으로 줄 수도 있고 아닐 수도 있음
-                let errMsg = `댓글 수정 실패: HTTP ${response.status}`;
+                let errMsg = `${response.status}`;
                 try {
                     const errData = await response.json();
                     if (errData?.message) errMsg = errData.message;
@@ -245,27 +244,34 @@ const Community: React.FC<CommunityProps> = ({
 
     // 댓글 삭제
     const handleDeleteComment = async (postId: string, commentId: string) => {
-    if (!confirm("정말로 이 댓글을 삭제하시겠습니까?")) return;
+        if (!confirm("정말로 이 댓글을 삭제하시겠습니까?")) return;
+        
+        try {
+            const response = await fetch(
+                `http://localhost:8080/api/api/comments/${commentId}`,
+                { method: "DELETE", headers: getAuthHeaders() }
+            );
 
-    try {
-        const response = await fetch(
-            `http://localhost:8080/api/api/comments/${commentId}`,
-            { method: "DELETE", headers: getAuthHeaders() }
-        );
+            console.log("🔍 Response status:", response.status);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.log("🔍 서버 에러 메시지:", errorText);
+                console.log("🔍 Headers:", getAuthHeaders());
+                throw new Error(`댓글 삭제 실패: ${response.status} - ${errorText}`);
+            }
 
-        if (!response.ok) throw new Error("댓글 삭제 실패");
-
-        const result = await response.json();
-
-        if (result.status === 200) {
-            fetchComments(postId); // 댓글 목록 최신화
-            fetchCommentCount(postId); // 댓글 수 최신화
+            // 성공 처리
+            fetchComments(postId);
+            fetchCommentCount(postId);
+            // alert("댓글이 삭제되었습니다.");
+            console.log("✅ 댓글이 삭제되었습니다.");
+            
+        } catch (error) {
+            console.error("댓글 삭제 실패:", error);
+            alert(error instanceof Error ? error.message : "댓글 삭제에 실패했습니다.");
         }
-    } catch (error) {
-        console.error("댓글 삭제 실패:", error);
-        alert(error instanceof Error ? error.message : "댓글 삭제에 실패했습니다.");
-    }
-};
+    };
 
     // 댓글 토글
     const toggleComments = (postId: string) => {
@@ -308,8 +314,14 @@ const Community: React.FC<CommunityProps> = ({
                     timestamp: new Date(backendPost.createdAt).toLocaleString(),
                     comments: [],
                     canEdit: backendPost.memberId === currentUserId,
+                    nick: members.find(member => backendPost.memberId === member.userId)?.nick || '알 수 없음'
                 }));
+                
+                // console.log(posts[0].nick);
 
+                
+                console.log(members)
+                
                 setPosts(transformedPosts);
 
                 // ✅ 각 게시글에 대한 댓글 수 조회
@@ -350,6 +362,7 @@ const Community: React.FC<CommunityProps> = ({
         }
     };
 
+    // 게시글 작성
     const createPost = async (title: string, content: string) => {
     if (!studyProjectId || !title.trim() || !content.trim()) return;
 
@@ -380,6 +393,7 @@ const Community: React.FC<CommunityProps> = ({
         }
     };
 
+    // 게시글 수정
     const updatePost = async (postId: string, title: string, content: string) => {
     try {
         const response = await fetch(
@@ -405,6 +419,7 @@ const Community: React.FC<CommunityProps> = ({
         }
     };
 
+    // 게시글 삭제
     const deletePost = async (postId: string) => {
     try {
         const response = await fetch(
@@ -618,7 +633,7 @@ const Community: React.FC<CommunityProps> = ({
                                 </div>
                                 <div>
                                     <p className="font-medium text-gray-900">
-                                        {post.author}
+                                        {post.nick}
                                     </p>
                                     <p className="text-sm text-gray-500">
                                         {post.timestamp}
@@ -740,13 +755,13 @@ const Community: React.FC<CommunityProps> = ({
                                     <div key={comment.commentId} className="flex items-start space-x-3">
                                         <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
                                             <span className="text-gray-600 font-medium text-xs">
-                                                {comment.userId[0].toUpperCase()}
+                                                {comment.nickname[0].toUpperCase()}
                                             </span>
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center space-x-2 mb-1">
                                                 <span className="font-medium text-sm text-gray-900">
-                                                    {comment.userId}
+                                                    {comment.nickname}
                                                 </span>
                                                 <span className="text-xs text-gray-500">
                                                     {formatTimestamp(comment.createdAt)}

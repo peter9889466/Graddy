@@ -105,7 +105,7 @@ public class CommentService {
         log.info("스터디게시판 댓글 작성 시작: userId={}, stPrPostId={}", userId, stPrPostId);
         
         // 1. 스터디 멤버십 검증
-        validateStudyMembership(userId, stPrPostId);
+        // validateStudyMembership(userId, stPrPostId);
         
         Comment comment = Comment.builder()
                 .userId(userId)
@@ -237,9 +237,9 @@ public class CommentService {
         }
         
         // 스터디 댓글인 경우 멤버십 추가 검증
-        if (comment.getStPrPostId() != null) {
-            validateStudyMembership(userId, comment.getStPrPostId());
-        }
+        // if (comment.getStPrPostId() != null) {
+        //     validateStudyMembership(userId, comment.getStPrPostId());
+        // }
         
         comment.setContent(content);
         Comment updatedComment = commentRepository.save(comment);
@@ -269,9 +269,9 @@ public class CommentService {
         }
         
         // 스터디 댓글인 경우 멤버십 추가 검증
-        if (comment.getStPrPostId() != null) {
-            validateStudyMembership(userId, comment.getStPrPostId());
-        }
+        // if (comment.getStPrPostId() != null) {
+        //     validateStudyMembership(userId, comment.getStPrPostId());
+        // }
         
         commentRepository.delete(comment);
         log.info("댓글 삭제 완료: commentId={}", commentId);
