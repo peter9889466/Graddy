@@ -1,12 +1,14 @@
 package com.smhrd.graddy.user.dto;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
-@RequiredArgsConstructor
+@Setter
+@NoArgsConstructor
 public class LoginRequest {
 
-    private final String userId;
-    private final String password;
+    private String userId;
+    private String password;
 }

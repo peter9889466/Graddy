@@ -34,7 +34,7 @@ public class SecurityConfig {
                 // 2. HTTP 요청 인증 설정
                 .authorizeHttpRequests(authorize -> authorize
                         // 인증 관련 엔드포인트는 JWT 검증 없이 허용
-                        .requestMatchers("/auth/login", "/auth/refresh", "/auth/logout", "/interests", "/studies-projects", "/scores/ranking/**" , "/free/posts", "/studies-projects/**").permitAll()
+                        .requestMatchers("/auth/login", "/auth/refresh", "/auth/logout", "/api/auth/login", "/login", "/interests", "/studies-projects", "/scores/ranking/**" , "/free/posts", "/studies-projects/**").permitAll()
 
                         // 파일 업로드/다운로드 엔드포인트 허용 (첨부파일 접근용)
                         .requestMatchers("/files/**").permitAll()
