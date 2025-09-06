@@ -4,6 +4,7 @@ package com.smhrd.graddy.user.service;
 import com.smhrd.graddy.user.dto.JoinRequest;
 import com.smhrd.graddy.user.dto.UserInterestRequest;
 import com.smhrd.graddy.user.dto.UserProfileUpdateRequest;
+import com.smhrd.graddy.user.dto.UserInfoResponse;
 import com.smhrd.graddy.user.entity.User;
 import com.smhrd.graddy.user.entity.UserInterest;
 import com.smhrd.graddy.user.entity.UserAvailableDays;
@@ -669,5 +670,39 @@ public class UserService {
         
         // 수정된 사용자 정보 저장
         return userRepository.save(user);
+    }
+
+    /**
+     * 사용자 ID로 사용자 정보 조회
+     * 
+     * @param userId 사용자 ID
+     * @return 사용자 정보 (닉네임, 이미지, 깃주소, 점수, 관심분야, 소개)
+     */
+    public UserInfoResponse getUserInfo(String userId) {
+        // 1. 사용자 기본 정보 조회 (관심분야 포함)
+        User user = userRepository.findByIdWithInterests(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + userId));
+        
+        // 2. 사용자 점수 조회
+        UserScore userScore = userScoreRepository.findByUserId(userId)
+                .orElse(new UserScore(null, userId, 1000, new java.sql.Timestamp(System.currentTimeMillis())));
+        
+        // 3. 관심분야 목록 추출
+        List<String> interests = user.getUserInterests().stream()
+                .map(userInterest -> userInterest.getInterest().getInterestName())
+                .collect(Collectors.toList());
+        
+        // 4. UserInfoResponse 생성
+        return UserInfoResponse.builder()
+                .userId(user.getUserId())
+                .nick(user.getNick())
+                .imgUrl(null) // 추후 프로필 이미지 기능 추가 시 구현
+                .gitUrl(user.getGitUrl())
+                .userScore(userScore.getUserScore())
+                .interests(interests)
+                .userRefer(user.getUserRefer())
+                .name(user.getName())
+                .createdAt(user.getCreatedAt().toString())
+                .build();
     }
 }

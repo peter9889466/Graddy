@@ -33,9 +33,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class StudyMatchingService {
     
-    // 가중치 상수 정의
-    private static final double CONTENT_BASED_WEIGHT = 0.7;
-    private static final double COLLABORATIVE_WEIGHT = 0.3;
+    // 기본 가중치 상수 정의 (동적 가중치 사용 시 참고용)
+    private static final double DEFAULT_CONTENT_BASED_WEIGHT = 0.7;
+    private static final double DEFAULT_COLLABORATIVE_WEIGHT = 0.3;
     
     // 콘텐츠 기반 필터링 가중치
     private static final double INTEREST_MATCH_WEIGHT = 0.35;
@@ -105,8 +105,13 @@ public class StudyMatchingService {
         // 2. 협업 기반 점수 계산
         double collaborativeScore = calculateCollaborativeScore(user, study);
         
-        // 3. 최종 점수 계산 (가중 평균)
-        double finalScore = (contentBasedScore * CONTENT_BASED_WEIGHT) + (collaborativeScore * COLLABORATIVE_WEIGHT);
+        // 3. 동적 가중치 계산
+        double[] weights = calculateDynamicWeights(user);
+        double contentWeight = weights[0];
+        double collaborativeWeight = weights[1];
+        
+        // 4. 최종 점수 계산 (동적 가중 평균)
+        double finalScore = (contentBasedScore * contentWeight) + (collaborativeScore * collaborativeWeight);
         
         // 4. 세부 점수들 계산
         double dayMatchScore = calculateDayMatchScore(user, study);
@@ -138,6 +143,8 @@ public class StudyMatchingService {
                 .finalScore(finalScore)
                 .contentBasedScore(contentBasedScore)
                 .collaborativeScore(collaborativeScore)
+                .contentWeight(contentWeight)
+                .collaborativeWeight(collaborativeWeight)
                 .dayMatchScore(dayMatchScore)
                 .timeMatchScore(timeMatchScore)
                 .interestMatchScore(interestMatchScore)
@@ -146,6 +153,84 @@ public class StudyMatchingService {
                 .availableDays(getStudyAvailableDays(study.getStudyProjectId()))
                 .currentMemberCount(getCurrentMemberCount(study.getStudyProjectId()))
                 .build();
+    }
+    
+    /**
+     * 동적 가중치 계산
+     * 서비스 성숙도와 사용자 데이터 기반으로 콘텐츠 기반과 협업 기반 가중치를 동적으로 조정
+     * 
+     * @param user 사용자 정보
+     * @return [콘텐츠 기반 가중치, 협업 기반 가중치]
+     */
+    private double[] calculateDynamicWeights(User user) {
+        try {
+            // 전체 사용자 수 조회
+            long totalUserCount = userRepository.count();
+            
+            // 사용자의 스터디 참여 이력 조회
+            List<Long> userStudyIds = memberRepository.findStudyProjectIdsByUserId(user.getUserId());
+            
+            log.debug("동적 가중치 계산 시작: 전체 사용자={}, 사용자 참여 이력={}", totalUserCount, userStudyIds.size());
+            
+            // 서비스 성숙도 기반 가중치 계산
+            double[] weights = calculateMaturityBasedWeights(totalUserCount, userStudyIds.size());
+            
+            log.info("동적 가중치 계산 완료: 콘텐츠 기반={}, 협업 기반={}", weights[0], weights[1]);
+            
+            return weights;
+            
+        } catch (Exception e) {
+            log.warn("동적 가중치 계산 중 오류 발생: {}", e.getMessage());
+            // 오류 발생 시 기본 가중치 사용
+            return new double[]{DEFAULT_CONTENT_BASED_WEIGHT, DEFAULT_COLLABORATIVE_WEIGHT};
+        }
+    }
+    
+    /**
+     * 서비스 성숙도 기반 가중치 계산
+     * 
+     * @param totalUserCount 전체 사용자 수
+     * @param userParticipationCount 사용자 참여 이력 수
+     * @return [콘텐츠 기반 가중치, 협업 기반 가중치]
+     */
+    private double[] calculateMaturityBasedWeights(long totalUserCount, int userParticipationCount) {
+        // 초기 단계 (사용자 < 100명)
+        if (totalUserCount < 100) {
+            log.debug("초기 단계: 전체 사용자={}, 콘텐츠 기반=90%, 협업 기반=10%", totalUserCount);
+            return new double[]{0.9, 0.1};
+        }
+        
+        // 성장 단계 (사용자 100-500명)
+        else if (totalUserCount < 500) {
+            // 사용자 참여 이력이 적으면 콘텐츠 기반에 더 의존
+            if (userParticipationCount < 2) {
+                log.debug("성장 단계 (신규 사용자): 전체 사용자={}, 참여 이력={}, 콘텐츠 기반=85%, 협업 기반=15%", 
+                        totalUserCount, userParticipationCount);
+                return new double[]{0.85, 0.15};
+            } else {
+                log.debug("성장 단계 (경험 사용자): 전체 사용자={}, 참여 이력={}, 콘텐츠 기반=80%, 협업 기반=20%", 
+                        totalUserCount, userParticipationCount);
+                return new double[]{0.8, 0.2};
+            }
+        }
+        
+        // 성숙 단계 (사용자 500명+)
+        else {
+            // 사용자 참여 이력에 따라 세분화
+            if (userParticipationCount < 3) {
+                log.debug("성숙 단계 (신규 사용자): 전체 사용자={}, 참여 이력={}, 콘텐츠 기반=75%, 협업 기반=25%", 
+                        totalUserCount, userParticipationCount);
+                return new double[]{0.75, 0.25};
+            } else if (userParticipationCount < 5) {
+                log.debug("성숙 단계 (경험 사용자): 전체 사용자={}, 참여 이력={}, 콘텐츠 기반=70%, 협업 기반=30%", 
+                        totalUserCount, userParticipationCount);
+                return new double[]{0.7, 0.3};
+            } else {
+                log.debug("성숙 단계 (고급 사용자): 전체 사용자={}, 참여 이력={}, 콘텐츠 기반=65%, 협업 기반=35%", 
+                        totalUserCount, userParticipationCount);
+                return new double[]{0.65, 0.35};
+            }
+        }
     }
     
     /**
