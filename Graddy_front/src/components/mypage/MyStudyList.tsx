@@ -24,9 +24,9 @@ interface StudyProject {
     studyProjectTitle: string;
     studyProjectDesc: string;
     studyLevel: number;
-    typeCheck: "STUDY" | "PROJECT";
+    typeCheck: "study" | "project";
     userId: string;
-    isRecruiting: "RECRUITING" | "COMPLETE" | "END";
+    isRecruiting: "recruitment" | "complete" | "end";
     studyProjectStart: string;
     studyProjectEnd: string;
     studyProjectTotal: number;
@@ -38,8 +38,8 @@ interface StudyProject {
 export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
     const navigate = useNavigate();
     const [activeFilter, setActiveFilter] = useState<
-        "ALL" | "RECRUITING" | "COMPLETE" | "END"
-    >("ALL");
+        "all" | "recruitment" | "complete" | "end"
+    >("all");
     const [studyList, setStudyList] = useState<StudyProject[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -48,7 +48,7 @@ export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
         const fetchStudyList = async () => {
             try {
                 setIsLoading(true);
-                const response = await getUserStudyProjects(activeFilter);
+                const response = await getUserStudyProjects(activeFilter as any);
                 const mappedList: StudyProject[] = response.map((item: any) => ({
                     ...item,
                     currentMembers: item.currentMembers ?? (item.members ? item.members.length : 0),
@@ -90,7 +90,7 @@ export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
             case "complete":
                 return "모집완료";
             case "end":
-                return "종료";
+                return "스터디 종료";
             default:
                 return status;
         }
@@ -126,7 +126,7 @@ export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
                     {/* 필터 버튼들 */}
                     <div className="flex gap-2 flex-wrap">
                         {[
-                            { key: "ALL", label: "전체" },
+                            { key: "all", label: "전체" },
                             { key: "RECRUITING", label: "모집중" },
                             { key: "COMPLETE", label: "진행중" },
                             { key: "END", label: "완료" },
@@ -166,11 +166,11 @@ export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
                             </svg>
                         </div>
                         <h3 className="text-lg font-medium text-gray-900 mb-2">
-                            {activeFilter === "ALL"
+                            {activeFilter === "all"
                                 ? "참여한 스터디가 없습니다"
-                                : activeFilter === "RECRUITING"
+                                : activeFilter === "recruitment"
                                 ? "모집중인 스터디가 없습니다"
-                                : activeFilter === "COMPLETE"
+                                : activeFilter === "complete"
                                 ? "진행중인 스터디가 없습니다"
                                 : "완료된 스터디가 없습니다"}
                         </h3>
@@ -206,10 +206,10 @@ export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
             {/* 필터 버튼들 */}
             <div className="flex gap-2 flex-wrap">
                 {[
-                    { key: "ALL", label: "전체" },
-                    { key: "RECRUITING", label: "모집중" },
-                    { key: "COMPLETE", label: "진행중" },
-                    { key: "END", label: "완료" },
+                    { key: "all", label: "전체" },
+                    { key: "recruitment", label: "모집중" },
+                    { key: "complete", label: "진행중" },
+                    { key: "end", label: "완료" },
                 ].map((filter) => (
                     <button
                         key={filter.key}
@@ -243,30 +243,29 @@ export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
                                         <h3 className="text-lg font-bold text-gray-800">
                                             {study.studyProjectTitle}
                                         </h3>
-
+                                        <div className="flex items-center gap-2">
                                         <span
-                                            className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                                study.typeCheck === "STUDY"
-                                                    ? "bg-blue-50 text-blue-700"
-                                                    : "bg-green-50 text-green-700"
+                                            className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                                study.typeCheck === "study"
+                                                    ? "bg-green-50 text-green-700"
+                                                    : "bg-orange-50 text-orange-700"
                                             }`}
                                         >
                                             {getTypeLabel(study.typeCheck)}
                                         </span>
 
                                         <span
-                                            className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                                study.isRecruiting ===
-                                                "RECRUITING"
+                                            className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                                study.isRecruiting === "recruitment"
                                                     ? "bg-blue-50 text-blue-700"
-                                                    : study.isRecruiting ===
-                                                      "COMPLETE"
-                                                    ? "bg-green-50 text-green-700"
+                                                    : study.isRecruiting === "complete"
+                                                    ? "bg-purple-50 text-purple-700"
                                                     : "bg-gray-50 text-gray-700"
                                             }`}
                                         >
                                             {getStatusLabel(study.isRecruiting)}
                                         </span>
+                                        </div>
                                     </div>
 
                                     <p className="text-gray-600 mb-3 line-clamp-2">
