@@ -30,6 +30,7 @@ interface StudyDetailSideBarProps {
     }>;
     applications?: Array<{
         userId: string;
+        nick: string;
         studyProjectId: number;
         status: 'PENDING' | 'APPROVED' | 'REJECTED';
         message: string;
@@ -107,48 +108,48 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
             { name: "과제 / 일정 관리", requiresAuth: true, requiresMembership: true },
         ];
         
-        const handleApplicantClick = async (userId: string) => {
-    setIsLoadingMember(true);
-    try {
-        const token = localStorage.getItem("userToken");
+    const handleApplicantClick = async (userId: string) => {
+        setIsLoadingMember(true);
+        try {
+            const token = localStorage.getItem("userToken");
 
-        const response = await axios.get(
-            `http://localhost:8080/api/user/info/${userId}`,
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-            }
-        );
+            const response = await axios.get(
+                `http://localhost:8080/api/user/info/${userId}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
 
-        const userData = response.data;
+            const userData = response.data;
 
-        // ProfileModal에 맞게 변환
-        const memberData: StudyMember = {
-            nickname: userData.nick,
-            githubUrl: userData.gitUrl || "",
-            score: userData.userScore,
-            interests: (userData.interests || []).map((name: string, idx: number) => ({
-                id: idx,
-                name,
-                category: "",   // 카테고리 정보는 API에 없으므로 빈 문자열
-                difficulty: "",
-            })),
-            introduction: userData.userRefer || "소개가 없습니다.",
-            profileImage: userData.imgUrl || undefined,
-        };
+            // ProfileModal에 맞게 변환
+            const memberData: StudyMember = {
+                nickname: userData.nick,
+                githubUrl: userData.gitUrl || "",
+                score: userData.userScore,
+                interests: (userData.interests || []).map((name: string, idx: number) => ({
+                    id: idx,
+                    name,
+                    category: "",   // 카테고리 정보는 API에 없으므로 빈 문자열
+                    difficulty: "",
+                })),
+                introduction: userData.userRefer || "소개가 없습니다.",
+                profileImage: userData.imgUrl || undefined,
+            };
 
-        setSelectedMember(memberData);
-        setIsProfileModalOpen(true);
+            setSelectedMember(memberData);
+            setIsProfileModalOpen(true);
 
-    } catch (error) {
-        console.error("가입 신청 유저 정보를 불러오는데 실패했습니다:", error);
-        alert("가입 신청 유저 정보를 불러오는데 실패했습니다.");
-    } finally {
-        setIsLoadingMember(false);
-    }
-};
+        } catch (error) {
+            console.error("가입 신청 유저 정보를 불러오는데 실패했습니다:", error);
+            alert("가입 신청 유저 정보를 불러오는데 실패했습니다.");
+        } finally {
+            setIsLoadingMember(false);
+        }
+    };
 
     // 멤버 클릭 시 상세 정보 API 호출
     const handleMemberClick = async (memberId: number) => {
@@ -298,7 +299,7 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
                             >
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm font-medium text-gray-800">
-                                        {application.userId}
+                                        {application.nick}
                                     </span>
                                     <div className="flex gap-2">
                                         <button
