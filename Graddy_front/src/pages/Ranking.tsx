@@ -283,7 +283,7 @@ export const Ranking = () => {
 
                 {/* 내 랭킹 표시 - TOP 100에 있으면 currentUserRanking, 없으면 myRankingInfo 사용 */}
                 {(currentUserRanking || myRankingInfo) && (
-                    <div className="p-6 bg-blue-50 border-t-2 border-blue-200">
+                    <div className="p-6 bg-blue-50 border-t-2 border-blue-200 fixed bottom-0 left-85 right-85">
                         <h3 className="text-lg font-semibold text-blue-800 mb-2">
                             내 랭킹
                         </h3>
