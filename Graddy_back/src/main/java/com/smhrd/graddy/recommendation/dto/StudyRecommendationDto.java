@@ -116,6 +116,16 @@ public class StudyRecommendationDto {
     private Double collaborativeScore;
     
     /**
+     * 콘텐츠 기반 가중치 (0.0 ~ 1.0)
+     */
+    private Double contentWeight;
+    
+    /**
+     * 협업 기반 가중치 (0.0 ~ 1.0)
+     */
+    private Double collaborativeWeight;
+    
+    /**
      * 요일 일치도 점수 (0.0 ~ 1.0)
      */
     private Double dayMatchScore;
