@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,6 +24,7 @@ public class StudyApplicationService {
     private final StudyProjectStatusRepository statusRepository;
     private final StudyProjectRepository studyProjectRepository;
     private final MemberService memberService;
+    private final com.smhrd.graddy.user.repository.UserRepository userRepository;
 
     /**
      * 스터디/프로젝트 신청
@@ -154,8 +154,13 @@ public class StudyApplicationService {
     }
 
     private StudyApplicationResponse convertToResponse(StudyProjectStatus application, String message) {
+        String nick = userRepository.findById(application.getUserId())
+                .map(u -> u.getNick())
+                .orElse("");
+
         return new StudyApplicationResponse(
                 application.getUserId(),
+                nick,
                 application.getStudyProjectId(),
                 application.getStatus().toString(),
                 message,
