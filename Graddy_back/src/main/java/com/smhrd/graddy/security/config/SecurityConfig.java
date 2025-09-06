@@ -41,6 +41,8 @@ public class SecurityConfig {
                                        
                         // 채팅 관련 엔드포인트 허용 (JWT 인증 필요)
                         .requestMatchers("/chat/**").authenticated()
+                        // 사용자 정보 조회 엔드포인트 허용 (JWT 인증 필요)
+                        .requestMatchers("/user/info/**").authenticated()
                         // WebSocket 엔드포인트 허용
                         .requestMatchers("/ws-stomp/**").permitAll()
 
