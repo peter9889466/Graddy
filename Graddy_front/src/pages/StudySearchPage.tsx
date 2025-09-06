@@ -645,7 +645,7 @@ export const StudySearchPage = () => {
                                 >
                                     {study.studyTitle}
                                 </div>
-
+ 
                                 <div className="text-sm text-gray-600 mb-2">
                                     {study.type === "프로젝트"
                                         ? "프로젝트"
