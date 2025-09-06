@@ -1508,26 +1508,34 @@ const StudyDetailPage: React.FC = () => {
                                         <button
                                             type="button"
                                             onClick={handleApplyToStudy}
-                                            disabled={isApplying || isLoadingWithdrawalStatus || isWithdrawn}
+                                            disabled={isApplying || isLoadingWithdrawalStatus || isWithdrawn || members.length >= maxMembers}
                                             className={`w-full px-4 py-2 rounded-lg text-white text-sm sm:text-base transition-colors ${
-                                                (isWithdrawn || isLoadingWithdrawalStatus)
-                                                    ? 'cursor-not-allowed opacity-50' 
-                                                    : 'cursor-pointer'
+                                            (isWithdrawn || isLoadingWithdrawalStatus || members.length >= maxMembers)
+                                                ? 'cursor-not-allowed opacity-50' 
+                                                : 'cursor-pointer'
                                             }`}
                                             style={{
-                                                backgroundColor: (isApplying || isLoadingWithdrawalStatus || isWithdrawn)
-                                                    ? "#6B7280"
-                                                    : "#8B85E9",
+                                                backgroundColor: (isApplying || isLoadingWithdrawalStatus || isWithdrawn || members.length >= maxMembers)
+                                                ? "#6B7280"
+                                                : "#8B85E9",
                                             }}
-                                            title={isWithdrawn ? "탈퇴한 사용자는 재가입할 수 없습니다" : ""}
+                                            title={
+                                                isWithdrawn 
+                                                    ? "탈퇴한 사용자는 재가입할 수 없습니다" 
+                                                    : members.length >= maxMembers
+                                                        ? "모집 정원이 마감되었습니다"
+                                                        : ""
+                                            }
                                         >
                                             {isLoadingWithdrawalStatus 
                                                 ? "상태 확인 중..." 
                                                 : isWithdrawn 
                                                     ? "재가입 불가" 
-                                                    : isApplying 
-                                                        ? "신청 중..." 
-                                                        : "스터디 가입 신청"
+                                                    : members.length >= maxMembers
+                                                        ? "모집 완료"
+                                                        : isApplying 
+                                                            ? "신청 중..." 
+                                                            : "스터디 가입 신청"
                                             }
                                         </button>
                                     ) : (
