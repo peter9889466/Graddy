@@ -230,7 +230,7 @@ export const MyPage = () => {
                     setProfileImage(imageUrl);
                     alert("프로필 이미지가 성공적으로 변경되었습니다.");
                     // TODO: 사용자 프로필에 이미지 URL 저장하는 API 호출 필요
-                } else {
+                                                                                                                                                                                                                                                                          } else {
                     throw new Error('이미지 URL을 받지 못했습니다.');
                 }
 
