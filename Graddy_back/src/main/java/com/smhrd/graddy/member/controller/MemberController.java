@@ -248,4 +248,48 @@ public class MemberController {
             return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "탈퇴 처리 중 오류가 발생했습니다.", null);
         }
     }
+
+    /**
+     * user_id와 study_project_id로 멤버 상태 조회
+     * 멤버가 존재하면 DB의 study_project_check 값을, 없으면 "free"를 반환합니다.
+     */
+    // @GetMapping("/status")
+    // @Operation(summary = "멤버 상태 조회 (없으면 free)",
+    //           description = "userId와 studyProjectId로 멤버 상태를 조회합니다. 존재하지 않으면 free를 반환합니다.")
+    // public ResponseEntity<ApiResponse<String>> getMemberStatusOrFree(
+    //         @Parameter(description = "사용자 ID", example = "user123", required = true)
+    //         @RequestParam String userId,
+    //         @Parameter(description = "스터디/프로젝트 ID", example = "1", required = true)
+    //         @RequestParam Long studyProjectId) {
+    //     try {
+    //         String status = memberService.getMemberStatusOrFree(userId, studyProjectId);
+    //         return ApiResponse.success("멤버 상태 조회 성공", status);
+    //     } catch (Exception e) {
+    //         return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "멤버 상태 조회 중 오류가 발생했습니다.", null);
+    //     }
+    // }
+
+    /**
+     * 내 멤버 상태 조회 (JWT 기반)
+     * Authorization 헤더의 JWT에서 user_id를 추출하여 멤버 상태를 조회합니다.
+     * 멤버가 존재하면 study_project_check, 없으면 "free" 반환.
+     */
+    @GetMapping("/my-status")
+    @Operation(summary = "내 멤버 상태 조회 (JWT)",
+              description = "JWT에서 user_id를 추출하여 studyProjectId에 대한 멤버 상태를 반환합니다. 존재하지 않으면 free 반환")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<ApiResponse<String>> getMyMemberStatus(
+            @Parameter(description = "스터디/프로젝트 ID", example = "1", required = true)
+            @RequestParam Long studyProjectId,
+            @Parameter(description = "JWT 토큰 (Bearer 형식)", required = true)
+            @RequestHeader(name = "Authorization", required = true) String authorization) {
+        try {
+            String token = authorization.replace("Bearer ", "");
+            String userId = jwtUtil.extractUserId(token);
+            String status = memberService.getMemberStatusOrFree(userId, studyProjectId);
+            return ApiResponse.success("내 멤버 상태 조회 성공", status);
+        } catch (Exception e) {
+            return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "멤버 상태 조회 중 오류가 발생했습니다.", null);
+        }
+    }
 }

@@ -185,4 +185,11 @@ public class MemberService {
         member.setStudyProjectCheck(Member.MemberStatus.withdraw);
         memberRepository.save(member);
     }
+
+    // user_id와 study_project_id로 멤버 상태 조회 (없으면 "free")
+    @Transactional(readOnly = true)
+    public String getMemberStatusOrFree(String userId, Long studyProjectId) {
+        Optional<Member> member = memberRepository.findByUserIdAndStudyProjectId(userId, studyProjectId);
+        return member.map(m -> m.getStudyProjectCheck().toString()).orElse("free");
+    }
 }
