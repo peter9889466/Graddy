@@ -218,6 +218,11 @@ const StudyDetailPage: React.FC = () => {
     // 사용자 권한 확인
     const isLoggedIn = authContext?.isLoggedIn || false;
 
+    // 탈퇴 상태 확인
+    const [withdrawalStatus, setWithdrawalStatus] = useState<string | null>(null);
+    const [isLoadingWithdrawalStatus, setIsLoadingWithdrawalStatus] = useState(false);
+    
+
     // 백엔드에서 스터디 정보와 멤버 정보를 받아와서 설정
     useEffect(() => {
         const fetchStudyInfo = async () => {
@@ -604,43 +609,68 @@ const StudyDetailPage: React.FC = () => {
 
     // 가입 신청 관련 함수들
     const handleApplyToStudy = async () => {
-        if (!id || !authContext?.user?.nickname) {
-            alert("로그인이 필요합니다.");
-            return;
+    console.log('=== 가입 신청 시작 ===');
+    console.log('withdrawalStatus:', withdrawalStatus);
+    console.log('isLoadingWithdrawalStatus:', isLoadingWithdrawalStatus);
+    
+    // 탈퇴 상태 확인 중이면 대기
+    if (isLoadingWithdrawalStatus) {
+        alert("상태 확인 중입니다. 잠시 후 다시 시도해주세요.");
+        return;
+    }
+    
+    // 탈퇴 상태면 차단
+    if (withdrawalStatus === "withdraw") {
+        alert("탈퇴한 스터디에는 재가입할 수 없습니다.");
+        return;
+    }
+
+    if (!authContext?.isLoggedIn) {
+        alert("로그인 후 이용해주세요!");
+        return;
+    }
+
+    setIsApplying(true);
+    try {
+        const request = {
+            studyProjectId: parseInt(id, 10),
+            message: "열심히 참여하겠습니다!",
+        };
+
+        await applyToStudyProject(request);
+
+        alert("가입 신청이 완료되었습니다!");
+        setIsApplied(true);
+
+        if (userMemberType === "leader") {
+            loadApplications();
         }
 
-        setIsApplying(true);
-        try {
-            const request = {
-                studyProjectId: parseInt(id, 10),
-                message: "열심히 참여하겠습니다!",
-            };
+        window.location.reload();
+    } catch (error: any) {
+        console.error("가입 신청 실패:", error);
+        console.error("에러 메시지:", error.message);
 
-            await applyToStudyProject(request);
-
-            alert("가입 신청이 완료되었습니다!");
-            setIsApplied(true);
-
-            if (userMemberType === "leader") {
-                loadApplications();
-            }
-
+        // 탈퇴 상태 에러 메시지 확인
+        if (error.message && (
+            error.message.includes("탈퇴") || 
+            error.message.includes("withdraw") ||
+            error.message.includes("재가입")
+        )) {
+            alert("탈퇴한 스터디에는 재가입할 수 없습니다.");
+            // 상태 업데이트
+            setWithdrawalStatus("withdraw");
+        } else if (error.message && error.message.includes("이미 해당 스터디의 멤버입니다.")) {
+            alert("이미 해당 스터디의 멤버입니다.");
+            setUserMemberType("member");
             window.location.reload();
-        } catch (error: any) {
-            console.error("가입 신청 실패:", error);
-
-            // 에러 메시지 텍스트를 직접 확인
-            if (error.message.includes("이미 해당 스터디의 멤버입니다.")) {
-                alert("이미 해당 스터디의 멤버입니다.");
-                setUserMemberType("member");
-                window.location.reload();
-            } else {
-                alert("가입 신청에 실패했습니다. 다시 시도해주세요.");
-            }
-        } finally {
-            setIsApplying(false);
+        } else {
+            alert("가입 신청에 실패했습니다. 다시 시도해주세요.");
         }
-    };
+    } finally {
+        setIsApplying(false);
+    }
+};
 
     const loadApplications = async () => {
         if (!id || userMemberType !== "leader") return;
@@ -769,48 +799,103 @@ const StudyDetailPage: React.FC = () => {
     };
 
     const handleLeaveStudy = async () => {
-    if (!id || !memberId) {
-        alert("멤버 정보를 찾을 수 없습니다.");
-        return;
-    }
-
-    if (confirm("스터디를 탈퇴하시겠습니까?")) {
-        try {
-            console.log("멤버 아이디",memberId)
-            const response = await fetch(
-                `http://localhost:8080/api/members/${memberId}/withdraw`,
-                {
-                    method: "PATCH",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${localStorage.getItem("userToken")}`, // 필요 시
-                    },
-                }
-            );
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(errorText || "탈퇴 요청 실패");
-            }
-
-            const result = await response.json();
-            console.log("탈퇴 API 응답:", result);
-            localStorage.setItem("accessToken", "내JWT토큰");
-            console.log(localStorage.getItem("accessToken")); // "내JWT토큰"이 찍혀야 정상
-
-            alert(result.message || "스터디에서 탈퇴되었습니다.");
-
-            // 🔥 상태 초기화 (버튼이 다시 "가입 신청"으로 보이게 됨)
-            setUserMemberType(null);
-            setIsStudyMember(false);
-            setIsApplied(false);
-
-        } catch (error: any) {
-            console.error("스터디 탈퇴 실패:", error);
-            alert(error.message || "스터디 탈퇴에 실패했습니다.");
+        if (!id || !memberId) {
+            alert("멤버 정보를 찾을 수 없습니다.");
+            return;
         }
-    }
-};
+
+        if (confirm("스터디를 탈퇴하시겠습니까?")) {
+            try {
+                console.log("멤버 아이디",memberId)
+                const response = await fetch(
+                    `http://localhost:8080/api/members/${memberId}/withdraw`,
+                    {
+                        method: "PATCH",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${localStorage.getItem("userToken")}`, // 필요 시
+                        },
+                    }
+                );
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || "탈퇴 요청 실패");
+                }
+
+                const result = await response.json();
+                console.log("탈퇴 API 응답:", result);
+                localStorage.setItem("accessToken", "내JWT토큰");
+                console.log(localStorage.getItem("accessToken")); // "내JWT토큰"이 찍혀야 정상
+
+                alert(result.message || "스터디에서 탈퇴되었습니다.");
+
+                // 🔥 상태 초기화 (버튼이 다시 "가입 신청"으로 보이게 됨)
+                setUserMemberType(null);
+                setIsStudyMember(false);
+                setIsApplied(false);
+
+            } catch (error: any) {
+                console.error("스터디 탈퇴 실패:", error);
+                alert(error.message || "스터디 탈퇴에 실패했습니다.");
+            }
+        }
+    };
+
+    // 멤버 상태 조회 API 호출 함수
+    const checkWithdrawalStatus = async () => {
+        
+        if (!id || userMemberType === "leader" || userMemberType === "member") {
+            console.log('탈퇴 상태 확인 건너뜀 - 리더이거나 멤버임');
+            return;
+        }
+
+        try {
+            setIsLoadingWithdrawalStatus(true);
+            const token = localStorage.getItem('userToken');
+            console.log('사용할 토큰:', token ? '토큰 있음' : '토큰 없음');
+            
+            const apiUrl = `http://localhost:8080/api/members/my-status?studyProjectId=${id}`;
+            console.log('API 호출 URL:', apiUrl);
+            
+            const response = await fetch(apiUrl, {
+                method: 'GET',
+                headers: {
+                    'Accept': '*/*',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            console.log('API 응답 상태:', response.status);
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('API 응답 데이터:', data);
+                console.log('멤버 상태:', data.data);
+                setWithdrawalStatus(data.data);
+            } else {
+                console.error('API 응답 오류:', response.status);
+                const errorText = await response.text();
+                console.error('오류 내용:', errorText);
+            }
+        } catch (error) {
+            console.error('멤버 상태 조회 실패:', error);
+        } finally {
+            setIsLoadingWithdrawalStatus(false);
+        }
+    };
+
+    // 탈퇴 상태 확인을 위한 useEffect 추가 
+    useEffect(() => {
+        
+        // 로그인되어 있고, 로딩이 완료되었고, 리더나 멤버가 아닐 때만 확인
+        if (authContext?.isLoggedIn && !isLoading && userMemberType !== "leader" && userMemberType !== "member") {
+            console.log('탈퇴 상태 확인 실행');
+            checkWithdrawalStatus();
+        } else {
+            console.log('탈퇴 상태 확인 건너뜀');
+        }
+    }, [id, userMemberType, isLoading, authContext?.isLoggedIn]);
 
     // 태그 데이터 가져오기
     useEffect(() => {
@@ -1423,17 +1508,27 @@ const StudyDetailPage: React.FC = () => {
                                         <button
                                             type="button"
                                             onClick={handleApplyToStudy}
-                                            disabled={isApplying}
-                                            className="w-full px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer"
+                                            disabled={isApplying || isLoadingWithdrawalStatus || isWithdrawn}
+                                            className={`w-full px-4 py-2 rounded-lg text-white text-sm sm:text-base transition-colors ${
+                                                (isWithdrawn || isLoadingWithdrawalStatus)
+                                                    ? 'cursor-not-allowed opacity-50' 
+                                                    : 'cursor-pointer'
+                                            }`}
                                             style={{
-                                                backgroundColor: isApplying
+                                                backgroundColor: (isApplying || isLoadingWithdrawalStatus || isWithdrawn)
                                                     ? "#6B7280"
                                                     : "#8B85E9",
                                             }}
+                                            title={isWithdrawn ? "탈퇴한 사용자는 재가입할 수 없습니다" : ""}
                                         >
-                                            {isApplying
-                                                ? "신청 중..."
-                                                : "스터디 가입 신청"}
+                                            {isLoadingWithdrawalStatus 
+                                                ? "상태 확인 중..." 
+                                                : isWithdrawn 
+                                                    ? "재가입 불가" 
+                                                    : isApplying 
+                                                        ? "신청 중..." 
+                                                        : "스터디 가입 신청"
+                                            }
                                         </button>
                                     ) : (
                                         <button
@@ -1586,6 +1681,8 @@ const StudyDetailPage: React.FC = () => {
     const handleCurriculumUpdate = (newText: string) => {
         setCurriculumText(newText);
     };
+
+    const isWithdrawn = withdrawalStatus === "withdraw";
 
     return (
         <PageLayout>

@@ -163,7 +163,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, memberData
                                 <div className="flex items-center justify-between mb-2">
                                     <h3 className="text-sm font-medium text-gray-700">내 점수</h3>
                                     <span
-                                        className="text-lg font-bold bg-purple-300bg-clip-text text-transparent"
+                                        className="text-lg font-bold bg-purple-300 bg-clip-text text-transparent"
                                     >
                                         {memberData.score.toLocaleString()}
                                     </span>

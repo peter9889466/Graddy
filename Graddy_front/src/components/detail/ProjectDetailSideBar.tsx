@@ -156,9 +156,6 @@ const ProjectDetailSideBar: React.FC<ProjectDetailSideBarProps> = ({
                                 <span className="text-sm font-medium text-gray-800">
                                     {application.userId}
                                 </span>
-                                {/* <span className="text-xs text-gray-500"
-                                    {new Date(application.appliedAt).toLocaleDateString()}
-                                </span> */}
                                 <div className="flex gap-2">
                                 <button
                                     onClick={() => onProcessApplication?.(application.userId, 'APPROVED')}
