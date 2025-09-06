@@ -200,7 +200,7 @@ const ProjectDetailPage = () => {
                     );
                     setStudyTags(studyData.tagNames || []);
                     setMaxMembers(studyData.studyProjectTotal || 10);
-                    setIsRecruiting(studyData.isRecruiting === "recruitment");
+                    setIsRecruiting(studyData.isRecruiting === "RECRUITING");
 
                     // 기간 설정
                     if (
@@ -1171,6 +1171,7 @@ const ProjectDetailPage = () => {
                     <Community
                         studyProjectId={parseInt(id!, 10)}
                         currentUserId={authContext?.user?.nickname || "사용자"}
+                        members={members}
                     />
                 );
         }
