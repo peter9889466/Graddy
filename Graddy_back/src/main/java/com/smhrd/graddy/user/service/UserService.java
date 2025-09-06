@@ -18,6 +18,7 @@ import com.smhrd.graddy.user.repository.UserScoreRepository;
 import com.smhrd.graddy.interest.repository.InterestRepository;
 import com.smhrd.graddy.auth.VerificationService;
 import com.smhrd.graddy.schedule.service.ScheduleNotificationService;
+import com.smhrd.graddy.score.service.ScoreService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -48,6 +49,7 @@ public class UserService {
     private final InterestRepository interestRepository;
     private final PasswordEncoder passwordEncoder;
     private final DaysRepository daysRepository;
+    private final ScoreService scoreService;
     private final VerificationService verificationService;
     private final StudyProjectRepository studyProjectRepository;
     private final ScheduleNotificationService scheduleNotificationService;
@@ -240,11 +242,13 @@ public class UserService {
             }
         }
         
-        // 5. 사용자의 기본 점수 1000점을 생성합니다.
-        UserScore userScore = new UserScore();
-        userScore.setUserId(savedUser.getUserId());
-        userScore.setScore(1000);
-        userScoreRepository.save(userScore);
+        // 5. 사용자의 기본 점수 1000점을 생성합니다. (ScoreService를 통해 생성)
+        try {
+            scoreService.createUserScore(savedUser.getUserId());
+        } catch (Exception e) {
+            // 점수 생성 실패 시 로그만 남기고 사용자 생성은 성공으로 처리
+            System.err.println("사용자 점수 생성 실패: " + e.getMessage());
+        }
         
         return savedUser; // 저장된 User 정보를 컨트롤러로 반환
     }

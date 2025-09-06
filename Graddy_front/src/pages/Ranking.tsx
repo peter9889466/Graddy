@@ -4,6 +4,7 @@ import ResponsiveContainer from "../components/layout/ResponsiveContainer";
 import ResponsiveMainContent from "../components/layout/ResponsiveMainContent";
 import { myStudyList } from "../data/myStudyData";
 import { AuthContext } from "@/contexts/AuthContext";
+import { getUserIdFromToken } from "../utils/jwtUtils";
 
 // API 응답 타입 정의
 interface RankingItem {
@@ -35,16 +36,16 @@ export const Ranking = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<RankingItem | null>(null);
 
-    // 현재 사용자 정보 (임시 - 실제로는 로그인 정보에서 가져와야 함)
+    // 현재 사용자 정보 (JWT 토큰에서 추출)
     const auth = useContext(AuthContext);
-    const currentUserId = auth?.user?.nickname || null;
+    const currentUserId = getUserIdFromToken();
+    // 현재 사용자 랭킹 정보 (TOP 100에 있는 경우)
     const currentUserRanking = rankingData.find(
         (user) => user.userId === currentUserId
     );
-    // 현재 사용자 랭킹 정보 찾기
-    const currentUser = rankingData.find(
-        (user) => user.userId === currentUserId
-    );
+    
+    // 현재 사용자의 개별 랭킹 정보 (TOP 100에 없는 경우를 위해)
+    const [myRankingInfo, setMyRankingInfo] = useState<RankingItem | null>(null);
 
     // API 호출 함수
     const fetchRankingData = async (): Promise<RankingResponse> => {
@@ -62,24 +63,73 @@ export const Ranking = () => {
         }
     };
 
+    // 내 랭킹 정보 가져오기
+    const fetchMyRankingInfo = async (): Promise<RankingItem | null> => {
+        if (!currentUserId) return null;
+        
+        try {
+            const response = await fetch(
+                `http://localhost:8080/api/scores/user/${currentUserId}`
+            );
+            if (!response.ok) {
+                if (response.status === 404) {
+                    console.log("사용자 점수 정보가 없습니다.");
+                    return null;
+                }
+                throw new Error("Failed to fetch user score");
+            }
+            const result = await response.json();
+            if (result.status === 200 && result.data) {
+                return {
+                    scoreId: result.data.scoreId,
+                    userId: result.data.userId,
+                    userScore: result.data.userScore,
+                    rank: result.data.rank,
+                    totalUsers: result.data.totalUsers,
+                    lastUpdated: result.data.lastUpdated
+                };
+            }
+            return null;
+        } catch (error) {
+            console.error("Error fetching my ranking info:", error);
+            return null;
+        }
+    };
+
     // 데이터 로드
     useEffect(() => {
         const loadRankingData = async () => {
             try {
                 setLoading(true);
-                const response = await fetchRankingData();
-                setRankingData(response.data.rankings);
-                setTotalUsers(response.data.totalUsers);
+                
+                // 병렬로 데이터 가져오기
+                const [rankingResponse, myRankingResponse] = await Promise.all([
+                    fetchRankingData(),
+                    fetchMyRankingInfo()
+                ]);
+                
+                setRankingData(rankingResponse.data.rankings);
+                setTotalUsers(rankingResponse.data.totalUsers);
+                setMyRankingInfo(myRankingResponse);
                 setError(null);
+                
+                // 디버깅용 로그
+                console.log("현재 사용자 ID:", currentUserId);
+                console.log("TOP 100 랭킹 데이터:", rankingResponse.data.rankings);
+                console.log("내 랭킹 정보:", myRankingResponse);
+                console.log("TOP 100에서 내 정보:", rankingResponse.data.rankings.find(user => user.userId === currentUserId));
             } catch (err) {
                 setError("랭킹 데이터를 불러오는데 실패했습니다.");
+                console.error("랭킹 데이터 로드 실패:", err);
             } finally {
                 setLoading(false);
             }
         };
 
-        loadRankingData();
-    }, []);
+        if (auth?.isLoggedIn) {
+            loadRankingData();
+        }
+    }, [auth?.isLoggedIn, currentUserId]);
 
     // 랭킹 메달 아이콘 반환
     const getRankIcon = (rank: number) => {
@@ -231,46 +281,66 @@ export const Ranking = () => {
                     </div>
                 )}
 
-                {currentUserRanking && (
-                    <div className="p-6 bg-white">
+                {/* 내 랭킹 표시 - TOP 100에 있으면 currentUserRanking, 없으면 myRankingInfo 사용 */}
+                {(currentUserRanking || myRankingInfo) && (
+                    <div className="p-6 bg-blue-50 border-t-2 border-blue-200">
                         <h3 className="text-lg font-semibold text-blue-800 mb-2">
                             내 랭킹
                         </h3>
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-4">
-                                <div
-                                    className={`w-10 h-10 ${getRankBadgeColor(
-                                        currentUserRanking.rank
-                                    )} 
-                                            rounded-full flex items-center justify-center text-white font-bold text-sm`}
-                                >
-                                    {currentUserRanking.rank <= 3
-                                        ? getRankIcon(currentUserRanking.rank)
-                                        : currentUserRanking.rank}
-                                </div>
-                                {getProfileImage(currentUserRanking.userId)}
-                                <div>
-                                    <h3 className="text-lg font-semibold text-gray-900">
-                                        {currentUserRanking.userId}
-                                    </h3>
-                                    <div className="text-xs text-gray-500">
-                                        최근 업데이트:{" "}
-                                        {new Date(
-                                            currentUserRanking.lastUpdated
-                                        ).toLocaleDateString()}
+                        {(() => {
+                            const myRanking = currentUserRanking || myRankingInfo;
+                            if (!myRanking) return null;
+                            
+                            return (
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-4">
+                                        <div
+                                            className={`w-10 h-10 ${getRankBadgeColor(
+                                                myRanking.rank
+                                            )} 
+                                                    rounded-full flex items-center justify-center text-white font-bold text-sm`}
+                                        >
+                                            {myRanking.rank <= 3
+                                                ? getRankIcon(myRanking.rank)
+                                                : myRanking.rank}
+                                        </div>
+                                        {getProfileImage(myRanking.userId)}
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-gray-900">
+                                                {myRanking.userId}
+                                                <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                                    나
+                                                </span>
+                                            </h3>
+                                            <div className="text-xs text-gray-500">
+                                                최근 업데이트:{" "}
+                                                {new Date(
+                                                    myRanking.lastUpdated
+                                                ).toLocaleDateString()}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-xl font-bold text-blue-600">
+                                            {myRanking.userScore.toLocaleString()}점
+                                        </div>
+                                        <div className="text-sm text-gray-500">
+                                            #{myRanking.rank} / {myRanking.totalUsers}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="text-right">
-                                <div className="text-xl font-bold text-blue-600">
-                                    {currentUserRanking.userScore.toLocaleString()}
-                                    점
-                                </div>
-                                <div className="text-sm text-gray-500">
-                                    #{currentUserRanking.rank} /{" "}
-                                    {currentUserRanking.totalUsers}
-                                </div>
-                            </div>
+                            );
+                        })()}
+                    </div>
+                )}
+
+                {/* 내 랭킹 정보가 없는 경우 */}
+                {!currentUserRanking && !myRankingInfo && currentUserId && (
+                    <div className="p-6 bg-gray-50 border-t-2 border-gray-200 text-center">
+                        <div className="text-gray-500">
+                            <div className="text-4xl mb-2">📊</div>
+                            <div className="font-medium">아직 점수가 없습니다</div>
+                            <div className="text-sm mt-1">스터디에 참여하여 점수를 획득해보세요!</div>
                         </div>
                     </div>
                 )}
@@ -373,7 +443,7 @@ export const Ranking = () => {
                     </div>
 
                     {/* 참여 중인 스터디/프로젝트 리스트 (현재 사용자인 경우만) */}
-                    {selectedUser.userId === currentUserId && (
+                    {selectedUser.userId === currentUserId && currentUserId && (
                         <div className="mt-6">
                             <div className="text-sm text-gray-600 mb-3">
                                 참여 중인 스터디/프로젝트

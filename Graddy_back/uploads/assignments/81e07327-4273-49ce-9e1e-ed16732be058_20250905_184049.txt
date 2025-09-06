@@ -1,0 +1,52 @@
+import React, { useState } from 'react';
+
+function TodoApp() {
+  const [todos, setTodos] = useState([]);
+  const [inputValue, setInputValue] = useState('');
+
+  const addTodo = () => {
+    if (inputValue.trim() === '') return; // 빈 값 방지
+    setTodos([...todos, { text: inputValue, completed: false }]);
+    setInputValue('');
+  };
+
+  const toggleTodo = (index) => {
+    const newTodos = [...todos];
+    newTodos[index].completed = !newTodos[index].completed;
+    setTodos(newTodos);
+  };
+
+  return (
+    <div style={{ maxWidth: '400px', margin: '50px auto', textAlign: 'center' }}>
+      <h2>📋 To-Do List</h2>
+      <input
+        type="text"
+        placeholder="할 일을 입력하세요"
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+        style={{ padding: '5px', width: '70%', marginRight: '5px' }}
+      />
+      <button onClick={addTodo} style={{ padding: '5px 10px' }}>
+        추가
+      </button>
+      <ul style={{ listStyle: 'none', padding: 0, marginTop: '20px' }}>
+        {todos.map((todo, index) => (
+          <li
+            key={index}
+            onClick={() => toggleTodo(index)}
+            style={{
+              cursor: 'pointer',
+              textDecoration: todo.completed ? 'line-through' : 'none',
+              color: todo.completed ? 'gray' : 'black',
+              margin: '8px 0',
+            }}
+          >
+            {todo.text}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export default TodoApp;

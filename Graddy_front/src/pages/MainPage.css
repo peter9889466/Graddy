@@ -192,3 +192,10 @@
     transform: none !important;
     box-shadow: none !important;
 }
+
+/* FullCalendar 팝오버 완전히 숨기기 */
+.fc-popover {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
