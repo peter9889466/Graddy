@@ -18,6 +18,9 @@ public class StudyApplicationResponse {
     @Schema(description = "신청자 ID", example = "user123")
     private String userId;
 
+    @Schema(description = "신청자 닉네임", example = "홍길동")
+    private String nick;
+
     @Schema(description = "스터디/프로젝트 ID", example = "1")
     private Long studyProjectId;
 

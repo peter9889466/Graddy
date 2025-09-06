@@ -1,0 +1,32 @@
+// 1. 변수 선언과 할당
+let number = 7; // 사용자가 입력했다고 가정
+
+// 2. 함수 정의
+function checkEvenOddAndSum(num) {
+  // 3. if-else 조건문
+  if (num % 2 === 0) {
+    console.log(num + "은(는) 짝수입니다.");
+  } else {
+    console.log(num + "은(는) 홀수입니다.");
+  }
+
+  // 4. 반복문(for) 활용 → 1부터 num까지 합 구하기
+  let sum = 0;
+  for (let i = 1; i <= num; i++) {
+    sum += i;
+  }
+
+  console.log("1부터 " + num + "까지의 합: " + sum);
+}
+
+// 2. 함수 호출
+checkEvenOddAndSum(number);
+
+// 보너스: while문을 이용해 같은 합계 구하기
+let i = 1;
+let sumWhile = 0;
+while (i <= number) {
+  sumWhile += i;
+  i++;
+}
+console.log("[while문] 1부터 " + number + "까지의 합: " + sumWhile);
