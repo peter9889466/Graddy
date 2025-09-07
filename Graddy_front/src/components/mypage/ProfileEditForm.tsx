@@ -326,7 +326,7 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
                                 placeholder="변경할 닉네임을 입력해주세요"
                                 className="w-full px-4 py-3 border rounded-full"
                             />
-                            <button onClick={onCheckNickname} className="px-4 py-3 text-sm text-white rounded-lg font-medium" style={{ backgroundColor: "#8B85E9" }}>중복확인</button>
+                            <button onClick={onCheckNickname} className="px-5 h-12 min-w-[90px] text-sm text-white whitespace-nowrap rounded-lg font-medium" style={{ backgroundColor: "#8B85E9" }}>중복확인</button>
                         </div>
                         {nicknameError && <p className="text-red-500 text-xs mt-1">{nicknameError}</p>}
                         {nicknameChecked && !nicknameError && <p className="text-green-500 text-xs mt-1">사용 가능한 닉네임입니다.</p>}

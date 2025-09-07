@@ -9,7 +9,7 @@ export interface BackendStudyProjectData {
     studyLevel: number;
     typeCheck: string;
     userId: string;
-    isRecruiting: 'RECRUITING' | 'COMPLETE' | 'END';
+    isRecruiting: 'recruitment' | 'complete' | 'end';
     studyProjectStart: string;
     studyProjectEnd: string;
     studyProjectTotal: number;

@@ -200,7 +200,7 @@ const ProjectDetailPage = () => {
                     );
                     setStudyTags(studyData.tagNames || []);
                     setMaxMembers(studyData.studyProjectTotal || 10);
-                    setIsRecruiting(studyData.isRecruiting === "RECRUITING");
+                    setIsRecruiting(studyData.isRecruiting === "recruitment");
 
                     // 기간 설정
                     if (
