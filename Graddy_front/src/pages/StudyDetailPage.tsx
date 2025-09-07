@@ -1256,6 +1256,7 @@ const StudyDetailPage: React.FC = () => {
                                 </span>
                             )}
                         </div>
+
                         {/* 스터디 레벨 */}
                         <div className="text-gray-700 mb-4">
                             <div className="flex items-center gap-2 mb-2">
@@ -1449,6 +1450,7 @@ const StudyDetailPage: React.FC = () => {
                                 )}
                             </div>
                         </div>
+
                         {/* 버튼 영역 */}
                         {!isEditing &&
                         !isLoading &&
@@ -1491,7 +1493,7 @@ const StudyDetailPage: React.FC = () => {
                         ) : !isEditing &&
                           !isLoading &&
                           (userMemberType === "member" ||
-                              userMemberType === null) ? (
+                        userMemberType === null) ? (
                             // 일반 사용자이거나 멤버인 경우 (수정 모드가 아닐 때만 표시)
                             <div className="w-full mt-3">
                                 {userMemberType === "member" ? (
@@ -1508,22 +1510,22 @@ const StudyDetailPage: React.FC = () => {
                                         <button
                                             type="button"
                                             onClick={handleApplyToStudy}
-                                            disabled={isApplying || isLoadingWithdrawalStatus || isWithdrawn || members.length >= maxMembers}
+                                            disabled={isApplying || isLoadingWithdrawalStatus || isWithdrawn || members.length >= maxMembers || !isRecruiting}
                                             className={`w-full px-4 py-2 rounded-lg text-white text-sm sm:text-base transition-colors ${
-                                            (isWithdrawn || isLoadingWithdrawalStatus || members.length >= maxMembers)
+                                            (isWithdrawn || isLoadingWithdrawalStatus || members.length >= maxMembers || !isRecruiting)
                                                 ? 'cursor-not-allowed opacity-50' 
                                                 : 'cursor-pointer'
                                             }`}
                                             style={{
-                                                backgroundColor: (isApplying || isLoadingWithdrawalStatus || isWithdrawn || members.length >= maxMembers)
-                                                ? "#6B7280"
+                                                backgroundColor: (isApplying || isLoadingWithdrawalStatus || isWithdrawn || members.length >= maxMembers || !isRecruiting)
+                                                ? "#6b7280"
                                                 : "#8B85E9",
                                             }}
                                             title={
                                                 isWithdrawn 
                                                     ? "탈퇴한 사용자는 재가입할 수 없습니다" 
-                                                    : members.length >= maxMembers
-                                                        ? "모집 정원이 마감되었습니다"
+                                                    : !isRecruiting || members.length >= maxMembers
+                                                        ? "모집이 마감되었습니다"
                                                         : ""
                                             }
                                         >
@@ -1531,8 +1533,8 @@ const StudyDetailPage: React.FC = () => {
                                                 ? "상태 확인 중..." 
                                                 : isWithdrawn 
                                                     ? "재가입 불가" 
-                                                    // : members.length >= maxMembers
-                                                    //     ? "모집 완료"
+                                                    : !isRecruiting ||  members.length >= maxMembers
+                                                        ? "모집이 마감되었습니다"
                                                         : isApplying 
                                                             ? "신청 중..." 
                                                             : "스터디 가입 신청"
@@ -1553,6 +1555,7 @@ const StudyDetailPage: React.FC = () => {
                         ) : null}
                     </div>
                 );
+
             case "과제 제출":
                 // 로그인 및 스터디 멤버 권한 확인
                 if (
