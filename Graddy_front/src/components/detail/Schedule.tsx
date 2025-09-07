@@ -1,5 +1,6 @@
 // 과제 / 일정 관리
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, BookOpen, Calendar } from 'lucide-react';
 import { apiPost, apiGet, apiDelete, apiPut } from '../../services/api';
 
@@ -37,6 +38,7 @@ const Schedule: React.FC<ScheduleProps> = ({
     userId = '',
     memberId = 0
 }) => {
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<'assignment' | 'schedule'>('assignment');
     const [isAdding, setIsAdding] = useState(false);
     const [newItem, setNewItem] = useState({
@@ -56,6 +58,7 @@ const Schedule: React.FC<ScheduleProps> = ({
     const [aiGeneratedAssignment, setAiGeneratedAssignment] = useState<any>(null);
     const [showAIPreview, setShowAIPreview] = useState(false);
     const [isAIAssignmentSaved, setIsAIAssignmentSaved] = useState(false); // AI 과제 저장 여부 추적
+    const [isAddingAssignment, setIsAddingAssignment] = useState(false); // 일반 과제 추가 로딩 상태
 
     // 일정 수정 관련 상태
     const [editingSchedule, setEditingSchedule] = useState<string | null>(null);
@@ -183,19 +186,27 @@ const Schedule: React.FC<ScheduleProps> = ({
                         return;
                     }
 
+                    // 로딩 상태 시작
+                    setIsAddingAssignment(true);
+
                     // AI 생성된 과제인지 확인하고 중복 생성 방지
                     if (aiGeneratedAssignment) {
                         console.log('AI 생성된 과제 처리 중...');
                         
-                        // AI 과제는 미리보기 상태이므로 일반 과제 생성 로직으로 진행
-                        console.log('AI 생성된 과제를 일반 과제로 저장 진행...');
+                        // AI 과제는 이미 생성된 상태이므로 추가 생성하지 않음
+                        if (isAIAssignmentSaved) {
+                            console.log('AI 과제가 이미 저장됨 - 중복 생성 방지');
+                            alert('AI 과제가 이미 저장되었습니다. 새로운 과제를 추가하려면 폼을 초기화해주세요.');
+                            setIsAddingAssignment(false);
+                            return;
+                        }
                         
-                        console.log('AI 기반 과제 최종 저장 진행...');
+                        console.log('AI 생성된 과제를 일반 과제로 저장 진행...');
                     } else {
                         console.log('일반 수동 과제 생성 중...');
                     }
 
-                    // 과제 추가 API 호출 (AI 생성 여부와 관계없이 항상 새로 생성)
+                    // 과제 추가 API 호출
                     const assignmentData = {
                         studyProjectId: studyProjectId,
                         memberId: memberId,
@@ -237,6 +248,11 @@ const Schedule: React.FC<ScheduleProps> = ({
                             // 과제 목록 다시 로드
                             await loadAssignments();
                             
+                            // 잠시 대기 후 스터디 메인으로 이동
+                            setTimeout(() => {
+                                navigate(`/study/${studyProjectId}`);
+                            }, 1000);
+                            
                             return; // 성공 시 여기서 종료
                         } else {
                             throw new Error('응답 데이터가 없습니다');
@@ -245,6 +261,8 @@ const Schedule: React.FC<ScheduleProps> = ({
                         console.error('과제 추가 API 호출 실패:', apiError);
                         alert('과제 추가에 실패했습니다. 다시 시도해주세요.');
                         return; // 실패 시 여기서 종료
+                    } finally {
+                        setIsAddingAssignment(false);
                     }
                 } else {
                     // 일정 추가 API 호출
@@ -1056,19 +1074,35 @@ const handleCancelAssignmentEdit = () => {
                         <div className="flex gap-3">
                             <button
                                 onClick={handleAddItem}
-                                className="px-4 py-2 text-white rounded-md transition-colors duration-200 hover:cursor-pointer"
-                                style={{ 
-                                    backgroundColor: "#8B85E9",
-                                    filter: "brightness(1)"
+                                disabled={isAddingAssignment}
+                                className={`px-4 py-2 text-white rounded-md transition-colors duration-200 flex items-center justify-center gap-2 ${
+                                    isAddingAssignment 
+                                        ? 'opacity-50 cursor-not-allowed' 
+                                        : 'hover:cursor-pointer'
+                                }`}
+                                style={{
+                                    backgroundColor: isAddingAssignment ? "#6B7280" : "#8B85E9",
+                                    filter: isAddingAssignment ? "brightness(1)" : "brightness(1)"
                                 }}
                                 onMouseEnter={(e) => {
-                                    e.currentTarget.style.filter = "brightness(0.8)";
+                                    if (!isAddingAssignment) {
+                                        e.currentTarget.style.filter = "brightness(0.8)";
+                                    }
                                 }}
                                 onMouseLeave={(e) => {
-                                    e.currentTarget.style.filter = "brightness(1)";
+                                    if (!isAddingAssignment) {
+                                        e.currentTarget.style.filter = "brightness(1)";
+                                    }
                                 }}
                             >
-                                추가
+                                {isAddingAssignment ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                        추가 중...
+                                    </>
+                                ) : (
+                                    "추가"
+                                )}
                             </button>
                             <button
                                                                  onClick={() => {

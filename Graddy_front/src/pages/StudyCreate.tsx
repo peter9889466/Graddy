@@ -137,6 +137,7 @@ const StudyCreate: React.FC = () => {
         null
     );
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Interests 데이터 상태
     const [interests, setInterests] = useState<InterestForFrontend[]>([]);
@@ -289,6 +290,7 @@ const StudyCreate: React.FC = () => {
 
         // 에러 초기화
         setErrors({});
+        setIsSubmitting(true);
 
         // 필수 필드 검증
         const newErrors: { [key: string]: string } = {};
@@ -364,6 +366,7 @@ const StudyCreate: React.FC = () => {
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
+            setIsSubmitting(false);
             return;
         }
 
@@ -465,6 +468,8 @@ const StudyCreate: React.FC = () => {
             }
             
             alert(errorMessage);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -1598,11 +1603,23 @@ const StudyCreate: React.FC = () => {
                         </button>
                         <button
                             type="submit"
-                            className="px-5 py-2.5 bg-[#8B85E9] text-white rounded-lg hover:bg-[#7A74D8] transition-colors duration-200 font-medium"
+                            disabled={isSubmitting}
+                            className={`px-5 py-2.5 rounded-lg transition-colors duration-200 font-medium flex items-center justify-center ${
+                                isSubmitting
+                                    ? "bg-gray-400 cursor-not-allowed"
+                                    : "bg-[#8B85E9] hover:bg-[#7A74D8]"
+                            } text-white`}
                         >
-                            {studyType === "study"
-                                ? "스터디 생성"
-                                : "프로젝트 생성"}
+                            {isSubmitting ? (
+                                <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                    생성 중...
+                                </>
+                            ) : (
+                                studyType === "study"
+                                    ? "스터디 생성"
+                                    : "프로젝트 생성"
+                            )}
                         </button>
                     </div>
                 </form>
