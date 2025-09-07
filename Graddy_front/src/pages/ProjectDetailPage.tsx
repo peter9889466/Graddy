@@ -200,7 +200,7 @@ const ProjectDetailPage = () => {
                     );
                     setStudyTags(studyData.tagNames || []);
                     setMaxMembers(studyData.studyProjectTotal || 10);
-                    setIsRecruiting(studyData.isRecruiting === "recruitment");
+                    setIsRecruiting(studyData.isRecruiting === "RECRUITING");
 
                     // 기간 설정
                     if (
@@ -1128,9 +1128,14 @@ const ProjectDetailPage = () => {
                                                 : "#8B85E9",
                                         }}
                                     >
-                                        {isApplying
-                                            ? "신청 중..."
-                                            : "프로젝트 가입 신청"}
+                                        {isApplying ? (
+                                            <>
+                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                                신청 중...
+                                            </>
+                                        ) : (
+                                            "프로젝트 가입 신청"
+                                        )}
                                     </button>
                                 ) : (
                                     <button
@@ -1171,6 +1176,7 @@ const ProjectDetailPage = () => {
                     <Community
                         studyProjectId={parseInt(id!, 10)}
                         currentUserId={authContext?.user?.nickname || "사용자"}
+                        members={members}
                     />
                 );
         }

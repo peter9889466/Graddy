@@ -322,7 +322,7 @@ const JoinProfile: React.FC<JoinProfileProps> = ({
 
         try {
             const response = await axios.post(
-                "http://localhost:8080/api/auth/verify-code",
+                "http://localhost:8080/api/api/auth/verify-code",
                 {
                     phoneNumber: phoneNumber,
                     code: verificationCode,
@@ -1162,13 +1162,7 @@ const JoinProfile: React.FC<JoinProfileProps> = ({
                                                         : {}
                                                 }
                                             >
-                                                {isLoading
-                                                    ? "처리중..."
-                                                    : isVerified
-                                                    ? "인증 완료"
-                                                    : showVerificationInput
-                                                    ? "인증번호 재발송"
-                                                    : "인증번호 발송"}
+                                                확인
                                             </button>
                                         </div>
                                     </div>

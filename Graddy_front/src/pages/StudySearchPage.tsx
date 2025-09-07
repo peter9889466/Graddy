@@ -136,7 +136,12 @@ export const StudySearchPage = () => {
         // 백엔드 데이터를 프론트엔드 형식으로 변환
         const convertedStudies = studiesProjects.map((study) => {
             // ENUM 값에 따른 모집 상태 매핑
-            const getRecruitmentStatus = (isRecruiting: string) => {
+            const getRecruitmentStatus = (isRecruiting: string, currentMembers: number, studyTotal: number) => {
+                // 현재 인원이 총 인원과 같으면 모집완료
+                if (currentMembers >= studyTotal) {
+                    return "모집 완료";
+                }
+                
                 switch (isRecruiting) {
                     case "recruitment":
                         return "모집중";
@@ -181,7 +186,11 @@ export const StudySearchPage = () => {
                 soltStart: study.soltStart,
                 soltEnd: study.soltEnd,
                 isRecruiting: getIsRecruiting(study.isRecruiting),
-                recruitmentStatus: getRecruitmentStatus(study.isRecruiting),
+                recruitmentStatus: getRecruitmentStatus(
+                    study.isRecruiting, 
+                    study.currentMemberCount || 0, 
+                    study.studyProjectTotal
+                ),
                 type: study.typeCheck === "study" ? "스터디" : "프로젝트",
                 tags: study.tagNames || [],
                 leader: getLeaderNickname(), // 닉네임 우선, 없으면 userId
@@ -636,7 +645,7 @@ export const StudySearchPage = () => {
                                 >
                                     {study.studyTitle}
                                 </div>
-
+ 
                                 <div className="text-sm text-gray-600 mb-2">
                                     {study.type === "프로젝트"
                                         ? "프로젝트"

@@ -54,7 +54,7 @@ interface CommunityProps {
 const Community: React.FC<CommunityProps> = ({
     studyProjectId = 55, // 기본값으로 55 사용
     currentUserId = "나", // 기본값
-    members, 
+    members = [], // 기본값으로 빈 배열 설정
 }) => {
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
