@@ -1531,8 +1531,8 @@ const StudyDetailPage: React.FC = () => {
                                                 ? "상태 확인 중..." 
                                                 : isWithdrawn 
                                                     ? "재가입 불가" 
-                                                    : members.length >= maxMembers
-                                                        ? "모집 완료"
+                                                    // : members.length >= maxMembers
+                                                    //     ? "모집 완료"
                                                         : isApplying 
                                                             ? "신청 중..." 
                                                             : "스터디 가입 신청"
