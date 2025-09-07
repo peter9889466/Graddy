@@ -43,7 +43,11 @@ import { useCommunityContext } from "@/contexts/CommunityContext";
 const StudyDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState("스터디 정보");
+    const [activeTab, setActiveTab] = useState(() => {
+        // localStorage에서 저장된 탭 상태를 복원
+        const savedTab = localStorage.getItem('studyDetailActiveTab');
+        return savedTab || "스터디 정보";
+    });
     const [isApplied, setIsApplied] = useState(false);
     const [isRecruiting, setIsRecruiting] = useState(true); // 모집 상태 관리
     const [isStudyEnd, setIsStudyEnd] = useState(false);
@@ -1702,7 +1706,10 @@ const StudyDetailPage: React.FC = () => {
                 <ResponsiveSidebar>
                     <StudyDetailSideBar
                         activeTab={activeTab}
-                        onTabChange={(tab) => setActiveTab(tab)}
+                        onTabChange={(tab) => {
+                            setActiveTab(tab);
+                            localStorage.setItem('studyDetailActiveTab', tab);
+                        }}
                         isLoggedIn={isLoggedIn}
                         isStudyMember={
                             !isLoading &&

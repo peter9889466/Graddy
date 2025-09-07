@@ -548,7 +548,13 @@ const handleCancelAssignmentEdit = () => {
                 });
                 
                 console.log('AI 과제 미리보기 데이터를 폼에 설정 완료');
-                alert('AI 과제가 생성되었습니다! 내용을 확인 후 "추가" 버튼을 눌러 과제를 저장하세요.');
+                alert('AI 과제생성이 완료되었습니다!');
+                
+                // 새로고침 전에 현재 탭 상태를 localStorage에 저장
+                localStorage.setItem('studyDetailActiveTab', '과제 / 일정 관리');
+                
+                // 새로고침
+                window.location.reload();
                 
             } else {
                 // AI 과제 생성이 실패했거나 기본값이 반환된 경우
@@ -575,6 +581,14 @@ const handleCancelAssignmentEdit = () => {
                     date: new Date(defaultAssignmentData.deadline).toISOString().split('T')[0],
                     time: ''
                 });
+                
+                alert('AI 과제생성이 완료되었습니다!');
+                
+                // 새로고침 전에 현재 탭 상태를 localStorage에 저장
+                localStorage.setItem('studyDetailActiveTab', '과제 / 일정 관리');
+                
+                // 새로고침
+                window.location.reload();
             }
             
         } catch (error) {
@@ -972,7 +986,10 @@ const handleCancelAssignmentEdit = () => {
                                     type="text"
                                     value={newItem.title}
                                     onChange={(e) => setNewItem({ ...newItem, title: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
+                                    disabled={isGeneratingAI}
+                                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] ${
+                                        isGeneratingAI ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''
+                                    }`}
                                     placeholder={activeTab === 'assignment' ? '과제 제목을 입력하세요' : '일정 제목을 입력하세요'}
                                 />
                             </div>
@@ -985,7 +1002,10 @@ const handleCancelAssignmentEdit = () => {
                                     type="date"
                                     value={newItem.date}
                                         onChange={(e) => setNewItem({ ...newItem, date: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
+                                    disabled={isGeneratingAI}
+                                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] ${
+                                        isGeneratingAI ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''
+                                    }`}
                                         placeholder="과제 마감일을 선택하세요"
                                         min={new Date().toISOString().split('T')[0]}
                                 />
@@ -1000,14 +1020,20 @@ const handleCancelAssignmentEdit = () => {
                                             type="date"
                                             value={newItem.date}
                                             onChange={(e) => setNewItem({ ...newItem, date: e.target.value })}
-                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
+                                            disabled={isGeneratingAI}
+                                            className={`flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] ${
+                                                isGeneratingAI ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''
+                                            }`}
                                             placeholder="날짜 선택"
                                             min={new Date().toISOString().split('T')[0]}
                                         />
                                         <select
                                     value={newItem.time}
                                             onChange={(e) => setNewItem({ ...newItem, time: e.target.value })}
-                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
+                                            disabled={isGeneratingAI}
+                                            className={`flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] ${
+                                                isGeneratingAI ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''
+                                            }`}
                                         >
                                             <option value="">시간 선택</option>
                                             {Array.from({ length: 24 }, (_, i) => {
@@ -1032,7 +1058,10 @@ const handleCancelAssignmentEdit = () => {
                             <textarea
                                 value={newItem.description}
                                         onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
+                                        disabled={isGeneratingAI}
+                                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] ${
+                                            isGeneratingAI ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''
+                                        }`}
                                 rows={3}
                                         placeholder="과제에 대한 설명을 입력하세요"
                                     />
@@ -1045,10 +1074,13 @@ const handleCancelAssignmentEdit = () => {
                                         key={isAdding ? 'adding' : 'not-adding'}
                                         type="file"
                                         onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                                        className="block w-full text-sm file:mr-4 file:py-2 file:px-4
+                                        disabled={isGeneratingAI}
+                                        className={`block w-full text-sm file:mr-4 file:py-2 file:px-4
                                                     file:rounded-lg file:border-0
                                                     file:text-sm file:font-semibold file:text-[#8B85E9]
-                                                    file:bg-violet-50 hover:file:bg-violet-100"
+                                                    file:bg-violet-50 hover:file:bg-violet-100 ${
+                                                        isGeneratingAI ? 'opacity-50 cursor-not-allowed' : ''
+                                                    }`}
                             />
                         </div>
                             </>
@@ -1074,23 +1106,23 @@ const handleCancelAssignmentEdit = () => {
                         <div className="flex gap-3">
                             <button
                                 onClick={handleAddItem}
-                                disabled={isAddingAssignment}
+                                disabled={isAddingAssignment || isGeneratingAI}
                                 className={`px-4 py-2 text-white rounded-md transition-colors duration-200 flex items-center justify-center gap-2 ${
-                                    isAddingAssignment 
+                                    isAddingAssignment || isGeneratingAI
                                         ? 'opacity-50 cursor-not-allowed' 
                                         : 'hover:cursor-pointer'
                                 }`}
                                 style={{
-                                    backgroundColor: isAddingAssignment ? "#6B7280" : "#8B85E9",
-                                    filter: isAddingAssignment ? "brightness(1)" : "brightness(1)"
+                                    backgroundColor: isAddingAssignment || isGeneratingAI ? "#6B7280" : "#8B85E9",
+                                    filter: isAddingAssignment || isGeneratingAI ? "brightness(1)" : "brightness(1)"
                                 }}
                                 onMouseEnter={(e) => {
-                                    if (!isAddingAssignment) {
+                                    if (!isAddingAssignment && !isGeneratingAI) {
                                         e.currentTarget.style.filter = "brightness(0.8)";
                                     }
                                 }}
                                 onMouseLeave={(e) => {
-                                    if (!isAddingAssignment) {
+                                    if (!isAddingAssignment && !isGeneratingAI) {
                                         e.currentTarget.style.filter = "brightness(1)";
                                     }
                                 }}
@@ -1099,6 +1131,11 @@ const handleCancelAssignmentEdit = () => {
                                     <>
                                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                                         추가 중...
+                                    </>
+                                ) : isGeneratingAI ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                        AI 생성 중...
                                     </>
                                 ) : (
                                     "추가"
@@ -1119,7 +1156,12 @@ const handleCancelAssignmentEdit = () => {
                                     }
                                     console.log('과제 추가 폼 취소됨 - 모든 상태 초기화');
                                  }}
-                                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors duration-200"
+                                disabled={isGeneratingAI}
+                                className={`px-4 py-2 bg-gray-300 text-gray-700 rounded-md transition-colors duration-200 ${
+                                    isGeneratingAI 
+                                        ? 'opacity-50 cursor-not-allowed' 
+                                        : 'hover:bg-gray-400'
+                                }`}
                             >
                                 취소
                             </button>

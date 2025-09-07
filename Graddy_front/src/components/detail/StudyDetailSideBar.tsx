@@ -94,6 +94,11 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [isLoadingMember, setIsLoadingMember] = useState(false);
 
+    // 탭 변경 핸들러
+    const handleTabChange = (tab: string) => {
+        onTabChange(tab);
+    };
+
     const sideMenuItems: SideMenuItem[] = isProject 
         ? [
             { name: "프로젝트 메인" },
@@ -251,7 +256,7 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
                                 alert('스터디원만 확인할 수 있습니다.');
                                 return;
                             }
-                            onTabChange(item.name);
+                            handleTabChange(item.name);
                         };
 
                         return (
