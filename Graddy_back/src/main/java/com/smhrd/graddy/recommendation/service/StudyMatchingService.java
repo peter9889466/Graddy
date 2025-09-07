@@ -20,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -37,11 +36,11 @@ public class StudyMatchingService {
     private static final double DEFAULT_CONTENT_BASED_WEIGHT = 0.7;
     private static final double DEFAULT_COLLABORATIVE_WEIGHT = 0.3;
     
-    // 콘텐츠 기반 필터링 가중치
-    private static final double INTEREST_MATCH_WEIGHT = 0.35;
-    private static final double LEVEL_MATCH_WEIGHT = 0.25;
-    private static final double DAY_MATCH_WEIGHT = 0.2;
-    private static final double TIME_MATCH_WEIGHT = 0.2;
+    // 콘텐츠 기반 필터링 가중치 (관심사-레벨 통합 매칭 강화)
+    private static final double INTEREST_MATCH_WEIGHT = 0.5;  // 관심사 매칭 40%
+    private static final double LEVEL_MATCH_WEIGHT = 0.3;     // 레벨 매칭 40% (증가)
+    private static final double DAY_MATCH_WEIGHT = 0.1;       // 요일 매칭 10%
+    private static final double TIME_MATCH_WEIGHT = 0.1;      // 시간 매칭 10%
 
     private final UserRepository userRepository;
     private final StudyProjectRepository studyProjectRepository;
@@ -251,7 +250,7 @@ public class StudyMatchingService {
                                  (interestMatchScore * INTEREST_MATCH_WEIGHT) +
                                  (levelMatchScore * LEVEL_MATCH_WEIGHT);
         
-        log.debug("콘텐츠 기반 점수 계산: 요일({}), 시간({}), 관심사({}), 레벨({}) -> 최종({})",
+        log.debug("콘텐츠 기반 점수 계산: 요일({}), 시간({}), 관심사({}), 관심사별레벨({}) -> 최종({})",
                 dayMatchScore, timeMatchScore, interestMatchScore, levelMatchScore, contentBasedScore);
         
         return contentBasedScore;
@@ -398,10 +397,10 @@ public class StudyMatchingService {
     }
     
     /**
-     * 레벨 근접도 점수 계산
+     * 관심사별 레벨 매칭 점수 계산 (계층적 매칭)
      * @param user 사용자 정보
      * @param study 스터디/프로젝트 정보
-     * @return 레벨 근접도 점수 (0.0 ~ 1.0)
+     * @return 관심사별 레벨 매칭 점수 (0.0 ~ 1.0)
      */
     private double calculateLevelMatchScore(User user, StudyProject study) {
         try {
@@ -410,12 +409,11 @@ public class StudyMatchingService {
                 return 0.5; // 중간 점수 반환
             }
             
-            // 사용자의 관심사별 평균 레벨 계산 - 직접 Repository에서 조회하여 최신 데이터 보장
+            // 사용자의 관심사별 레벨 조회
             List<UserInterest> userInterests = new ArrayList<>();
             try {
-                // UserInterestRepository에서 직접 조회하여 Lazy Loading 문제 해결
                 userInterests = userInterestRepository.findByIdUserId(user.getUserId());
-                log.debug("사용자 {}의 최신 관심사 레벨 조회: {}", user.getUserId(), 
+                log.debug("사용자 {}의 관심사 레벨 조회: {}", user.getUserId(), 
                     userInterests.stream().map(ui -> ui.getInterest().getInterestName() + ":" + ui.getInterestLevel()).collect(Collectors.toList()));
             } catch (Exception e) {
                 log.warn("사용자 관심사 조회 중 오류 발생: {}", e.getMessage());
@@ -426,30 +424,80 @@ public class StudyMatchingService {
                 return 0.5; // 관심사가 없는 경우 중간 점수 반환
             }
             
-            double averageUserLevel = userInterests.stream()
-                    .mapToInt(UserInterest::getInterestLevel)
-                    .average()
-                    .orElse(0.0);
+            // 스터디의 태그 조회 (관심사와 매칭하기 위해)
+            List<String> studyTags = getStudyTags(study.getStudyProjectId());
+            if (studyTags.isEmpty()) {
+                return 0.5; // 스터디 태그가 없는 경우 중간 점수 반환
+            }
             
-            // 레벨 차이 계산 (1~3 범위)
-            double levelDifference = Math.abs(averageUserLevel - study.getStudyLevel());
+            // 관심사별 개별 매칭 점수 계산
+            double totalScore = 0.0;
+            int matchCount = 0;
             
-            // 레벨 근접도 점수 계산: 1 - (차이 / 최대 차이)
-            // 최대 차이는 2 (1과 3의 차이)
-            double levelMatchScore = 1.0 - (levelDifference / 2.0);
+            for (UserInterest userInterest : userInterests) {
+                String interestName = userInterest.getInterest().getInterestName();
+                int userLevel = userInterest.getInterestLevel();
+                
+                // 스터디 태그에 해당 관심사가 있는지 확인
+                boolean hasMatchingInterest = studyTags.stream()
+                        .anyMatch(tag -> tag.toLowerCase().contains(interestName.toLowerCase()) || 
+                                       interestName.toLowerCase().contains(tag.toLowerCase()));
+                
+                if (hasMatchingInterest) {
+                    // 관심사가 일치하는 경우 레벨 매칭 점수 계산
+                    double levelScore = calculateInterestLevelScore(userLevel, study.getStudyLevel());
+                    totalScore += levelScore;
+                    matchCount++;
+                    
+                    log.debug("관심사 매칭: {} (사용자 레벨: {}, 스터디 레벨: {}, 점수: {})", 
+                            interestName, userLevel, study.getStudyLevel(), levelScore);
+                }
+            }
             
-            // 점수를 0.0 ~ 1.0 범위로 제한
-            levelMatchScore = Math.max(0.0, Math.min(1.0, levelMatchScore));
+            if (matchCount == 0) {
+                return 0.0; // 매칭되는 관심사가 없는 경우
+            }
             
-            log.debug("레벨 근접도 계산: 사용자 평균 레벨={}, 스터디 레벨={}, 차이={}, 점수={}",
-                    averageUserLevel, study.getStudyLevel(), levelDifference, levelMatchScore);
+            // 평균 점수 계산
+            double averageScore = totalScore / matchCount;
             
-            return levelMatchScore;
+            log.debug("관심사별 레벨 매칭 완료: 매칭된 관심사 수={}, 평균 점수={}", matchCount, averageScore);
+            
+            return averageScore;
             
         } catch (Exception e) {
-            log.warn("레벨 근접도 계산 중 오류 발생: {}", e.getMessage());
+            log.warn("관심사별 레벨 매칭 계산 중 오류 발생: {}", e.getMessage());
             return 0.5;
         }
+    }
+    
+    /**
+     * 개별 관심사의 레벨 매칭 점수 계산 (계층적 방식)
+     * @param userLevel 사용자 관심사 레벨 (1~3)
+     * @param studyLevel 스터디 레벨 (1~3)
+     * @return 레벨 매칭 점수 (0.0 ~ 1.0)
+     */
+    private double calculateInterestLevelScore(int userLevel, int studyLevel) {
+        // 정확한 레벨 매칭: 최고 점수
+        if (userLevel == studyLevel) {
+            return 1.0;
+        }
+        
+        // 사용자 레벨이 스터디 레벨보다 높은 경우 (하위 레벨 스터디)
+        if (userLevel > studyLevel) {
+            int levelDiff = userLevel - studyLevel;
+            // 1단계 하위: 0.8, 2단계 하위: 0.6
+            return Math.max(0.4, 1.0 - (levelDiff * 0.2));
+        }
+        
+        // 사용자 레벨이 스터디 레벨보다 낮은 경우 (상위 레벨 스터디)
+        if (userLevel < studyLevel) {
+            int levelDiff = studyLevel - userLevel;
+            // 1단계 상위: 0.6, 2단계 상위: 0.3
+            return Math.max(0.1, 1.0 - (levelDiff * 0.4));
+        }
+        
+        return 0.5; // 기본값
     }
     
     /**
