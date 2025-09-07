@@ -370,7 +370,7 @@ const StudyCreate: React.FC = () => {
         try {
             // 백엔드 API로 스터디 프로젝트 생성 요청
             // 백엔드에서 요구하는 형식으로 데이터 변환
-
+            
             // 시간 형식을 백엔드에서 요구하는 형식으로 변환
             const formatTimeForBackend = (
                 hour: number | null,
@@ -386,7 +386,7 @@ const StudyCreate: React.FC = () => {
                     return date.toISOString();
                 }
             };
-
+            
             // 선택된 요일을 dayIds로 변환
             const dayMapping = {
                 monday: "1",
@@ -457,13 +457,13 @@ const StudyCreate: React.FC = () => {
                 message: error instanceof Error ? error.message : String(error),
                 stack: error instanceof Error ? error.stack : undefined,
             });
-
+            
             // 더 자세한 에러 메시지 표시
             let errorMessage = "스터디 생성에 실패했습니다. 다시 시도해주세요.";
             if (error instanceof Error) {
                 errorMessage = `스터디 생성 실패: ${error.message}`;
             }
-
+            
             alert(errorMessage);
         }
     };
@@ -478,8 +478,8 @@ const StudyCreate: React.FC = () => {
         ) {
             // 로딩 중이거나 에러가 있거나 데이터가 없으면 기본 데이터 반환
             return [
-                {
-                    id: 1,
+        {
+            id: 1,
                     name: "프로그래밍 언어",
                     tags: [
                         "Python",
@@ -499,9 +499,9 @@ const StudyCreate: React.FC = () => {
                         "rust",
                         "Ruby",
                     ],
-                },
-                {
-                    id: 2,
+        },
+        {
+            id: 2,
                     name: "라이브러리 & 프레임워크",
                     tags: [
                         "React",
@@ -516,14 +516,14 @@ const StudyCreate: React.FC = () => {
                         "Django",
                         "Unity",
                     ],
-                },
-                {
-                    id: 3,
+        },
+        {
+            id: 3,
                     name: "데이터베이스",
                     tags: ["SQL", "NOSQL", "DBMS/RDBMS"],
-                },
-                {
-                    id: 4,
+        },
+        {
+            id: 4,
                     name: "플랫폼/환경",
                     tags: [
                         "iOS",
@@ -535,9 +535,9 @@ const StudyCreate: React.FC = () => {
                         "IoT",
                         "임베디드",
                     ],
-                },
-                {
-                    id: 5,
+        },
+        {
+            id: 5,
                     name: "AI/데이터",
                     tags: [
                         "인공지능(AI)",
@@ -550,9 +550,9 @@ const StudyCreate: React.FC = () => {
                         "ChatGPT",
                         "AI 활용(AX)",
                     ],
-                },
-                {
-                    id: 6,
+        },
+        {
+            id: 6,
                     name: "포지션",
                     tags: [
                         "Back",
@@ -594,7 +594,7 @@ const StudyCreate: React.FC = () => {
             // 프로젝트용 포지션 태그
             return [
                 {
-                    id: 1,
+                id: 1,
                     name: "포지션",
                     tags: [
                         "Back",
@@ -627,12 +627,12 @@ const StudyCreate: React.FC = () => {
                 (tag) =>
                     tag &&
                     typeof tag === "string" &&
-                    tag.toLowerCase().includes(tagSearchValue.toLowerCase())
+                tag.toLowerCase().includes(tagSearchValue.toLowerCase())
             ),
         }))
         .filter((category) => category.tags && category.tags.length > 0);
 
-    const handleTagSelect = (tag: string) => {
+        const handleTagSelect = (tag: string) => {
         if (studyData.tags.some((t) => t.name === tag)) {
             // 이미 선택된 태그라면 제거
             setStudyData({
@@ -649,11 +649,11 @@ const StudyCreate: React.FC = () => {
                         name: tag,
                         interestId: interest.interestId,
                     };
-                    setStudyData({
-                        ...studyData,
+                setStudyData({
+                    ...studyData,
                         tags: [...studyData.tags, newTag],
-                    });
-                } else {
+                });
+            } else {
                     console.warn(
                         "태그에 해당하는 interest를 찾을 수 없습니다:",
                         tag
@@ -709,7 +709,7 @@ const StudyCreate: React.FC = () => {
                                     studyType === "project"
                                         ? "translate-x-full"
                                         : "translate-x-0"
-                                }`}
+                                    }`}
                             />
 
                             {/* 버튼들 */}
@@ -726,7 +726,7 @@ const StudyCreate: React.FC = () => {
                                     studyType === "study"
                                         ? "text-[#8B85E9]"
                                         : "text-white"
-                                }`}
+                                    }`}
                             >
                                 스터디 생성
                             </button>
@@ -743,7 +743,7 @@ const StudyCreate: React.FC = () => {
                                     studyType === "project"
                                         ? "text-[#8B85E9]"
                                         : "text-white"
-                                }`}
+                                    }`}
                             >
                                 프로젝트 생성
                             </button>
@@ -1253,9 +1253,9 @@ const StudyCreate: React.FC = () => {
                                                 "saturday",
                                                 "sunday",
                                             ].indexOf(dayKey);
-                                            const dayName = dayNames[dayIndex];
+                                        const dayName = dayNames[dayIndex];
 
-                                            return (
+                                        return (
                                                 <label
                                                     key={dayKey}
                                                     className="cursor-pointer group"
@@ -1281,8 +1281,8 @@ const StudyCreate: React.FC = () => {
                                                                 : {}
                                                         }
                                                     >
-                                                        <input
-                                                            type="checkbox"
+                                                    <input
+                                                        type="checkbox"
                                                             checked={
                                                                 studyData
                                                                     .selectedDays[
@@ -1294,28 +1294,28 @@ const StudyCreate: React.FC = () => {
                                                                     dayKey
                                                                 )
                                                             }
-                                                            className="absolute opacity-0"
-                                                        />
-                                                        <div className="flex items-center justify-center h-full">
+                                                        className="absolute opacity-0"
+                                                    />
+                                                    <div className="flex items-center justify-center h-full">
                                                             {studyData
                                                                 .selectedDays[
                                                                 dayKey as keyof typeof studyData.selectedDays
                                                             ] ? (
-                                                                <Check className="w-6 h-6 text-white" />
-                                                            ) : (
+                                                            <Check className="w-6 h-6 text-white" />
+                                                        ) : (
                                                                 <span
                                                                     className="font-bold text-lg"
                                                                     style={{
                                                                         color: "#8B85E9",
                                                                     }}
                                                                 >
-                                                                    {dayName}
-                                                                </span>
-                                                            )}
-                                                        </div>
+                                                                {dayName}
+                                                            </span>
+                                                        )}
                                                     </div>
-                                                </label>
-                                            );
+                                                </div>
+                                            </label>
+                                        );
                                         }
                                     )}
                                 </div>
@@ -1378,7 +1378,7 @@ const StudyCreate: React.FC = () => {
                                             >
                                                 <option value="" disabled>
                                                     시간 선택
-                                                </option>
+                                                    </option>
                                                 {Array.from(
                                                     { length: 24 },
                                                     (_, i) => (
@@ -1465,7 +1465,7 @@ const StudyCreate: React.FC = () => {
                                             >
                                                 <option value="" disabled>
                                                     시간 선택
-                                                </option>
+                                                    </option>
                                                 {Array.from(
                                                     { length: 24 },
                                                     (_, i) => (
@@ -1497,35 +1497,35 @@ const StudyCreate: React.FC = () => {
                                 {/* 시간 유효성 메시지 */}
                                 {studyData.startTime !== null &&
                                     studyData.endTime !== null && (
-                                        <div className="mt-6 text-center">
-                                            {isTimeSlotValid() ? (
-                                                <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 border border-green-300 rounded-full">
-                                                    <CheckCircle className="w-4 h-4 text-green-600" />
-                                                    <span className="text-sm font-medium text-green-800">
+                                    <div className="mt-6 text-center">
+                                        {isTimeSlotValid() ? (
+                                            <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 border border-green-300 rounded-full">
+                                                <CheckCircle className="w-4 h-4 text-green-600" />
+                                                <span className="text-sm font-medium text-green-800">
                                                         {studyData.endTime! -
                                                             studyData.startTime!}
                                                         시간 활동 시간
-                                                    </span>
-                                                </div>
-                                            ) : areTimesSame() ? (
-                                                <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-100 border border-orange-300 rounded-full">
-                                                    <AlertCircle className="w-4 h-4 text-orange-600" />
-                                                    <span className="text-sm font-medium text-orange-800">
+                                                </span>
+                                            </div>
+                                        ) : areTimesSame() ? (
+                                            <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-100 border border-orange-300 rounded-full">
+                                                <AlertCircle className="w-4 h-4 text-orange-600" />
+                                                <span className="text-sm font-medium text-orange-800">
                                                         시작 시간과 마침 시간이
                                                         같습니다
-                                                    </span>
-                                                </div>
-                                            ) : (
-                                                <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-100 border border-red-300 rounded-full">
-                                                    <AlertCircle className="w-4 h-4 text-red-600" />
-                                                    <span className="text-sm font-medium text-red-800">
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-100 border border-red-300 rounded-full">
+                                                <AlertCircle className="w-4 h-4 text-red-600" />
+                                                <span className="text-sm font-medium text-red-800">
                                                         시작 시간이 마침
                                                         시간보다 늦습니다
-                                                    </span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                             {errors.timeSlot && (
                                 <p className="mt-2 text-sm text-red-500">
@@ -1566,7 +1566,7 @@ const StudyCreate: React.FC = () => {
                                     errors.description
                                         ? "border-red-500"
                                         : "border-gray-300"
-                                }`}
+                                    }`}
                                 rows={4}
                                 placeholder={`${
                                     studyType === "study"
@@ -1613,9 +1613,9 @@ const StudyCreate: React.FC = () => {
                 <div
                     className="fixed inset-0 bg-[rgba(0,0,0,0.1)] flex items-center justify-center z-50"
                     onClick={(e) => {
-                        if (e.target === e.currentTarget) {
-                            handleComplete();
-                        }
+                    if (e.target === e.currentTarget) {
+                        handleComplete();
+                    }
                     }}
                 >
                     <div
@@ -1649,10 +1649,10 @@ const StudyCreate: React.FC = () => {
                         {studyType === "study" &&
                             !interestsLoading &&
                             !interestsError && (
-                                <div className="mb-4">
+                            <div className="mb-4">
                                     <div className="flex gap-2 flex-wrap">
-                                        <button
-                                            type="button"
+                                    <button
+                                        type="button"
                                             onClick={() =>
                                                 setSelectedCategory(null)
                                             }
@@ -1661,13 +1661,13 @@ const StudyCreate: React.FC = () => {
                                                     ? "bg-[#8B85E9] text-white border-[#8B85E9]"
                                                     : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
                                             }`}
-                                        >
-                                            전체
-                                        </button>
+                                    >
+                                        전체
+                                    </button>
                                         {tagCategories.map((category) => (
-                                            <button
+                                    <button
                                                 key={category.id}
-                                                type="button"
+                                        type="button"
                                                 onClick={() =>
                                                     setSelectedCategory(
                                                         category.id
@@ -1681,11 +1681,11 @@ const StudyCreate: React.FC = () => {
                                                 }`}
                                             >
                                                 {category.name}
-                                            </button>
+                                    </button>
                                         ))}
-                                    </div>
                                 </div>
-                            )}
+                            </div>
+                        )}
 
                         <div
                             className="max-h-60 overflow-y-auto pr-2"
@@ -1708,8 +1708,8 @@ const StudyCreate: React.FC = () => {
                                     <span className="text-red-600">
                                         태그 데이터 로드 실패: {interestsError}
                                     </span>
-                                </div>
-                            )}
+                            </div>
+                        )}
 
                             {/* 태그 목록 */}
                             {!interestsLoading &&
@@ -1733,14 +1733,14 @@ const StudyCreate: React.FC = () => {
                                                         );
 
                                                     return (
-                                                        <button
-                                                            key={tag}
+                                                                                                 <button
+                                                 key={tag}
                                                             onClick={() =>
                                                                 handleTagSelect(
                                                                     tag
                                                                 )
                                                             }
-                                                            className={`p-2 text-center rounded-lg border transition-colors duration-200 text-xs select-none ${
+                                                 className={`p-2 text-center rounded-lg border transition-colors duration-200 text-xs select-none ${
                                                                 isSelected
                                                                     ? "bg-[#8B85E9] text-white border-[#8B85E9] cursor-pointer hover:opacity-80"
                                                                     : studyData
@@ -1749,10 +1749,10 @@ const StudyCreate: React.FC = () => {
                                                                       5
                                                                     ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
                                                                     : "bg-white text-gray-700 border-gray-300 hover:bg-[#8B85E9] hover:text-white hover:border-[#8B85E9] cursor-pointer"
-                                                            }`}
-                                                        >
-                                                            #{tag}
-                                                        </button>
+                                                 }`}
+                                             >
+                                                 #{tag}
+                                             </button>
                                                     );
                                                 })}
                                             </div>
