@@ -1137,9 +1137,14 @@ const ProjectDetailPage = () => {
                                                 : "#8B85E9",
                                         }}
                                     >
-                                        {isApplying
-                                            ? "신청 중..."
-                                            : "프로젝트 가입 신청"}
+                                        {isApplying ? (
+                                            <>
+                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                                신청 중...
+                                            </>
+                                        ) : (
+                                            "프로젝트 가입 신청"
+                                        )}
                                     </button>
                                 ) : (
                                     <button

@@ -54,8 +54,8 @@ fi
 echo ".env file created successfully."
 
 # --- 5. Docker Compose 파일에서 플레이스홀더를 실제 값으로 치환 ---
-echo "Updating docker-compose.yml with actual Docker Hub username..."
-sed -i "s/DOCKER_HUB_USERNAME_PLACEHOLDER/${DOCKER_HUB_ID}/g" docker-compose.yml
+# echo "Updating docker-compose.yml with actual Docker Hub username..."
+# sed -i "s/peter4855/${DOCKER_HUB_ID}/g" docker-compose.yml
 
 # --- 6. Docker Compose를 사용하여 애플리케이션 실행 ---
 echo "Stopping existing services using docker-compose down..."

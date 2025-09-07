@@ -64,7 +64,7 @@ npm start
 # 필수 환경변수
 export AWS_ACCESS_KEY_ID=your_access_key
 export AWS_SECRET_ACCESS_KEY=your_secret_key
-export AWS_REGION=ap-northeast-2
+export AWS_REGION=ap-northeast-1
 export AWS_S3_BUCKET_NAME=your-bucket-name
 export FILE_STORAGE_TYPE=s3
 export FILE_STORAGE_SERVICE=s3FileService

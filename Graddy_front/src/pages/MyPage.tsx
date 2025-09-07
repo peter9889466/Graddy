@@ -158,17 +158,18 @@ export const MyPage = () => {
     }, [activeTab, authContext?.isLoggedIn]);
 
     const handleDeleteAccount = async () => {
-        // if (window.confirm("정말로 회원탈퇴를 하시겠습니까?")) {
-        //     try {
-        //         await withdrawUser();
-        //         alert("회원탈퇴가 완료되었습니다.");
-        //         authContext?.logout();
-        //         window.location.href = "/";
-        //     } catch (error) {
-        //         console.error("회원탈퇴 실패:", error);
-        //         alert("회원탈퇴에 실패했습니다.");
-        //     }
-        // }
+        try {
+            await withdrawUser();
+            alert("회원탈퇴가 완료되었습니다.");
+            authContext?.logout();
+            window.location.href = "/";
+        } catch (error) {
+            console.error("회원탈퇴 실패:", error);
+            alert("회원탈퇴에 실패했습니다.");
+        }
+    };
+
+    const handleShowDeleteModal = () => {
         setShowDeleteModal(true);
     };
 
@@ -379,7 +380,7 @@ export const MyPage = () => {
                         <MyPageSidebar
                             activeTab={activeTab}
                             onTabChange={setActiveTab}
-                            onDeleteAccount={handleDeleteAccount}
+                            onDeleteAccount={handleShowDeleteModal}
                         />
                     </ResponsiveSidebar>
 

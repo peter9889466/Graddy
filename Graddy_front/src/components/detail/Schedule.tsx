@@ -1,5 +1,6 @@
 // 과제 / 일정 관리
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, BookOpen, Calendar } from 'lucide-react';
 import { apiPost, apiGet, apiDelete, apiPut } from '../../services/api';
 
@@ -37,6 +38,7 @@ const Schedule: React.FC<ScheduleProps> = ({
     userId = '',
     memberId = 0
 }) => {
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<'assignment' | 'schedule'>('assignment');
     const [isAdding, setIsAdding] = useState(false);
     const [newItem, setNewItem] = useState({
@@ -56,6 +58,7 @@ const Schedule: React.FC<ScheduleProps> = ({
     const [aiGeneratedAssignment, setAiGeneratedAssignment] = useState<any>(null);
     const [showAIPreview, setShowAIPreview] = useState(false);
     const [isAIAssignmentSaved, setIsAIAssignmentSaved] = useState(false); // AI 과제 저장 여부 추적
+    const [isAddingAssignment, setIsAddingAssignment] = useState(false); // 일반 과제 추가 로딩 상태
 
     // 일정 수정 관련 상태
     const [editingSchedule, setEditingSchedule] = useState<string | null>(null);
@@ -183,23 +186,31 @@ const Schedule: React.FC<ScheduleProps> = ({
                         return;
                     }
 
+                    // 로딩 상태 시작
+                    setIsAddingAssignment(true);
+
                     // AI 생성된 과제인지 확인하고 중복 생성 방지
                     if (aiGeneratedAssignment) {
                         console.log('AI 생성된 과제 처리 중...');
                         
-                        // AI 과제는 미리보기 상태이므로 일반 과제 생성 로직으로 진행
-                        console.log('AI 생성된 과제를 일반 과제로 저장 진행...');
+                        // AI 과제는 이미 생성된 상태이므로 추가 생성하지 않음
+                        if (isAIAssignmentSaved) {
+                            console.log('AI 과제가 이미 저장됨 - 중복 생성 방지');
+                            alert('AI 과제가 이미 저장되었습니다. 새로운 과제를 추가하려면 폼을 초기화해주세요.');
+                            setIsAddingAssignment(false);
+                            return;
+                        }
                         
-                        console.log('AI 기반 과제 최종 저장 진행...');
+                        console.log('AI 생성된 과제를 일반 과제로 저장 진행...');
                     } else {
                         console.log('일반 수동 과제 생성 중...');
                     }
 
-                    // 과제 추가 API 호출 (AI 생성 여부와 관계없이 항상 새로 생성)
+                    // 과제 추가 API 호출
                     const assignmentData = {
                         studyProjectId: studyProjectId,
                         memberId: memberId,
-                        title: newItem.title,
+                title: newItem.title,
                         description: newItem.description || '',
                         deadline: new Date(newItem.date).toISOString(),
                         fileUrl: selectedFile ? selectedFile.name : '', // 임시로 파일명 저장
@@ -237,6 +248,11 @@ const Schedule: React.FC<ScheduleProps> = ({
                             // 과제 목록 다시 로드
                             await loadAssignments();
                             
+                            // 잠시 대기 후 스터디 메인으로 이동
+                            setTimeout(() => {
+                                navigate(`/study/${studyProjectId}`);
+                            }, 1000);
+                            
                             return; // 성공 시 여기서 종료
                         } else {
                             throw new Error('응답 데이터가 없습니다');
@@ -245,6 +261,8 @@ const Schedule: React.FC<ScheduleProps> = ({
                         console.error('과제 추가 API 호출 실패:', apiError);
                         alert('과제 추가에 실패했습니다. 다시 시도해주세요.');
                         return; // 실패 시 여기서 종료
+                    } finally {
+                        setIsAddingAssignment(false);
                     }
                 } else {
                     // 일정 추가 API 호출
@@ -586,7 +604,7 @@ const handleCancelAssignmentEdit = () => {
     console.log('필터링된 아이템:', filteredItems, 'activeTab:', activeTab, '전체 아이템:', scheduleItems);
 
     return (
-        <div className="space-y-6 p-4 pr-10">
+        		<div className="space-y-6 p-4 pr-10">
             {/* 일정 목록 */}
             <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-800">
@@ -877,57 +895,57 @@ const handleCancelAssignmentEdit = () => {
 
             {/* 추가 버튼들 - 스터디장만 표시 */}
             {isStudyLeader && (
-                <div className="relative w-[420px] mx-auto">
-                    {/* 보라색 바 */}
-                    <div className="bg-[#8B85E9] rounded-full h-12 shadow-md relative flex items-center px-1">
-                        {/* 슬라이더 (하얀 버튼) */}
-                        <div
+            <div className="relative w-[420px] mx-auto">
+              {/* 보라색 바 */}
+              <div className="bg-[#8B85E9] rounded-full h-12 shadow-md relative flex items-center px-1">
+                {/* 슬라이더 (하얀 버튼) */}
+                <div
                             className={`absolute top-1 left-1 h-10 w-[calc(50%-4px)] bg-white rounded-full shadow transition-transform duration-300 ${activeTab === "schedule" ? "translate-x-full" : "translate-x-0"
-                                }`}
-                        />
+                  }`}
+                />
 
-                        {/* 버튼들 */}
-                        <button
-                            onClick={() => {
-                                if (activeTab === "assignment" && isAdding) {
-                                    setIsAdding(false);
-                                } else {
-                                    setActiveTab("assignment");
-                                    setIsAdding(true);
-                                }
-                            }}
+                {/* 버튼들 */}
+                                 <button
+                   onClick={() => {
+                     if (activeTab === "assignment" && isAdding) {
+                       setIsAdding(false);
+                     } else {
+                       setActiveTab("assignment");
+                       setIsAdding(true);
+                     }
+                   }}
                             className={`flex-1 z-10 text-sm font-medium transition-colors duration-300 ${activeTab === "assignment" ? "text-[#8B85E9]" : "text-white"
-                                }`}
-                        >
-                            + 과제 추가
-                        </button>
-                        <button
-                            onClick={() => {
-                                if (activeTab === "schedule" && isAdding) {
-                                    setIsAdding(false);
-                                } else {
-                                    setActiveTab("schedule");
-                                    setIsAdding(true);
-                                }
-                            }}
+                   }`}
+                 >
+                   + 과제 추가
+                 </button>
+                 <button
+                   onClick={() => {
+                     if (activeTab === "schedule" && isAdding) {
+                       setIsAdding(false);
+                     } else {
+                       setActiveTab("schedule");
+                       setIsAdding(true);
+                     }
+                   }}
                             className={`flex-1 z-10 text-sm font-medium transition-colors duration-300 ${activeTab === "schedule" ? "text-[#8B85E9]" : "text-white"
-                                }`}
-                        >
-                            + 스터디 일정 추가
-                        </button>
-                    </div>
-                </div>
+                   }`}
+                 >
+                   + 스터디 일정 추가
+                 </button>
+              </div>
+            </div>
             )}
 
             {/* 추가 폼 (슬라이드 애니메이션) - 스터디장만 표시 */}
             {isStudyLeader && (
                 <div className={`overflow-hidden transition-all duration-500 ease-in-out ${isAdding ? 'max-h-[500px] opacity-100 mt-4' : 'max-h-0 opacity-0'
-                    }`}>
+                }`}>
                     <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
                         <div className="flex justify-between items-center">
-                            <h3 className="text-lg font-semibold text-gray-800">
-                                {activeTab === 'assignment' ? '과제 내용' : '일정 내용'}
-                            </h3>
+                        <h3 className="text-lg font-semibold text-gray-800">
+                            {activeTab === 'assignment' ? '과제 내용' : '일정 내용'}
+                        </h3>
                             {activeTab === 'assignment' && (
                                 <button
                                     onClick={handleGenerateAIAssignment}
@@ -959,26 +977,26 @@ const handleCancelAssignmentEdit = () => {
                                 />
                             </div>
                             {activeTab === 'assignment' ? (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
                                         과제 마감일
-                                    </label>
-                                    <input
-                                        type="date"
-                                        value={newItem.date}
+                                </label>
+                                <input
+                                    type="date"
+                                    value={newItem.date}
                                         onChange={(e) => setNewItem({ ...newItem, date: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
                                         placeholder="과제 마감일을 선택하세요"
                                         min={new Date().toISOString().split('T')[0]}
-                                    />
-                                </div>
+                                />
+                            </div>
                             ) : (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
                                         일정 날짜 및 시간
-                                    </label>
+                                </label>
                                     <div className="flex gap-2">
-                                        <input
+                                <input
                                             type="date"
                                             value={newItem.date}
                                             onChange={(e) => setNewItem({ ...newItem, date: e.target.value })}
@@ -987,7 +1005,7 @@ const handleCancelAssignmentEdit = () => {
                                             min={new Date().toISOString().split('T')[0]}
                                         />
                                         <select
-                                            value={newItem.time}
+                                    value={newItem.time}
                                             onChange={(e) => setNewItem({ ...newItem, time: e.target.value })}
                                             className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
                                         >
@@ -1002,20 +1020,20 @@ const handleCancelAssignmentEdit = () => {
                                             })}
                                         </select>
                                     </div>
-                                </div>
-                            )}
+                            </div>
+                        )}
                         </div>
                         {activeTab === 'assignment' && (
                             <>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
                                         과제 설명
-                                    </label>
-                                    <textarea
-                                        value={newItem.description}
+                            </label>
+                            <textarea
+                                value={newItem.description}
                                         onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
-                                        rows={3}
+                                rows={3}
                                         placeholder="과제에 대한 설명을 입력하세요"
                                     />
                                 </div>
@@ -1031,8 +1049,8 @@ const handleCancelAssignmentEdit = () => {
                                                     file:rounded-lg file:border-0
                                                     file:text-sm file:font-semibold file:text-[#8B85E9]
                                                     file:bg-violet-50 hover:file:bg-violet-100"
-                                    />
-                                </div>
+                            />
+                        </div>
                             </>
                         )}
                         {/* AI 생성 알림 */}
@@ -1056,24 +1074,40 @@ const handleCancelAssignmentEdit = () => {
                         <div className="flex gap-3">
                             <button
                                 onClick={handleAddItem}
-                                className="px-4 py-2 text-white rounded-md transition-colors duration-200 hover:cursor-pointer"
+                                disabled={isAddingAssignment}
+                                className={`px-4 py-2 text-white rounded-md transition-colors duration-200 flex items-center justify-center gap-2 ${
+                                    isAddingAssignment 
+                                        ? 'opacity-50 cursor-not-allowed' 
+                                        : 'hover:cursor-pointer'
+                                }`}
                                 style={{
-                                    backgroundColor: "#8B85E9",
-                                    filter: "brightness(1)"
+                                    backgroundColor: isAddingAssignment ? "#6B7280" : "#8B85E9",
+                                    filter: isAddingAssignment ? "brightness(1)" : "brightness(1)"
                                 }}
                                 onMouseEnter={(e) => {
-                                    e.currentTarget.style.filter = "brightness(0.8)";
+                                    if (!isAddingAssignment) {
+                                        e.currentTarget.style.filter = "brightness(0.8)";
+                                    }
                                 }}
                                 onMouseLeave={(e) => {
-                                    e.currentTarget.style.filter = "brightness(1)";
+                                    if (!isAddingAssignment) {
+                                        e.currentTarget.style.filter = "brightness(1)";
+                                    }
                                 }}
                             >
-                                추가
+                                {isAddingAssignment ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                        추가 중...
+                                    </>
+                                ) : (
+                                    "추가"
+                                )}
                             </button>
                             <button
-                                onClick={() => {
-                                    setIsAdding(false);
-                                    setNewItem({ title: '', description: '', date: '', time: '' });
+                                                                 onClick={() => {
+                                     setIsAdding(false);
+                                     setNewItem({ title: '', description: '', date: '', time: '' });
                                     setSelectedFile(null);
                                     setShowAIPreview(false);
                                     setAiGeneratedAssignment(null);
@@ -1084,15 +1118,15 @@ const handleCancelAssignmentEdit = () => {
                                         fileInput.value = '';
                                     }
                                     console.log('과제 추가 폼 취소됨 - 모든 상태 초기화');
-                                }}
+                                 }}
                                 className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors duration-200"
                             >
                                 취소
                             </button>
                         </div>
                     </div>
-                </div>
-            )}
+                    </div>
+                )}
         </div>
     );
 };
