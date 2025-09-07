@@ -1,5 +1,6 @@
 // 과제 / 일정 관리
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, BookOpen, Calendar } from 'lucide-react';
 import { apiPost, apiGet, apiDelete, apiPut } from '../../services/api';
 
@@ -37,6 +38,7 @@ const Schedule: React.FC<ScheduleProps> = ({
     userId = '',
     memberId = 0
 }) => {
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<'assignment' | 'schedule'>('assignment');
     const [isAdding, setIsAdding] = useState(false);
     const [newItem, setNewItem] = useState({
@@ -56,6 +58,7 @@ const Schedule: React.FC<ScheduleProps> = ({
     const [aiGeneratedAssignment, setAiGeneratedAssignment] = useState<any>(null);
     const [showAIPreview, setShowAIPreview] = useState(false);
     const [isAIAssignmentSaved, setIsAIAssignmentSaved] = useState(false); // AI 과제 저장 여부 추적
+    const [isAddingAssignment, setIsAddingAssignment] = useState(false); // 일반 과제 추가 로딩 상태
 
     // 일정 수정 관련 상태
     const [editingSchedule, setEditingSchedule] = useState<string | null>(null);
@@ -183,22 +186,27 @@ const Schedule: React.FC<ScheduleProps> = ({
                         return;
                     }
 
+                    // 로딩 상태 시작
+                    setIsAddingAssignment(true);
+
                     // AI 생성된 과제인지 확인하고 중복 생성 방지
                     if (aiGeneratedAssignment) {
-                        console.log('AI 생성된 과제를 최종 저장 처리 중...');
+                        console.log('AI 생성된 과제 처리 중...');
                         
-                        // 이미 저장된 AI 과제인지 확인
+                        // AI 과제는 이미 생성된 상태이므로 추가 생성하지 않음
                         if (isAIAssignmentSaved) {
-                            alert('이 AI 과제는 이미 저장되었습니다. 중복 저장을 방지합니다.');
+                            console.log('AI 과제가 이미 저장됨 - 중복 생성 방지');
+                            alert('AI 과제가 이미 저장되었습니다. 새로운 과제를 추가하려면 폼을 초기화해주세요.');
+                            setIsAddingAssignment(false);
                             return;
                         }
                         
-                        console.log('AI 기반 과제 최종 저장 진행...');
+                        console.log('AI 생성된 과제를 일반 과제로 저장 진행...');
                     } else {
                         console.log('일반 수동 과제 생성 중...');
                     }
 
-                    // 과제 추가 API 호출 (AI 생성 여부와 관계없이 항상 새로 생성)
+                    // 과제 추가 API 호출
                     const assignmentData = {
                         studyProjectId: studyProjectId,
                         memberId: memberId,
@@ -212,7 +220,7 @@ const Schedule: React.FC<ScheduleProps> = ({
                     console.log('과제 추가 데이터:', assignmentData);
                     
                     try {
-                        const response = await apiPost('/assignments', assignmentData);
+                        const response = await apiPost('/assignments/ai/generate', assignmentData);
                         console.log('과제 추가 응답:', response);
 
                         // 응답 구조 확인 및 처리
@@ -240,6 +248,11 @@ const Schedule: React.FC<ScheduleProps> = ({
                             // 과제 목록 다시 로드
                             await loadAssignments();
                             
+                            // 잠시 대기 후 스터디 메인으로 이동
+                            setTimeout(() => {
+                                navigate(`/study/${studyProjectId}`);
+                            }, 1000);
+                            
                             return; // 성공 시 여기서 종료
                         } else {
                             throw new Error('응답 데이터가 없습니다');
@@ -248,6 +261,8 @@ const Schedule: React.FC<ScheduleProps> = ({
                         console.error('과제 추가 API 호출 실패:', apiError);
                         alert('과제 추가에 실패했습니다. 다시 시도해주세요.');
                         return; // 실패 시 여기서 종료
+                    } finally {
+                        setIsAddingAssignment(false);
                     }
                 } else {
                     // 일정 추가 API 호출
@@ -472,7 +487,7 @@ const handleCancelAssignmentEdit = () => {
     };
 
     const handleGenerateAIAssignment = async () => {
-        console.log('AI 과제 생성 함수 호출됨 - 프론트엔드 전용 모드');
+        console.log('AI 과제 생성 함수 호출됨 - 백엔드 API 연동 모드');
         
         // 이미 AI 과제가 생성되어 있고 저장되지 않은 상태인지 확인
         if (showAIPreview && aiGeneratedAssignment && !isAIAssignmentSaved) {
@@ -484,70 +499,86 @@ const handleCancelAssignmentEdit = () => {
         
         setIsGeneratingAI(true);
         
-        // 백엔드 호출 없이 프론트엔드에서만 임시 AI 과제 데이터 생성
         try {
-            console.log('프론트엔드에서 임시 AI 과제 데이터 생성 중...');
+            console.log('백엔드 AI 과제 생성 API 호출 중...');
             
-            // AI가 생성할 만한 샘플 과제 데이터들
-            const sampleAssignments = [
-                {
-                    title: "JavaScript 기초 문법 연습",
-                    description: "변수, 함수, 조건문, 반복문을 활용한 기본 프로그래밍 문제를 해결해보세요.\n\n요구사항:\n1. 변수 선언과 할당\n2. 함수 정의와 호출\n3. if-else 조건문 사용\n4. for/while 반복문 활용\n\n제출 형태: 코드 파일(.js) 또는 설명이 포함된 텍스트 파일"
-                },
-                {
-                    title: "React 컴포넌트 설계 실습",
-                    description: "함수형 컴포넌트를 사용하여 간단한 TODO 앱을 만들어보세요.\n\n구현 기능:\n1. 할 일 추가/삭제\n2. 상태 관리 (useState 사용)\n3. 이벤트 핸들링\n4. 조건부 렌더링\n\n제출물: 완성된 컴포넌트 코드와 실행 결과 스크린샷"
-                },
-                {
-                    title: "알고리즘 문제 해결",
-                    description: "주어진 배열에서 특정 조건을 만족하는 요소를 찾는 함수를 작성하세요.\n\n문제:\n- 배열에서 중복된 숫자 찾기\n- 가장 큰 수와 가장 작은 수의 차이 구하기\n- 배열을 역순으로 정렬하기\n\n요구사항: 각 문제에 대한 함수 구현과 테스트 케이스 작성"
-                },
-                {
-                    title: "데이터베이스 쿼리 작성",
-                    description: "관계형 데이터베이스에서 데이터를 조회하고 조작하는 SQL 쿼리를 작성해보세요.\n\n실습 내용:\n1. SELECT 문을 사용한 데이터 조회\n2. JOIN을 활용한 테이블 결합\n3. GROUP BY를 사용한 집계\n4. 서브쿼리 활용\n\n제출물: 각 요구사항에 맞는 SQL 쿼리문과 실행 결과"
-                },
-                {
-                    title: "웹 API 연동 실습",
-                    description: "REST API를 호출하여 데이터를 가져오고 화면에 표시하는 기능을 구현해보세요.\n\n구현 내용:\n1. fetch 또는 axios를 사용한 API 호출\n2. 비동기 처리 (async/await)\n3. 에러 핸들링\n4. 로딩 상태 관리\n\n제출 형태: 완성된 코드와 실행 화면 캡처"
-                }
-            ];
-            
-            // 랜덤하게 하나의 과제 선택
-            const randomIndex = Math.floor(Math.random() * sampleAssignments.length);
-            const selectedAssignment = sampleAssignments[randomIndex];
-            
-            // 7일 후 마감일 설정
-            const deadline = new Date();
-            deadline.setDate(deadline.getDate() + 7);
-            
-            // 임시 AI 과제 데이터 생성
-            const aiAssignmentData = {
-                title: selectedAssignment.title,
-                description: selectedAssignment.description,
-                deadline: deadline.toISOString(),
-                isAIGenerated: true,
-                generatedAt: new Date().toISOString()
+            // 백엔드 AI 과제 생성 API 호출
+            const requestData = {
+                studyProjectId: studyProjectId,
+                assignmentType: "과제", // 기본값으로 "과제" 설정
+                deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7일 후
             };
             
-            console.log('임시 AI 과제 데이터 생성 완료:', aiAssignmentData);
+            console.log('AI 과제 생성 요청 데이터:', requestData);
             
-            // 생성된 데이터를 상태에 저장
-            setAiGeneratedAssignment(aiAssignmentData);
-            setShowAIPreview(true);
+            const response = await apiPost('/assignments/ai/generate', requestData);
+            console.log('AI 과제 생성 API 응답:', response);
             
-            // AI 생성된 내용을 폼에 미리보기로 채우기
-            setNewItem({
-                title: aiAssignmentData.title,
-                description: aiAssignmentData.description,
-                date: deadline.toISOString().split('T')[0],
-                time: ''
-            });
-            
-            console.log('AI 과제 미리보기 데이터를 폼에 설정 완료 (백엔드 호출 없음)');
-            alert('AI 과제가 생성되었습니다!');
+            // 응답 데이터 처리
+            const responseData = response?.data?.data || response?.data || response;
+            if (responseData && responseData.title && responseData.title !== "string") {
+                // AI 생성된 과제 데이터를 상태에 저장 (백엔드 응답 구조에 맞춤)
+                const aiAssignmentData = {
+                    title: responseData.title,
+                    description: responseData.description,
+                    deadline: responseData.deadline,
+                    isAIGenerated: true,
+                    generatedAt: new Date().toISOString(),
+                    assignmentId: responseData.assignmentId,
+                    studyProjectId: responseData.studyProjectId,
+                    memberId: responseData.memberId,
+                    fileUrl: responseData.fileUrl,
+                    createdAt: responseData.createdAt
+                };
+                
+                console.log('AI 과제 데이터 생성 완료:', aiAssignmentData);
+                
+                // 생성된 데이터를 상태에 저장
+                setAiGeneratedAssignment(aiAssignmentData);
+                setShowAIPreview(true);
+                
+                // AI 생성된 내용을 폼에 미리보기로 채우기
+                // deadline이 Timestamp 형식이므로 Date 객체로 변환
+                const deadlineDate = new Date(aiAssignmentData.deadline);
+                setNewItem({
+                    title: aiAssignmentData.title,
+                    description: aiAssignmentData.description,
+                    date: deadlineDate.toISOString().split('T')[0],
+                    time: ''
+                });
+                
+                console.log('AI 과제 미리보기 데이터를 폼에 설정 완료');
+                alert('AI 과제가 생성되었습니다! 내용을 확인 후 "추가" 버튼을 눌러 과제를 저장하세요.');
+                
+            } else {
+                // AI 과제 생성이 실패했거나 기본값이 반환된 경우
+                console.warn('AI 과제 생성 실패 또는 기본값 반환:', responseData);
+                alert('AI 과제 생성에 실패했습니다. 기본 과제 템플릿을 사용합니다.');
+                
+                // 기본 과제 데이터 생성
+                const defaultAssignmentData = {
+                    title: "프로그래밍 기초 실습",
+                    description: "프로그래밍의 기본 개념을 이해하고 실습해보세요.\n\n**학습 목표:**\n• 기본 문법 이해\n• 문제 해결 능력 향상\n• 코드 작성 및 디버깅\n\n**과제 내용:**\n1. 기본 문법을 사용한 프로그램 작성\n2. 변수, 함수, 조건문, 반복문 활용\n3. 사용자 입력을 받아 처리하는 프로그램 구현\n\n**제출 형식:**\n• 소스 코드 파일\n• 실행 결과 스크린샷\n• 간단한 설명 문서",
+                    deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                    isAIGenerated: false,
+                    generatedAt: new Date().toISOString()
+                };
+                
+                // 기본 과제 데이터를 상태에 저장
+                setAiGeneratedAssignment(defaultAssignmentData);
+                setShowAIPreview(true);
+                
+                // 기본 과제 내용을 폼에 미리보기로 채우기
+                setNewItem({
+                    title: defaultAssignmentData.title,
+                    description: defaultAssignmentData.description,
+                    date: new Date(defaultAssignmentData.deadline).toISOString().split('T')[0],
+                    time: ''
+                });
+            }
             
         } catch (error) {
-            console.error('프론트엔드 AI 과제 생성 실패:', error);
+            console.error('백엔드 AI 과제 생성 실패:', error);
             alert('AI 과제 생성에 실패했습니다. 다시 시도해주세요.');
         } finally {
             setIsGeneratingAI(false);
@@ -928,7 +959,7 @@ const handleCancelAssignmentEdit = () => {
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                                     </svg>
-                                    {isGeneratingAI ? 'AI 생성 중...' : 'AI로 과제 추가'}
+                                    {isGeneratingAI ? 'AI 생성 중...' : 'AI 과제 생성'}
                                 </button>
                             )}
                         </div>
@@ -1043,19 +1074,35 @@ const handleCancelAssignmentEdit = () => {
                         <div className="flex gap-3">
                             <button
                                 onClick={handleAddItem}
-                                className="px-4 py-2 text-white rounded-md transition-colors duration-200 hover:cursor-pointer"
+                                disabled={isAddingAssignment}
+                                className={`px-4 py-2 text-white rounded-md transition-colors duration-200 flex items-center justify-center gap-2 ${
+                                    isAddingAssignment 
+                                        ? 'opacity-50 cursor-not-allowed' 
+                                        : 'hover:cursor-pointer'
+                                }`}
                                 style={{
-                                    backgroundColor: "#8B85E9",
-                                    filter: "brightness(1)"
+                                    backgroundColor: isAddingAssignment ? "#6B7280" : "#8B85E9",
+                                    filter: isAddingAssignment ? "brightness(1)" : "brightness(1)"
                                 }}
                                 onMouseEnter={(e) => {
-                                    e.currentTarget.style.filter = "brightness(0.8)";
+                                    if (!isAddingAssignment) {
+                                        e.currentTarget.style.filter = "brightness(0.8)";
+                                    }
                                 }}
                                 onMouseLeave={(e) => {
-                                    e.currentTarget.style.filter = "brightness(1)";
+                                    if (!isAddingAssignment) {
+                                        e.currentTarget.style.filter = "brightness(1)";
+                                    }
                                 }}
                             >
-                                추가
+                                {isAddingAssignment ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                        추가 중...
+                                    </>
+                                ) : (
+                                    "추가"
+                                )}
                             </button>
                             <button
                                 onClick={() => {
