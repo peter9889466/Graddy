@@ -322,52 +322,80 @@ export const MyPage = () => {
     // 회원정보 수정 제출 핸들러
     const handleUpdateProfile = async (updateData: UserProfileUpdateRequest) => {
         try {
-            console.log("전송 전 데이터 검증:", updateData); // 디버깅용
-
-            // 빈 객체인 경우 처리
-            if (!updateData || Object.keys(updateData).length === 0) {
-                alert("변경할 정보가 없습니다.");
-                return;
-            }
+            console.log("전송 전 데이터 검증:", updateData);
 
             const response = await updateUserProfile(updateData);
 
-            // 성공 처리 (조건을 true로 고정해서 항상 성공으로 처리)
-            alert("회원정보가 성공적으로 수정되었습니다.");
+            // 백엔드 응답 구조에 맞게 성공 처리
+            if (response.data && response.data.data) {
+                const responseData = response.data.data;
+                alert(responseData.message || "회원정보가 성공적으로 수정되었습니다.");
 
-            // 닉네임이 변경된 경우 상태 업데이트
-            if (updateData.newNickname && authContext?.user) {
-                authContext.login(
-                    {
-                        ...authContext.user,
-                        nickname: updateData.newNickname,
-                    },
-                    authContext.token || undefined
-                );
-                setNickname(updateData.newNickname);
-            }
+                // 닉네임이 변경된 경우 상태 업데이트
+                if (updateData.newNickname && authContext?.user) {
+                    authContext.login(
+                        {
+                            ...authContext.user,
+                            nickname: updateData.newNickname,
+                        },
+                        authContext.token || undefined
+                    );
+                    setNickname(updateData.newNickname);
+                }
 
-            // 전화번호가 변경된 경우 상태 업데이트
-            if (updateData.newTel) {
-                setPhone(updateData.newTel);
+                // 전화번호가 변경된 경우 상태 업데이트
+                if (updateData.newTel) {
+                    setPhone(updateData.newTel);
+                }
+
+                // 시간 정보가 변경된 경우 상태 업데이트
+                if (updateData.soltStartHour !== undefined && updateData.soltEndHour !== undefined) {
+                    setAvailableTime(`${updateData.soltStartHour.toString().padStart(2, '0')}-${updateData.soltEndHour.toString().padStart(2, '0')}`);
+                }
+
+                // 요일 정보가 변경된 경우 상태 업데이트
+                if (updateData.availableDays) {
+                    const dayMap: { [key: number]: string } = {
+                        1: "월", 2: "화", 3: "수", 4: "목", 
+                        5: "금", 6: "토", 7: "일"
+                    };
+                    const dayStrings = updateData.availableDays.map(num => dayMap[num]).filter(day => day);
+                    setAvailableDays(dayStrings);
+                }
+
+                console.log("업데이트 성공:", responseData);
+            } else {
+                alert("회원정보 수정 응답 형식이 올바르지 않습니다.");
             }
 
         } catch (error) {
             console.error("회원정보 수정 실패:", error);
 
-            // 에러 상세 정보 출력 (디버깅용)
-            if (error instanceof Error) {
-                console.error("에러 메시지:", error.message);
-            }
-
-            // AxiosError인 경우 응답 데이터 출력
             if (error && typeof error === 'object' && 'response' in error) {
                 const axiosError = error as any;
+                const status = axiosError.response?.status;
+
+                if (status === 403) {
+                    alert("접근 권한이 없습니다. 다시 로그인해주세요.");
+                    authContext?.logout();
+                    window.location.href = "/login";
+                    return;
+                } else if (status === 401) {
+                    alert("인증이 만료되었습니다. 다시 로그인해주세요.");
+                    authContext?.logout();
+                    window.location.href = "/login";
+                    return;
+                } else if (status === 400) {
+                    const errorMessage = axiosError.response?.data?.message || "잘못된 요청입니다.";
+                    alert(`입력 정보를 확인해주세요: ${errorMessage}`);
+                    return;
+                }
+
                 console.error("서버 응답:", axiosError.response?.data);
                 console.error("상태 코드:", axiosError.response?.status);
             }
 
-            alert("회원정보 수정에 실패했습니다. 콘솔을 확인해주세요.");
+            alert("회원정보 수정에 실패했습니다. 잠시 후 다시 시도해주세요.");
         }
     };
 

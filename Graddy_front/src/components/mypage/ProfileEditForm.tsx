@@ -227,22 +227,10 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
             return;
         }
 
-        // 닉네임 중복 확인 비활성화 (테스트용)
-        // if (!nicknameChecked) {
-        //     setHintMessage("닉네임 중복 확인을 해주세요.");
-        //     return;
-        // }
-
         // 전화번호 조합 (빈 값도 허용)
         const fullPhoneNumber = phonePrefix && phoneMiddle && phoneLast
             ? phonePrefix + phoneMiddle + phoneLast
             : "";
-
-        // 전화번호 인증 체크 비활성화 (테스트용)
-        // if (isPhoneModified && !isVerified) {
-        //     setHintMessage("전화번호 인증을 완료해주세요.");
-        //     return;
-        // }
 
         // 시간 검증 (시간을 둘 다 입력한 경우에만)
         if (preferredStartTime && preferredEndTime && parseInt(preferredStartTime) >= parseInt(preferredEndTime)) {
@@ -250,44 +238,55 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
             return;
         }
 
-        // 업데이트 데이터 구성 - 변경된 값만 전송하도록 수정
+        // 요일을 숫자로 변환하는 함수
+        const convertDaysToNumbers = (days: string[]): number[] => {
+            const dayMap: { [key: string]: number } = {
+                "월": 1, "화": 2, "수": 3, "목": 4, 
+                "금": 5, "토": 6, "일": 7
+            };
+            return days.map(day => dayMap[day]).filter(num => num);
+        };
+
+        // 업데이트 데이터 구성 - 백엔드 API 스펙에 맞게 수정
         const updateData: any = {};
 
-        // 닉네임이 실제로 변경되었을 때만 추가 (원본 닉네임과 비교)
-        // 원본 닉네임을 props나 context에서 가져와서 비교해야 합니다
-        // 예시: const originalNickname = authContext?.user?.nickname;
-        // if (nickname && nickname.trim() && nickname.trim() !== originalNickname) {
-        //     updateData.newNickname = nickname.trim();
-        // }
+        // 닉네임 (변경된 경우만)
+        if (nickname && nickname.trim() && nickname.trim() !== initialNickname) {
+            updateData.newNickname = nickname.trim();
+        }
 
-        // 테스트용으로 닉네임 전송 비활성화
-        // if (nickname && nickname.trim()) {
-        //     updateData.newNickname = nickname.trim();
-        // }
-
-        if (fullPhoneNumber) {
+        // 전화번호 (변경된 경우만)
+        if (fullPhoneNumber && fullPhoneNumber !== initialPhone) {
             updateData.newTel = fullPhoneNumber;
         }
 
+        // 선호 요일 (숫자 배열로 변환)
         if (preferredDays && preferredDays.length > 0) {
-            updateData.availableDays = preferredDays;
+            updateData.availableDays = convertDaysToNumbers(preferredDays);
         }
 
-        if (preferredStartTime && preferredEndTime) {
-            updateData.availableTime = `${preferredStartTime}-${preferredEndTime}`;
+        // 시작 시간 (숫자로 변환)
+        if (preferredStartTime) {
+            updateData.soltStartHour = parseInt(preferredStartTime);
         }
 
+        // 종료 시간 (숫자로 변환)
+        if (preferredEndTime) {
+            updateData.soltEndHour = parseInt(preferredEndTime);
+        }
+
+        // 비밀번호 (입력한 경우만)
         if (password && password.trim()) {
             updateData.newPassword = password.trim();
         }
 
-        // 최소한 하나의 변경사항이 있는지 확인 (선택사항)
-        // if (Object.keys(updateData).length === 0) {
-        //     setHintMessage("변경할 정보를 입력해주세요.");
-        //     return;
-        // }
+        console.log("전송할 데이터 (백엔드 스펙 맞춤):", updateData);
 
-        console.log("전송할 데이터:", updateData); // 디버깅용
+        // 최소한 하나의 변경사항이 있는지 확인
+        if (Object.keys(updateData).length === 0) {
+            setHintMessage("변경할 정보를 입력해주세요.");
+            return;
+        }
 
         try {
             await onUpdateProfile(updateData);
@@ -326,7 +325,7 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
                                 placeholder="변경할 닉네임을 입력해주세요"
                                 className="w-full px-4 py-3 border rounded-full"
                             />
-                            <button onClick={onCheckNickname} className="px-4 py-3 text-sm text-white rounded-lg font-medium" style={{ backgroundColor: "#8B85E9" }}>중복확인</button>
+                            <button onClick={onCheckNickname} className="px-5 h-12 min-w-[90px] text-sm text-white whitespace-nowrap rounded-lg font-medium" style={{ backgroundColor: "#8B85E9" }}>중복확인</button>
                         </div>
                         {nicknameError && <p className="text-red-500 text-xs mt-1">{nicknameError}</p>}
                         {nicknameChecked && !nicknameError && <p className="text-green-500 text-xs mt-1">사용 가능한 닉네임입니다.</p>}

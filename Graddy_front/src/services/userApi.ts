@@ -28,14 +28,18 @@ export interface UpdatePageInfo {
     availableTime: string;
 }
 
-// 회원정보 수정 요청 타입
+
+// 회원정보 수정 요청 타입 - 백엔드 API 스펙에 맞게 수정
 export interface UserProfileUpdateRequest {
     newPassword?: string;
     newNickname?: string;
     newTel?: string;
+    availableDays?: number[];    // 숫자 배열로 변경
+    soltStartHour?: number;      // 시작 시간 (숫자)
+    soltEndHour?: number;        // 종료 시간 (숫자)
 }
 
-// 회원정보 수정 응답 타입
+// 회원정보 수정 응답 타입 - 백엔드 응답 구조에 맞게 수정
 export interface UserProfileUpdateResponse {
     message: string;
     updatedFields: Record<string, string>;

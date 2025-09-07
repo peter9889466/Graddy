@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { User, Settings, Trash2 } from "lucide-react";
 import ProfileModal from "../modal/ProfileModal";
+import axios from "axios";
 
 interface SideMenuItem {
     name: string;
@@ -63,6 +64,7 @@ const ProjectDetailSideBar: React.FC<ProjectDetailSideBarProps> = ({
 }) => {
     const [selectedMember, setSelectedMember] = useState<ProjectMemberProfile | null>(null);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [isLoadingMember, setIsLoadingMember] = useState(false);
 
     // 백엔드 멤버 데이터를 모달에 맞는 구조로 변환
     const projectMembers: ProjectMemberProfile[] = members.map((member) => ({
@@ -86,6 +88,49 @@ const ProjectDetailSideBar: React.FC<ProjectDetailSideBarProps> = ({
         { name: "프로젝트 메인" },
         { name: "커뮤니티", requiresAuth: true, requiresMembership: true },
     ];
+
+    const handleApplicantClick = async (userId: string) => {
+        setIsLoadingMember(true);
+        try {
+            const token = localStorage.getItem("userToken");
+
+            const response = await axios.get(
+                `http://localhost:8080/api/user/info/${userId}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+
+            const userData = response.data;
+
+            // ProfileModal에 맞게 변환
+            const memberData: ProjectMemberProfile = {
+                nickname: userData.nick,
+                githubUrl: userData.gitUrl || "",
+                score: userData.userScore,
+                interests: (userData.interests || []).map((name: string, idx: number) => ({
+                    id: idx,
+                    name,
+                    category: "",   // 카테고리 정보는 API에 없으므로 빈 문자열
+                    difficulty: "",
+                })),
+                introduction: userData.userRefer || "소개가 없습니다.",
+                profileImage: userData.imgUrl || undefined,
+            };
+
+            setSelectedMember(memberData);
+            setIsProfileModalOpen(true);
+
+        } catch (error) {
+            console.error("가입 신청 유저 정보를 불러오는데 실패했습니다:", error);
+            alert("가입 신청 유저 정보를 불러오는데 실패했습니다.");
+        } finally {
+            setIsLoadingMember(false);
+        }
+    };
 
     return (
         <>
@@ -151,7 +196,8 @@ const ProjectDetailSideBar: React.FC<ProjectDetailSideBarProps> = ({
                     <hr className="mb-3 border-gray-200" />
                     <div className="rounded-lg p-3 space-y-3">
                         {applications.map((application, index) => (
-                            <div key={index} className="rounded-lg p-3 bg-gray-50">
+                            <div key={index} className="rounded-lg p-3 bg-gray-50"
+                            onClick={() => handleApplicantClick(application.userId)}>
                             <div className="flex items-center justify-between">
                                 <span className="text-sm font-medium text-gray-800">
                                     {application.userId}
