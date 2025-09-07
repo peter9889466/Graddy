@@ -295,7 +295,7 @@ export const Ranking = () => {
 
                 {/* 내 랭킹 표시 - 로그인된 사용자만 표시 */}
                 {auth?.isLoggedIn && (currentUserRanking || myRankingInfo) && (
-                    <div className="p-6 bg-blue-50 border-t-2 border-blue-200 fixed bottom-0 left-85 right-85">
+                    <div className="p-6 bg-blue-50 border-t-2 border-blue-200 fixed bottom-0 left-85 right-85 rounded-lg">
                         <h3 className="text-lg font-semibold text-blue-800 mb-2">
                             내 랭킹
                         </h3>

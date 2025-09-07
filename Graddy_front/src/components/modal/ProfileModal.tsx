@@ -92,7 +92,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, memberData
             >
                 {/* 헤더 */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-blue-50">
-                    <h2 className="text-xl font-bold text-gray-800">스터디원 프로필</h2>
+                    <h2 className="text-xl font-bold text-gray-800">프로필</h2>
                     <button
                         onClick={closeModal}
                         className="p-2 hover:bg-gray-100 rounded-lg transition-all duration-200"
