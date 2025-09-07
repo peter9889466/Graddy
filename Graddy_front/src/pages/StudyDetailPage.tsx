@@ -1527,23 +1527,16 @@ const StudyDetailPage: React.FC = () => {
                                                         : ""
                                             }
                                         >
-                                            {isLoadingWithdrawalStatus ? (
-                                                <>
-                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                                    상태 확인 중...
-                                                </>
-                                            ) : isWithdrawn ? (
-                                                "재가입 불가"
-                                            ) : members.length >= maxMembers ? (
-                                                "모집 완료"
-                                            ) : isApplying ? (
-                                                <>
-                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                                    신청 중...
-                                                </>
-                                            ) : (
-                                                "스터디 가입 신청"
-                                            )}
+                                            {isLoadingWithdrawalStatus 
+                                                ? "상태 확인 중..." 
+                                                : isWithdrawn 
+                                                    ? "재가입 불가" 
+                                                    // : members.length >= maxMembers
+                                                    //     ? "모집 완료"
+                                                        : isApplying 
+                                                            ? "신청 중..." 
+                                                            : "스터디 가입 신청"
+                                            }
                                         </button>
                                     ) : (
                                         <button

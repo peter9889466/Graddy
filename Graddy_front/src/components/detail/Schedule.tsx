@@ -210,7 +210,7 @@ const Schedule: React.FC<ScheduleProps> = ({
                     const assignmentData = {
                         studyProjectId: studyProjectId,
                         memberId: memberId,
-                        title: newItem.title,
+                title: newItem.title,
                         description: newItem.description || '',
                         deadline: new Date(newItem.date).toISOString(),
                         fileUrl: selectedFile ? selectedFile.name : '', // 임시로 파일명 저장
@@ -604,7 +604,7 @@ const handleCancelAssignmentEdit = () => {
     console.log('필터링된 아이템:', filteredItems, 'activeTab:', activeTab, '전체 아이템:', scheduleItems);
 
     return (
-        <div className="space-y-6 p-4 pr-10">
+        		<div className="space-y-6 p-4 pr-10">
             {/* 일정 목록 */}
             <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-800">
@@ -895,57 +895,57 @@ const handleCancelAssignmentEdit = () => {
 
             {/* 추가 버튼들 - 스터디장만 표시 */}
             {isStudyLeader && (
-                <div className="relative w-[420px] mx-auto">
-                    {/* 보라색 바 */}
-                    <div className="bg-[#8B85E9] rounded-full h-12 shadow-md relative flex items-center px-1">
-                        {/* 슬라이더 (하얀 버튼) */}
-                        <div
+            <div className="relative w-[420px] mx-auto">
+              {/* 보라색 바 */}
+              <div className="bg-[#8B85E9] rounded-full h-12 shadow-md relative flex items-center px-1">
+                {/* 슬라이더 (하얀 버튼) */}
+                <div
                             className={`absolute top-1 left-1 h-10 w-[calc(50%-4px)] bg-white rounded-full shadow transition-transform duration-300 ${activeTab === "schedule" ? "translate-x-full" : "translate-x-0"
-                                }`}
-                        />
+                  }`}
+                />
 
-                        {/* 버튼들 */}
-                        <button
-                            onClick={() => {
-                                if (activeTab === "assignment" && isAdding) {
-                                    setIsAdding(false);
-                                } else {
-                                    setActiveTab("assignment");
-                                    setIsAdding(true);
-                                }
-                            }}
+                {/* 버튼들 */}
+                                 <button
+                   onClick={() => {
+                     if (activeTab === "assignment" && isAdding) {
+                       setIsAdding(false);
+                     } else {
+                       setActiveTab("assignment");
+                       setIsAdding(true);
+                     }
+                   }}
                             className={`flex-1 z-10 text-sm font-medium transition-colors duration-300 ${activeTab === "assignment" ? "text-[#8B85E9]" : "text-white"
-                                }`}
-                        >
-                            + 과제 추가
-                        </button>
-                        <button
-                            onClick={() => {
-                                if (activeTab === "schedule" && isAdding) {
-                                    setIsAdding(false);
-                                } else {
-                                    setActiveTab("schedule");
-                                    setIsAdding(true);
-                                }
-                            }}
+                   }`}
+                 >
+                   + 과제 추가
+                 </button>
+                 <button
+                   onClick={() => {
+                     if (activeTab === "schedule" && isAdding) {
+                       setIsAdding(false);
+                     } else {
+                       setActiveTab("schedule");
+                       setIsAdding(true);
+                     }
+                   }}
                             className={`flex-1 z-10 text-sm font-medium transition-colors duration-300 ${activeTab === "schedule" ? "text-[#8B85E9]" : "text-white"
-                                }`}
-                        >
-                            + 스터디 일정 추가
-                        </button>
-                    </div>
-                </div>
+                   }`}
+                 >
+                   + 스터디 일정 추가
+                 </button>
+              </div>
+            </div>
             )}
 
             {/* 추가 폼 (슬라이드 애니메이션) - 스터디장만 표시 */}
             {isStudyLeader && (
                 <div className={`overflow-hidden transition-all duration-500 ease-in-out ${isAdding ? 'max-h-[500px] opacity-100 mt-4' : 'max-h-0 opacity-0'
-                    }`}>
+                }`}>
                     <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
                         <div className="flex justify-between items-center">
-                            <h3 className="text-lg font-semibold text-gray-800">
-                                {activeTab === 'assignment' ? '과제 내용' : '일정 내용'}
-                            </h3>
+                        <h3 className="text-lg font-semibold text-gray-800">
+                            {activeTab === 'assignment' ? '과제 내용' : '일정 내용'}
+                        </h3>
                             {activeTab === 'assignment' && (
                                 <button
                                     onClick={handleGenerateAIAssignment}
@@ -977,26 +977,26 @@ const handleCancelAssignmentEdit = () => {
                                 />
                             </div>
                             {activeTab === 'assignment' ? (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
                                         과제 마감일
-                                    </label>
-                                    <input
-                                        type="date"
-                                        value={newItem.date}
+                                </label>
+                                <input
+                                    type="date"
+                                    value={newItem.date}
                                         onChange={(e) => setNewItem({ ...newItem, date: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
                                         placeholder="과제 마감일을 선택하세요"
                                         min={new Date().toISOString().split('T')[0]}
-                                    />
-                                </div>
+                                />
+                            </div>
                             ) : (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
                                         일정 날짜 및 시간
-                                    </label>
+                                </label>
                                     <div className="flex gap-2">
-                                        <input
+                                <input
                                             type="date"
                                             value={newItem.date}
                                             onChange={(e) => setNewItem({ ...newItem, date: e.target.value })}
@@ -1005,7 +1005,7 @@ const handleCancelAssignmentEdit = () => {
                                             min={new Date().toISOString().split('T')[0]}
                                         />
                                         <select
-                                            value={newItem.time}
+                                    value={newItem.time}
                                             onChange={(e) => setNewItem({ ...newItem, time: e.target.value })}
                                             className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
                                         >
@@ -1020,20 +1020,20 @@ const handleCancelAssignmentEdit = () => {
                                             })}
                                         </select>
                                     </div>
-                                </div>
-                            )}
+                            </div>
+                        )}
                         </div>
                         {activeTab === 'assignment' && (
                             <>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
                                         과제 설명
-                                    </label>
-                                    <textarea
-                                        value={newItem.description}
+                            </label>
+                            <textarea
+                                value={newItem.description}
                                         onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
-                                        rows={3}
+                                rows={3}
                                         placeholder="과제에 대한 설명을 입력하세요"
                                     />
                                 </div>
@@ -1049,8 +1049,8 @@ const handleCancelAssignmentEdit = () => {
                                                     file:rounded-lg file:border-0
                                                     file:text-sm file:font-semibold file:text-[#8B85E9]
                                                     file:bg-violet-50 hover:file:bg-violet-100"
-                                    />
-                                </div>
+                            />
+                        </div>
                             </>
                         )}
                         {/* AI 생성 알림 */}
@@ -1105,9 +1105,9 @@ const handleCancelAssignmentEdit = () => {
                                 )}
                             </button>
                             <button
-                                onClick={() => {
-                                    setIsAdding(false);
-                                    setNewItem({ title: '', description: '', date: '', time: '' });
+                                                                 onClick={() => {
+                                     setIsAdding(false);
+                                     setNewItem({ title: '', description: '', date: '', time: '' });
                                     setSelectedFile(null);
                                     setShowAIPreview(false);
                                     setAiGeneratedAssignment(null);
@@ -1118,15 +1118,15 @@ const handleCancelAssignmentEdit = () => {
                                         fileInput.value = '';
                                     }
                                     console.log('과제 추가 폼 취소됨 - 모든 상태 초기화');
-                                }}
+                                 }}
                                 className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors duration-200"
                             >
                                 취소
                             </button>
                         </div>
                     </div>
-                </div>
-            )}
+                    </div>
+                )}
         </div>
     );
 };

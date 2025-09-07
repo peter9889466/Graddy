@@ -1116,7 +1116,16 @@ const ProjectDetailPage = () => {
                               userMemberType === null) ? (
                             // 일반 사용자이거나 멤버인 경우 (수정 모드가 아닐 때만 표시)
                             <div className="w-full mt-3">
-                                {!isApplied ? (
+                                {members.length >= maxMembers ? (
+                                    <button
+                                        type="button"
+                                        disabled
+                                        className="w-full px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-not-allowed"
+                                        style={{ backgroundColor: "#6B7280" }}
+                                    >
+                                        모집 정원이 마감되었습니다
+                                    </button>
+                                ) : !isApplied ? (
                                     <button
                                         type="button"
                                         onClick={handleApplyToProject}
