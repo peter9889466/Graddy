@@ -41,6 +41,9 @@ public class User {
     @Column(name = "git_url", length = 200)
     private String gitUrl;
 
+    @Column(name = "img_url", length = 500)
+    private String imgUrl;
+
     // 유저 소개
     @Column(name = "user_refer", length = 500)
     private String userRefer;
@@ -64,4 +67,13 @@ public class User {
 
     // UserScore와의 관계는 제거 (무한루프 방지)
     // UserScore는 별도로 관리되며, 필요시 UserScoreRepository를 통해 조회
+    
+    // imgUrl getter/setter (Lombok이 제대로 작동하지 않을 경우를 대비)
+    public String getImgUrl() {
+        return imgUrl;
+    }
+    
+    public void setImgUrl(String imgUrl) {
+        this.imgUrl = imgUrl;
+    }
 }
