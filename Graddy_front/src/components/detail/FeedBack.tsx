@@ -209,7 +209,7 @@ interface FeedBackProps {
         try {
             console.log('📋 [DEBUG] 과제 목록 조회 시작 - studyProjectId:', studyProjectId);
             
-            const response = await fetch(`http://localhost:8080/api/assignments/study-project/${studyProjectId}`,
+            const response = await fetch(`/api/assignments/study-project/${studyProjectId}`,
                 { method: 'GET', headers: getAuthHeaders() }
             );
             
@@ -242,7 +242,7 @@ interface FeedBackProps {
             setFeedbackLoading(true);
             setError(null);
             
-            const response = await fetch(`http://localhost:8080/api/feedbacks/submission/${submissionId}`,
+            const response = await fetch(`/api/feedbacks/submission/${submissionId}`,
                 { method: 'GET', headers: getAuthHeaders() }
             );
             if (!response.ok) {
@@ -274,7 +274,7 @@ interface FeedBackProps {
             setLoading(true);
             setError(null);
             
-            const response = await fetch(`http://localhost:8080/api/submissions/assignment/${assignmentId}/member/${memberId}`,
+            const response = await fetch(`/api/submissions/assignment/${assignmentId}/member/${memberId}`,
                 { method: 'GET', headers: getAuthHeaders() }
             );
             if (!response.ok) {
@@ -375,7 +375,7 @@ interface FeedBackProps {
             setLoading(true);
             setError(null);
             
-            const response = await fetch(`http://localhost:8080/api/submissions/assignment/${assignmentId}`,
+            const response = await fetch(`/api/submissions/assignment/${assignmentId}`,
                 { method: 'GET', headers: getAuthHeaders() }
             );
             if (!response.ok) {
@@ -479,7 +479,7 @@ interface FeedBackProps {
                 return;
             }
             
-            const response = await fetch(`http://localhost:8080/api/submissions/member/${memberId}`,
+            const response = await fetch(`/api/submissions/member/${memberId}`,
                 { method: 'GET', headers: getAuthHeaders() }
             );
             if (!response.ok) {
@@ -760,7 +760,7 @@ interface FeedBackProps {
                                                             let downloadUrl: string;
                                                             
                                                             if (fileUrl.startsWith('/api/files/')) {
-                                                                downloadUrl = `http://localhost:8080${fileUrl}`;
+                                                                downloadUrl = `${fileUrl}`;
                                                             } else if (fileUrl.startsWith('http')) {
                                                                 downloadUrl = fileUrl;
                                                             } else {

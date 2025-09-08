@@ -132,7 +132,7 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
             return;
         }
         try {
-            const response = await axios.get("http://localhost:8080/api/join/check-nick", {
+            const response = await axios.get("/api/join/check-nick", {
                 params: { nick: nickname },
                 validateStatus: () => true,
             });
@@ -160,7 +160,7 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
         }
         setIsLoading(true);
         try {
-            const response = await axios.post("http://localhost:8080/api/api/phone-verification/unified", {
+            const response = await axios.post("/api/api/phone-verification/unified", {
                 tel: phoneNumber,
                 purpose: "UPDATE", // Changed purpose
             }, {
@@ -188,7 +188,7 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
         }
         const phoneNumber = phonePrefix + phoneMiddle + phoneLast;
         try {
-            const response = await axios.post("http://localhost:8080/api/auth/verify-code", {
+            const response = await axios.post("/api/auth/verify-code", {
                 phoneNumber: phoneNumber,
                 code: verificationCode,
             }, {

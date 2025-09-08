@@ -165,7 +165,7 @@ export class StudyApiService {
         try {
             console.log('getStudiesProjects 호출 시작');
 
-            const response = await fetch('http://localhost:8080/api/studies-projects', {
+            const response = await fetch('/api/studies-projects', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'
