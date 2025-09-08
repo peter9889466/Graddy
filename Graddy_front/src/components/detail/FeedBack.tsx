@@ -184,7 +184,7 @@ interface FeedBackProps {
         // 현재 제출 데이터 분석
         if (currentSubmissionData?.fileUrl) {
             const fileUrl = currentSubmissionData.fileUrl;
-            const isS3Url = fileUrl.includes('s3.') || fileUrl.includes('localhost:4566') || fileUrl.includes('graddy-files');
+            const isS3Url = fileUrl.includes('s3.') || fileUrl.includes('graddy-files');
             const isLocalUrl = fileUrl.startsWith('/api/files/');
             
             console.log('📎 [DEBUG] 현재 첨부파일 분석:', {
@@ -332,7 +332,7 @@ interface FeedBackProps {
                 
                 // 첨부파일 상세 분석
                 if (fileUrl) {
-                    const isS3Url = fileUrl.includes('s3.') || fileUrl.includes('localhost:4566') || fileUrl.includes('graddy-files');
+                    const isS3Url = fileUrl.includes('s3.') || fileUrl.includes('graddy-files');
                     const isLocalUrl = fileUrl.startsWith('/api/files/');
                     const isFullUrl = fileUrl.startsWith('http');
                     

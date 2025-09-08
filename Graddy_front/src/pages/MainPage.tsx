@@ -526,7 +526,8 @@ const MainPage = () => {
         if (!selectedDate || !isLoggedIn || !token) return;
 
         try {
-            const scheduleDateTime = new Date(`${selectedDate}T${time}:00`);
+            // 한국 시간대(KST)를 고려한 날짜 생성
+            const scheduleDateTime = new Date(`${selectedDate}T${time}:00+09:00`);
 
             const response = await fetch(
                 "/api/schedules/personal",
@@ -618,8 +619,9 @@ const MainPage = () => {
                 return;
             }
 
+            // 한국 시간대(KST)를 고려한 날짜 생성
             const scheduleDateTime = new Date(
-                `${currentSchedule.date}T${startTime}:00`
+                `${currentSchedule.date}T${startTime}:00+09:00`
             );
 
             console.log("개인 일정 수정 요청:", {

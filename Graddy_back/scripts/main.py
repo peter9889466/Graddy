@@ -79,7 +79,7 @@ def test_file_url_access(file_url: str) -> dict:
         # 2. HTTP 접근 시도
         try:
             import requests
-            full_url = f"http://localhost:8080{file_url}"
+            full_url = f"http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com:8080{file_url}"
             print(f"🌐 [TEST] HTTP 접근 시도: {full_url}")
             
             response = requests.get(full_url, timeout=5)
@@ -159,8 +159,8 @@ def read_local_file(file_url: str) -> str:
         
         # HTTP API를 통한 파일 접근으로 변경
         if file_url.startswith('/api/files/'):
-            # Spring Boot 서버 URL 구성
-            spring_boot_url = "http://localhost:8080" + file_url
+            # Spring Boot 서버 URL 구성 (Docker 환경에서는 컨테이너 이름 사용)
+            spring_boot_url = "http://graddy-back:8080" + file_url
             print(f"🌐 [DEBUG] Spring Boot API 호출: {spring_boot_url}")
             
             try:
