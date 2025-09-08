@@ -38,7 +38,7 @@ export class InterestApiService {
         try {
             console.log('관심사 데이터 조회 시작');
 
-            const response = await this.interestsAxiosInstance.get('/api/interests');
+            const response = await this.interestsAxiosInstance.get('/interests');
             console.log('관심사 API 응답:', response.data);
 
             if (!response.data || !response.data.data) {

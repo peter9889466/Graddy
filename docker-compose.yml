@@ -27,8 +27,25 @@ services:
         restart: always # 항상 재시작 옵션 추가
         depends_on:
             - localstack
+            - graddy-fastapi
 
-    # 3. LocalStack - AWS 서비스 로컬 시뮬레이션
+    # 3. FastAPI AI 서비스
+    graddy-fastapi:
+        container_name: graddy-fastapi
+        build:
+            context: ./Graddy_back
+            dockerfile: Dockerfile.fastapi
+        ports:
+            - "8000:8000" # FastAPI 서버 포트
+        env_file:
+            - .env
+        networks:
+            - graddy-net
+        restart: always
+        volumes:
+            - ./Graddy_back/scripts:/app/scripts
+
+    # 4. LocalStack - AWS 서비스 로컬 시뮬레이션
     localstack:
         container_name: localstack
         image: localstack/localstack:latest
