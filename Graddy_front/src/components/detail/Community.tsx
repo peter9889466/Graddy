@@ -13,7 +13,6 @@ interface BackendPost {
     stPrPostId: number;
     studyProjectId: number;
     memberId: string;
-    nick: string;  // 작성자 닉네임 추가
     title: string;
     content: string;
     createdAt: string;
@@ -55,7 +54,7 @@ interface CommunityProps {
 const Community: React.FC<CommunityProps> = ({
     studyProjectId = 55, // 기본값으로 55 사용
     currentUserId = "나", // 기본값
-    members, 
+    members = [], // 기본값으로 빈 배열
 }) => {
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
@@ -148,17 +147,17 @@ const Community: React.FC<CommunityProps> = ({
         const content = (newComments[postId] || "").trim();
         if (!content) return;
 
-        console.log('🔍 댓글 작성:', {
-            postId,
-            currentUserId,
-            isStudyMember,
-            content: content.substring(0, 50) + '...'
-        });
+        // studyProjectId 타입 확인
+        console.log("studyProjectId 타입:", typeof studyProjectId, "값:", studyProjectId);
+        console.log("postId",postId)
 
         const payload = {
-            content
-            // studyProjectId 제거 - 백엔드에서 게시글 ID로 스터디 ID를 조회함
+            content,
+            studyProjectId: Number(studyProjectId)  // 숫자형으로 강제 변환
         };
+
+        console.log("보낼 payload:", payload);
+        console.log("Authorization 헤더:", getAuthHeaders());
 
         try {
             const response = await fetch(
@@ -170,8 +169,10 @@ const Community: React.FC<CommunityProps> = ({
                 }
             );
 
+            console.log("서버 응답 status:", response.status);
+
             const result = await response.json();
-            console.log('댓글 작성 응답:', result);
+            console.log("서버 응답 body:", result);
 
             if (!response.ok) {
                 throw new Error(result?.message || `HTTP error! status: ${response.status}`);
@@ -306,11 +307,14 @@ const Community: React.FC<CommunityProps> = ({
 
             if (result.status === 200 && result.data) {
                 const transformedPosts: Post[] = result.data.map((backendPost: BackendPost) => {
-                    console.log('🔍 게시글 변환:', {
-                        stPrPostId: backendPost.stPrPostId,
-                        memberId: backendPost.memberId,
-                        nick: backendPost.nick,
-                        title: backendPost.title
+                    // 닉네임 매칭 디버깅
+                    const matchedMember = members.find(member => member.userId === backendPost.memberId);
+                    console.log('🔍 게시글 작성자 매칭:', {
+                        postId: backendPost.stPrPostId,
+                        authorId: backendPost.memberId,
+                        membersCount: members.length,
+                        matchedMember: matchedMember,
+                        finalNick: matchedMember?.nick || '알 수 없음'
                     });
                     
                     return {
@@ -321,7 +325,7 @@ const Community: React.FC<CommunityProps> = ({
                         timestamp: formatTimestamp(backendPost.createdAt),
                         comments: [],
                         canEdit: backendPost.memberId === currentUserId,
-                        nick: backendPost.nick || '알 수 없음'  // 백엔드에서 받은 닉네임 사용
+                        nick: matchedMember?.nick || '알 수 없음'
                     };
                 });
                 

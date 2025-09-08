@@ -1188,6 +1188,7 @@ const ProjectDetailPage = () => {
                     <Community
                         studyProjectId={parseInt(id!, 10)}
                         currentUserId={authContext?.user?.nickname || "사용자"}
+                        members={members}
                     />
                 );
         }
