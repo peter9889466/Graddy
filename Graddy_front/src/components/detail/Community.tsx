@@ -98,6 +98,12 @@ const Community: React.FC<CommunityProps> = ({
         );
     console.log("스터디 멤버 여부:", isStudyMember);
         
+    // 현재 사용자가 approved 상태인 멤버인지 확인
+    const isApprovedMember = members.some(
+        (member) => member.userId === currentUserId && member.memberStatus === 'approved'
+    );
+    console.log("승인된 스터디 멤버 여부:", isApprovedMember);
+        
     console.log("스터디 멤버 배열:", members);
     console.log("현재 사용자 ID:", currentUserId);
 
@@ -149,6 +155,12 @@ const Community: React.FC<CommunityProps> = ({
     const handleAddComment = async (postId: string) => {
         const content = (newComments[postId] || "").trim();
         if (!content) return;
+
+        // 멤버 상태 확인 - approved 상태인 멤버만 댓글 작성 가능
+        if (!isApprovedMember) {
+            alert("승인된 스터디 멤버만 댓글을 작성할 수 있습니다.");
+            return;
+        }
 
         // studyProjectId 타입 확인
         console.log("studyProjectId 타입:", typeof studyProjectId, "값:", studyProjectId);
@@ -846,9 +858,9 @@ const Community: React.FC<CommunityProps> = ({
                                     </span>
                                 </div>
                                 <div className="flex-1">
-                                    {!isStudyMember ? (
+                                    {!isApprovedMember ? (
                                         <p className="text-sm text-gray-500">
-                                            스터디 멤버만 댓글을 작성할 수 있습니다.
+                                            승인된 스터디 멤버만 댓글을 작성할 수 있습니다.
                                         </p>
                                     ) : (
                                         <>
