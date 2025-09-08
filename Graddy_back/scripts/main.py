@@ -189,24 +189,34 @@ def read_local_file(file_url: str) -> str:
                     else:
                         # 바이너리 파일인 경우
                         file_size = len(response.content)
-                        print(f"📄 [DEBUG] 바이너리 파일 감지: {file_size} bytes")
+                        print(f"📦 [DEBUG] 바이너리 파일 감지: {file_size} bytes")
                         
-                        # 파일 확장자에 따른 처리
-                        if file_url.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.pdf', '.zip', '.rar')):
-                            return f"바이너리 파일입니다 (크기: {file_size} bytes). 브라우저에서 다운로드하여 확인하세요."
+                        # 파일 확장자 확인
+                        file_extension = file_url.split('.')[-1].lower() if '.' in file_url else "unknown"
+                        print(f"📎 [DEBUG] 파일 확장자: {file_extension}")
+                        
+                        # 이미지나 압축 파일 등은 텍스트로 읽을 수 없음
+                        if file_extension in ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'zip', 'rar', '7z', 'tar', 'gz']:
+                            return f"바이너리 파일입니다 (크기: {file_size} bytes, 확장자: {file_extension}). 브라우저에서 다운로드하여 확인하세요."
                         else:
-                            # 텍스트로 해석 시도
+                            # 텍스트로 해석 시도 (코드 파일 등)
                             try:
                                 content = response.content.decode('utf-8', errors='ignore')
                                 print(f"📄 [DEBUG] 바이너리 파일을 텍스트로 해석: {len(content)} characters")
+                                print(f"📄 [DEBUG] 파일 내용 미리보기 (처음 200자): {content[:200]}")
                                 
-                                if len(content) > 10000:
-                                    content = content[:10000] + "... (내용이 길어 일부만 표시)"
-                                
-                                return content
+                                # 의미있는 텍스트가 있는지 확인
+                                if content.strip():
+                                    if len(content) > 10000:
+                                        content = content[:10000] + "... (내용이 길어 일부만 표시)"
+                                        print(f"✂️ [DEBUG] 파일 내용이 길어 일부만 처리")
+                                    
+                                    return content
+                                else:
+                                    return f"파일이 비어있거나 텍스트로 읽을 수 없습니다 (크기: {file_size} bytes, 확장자: {file_extension})"
                             except Exception as decode_e:
                                 print(f"💥 [DEBUG] 텍스트 디코딩 실패: {decode_e}")
-                                return f"파일을 텍스트로 읽을 수 없습니다 (크기: {file_size} bytes)"
+                                return f"파일을 텍스트로 읽을 수 없습니다 (크기: {file_size} bytes, 확장자: {file_extension})"
                 
                 elif response.status_code == 404:
                     print(f"❌ [DEBUG] 파일을 찾을 수 없음 (404)")
