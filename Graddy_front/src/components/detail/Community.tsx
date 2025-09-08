@@ -9,6 +9,11 @@ import {
     AlertCircle,
 } from "lucide-react";
 
+// API 기본 URL 설정
+const API_BASE_URL = window.location.hostname === 'localhost' 
+    ? 'http://localhost:8080/api'
+    : 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api';
+
 interface BackendPost {
     stPrPostId: number;
     studyProjectId: number;
@@ -107,7 +112,7 @@ const Community: React.FC<CommunityProps> = ({
     const fetchCommentCount = async (postId: string) => {
         try {
             const response = await fetch(
-                `http://localhost:8080/api/api/comments/study-posts/${postId}/count`,
+                `${API_BASE_URL}/api/comments/study-posts/${postId}/count`,
                 { headers: getAuthHeaders() }
             );
             if (!response.ok) throw new Error("댓글 수 조회 실패");
@@ -125,7 +130,7 @@ const Community: React.FC<CommunityProps> = ({
     const fetchComments = async (postId: string) => {
         try {
             const response = await fetch(
-            `http://localhost:8080/api/api/comments/study-posts/${postId}`,
+            `${API_BASE_URL}/api/comments/study-posts/${postId}`,
             { headers: getAuthHeaders() }
             );
             if (!response.ok) throw new Error(`댓글 목록 조회 실패: HTTP ${response.status}`);
@@ -161,7 +166,7 @@ const Community: React.FC<CommunityProps> = ({
 
         try {
             const response = await fetch(
-                `http://localhost:8080/api/api/comments/study-posts/${postId}`,
+                `${API_BASE_URL}/api/comments/study-posts/${postId}`,
                 {
                     method: "POST",
                     headers: getAuthHeaders(),
@@ -200,7 +205,7 @@ const Community: React.FC<CommunityProps> = ({
             
         try {
             const response = await fetch(
-                `http://localhost:8080/api/api/comments/${editingCommentId}?content=${encodeURIComponent(editCommentContent)}`,
+                `${API_BASE_URL}/api/comments/${editingCommentId}?content=${encodeURIComponent(editCommentContent)}`,
                 {
                     method: "PUT",
                     headers: {
@@ -248,7 +253,7 @@ const Community: React.FC<CommunityProps> = ({
         
         try {
             const response = await fetch(
-                `http://localhost:8080/api/api/comments/${commentId}`,
+                `${API_BASE_URL}/api/comments/${commentId}`,
                 { method: "DELETE", headers: getAuthHeaders() }
             );
 
@@ -292,7 +297,7 @@ const Community: React.FC<CommunityProps> = ({
 
         try {
             const response = await fetch(
-                `http://localhost:8080/api/posts/study-project/${studyProjectId}`,
+                `${API_BASE_URL}/posts/study-project/${studyProjectId}`,
                 {
                     method: "GET",
                     headers: getAuthHeaders(),
@@ -382,9 +387,9 @@ const Community: React.FC<CommunityProps> = ({
     setIsSubmitting(true);
 
     try {
-        const response = await fetch("http://localhost:8080/api/posts", {
-            method: "POST",
-            headers: getAuthHeaders(),
+    const response = await fetch(`${API_BASE_URL}/posts`, {
+        method: "POST",
+        headers: getAuthHeaders(),
             body: JSON.stringify({
             studyProjectId,
             memberId: currentUserId,
@@ -410,7 +415,7 @@ const Community: React.FC<CommunityProps> = ({
     const updatePost = async (postId: string, title: string, content: string) => {
     try {
         const response = await fetch(
-            `http://localhost:8080/api/posts/${postId}?currentMemberId=${currentUserId}`,
+            `${API_BASE_URL}/posts/${postId}?currentMemberId=${currentUserId}`,
             {
             method: "PUT",
             headers: getAuthHeaders(),
@@ -436,7 +441,7 @@ const Community: React.FC<CommunityProps> = ({
     const deletePost = async (postId: string) => {
     try {
         const response = await fetch(
-            `http://localhost:8080/api/posts/${postId}?currentMemberId=${currentUserId}`,
+            `${API_BASE_URL}/posts/${postId}?currentMemberId=${currentUserId}`,
             {
             method: "DELETE",
             headers: getAuthHeaders(),

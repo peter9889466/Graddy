@@ -46,7 +46,9 @@ interface DraggableChatWidgetProps {
 }
 
 const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectId }) => {
-	const { user, token } = useAuth();
+	const authContext = useAuth();
+	const user = authContext?.user;
+	const token = authContext?.token;
 	
 	// 초기 설정 불러오기
 	const getSavedSettings = (): ChatSettings => {
