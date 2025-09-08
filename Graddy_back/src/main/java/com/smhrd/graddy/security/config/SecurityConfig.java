@@ -29,13 +29,13 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 
                 // CORS 설정 활성화 (WebMvcConfigurer에서 설정됨)
-                .cors(cors -> cors.and())
+                .cors(cors -> cors.configure(http))
 
                 // 2. HTTP 요청 인증 설정
                 .authorizeHttpRequests(authorize -> authorize
                         // 인증 관련 엔드포인트는 JWT 검증 없이 허용
                         .requestMatchers("/**").permitAll()
-                        .requestMatchers("/api/auth/**", "/scores/ranking/**","/api/phone-verification/**", "/auth/login", "/join", "/auth/refresh", "/auth/logout", "/interests", "/studies-projects","/join/check-userId", "/join/check-nick","/api/ws-stomp/**" ,"/ws-stomp/**").permitAll()
+                        .requestMatchers("/auth/**", "/scores/ranking/**","/api/phone-verification/**", "/join", "/interests", "/studies-projects","/join/check-userId", "/join/check-nick","/api/ws-stomp/**" ,"/ws-stomp/**").permitAll()
                         // Swagger UI 관련 경로 허용
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/api-docs/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**", "/api/swagger-ui/**", "/api/api-docs/**" ).permitAll()
                         // 나머지 요청은 인증 필요
