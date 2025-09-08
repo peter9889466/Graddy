@@ -1457,7 +1457,7 @@ const StudyDetailPage: React.FC = () => {
                         </div>
 
                         {/* 버튼 영역 */}
-                        {!isEditing && !isLoading && isStudyLeader && (
+                        {!isEditing && !isLoading && isStudyLeader ? (
                             <div className="flex gap-2 mt-3">
                                 {isStudyEnd ? (
                                     /* 스터디가 종료된 경우 - 비활성화된 버튼만 표시 */

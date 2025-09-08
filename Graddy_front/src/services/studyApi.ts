@@ -272,6 +272,7 @@ export interface StudyApplicationRequest {
 
 export interface StudyApplicationResponse {
     userId: string;
+    nick: string;
     studyProjectId: number;
     status: 'PENDING' | 'APPROVED' | 'REJECTED';
     message: string;
