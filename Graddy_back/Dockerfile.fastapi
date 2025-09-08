@@ -17,6 +17,9 @@ COPY scripts/requirements.txt .
 # Python 패키지 설치
 RUN pip install --no-cache-dir -r requirements.txt
 
+# OpenAI 버전 강제 다운그레이드 (호환성 문제 해결)
+RUN pip install --no-cache-dir openai==0.28.1 --force-reinstall
+
 # FastAPI 스크립트 복사
 COPY scripts/ .
 
