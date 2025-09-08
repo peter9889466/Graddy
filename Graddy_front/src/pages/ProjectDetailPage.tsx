@@ -201,8 +201,8 @@ const ProjectDetailPage = () => {
                     );
                     setStudyTags(studyData.tagNames || []);
                     setMaxMembers(studyData.studyProjectTotal || 10);
-                    setIsRecruiting(studyData.isRecruiting === "recruitment");
-                    setIsStudyEnd(studyData.isRecruiting === "end");
+                    setIsRecruiting(studyData.isRecruiting === "RECRUITING");
+                    setIsStudyEnd(studyData.isRecruiting === "END");
 
                     // 기간 설정
                     if (
