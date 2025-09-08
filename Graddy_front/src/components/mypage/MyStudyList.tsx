@@ -38,7 +38,7 @@ interface StudyProject {
 export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
     const navigate = useNavigate();
     const [activeFilter, setActiveFilter] = useState<
-        "ALL" | "RECRUITING" | "COMPLETE" | "END"
+        "ALL" | "RECRUITING" | "END"
     >("ALL");
     const [studyList, setStudyList] = useState<StudyProject[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -128,8 +128,7 @@ export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
                         {[
                             { key: "ALL", label: "전체" },
                             { key: "RECRUITING", label: "모집중" },
-                            { key: "COMPLETE", label: "진행중" },
-                            { key: "END", label: "완료" },
+                            { key: "END", label: "스터디 종료" },
                         ].map((filter) => (
                             <button
                                 key={filter.key}
@@ -170,9 +169,7 @@ export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
                                 ? "참여한 스터디가 없습니다"
                                 : activeFilter === "RECRUITING"
                                 ? "모집중인 스터디가 없습니다"
-                                : activeFilter === "COMPLETE"
-                                ? "진행중인 스터디가 없습니다"
-                                : "완료된 스터디가 없습니다"}
+                                : "스터디 종료된 스터디가 없습니다"}
                         </h3>
                         <p className="text-gray-500 mb-6">
                             새로운 스터디에 참여해보세요!
@@ -208,8 +205,7 @@ export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
                 {[
                     { key: "ALL", label: "전체" },
                     { key: "RECRUITING", label: "모집중" },
-                    { key: "COMPLETE", label: "진행중" },
-                    { key: "END", label: "완료" },
+                    { key: "END", label: "스터디 종료" },
                 ].map((filter) => (
                     <button
                         key={filter.key}

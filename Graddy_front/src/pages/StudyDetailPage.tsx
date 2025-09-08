@@ -175,12 +175,12 @@ const StudyDetailPage: React.FC = () => {
 
     // 추가된 부분
     const { user } = authContext;
-    const currentUserId = user?.nickname;
+    const currentUserId = getUserIdFromToken(); // JWT에서 추출한 실제 userId 사용
 
     const currentMember = useMemo(() => {
-        if (!user || !user.nickname) return null; // 유저 정보나 userId가 없으면 null 반환
-        return members.find((member) => member.userId === user.nickname); // userId로 멤버 찾기
-    }, [members, user]);
+        if (!currentUserId) return null; // JWT에서 추출한 userId가 없으면 null 반환
+        return members.find((member) => member.userId === currentUserId); // userId로 멤버 찾기
+    }, [members, currentUserId]);
 
     const memberId = currentMember ? currentMember.memberId : null;
     //
@@ -448,10 +448,14 @@ const StudyDetailPage: React.FC = () => {
 
     // 디버깅을 위한 콘솔 로그
     console.log("=== 디버깅 정보 ===");
+    console.log("currentUserId (JWT에서 추출):", currentUserId);
     console.log("userMemberType:", userMemberType);
     console.log("isStudyLeader:", isStudyLeader);
     console.log("canAccessMemberFeatures:", canAccessMemberFeatures);
-    console.log("현재 사용자 아이디:", authContext?.user?.nickname);
+    console.log("현재 사용자 닉네임:", authContext?.user?.nickname);
+    console.log("currentMember:", currentMember);
+    console.log("memberId:", memberId);
+    console.log("members:", members);
 
     console.log("스터디장:", studyLeader);
     console.log("스터디장 여부:", isStudyLeader);
@@ -1575,14 +1579,21 @@ const StudyDetailPage: React.FC = () => {
 
             case "과제 제출":
                 // 로그인 및 스터디 멤버 권한 확인
+                console.log("🔍 과제 제출 권한 확인:", {
+                    isLoggedIn,
+                    userMemberType,
+                    memberId,
+                    currentMember
+                });
+                
                 if (
                     !isLoggedIn ||
-                    !currentMember ||
                     !(
-                        currentMember.memberType === "leader" ||
-                        currentMember.memberType === "member"
+                        userMemberType === "leader" ||
+                        userMemberType === "member"
                     )
                 ) {
+                    console.log("❌ 과제 제출 권한 없음");
                     return (
                         <div className="flex items-center justify-center h-64">
                             <div className="text-center">
@@ -1592,10 +1603,14 @@ const StudyDetailPage: React.FC = () => {
                                 <p className="text-sm text-gray-400">
                                     스터디에 가입한 멤버만 접근할 수 있습니다.
                                 </p>
+                                <p className="text-xs text-gray-400 mt-2">
+                                    디버그: userMemberType = {userMemberType}, memberId = {memberId}
+                                </p>
                             </div>
                         </div>
                     );
                 }
+                console.log("✅ 과제 제출 권한 있음, Assignment 컴포넌트 렌더링");
                 // ✅ 권한 확인 후, Assignment 컴포넌트에 memberId를 전달합니다.
                 return (
                     <Assignment
