@@ -38,8 +38,8 @@ interface StudyProject {
 export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
     const navigate = useNavigate();
     const [activeFilter, setActiveFilter] = useState<
-        "all" | "recruitment" | "complete" | "end"
-    >("all");
+        "ALL" | "RECRUITING" | "COMPLETE" | "END"
+    >("ALL");
     const [studyList, setStudyList] = useState<StudyProject[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -48,7 +48,7 @@ export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
         const fetchStudyList = async () => {
             try {
                 setIsLoading(true);
-                const response = await getUserStudyProjects(activeFilter as any);
+                const response = await getUserStudyProjects(activeFilter);
                 const mappedList: StudyProject[] = response.map((item: any) => ({
                     ...item,
                     currentMembers: item.currentMembers ?? (item.members ? item.members.length : 0),
@@ -126,7 +126,7 @@ export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
                     {/* 필터 버튼들 */}
                     <div className="flex gap-2 flex-wrap">
                         {[
-                            { key: "all", label: "전체" },
+                            { key: "ALL", label: "전체" },
                             { key: "RECRUITING", label: "모집중" },
                             { key: "COMPLETE", label: "진행중" },
                             { key: "END", label: "완료" },
@@ -166,11 +166,11 @@ export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
                             </svg>
                         </div>
                         <h3 className="text-lg font-medium text-gray-900 mb-2">
-                            {activeFilter === "all"
+                            {activeFilter === "ALL"
                                 ? "참여한 스터디가 없습니다"
-                                : activeFilter === "recruitment"
+                                : activeFilter === "RECRUITING"
                                 ? "모집중인 스터디가 없습니다"
-                                : activeFilter === "complete"
+                                : activeFilter === "COMPLETE"
                                 ? "진행중인 스터디가 없습니다"
                                 : "완료된 스터디가 없습니다"}
                         </h3>
@@ -206,10 +206,10 @@ export const MyStudyList: React.FC<MyStudyListProps> = ({ userNickname }) => {
             {/* 필터 버튼들 */}
             <div className="flex gap-2 flex-wrap">
                 {[
-                    { key: "all", label: "전체" },
-                    { key: "recruitment", label: "모집중" },
-                    { key: "complete", label: "진행중" },
-                    { key: "end", label: "완료" },
+                    { key: "ALL", label: "전체" },
+                    { key: "RECRUITING", label: "모집중" },
+                    { key: "COMPLETE", label: "진행중" },
+                    { key: "END", label: "완료" },
                 ].map((filter) => (
                     <button
                         key={filter.key}

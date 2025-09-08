@@ -349,7 +349,7 @@ export const createPost = async (data: {
     title: string;
     content: string;
 }) => {
-    return apiPost("/posts", data);  // http://localhost:8080/api/posts 호출
+    return apiPost("/posts", data);  // http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com:8080/api/posts 호출
 };
 
 // 신청 취소

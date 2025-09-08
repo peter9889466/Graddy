@@ -207,7 +207,7 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
       }
 
       // URL 타입 분석
-      const isS3Url = fileUrl.includes('s3.') || fileUrl.includes('localhost:4566') || fileUrl.includes('graddy-files');
+      const isS3Url = fileUrl.includes('s3.') || fileUrl.includes('graddy-files');
       const isLocalUrl = fileUrl.startsWith('/api/files/');
       
       console.log("📎 [DEBUG] 파일 업로드 결과 분석:", {
