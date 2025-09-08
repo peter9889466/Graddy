@@ -251,8 +251,8 @@ const StudyDetailPage: React.FC = () => {
                     setStudyLevel(studyData.studyLevel || 1);
                     setStudyTags(studyData.tagNames || []);
                     setMaxMembers(studyData.studyProjectTotal || 10);
-                    setIsRecruiting(studyData.isRecruiting === "recruitment");
-                    setIsStudyEnd(studyData.isRecruiting === "end");
+                    setIsRecruiting(studyData.isRecruiting === "RECRUITING");
+                    setIsStudyEnd(studyData.isRecruiting === "END");
 
                     // 기간 설정
                     if (
@@ -265,6 +265,8 @@ const StudyDetailPage: React.FC = () => {
                             studyData.studyProjectEnd
                         );
 
+                        console.log("studyData.studyProjectStart:", studyData.studyProjectStart);
+                        console.log("studyData.studyProjectEnd:", studyData.studyProjectEnd);
                         // 날짜 파싱 및 변환
                         const parseDate = (dateString: string) => {
                             // 이미 YYYY-MM-DD 형식인 경우
