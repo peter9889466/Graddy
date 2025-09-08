@@ -114,7 +114,9 @@ public class FileConfig implements WebMvcConfigurer, InitializingBean {
                     "http://localhost:5173",   // Vite 기본 포트
                     "http://localhost:8080",   // 같은 서버 (self)
                     "http://127.0.0.1:3000",
-                    "http://127.0.0.1:5173"
+                    "http://127.0.0.1:5173",
+                    "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com", // 배포 환경 도메인
+                    "https://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com"  // HTTPS 지원
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD")
                 .allowedHeaders("*")
