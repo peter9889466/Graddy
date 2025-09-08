@@ -64,7 +64,7 @@ export const getUserScore = async (userId: string): Promise<UserScore> => {
 };
 
 // 사용자 스터디/프로젝트 목록 조회
-export const getUserStudyProjects = async (status: 'ALL' | 'RECRUITING' | 'COMPLETE' | 'END' = 'ALL'): Promise<StudyProjectListItem[]> => {
+export const getUserStudyProjects = async (status: 'ALL' | 'RECRUITING' | 'END' = 'ALL'): Promise<StudyProjectListItem[]> => {
     const response = await apiGet('/studies-projects/my-dashboard', { status });
     console.log('스터디 리스트 ', response.data.data.allStudies);
     return response.data.data.allStudies;

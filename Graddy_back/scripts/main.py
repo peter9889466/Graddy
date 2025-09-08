@@ -149,6 +149,7 @@ def test_file_url_access(file_url: str) -> dict:
 def read_local_file(file_url: str) -> str:
     """
     HTTP API를 통해 파일 내용을 읽어옵니다.
+    S3 URL과 로컬 URL을 구분하여 처리합니다.
     """
     try:
         print(f"🔍 [DEBUG] 파일 읽기 요청: {file_url}")
@@ -157,8 +158,28 @@ def read_local_file(file_url: str) -> str:
             print("⚠️ [DEBUG] 파일 URL이 비어있음")
             return ""
         
-        # HTTP API를 통한 파일 접근으로 변경
-        if file_url.startswith('/api/files/'):
+        # S3 URL 처리
+        if file_url.startswith('http') and ('s3.' in file_url or 'graddy-files' in file_url):
+            print(f"☁️ [DEBUG] S3 파일 감지: {file_url}")
+            try:
+                import requests
+                
+                # S3 파일 직접 다운로드
+                response = requests.get(file_url, timeout=30)
+                print(f"📡 [DEBUG] S3 HTTP 응답 상태: {response.status_code}")
+                
+                if response.status_code == 200:
+                    return process_file_content(response, file_url, "S3")
+                else:
+                    print(f"❌ [DEBUG] S3 파일 접근 실패: {response.status_code}")
+                    return f"S3 파일 접근 실패: HTTP {response.status_code}"
+                    
+            except Exception as s3_e:
+                print(f"💥 [DEBUG] S3 파일 읽기 실패: {s3_e}")
+                return f"S3 파일 읽기 실패: {str(s3_e)}"
+        
+        # 로컬 파일 처리
+        elif file_url.startswith('/api/files/'):
             # Spring Boot 서버 URL 구성 (Docker 환경에서는 컨테이너 이름 사용)
             spring_boot_url = "http://graddy-back:8080" + file_url
             print(f"🌐 [DEBUG] Spring Boot API 호출: {spring_boot_url}")
@@ -172,52 +193,7 @@ def read_local_file(file_url: str) -> str:
                 print(f"📡 [DEBUG] Content-Type: {response.headers.get('content-type', 'unknown')}")
                 
                 if response.status_code == 200:
-                    # 텍스트 파일인 경우 내용 읽기
-                    content_type = response.headers.get('content-type', '').lower()
-                    
-                    if any(text_type in content_type for text_type in ['text/', 'application/json', 'application/xml']):
-                        content = response.text
-                        print(f"📄 [DEBUG] 텍스트 파일 읽기 성공: {len(content)} characters")
-                        print(f"📄 [DEBUG] 파일 내용 미리보기 (처음 200자): {content[:200]}")
-                        
-                        # 파일 크기가 너무 큰 경우 일부만 처리
-                        if len(content) > 10000:
-                            content = content[:10000] + "... (내용이 길어 일부만 표시)"
-                            print(f"✂️ [DEBUG] 파일 내용이 길어 일부만 처리")
-                        
-                        return content
-                    else:
-                        # 바이너리 파일인 경우
-                        file_size = len(response.content)
-                        print(f"📦 [DEBUG] 바이너리 파일 감지: {file_size} bytes")
-                        
-                        # 파일 확장자 확인
-                        file_extension = file_url.split('.')[-1].lower() if '.' in file_url else "unknown"
-                        print(f"📎 [DEBUG] 파일 확장자: {file_extension}")
-                        
-                        # 이미지나 압축 파일 등은 텍스트로 읽을 수 없음
-                        if file_extension in ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'zip', 'rar', '7z', 'tar', 'gz']:
-                            return f"바이너리 파일입니다 (크기: {file_size} bytes, 확장자: {file_extension}). 브라우저에서 다운로드하여 확인하세요."
-                        else:
-                            # 텍스트로 해석 시도 (코드 파일 등)
-                            try:
-                                content = response.content.decode('utf-8', errors='ignore')
-                                print(f"📄 [DEBUG] 바이너리 파일을 텍스트로 해석: {len(content)} characters")
-                                print(f"📄 [DEBUG] 파일 내용 미리보기 (처음 200자): {content[:200]}")
-                                
-                                # 의미있는 텍스트가 있는지 확인
-                                if content.strip():
-                                    if len(content) > 10000:
-                                        content = content[:10000] + "... (내용이 길어 일부만 표시)"
-                                        print(f"✂️ [DEBUG] 파일 내용이 길어 일부만 처리")
-                                    
-                                    return content
-                                else:
-                                    return f"파일이 비어있거나 텍스트로 읽을 수 없습니다 (크기: {file_size} bytes, 확장자: {file_extension})"
-                            except Exception as decode_e:
-                                print(f"💥 [DEBUG] 텍스트 디코딩 실패: {decode_e}")
-                                return f"파일을 텍스트로 읽을 수 없습니다 (크기: {file_size} bytes, 확장자: {file_extension})"
-                
+                    return process_file_content(response, file_url, "로컬")
                 elif response.status_code == 404:
                     print(f"❌ [DEBUG] 파일을 찾을 수 없음 (404)")
                     return "파일을 찾을 수 없습니다."
@@ -241,6 +217,62 @@ def read_local_file(file_url: str) -> str:
         import traceback
         print(f"💥 [DEBUG] 스택 트레이스:\n{traceback.format_exc()}")
         return f"파일을 읽을 수 없습니다: {str(e)}"
+
+
+def process_file_content(response, file_url: str, storage_type: str) -> str:
+    """
+    HTTP 응답에서 파일 내용을 처리합니다.
+    """
+    try:
+        # 텍스트 파일인 경우 내용 읽기
+        content_type = response.headers.get('content-type', '').lower()
+        
+        if any(text_type in content_type for text_type in ['text/', 'application/json', 'application/xml']):
+            content = response.text
+            print(f"📄 [DEBUG] {storage_type} 텍스트 파일 읽기 성공: {len(content)} characters")
+            print(f"📄 [DEBUG] 파일 내용 미리보기 (처음 200자): {content[:200]}")
+            
+            # 파일 크기가 너무 큰 경우 일부만 처리
+            if len(content) > 10000:
+                content = content[:10000] + "... (내용이 길어 일부만 표시)"
+                print(f"✂️ [DEBUG] 파일 내용이 길어 일부만 처리")
+            
+            return content
+        else:
+            # 바이너리 파일인 경우
+            file_size = len(response.content)
+            print(f"📦 [DEBUG] {storage_type} 바이너리 파일 감지: {file_size} bytes")
+            
+            # 파일 확장자 확인
+            file_extension = file_url.split('.')[-1].lower() if '.' in file_url else "unknown"
+            print(f"📎 [DEBUG] 파일 확장자: {file_extension}")
+            
+            # 이미지나 압축 파일 등은 텍스트로 읽을 수 없음
+            if file_extension in ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'zip', 'rar', '7z', 'tar', 'gz']:
+                return f"바이너리 파일입니다 (크기: {file_size} bytes, 확장자: {file_extension}). 브라우저에서 다운로드하여 확인하세요."
+            else:
+                # 텍스트로 해석 시도 (코드 파일 등)
+                try:
+                    content = response.content.decode('utf-8', errors='ignore')
+                    print(f"📄 [DEBUG] {storage_type} 바이너리 파일을 텍스트로 해석: {len(content)} characters")
+                    print(f"📄 [DEBUG] 파일 내용 미리보기 (처음 200자): {content[:200]}")
+                    
+                    # 의미있는 텍스트가 있는지 확인
+                    if content.strip():
+                        if len(content) > 10000:
+                            content = content[:10000] + "... (내용이 길어 일부만 표시)"
+                            print(f"✂️ [DEBUG] 파일 내용이 길어 일부만 처리")
+                        
+                        return content
+                    else:
+                        return f"파일이 비어있거나 텍스트로 읽을 수 없습니다 (크기: {file_size} bytes, 확장자: {file_extension})"
+                except Exception as decode_e:
+                    print(f"💥 [DEBUG] 텍스트 디코딩 실패: {decode_e}")
+                    return f"파일을 텍스트로 읽을 수 없습니다 (크기: {file_size} bytes, 확장자: {file_extension})"
+                    
+    except Exception as e:
+        print(f"💥 [DEBUG] 파일 내용 처리 실패: {e}")
+        return f"파일 내용 처리 실패: {str(e)}"
 
 
 def read_local_file_fallback(file_url: str) -> str:
@@ -578,6 +610,11 @@ async def generate_feedback(request: FeedbackRequest):
         print(f"   - 파일 읽기 성공: {file_reading_success}")
         print(f"   - 읽은 내용 길이: {len(file_content)} characters")
         print(f"   - FastAPI 채점 가능 상태: {file_reading_success or bool(request.submission_content)}")
+        
+        # 🚨 파일 읽기 실패 시에도 과제 내용만으로 피드백 생성
+        if not file_reading_success and request.submission_file_url:
+            print("⚠️ [CRITICAL] 첨부파일 읽기 실패, 과제 내용만으로 피드백 생성")
+            print("⚠️ [CRITICAL] 이는 정상적인 동작입니다 - AI는 과제 내용을 기반으로 피드백을 제공합니다")
         
         # 첨부파일 텍스트화 + 과제 내용을 통합하여 한번에 피드백 생성
         print(f"🔧 [DEBUG] 콘텐츠 통합 시작 - 파일내용: {len(file_content)}자, 제출내용: {len(request.submission_content)}자")

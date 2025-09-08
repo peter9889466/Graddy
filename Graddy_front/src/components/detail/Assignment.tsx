@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useContext, useCallback, useMemo } from 'react';
 import { useAssignmentContext } from '../../contexts/AssignmentContext';
 import { AuthContext } from '../../contexts/AuthContext';
+import { TokenService } from '../../services/tokenService';
 import { Loader2, CheckCircle, AlertCircle, Upload, X } from 'lucide-react';
 
 interface AssignmentProps {
@@ -164,6 +165,19 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
     });
 
     try {
+      // 토큰 유효성 검사 및 갱신
+      let currentToken = localStorage.getItem('userToken');
+      if (!currentToken || !TokenService.getInstance().isTokenValid(currentToken)) {
+        console.log("🔄 [DEBUG] 토큰 갱신 시도...");
+        try {
+          currentToken = await TokenService.getInstance().refreshAccessToken();
+          console.log("✅ [DEBUG] 토큰 갱신 성공");
+        } catch (error) {
+          console.error("❌ [DEBUG] 토큰 갱신 실패:", error);
+          throw new Error('인증 오류가 발생했습니다. 다시 로그인해주세요.');
+        }
+      }
+
       const formData = new FormData();
       formData.append('file', file);
 
@@ -173,7 +187,7 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
         method: 'POST',
         body: formData,
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('userToken')}`
+          'Authorization': `Bearer ${currentToken}`
           // Content-Type은 브라우저가 자동으로 설정하도록 제거 (multipart/form-data)
         }
       });
@@ -267,6 +281,21 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
     setError(null);
 
     try {
+      // 토큰 유효성 검사 및 갱신
+      let currentToken = localStorage.getItem('userToken');
+      if (!currentToken || !TokenService.getInstance().isTokenValid(currentToken)) {
+        console.log("🔄 [DEBUG] 과제 제출 전 토큰 갱신 시도...");
+        try {
+          currentToken = await TokenService.getInstance().refreshAccessToken();
+          console.log("✅ [DEBUG] 과제 제출용 토큰 갱신 성공");
+        } catch (error) {
+          console.error("❌ [DEBUG] 과제 제출용 토큰 갱신 실패:", error);
+          setError('인증 오류가 발생했습니다. 다시 로그인해주세요.');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       // 파일 업로드 처리
       let fileUrl: string | null = null;
       if (selectedFile) {
@@ -290,7 +319,10 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
       console.log("🌐 [DEBUG] 서버에 제출 요청 시작");
       const response = await fetch('/api/submissions/submit', {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${currentToken}`
+        },
         body: JSON.stringify(submissionData)
       });
 

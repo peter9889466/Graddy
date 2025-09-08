@@ -35,6 +35,26 @@ export class TokenService {
     }
 
     /**
+     * JWT 토큰에서 사용자 ID 추출
+     * @param token JWT 토큰 (선택사항, 없으면 localStorage에서 가져옴)
+     * @returns 사용자 ID
+     */
+    public getUserIdFromToken(token?: string): string | null {
+        const targetToken = token || localStorage.getItem('userToken');
+        
+        if (!targetToken) return null;
+        
+        try {
+            // JWT 토큰의 payload 부분을 디코딩
+            const payload = JSON.parse(atob(targetToken.split('.')[1]));
+            return payload.userId || payload.sub || null;
+        } catch (error) {
+            console.error('토큰에서 사용자 ID 추출 중 오류:', error);
+            return null;
+        }
+    }
+
+    /**
      * Access Token을 갱신
      * @returns 새로운 Access Token
      */
@@ -62,7 +82,7 @@ export class TokenService {
             
             if (data.expiredRefreshToken) {
                 // Refresh Token이 만료된 경우
-                localStorage.removeItem('accessToken');
+                localStorage.removeItem('userToken');
                 localStorage.removeItem('refreshToken');
                 localStorage.removeItem('isLoggedIn');
                 localStorage.removeItem('userData');
@@ -70,7 +90,7 @@ export class TokenService {
             }
 
             const newAccessToken = data.data.accessToken;
-            localStorage.setItem('accessToken', newAccessToken);
+            localStorage.setItem('userToken', newAccessToken);
             
             return newAccessToken;
         } catch (error) {

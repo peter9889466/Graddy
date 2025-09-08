@@ -175,7 +175,9 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 									senderNick: chatMessage.senderNick,
 									content: chatMessage.content,
 									messageType: chatMessage.messageType,
-									isFromMe: chatMessage.userId === user?.nickname
+									currentUserId: TokenService.getInstance().getUserIdFromToken(),
+									userNickname: user?.nickname,
+									isFromMe: chatMessage.userId === TokenService.getInstance().getUserIdFromToken()
 								});
 								
 								// 메시지 추가 로직
@@ -205,8 +207,15 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 										  msg.sender === 'user')
 									);
 									
-									// 새 메시지 생성
-									const isFromMe = chatMessage.userId === user?.nickname;
+									// 새 메시지 생성 - JWT에서 추출한 userId와 비교
+									const currentUserId = TokenService.getInstance().getUserIdFromToken();
+									const isFromMe = chatMessage.userId === currentUserId;
+									console.log('🔍 메시지 발신자 확인:', {
+										chatMessageUserId: chatMessage.userId,
+										currentUserId: currentUserId,
+										isFromMe: isFromMe
+									});
+									
 									const newMessage: Message = {
 										id: `${chatMessage.messageId}-${Date.now()}-${Math.random()}`,
 										text: chatMessage.content,
