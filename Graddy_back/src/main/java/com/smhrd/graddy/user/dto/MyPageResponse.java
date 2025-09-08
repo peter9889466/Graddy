@@ -1,7 +1,9 @@
 package com.smhrd.graddy.user.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.List;
@@ -19,6 +21,8 @@ import java.util.List;
 @Getter
 @Setter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class MyPageResponse {
     
     /**
@@ -30,6 +34,11 @@ public class MyPageResponse {
      * 깃허브 URL
      */
     private String gitUrl;
+    
+    /**
+     * 프로필 이미지 URL
+     */
+    private String imgUrl;
     
     /**
      * 사용자 점수 (scores 테이블)

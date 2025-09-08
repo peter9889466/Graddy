@@ -293,7 +293,7 @@ public class UserService {
     private void updateUserTimePreference(User user, Integer startHour, Integer endHour) {
         // 기존 Timestamp에서 날짜 부분 추출 (시간은 새로 설정)
         Timestamp currentSoltStart = user.getSoltStart();
-        Timestamp currentSoltEnd = user.getSoltEnd();
+        // Timestamp currentSoltEnd = user.getSoltEnd();
         
         // 기존 날짜가 없으면 현재 날짜 사용
         LocalDateTime baseDateTime = currentSoltStart != null ? 
@@ -496,6 +496,7 @@ public class UserService {
         MyPageResponse response = MyPageResponse.builder()
                 .nick(user.getNick())
                 .gitUrl(user.getGitUrl())
+                .imgUrl(user.getImgUrl())
                 .userScore(userScore.getUserScore() != null ? userScore.getUserScore() : 0)
                 .interests(interests)
                 .userRefer(user.getUserRefer())
@@ -696,7 +697,7 @@ public class UserService {
         return UserInfoResponse.builder()
                 .userId(user.getUserId())
                 .nick(user.getNick())
-                .imgUrl(null) // 추후 프로필 이미지 기능 추가 시 구현
+                .imgUrl(user.getImgUrl()) // 프로필 이미지 URL 포함
                 .gitUrl(user.getGitUrl())
                 .userScore(userScore.getUserScore())
                 .interests(interests)
@@ -704,5 +705,29 @@ public class UserService {
                 .name(user.getName())
                 .createdAt(user.getCreatedAt().toString())
                 .build();
+    }
+
+    /**
+     * 프로필 이미지 URL 저장/수정
+     * 
+     * @param currentUserId 현재 사용자 아이디
+     * @param imgUrl 새로운 프로필 이미지 URL
+     * @return 수정된 사용자 정보
+     */
+    @Transactional
+    public User updateUserImageUrl(String currentUserId, String imgUrl) {
+        System.out.println("프로필 이미지 URL 업데이트 시작: userId=" + currentUserId + ", imgUrl=" + imgUrl);
+        
+        // 사용자 정보 조회
+        User user = userRepository.findByUserId(currentUserId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + currentUserId));
+        
+        // 프로필 이미지 URL 업데이트
+        user.setImgUrl(imgUrl);
+        User updatedUser = userRepository.save(user);
+        
+        System.out.println("프로필 이미지 URL 업데이트 완료: userId=" + currentUserId + ", imgUrl=" + imgUrl);
+        
+        return updatedUser;
     }
 }

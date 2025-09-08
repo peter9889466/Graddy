@@ -19,6 +19,7 @@ import {
     updateUserGitInfo,
     withdrawUser,
     getAllInterests, // userService에서 userApi로 이동
+    updateUserProfileImage,
     UserProfileUpdateRequest,
     UserInterestsUpdateRequest,
     UserInterest,
@@ -101,6 +102,7 @@ export const MyPage = () => {
                         setNickname(data.nick);
                         setUserScore(data.userScore || 0);
                         setGithubUrl(data.gitUrl || "");
+                        setProfileImage(data.imgUrl || "/android-icon-72x72.png");
                         setIntroduction(data.userRefer || "");
 
                         // 3. Enrich user's interest names with full details
@@ -212,7 +214,7 @@ export const MyPage = () => {
                 const formData = new FormData();
                 formData.append('file', file);
 
-                const response = await fetch('/api/files/upload', {
+                const response = await fetch('http://localhost:8080/api/files/upload', {
                     method: 'POST',
                     body: formData,
                     headers: {
@@ -228,10 +230,22 @@ export const MyPage = () => {
                 const imageUrl = result.data?.fileUrl;
 
                 if (imageUrl) {
-                    setProfileImage(imageUrl);
-                    alert("프로필 이미지가 성공적으로 변경되었습니다.");
-                    // TODO: 사용자 프로필에 이미지 URL 저장하는 API 호출 필요
-                                                                                                                                                                                                                                                                          } else {
+                    // 2단계: 사용자 프로필 이미지 URL 저장 (없으면 insert, 있으면 update)
+                    try {
+                        const saveResp = await updateUserProfileImage({ imgUrl: imageUrl });
+                        if (saveResp.data?.data?.imgUrl) {
+                            setProfileImage(saveResp.data.data.imgUrl);
+                            alert("프로필 이미지가 성공적으로 변경되었습니다.");
+                        } else {
+                            // 백엔드가 데이터만 미반환한 경우도 대비
+                            setProfileImage(imageUrl);
+                            alert("프로필 이미지가 성공적으로 변경되었습니다.");
+                        }
+                    } catch (e) {
+                        console.error('프로필 이미지 URL 저장 실패:', e);
+                        alert('이미지는 업로드되었지만, 프로필 저장에 실패했습니다. 잠시 후 다시 시도해주세요.');
+                    }
+                } else {
                     throw new Error('이미지 URL을 받지 못했습니다.');
                 }
 

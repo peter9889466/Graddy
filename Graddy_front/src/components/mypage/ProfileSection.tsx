@@ -65,9 +65,13 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                             onClick={onProfileImageClick}
                         >
                             <img
-                                src={profileImage}
+                                src={profileImage || "/android-icon-72x72.png"}
                                 alt="프로필 이미지"
                                 className="w-full h-full object-cover group-hover:opacity-75 transition-opacity"
+                                onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.src = "/android-icon-72x72.png";
+                                }}
                             />
                             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black bg-opacity-30 rounded-full">
                                 <Camera className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
