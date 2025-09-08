@@ -257,7 +257,7 @@ export const Ranking = () => {
                                         최근 업데이트:{" "}
                                         {new Date(
                                             user.lastUpdated
-                                        ).toLocaleDateString()}
+                                        ).toLocaleDateString('ko-KR')}
                                     </div>
                                 </div>
                             </div>
@@ -316,7 +316,7 @@ export const Ranking = () => {
                                                 최근 업데이트:{" "}
                                                 {new Date(
                                                     myRanking.lastUpdated
-                                                ).toLocaleDateString()}
+                                                ).toLocaleDateString('ko-KR')}
                                             </div>
                                         </div>
                                     </div>
@@ -436,7 +436,7 @@ export const Ranking = () => {
                                 <span className="font-medium">
                                     {new Date(
                                         selectedUser.lastUpdated
-                                    ).toLocaleString()}
+                                    ).toLocaleString('ko-KR')}
                                 </span>
                             </div>
                         </div>

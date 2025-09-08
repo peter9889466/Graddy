@@ -406,7 +406,7 @@ const CommentItem: React.FC<{
                 </div>
                 <div className="flex flex-col items-end gap-1">
                     <div className="text-xs text-gray-500">
-                        {new Date(comment.createdAt).toLocaleString()}
+                        {new Date(comment.createdAt).toLocaleString('ko-KR')}
                     </div>
                     {/* 수정/삭제 버튼 - 본인 댓글만 (nickname 비교) */}
                     {isLoggedIn &&
