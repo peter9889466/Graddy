@@ -248,11 +248,13 @@ const Schedule: React.FC<ScheduleProps> = ({
                     }
                 } else {
                     // 일정 추가 API 호출
+                    // 한국 시간대(KST)를 고려한 날짜 생성
+                    const scheduleDateTime = new Date(`${newItem.date}T${newItem.time || '00:00'}:00+09:00`);
                     const scheduleData = {
                         userId: userId,
                         studyProjectId: studyProjectId,
                         content: newItem.title,
-                        schTime: `${newItem.date}T${newItem.time || '00:00'}`
+                        schTime: scheduleDateTime.toISOString()
                     };
 
                     console.log('일정 추가 데이터:', scheduleData);
@@ -436,11 +438,13 @@ const handleCancelAssignmentEdit = () => {
         }
 
         try {
+            // 한국 시간대(KST)를 고려한 날짜 생성
+            const scheduleDateTime = new Date(`${editingData.date}T${editingData.time || '00:00'}:00+09:00`);
             const updateData = {
                 userId: userId,
                 studyProjectId: studyProjectId,
                 content: editingData.title,
-                schTime: new Date(`${editingData.date}T${editingData.time || '00:00'}`).toISOString()
+                schTime: scheduleDateTime.toISOString()
             };
 
             console.log('일정 수정 데이터:', updateData);

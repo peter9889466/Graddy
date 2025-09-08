@@ -45,6 +45,7 @@ const ProjectDetailPage = () => {
     const [activeTab, setActiveTab] = useState("프로젝트 메인");
     const [isApplied, setIsApplied] = useState(false);
     const [isRecruiting, setIsRecruiting] = useState(true); // 모집 상태 관리
+    const [isStudyEnd, setIsStudyEnd] = useState(false); // 프로젝트 종료 상태 관리
     const authContext = useContext(AuthContext);
     const location = useLocation();
     const state = location.state as {
@@ -201,6 +202,7 @@ const ProjectDetailPage = () => {
                     setStudyTags(studyData.tagNames || []);
                     setMaxMembers(studyData.studyProjectTotal || 10);
                     setIsRecruiting(studyData.isRecruiting === "recruitment");
+                    setIsStudyEnd(studyData.isRecruiting === "end");
 
                     // 기간 설정
                     if (
@@ -1079,36 +1081,51 @@ const ProjectDetailPage = () => {
                         {!isEditing && isStudyLeader ? (
                             // 프로젝트장인 경우 (수정 모드가 아닐 때만 표시)
                             <div className="flex gap-2 mt-3">
-                                {isRecruiting && (
+                                {isStudyEnd ? (
+                                    /* 프로젝트가 종료된 경우 - 비활성화된 버튼만 표시 */
                                     <button
                                         type="button"
-                                        onClick={handleRecruitmentToggle}
-                                        className="flex-1 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer transition-colors duration-200"
-                                        style={{ backgroundColor: "#EF4444" }}
+                                        disabled
+                                        className="flex-1 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-not-allowed opacity-50"
+                                        style={{ backgroundColor: "#6B7280" }}
                                     >
-                                        모집 마감
+                                        프로젝트 종료
                                     </button>
-                                )}
+                                ) : (
+                                    /* 프로젝트가 진행 중인 경우 - 기존 버튼들 표시 */
+                                    <>
+                                        {isRecruiting && (
+                                            <button
+                                                type="button"
+                                                onClick={handleRecruitmentToggle}
+                                                className="flex-1 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer transition-colors duration-200"
+                                                style={{ backgroundColor: "#EF4444" }}
+                                            >
+                                                모집 마감
+                                            </button>
+                                        )}
 
-                                {/* 모집 마감된 경우 재시작 버튼 표시 */}
-                                {!isRecruiting && (
-                                    <button
-                                        type="button"
-                                        onClick={handleRecruitmentToggle}
-                                        className="flex-1 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer transition-colors duration-200"
-                                        style={{ backgroundColor: "#10B981" }}
-                                    >
-                                        모집 재시작
-                                    </button>
+                                        {/* 모집 마감된 경우 재시작 버튼 표시 */}
+                                        {!isRecruiting && (
+                                            <button
+                                                type="button"
+                                                onClick={handleRecruitmentToggle}
+                                                className="flex-1 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer transition-colors duration-200"
+                                                style={{ backgroundColor: "#10B981" }}
+                                            >
+                                                모집 재시작
+                                            </button>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={handleStudyEnd}
+                                            className="flex-1 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer transition-colors duration-200"
+                                            style={{ backgroundColor: "#6B7280" }}
+                                        >
+                                            프로젝트 종료
+                                        </button>
+                                    </>
                                 )}
-                                <button
-                                    type="button"
-                                    onClick={handleStudyEnd}
-                                    className="flex-1 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer transition-colors duration-200"
-                                    style={{ backgroundColor: "#6B7280" }}
-                                >
-                                    프로젝트 종료
-                                </button>
                             </div>
                         ) : !isEditing &&
                           !isLoading &&

@@ -209,7 +209,7 @@ public class S3FileService implements FileService {
     private String generateFileUrl(String key) {
         if (isLocalStackEnvironment()) {
             // LocalStack의 경우 직접 URL 구성
-            String localstackEndpoint = endpoint.isEmpty() ? "http://localhost:4566" : endpoint;
+            String localstackEndpoint = endpoint.isEmpty() ? "https://s3.ap-northeast-1.amazonaws.com" : endpoint;
             return localstackEndpoint + "/" + bucketName + "/" + key;
         } else {
             // 실제 AWS S3의 경우
@@ -226,7 +226,7 @@ public class S3FileService implements FileService {
     private String extractKeyFromUrl(String fileUrl) {
         try {
             if (isLocalStackEnvironment()) {
-                // LocalStack URL 형식: http://localhost:4566/bucket-name/folder/file.ext
+                // LocalStack URL 형식: https://s3.ap-northeast-1.amazonaws.com/bucket-name/folder/file.ext
                 String prefix = "/" + bucketName + "/";
                 int index = fileUrl.indexOf(prefix);
                 if (index != -1) {

@@ -311,7 +311,7 @@ const Community: React.FC<CommunityProps> = ({
                     author: backendPost.memberId,
                     title: backendPost.title,
                     content: backendPost.content,
-                    timestamp: new Date(backendPost.createdAt).toLocaleString(),
+                    timestamp: formatTimestamp(backendPost.createdAt),
                     comments: [],
                     canEdit: backendPost.memberId === currentUserId,
                     nick: members.find(member => backendPost.memberId === member.userId)?.nick || '알 수 없음'
@@ -345,19 +345,25 @@ const Community: React.FC<CommunityProps> = ({
 
     const formatTimestamp = (isoString: string) => {
         try {
-            const date = new Date(isoString);
+            // 백엔드에서 LocalDateTime으로 전송된 시간을 한국 시간대로 정확히 변환
+            // LocalDateTime은 시간대 정보가 없으므로 한국 시간으로 해석
+            const date = new Date(isoString + '+09:00'); // 한국 시간대(UTC+9) 명시적 지정
+            
             if (isNaN(date.getTime())) {
+                console.warn('날짜 파싱 실패:', isoString);
                 return '날짜 형식 오류';
             }
+            
             return date.toLocaleString("ko-KR", {
                 year: "numeric",
                 month: "2-digit",
                 day: "2-digit",
                 hour: "2-digit",
                 minute: "2-digit",
+                timeZone: "Asia/Seoul" // 한국 시간대 명시적 지정
             });
         } catch (error) {
-            console.error('날짜 포맷팅 오류:', error);
+            console.error('날짜 포맷팅 오류:', error, '원본:', isoString);
             return '날짜 오류';
         }
     };

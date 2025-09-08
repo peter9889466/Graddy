@@ -72,7 +72,7 @@ public class S3Config {
         log.info("LocalStack Access Key: {}", localAccessKey);
         
         return S3Client.builder()
-                .endpointOverride(URI.create(endpoint.isEmpty() ? "http://localhost:4566" : endpoint))
+                .endpointOverride(URI.create(endpoint.isEmpty() ? "https://s3.ap-northeast-1.amazonaws.com" : endpoint))
                 .region(Region.of(region))
                 .credentialsProvider(StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(localAccessKey, localSecretKey)))

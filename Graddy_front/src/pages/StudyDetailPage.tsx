@@ -171,12 +171,12 @@ const StudyDetailPage: React.FC = () => {
 
     // 추가된 부분
     const { user } = authContext;
-    const currentUserId = user?.nickname;
+    const currentUserId = getUserIdFromToken(); // JWT에서 추출한 실제 userId 사용
 
     const currentMember = useMemo(() => {
-        if (!user || !user.nickname) return null; // 유저 정보나 userId가 없으면 null 반환
-        return members.find((member) => member.userId === user.nickname); // userId로 멤버 찾기
-    }, [members, user]);
+        if (!currentUserId) return null; // JWT에서 추출한 userId가 없으면 null 반환
+        return members.find((member) => member.userId === currentUserId); // userId로 멤버 찾기
+    }, [members, currentUserId]);
 
     const memberId = currentMember ? currentMember.memberId : null;
     //
@@ -251,6 +251,7 @@ const StudyDetailPage: React.FC = () => {
                     setStudyTags(studyData.tagNames || []);
                     setMaxMembers(studyData.studyProjectTotal || 10);
                     setIsRecruiting(studyData.isRecruiting === "recruitment");
+                    setIsStudyEnd(studyData.isRecruiting === "end");
 
                     // 기간 설정
                     if (
@@ -443,10 +444,14 @@ const StudyDetailPage: React.FC = () => {
 
     // 디버깅을 위한 콘솔 로그
     console.log("=== 디버깅 정보 ===");
+    console.log("currentUserId (JWT에서 추출):", currentUserId);
     console.log("userMemberType:", userMemberType);
     console.log("isStudyLeader:", isStudyLeader);
     console.log("canAccessMemberFeatures:", canAccessMemberFeatures);
-    console.log("현재 사용자 아이디:", authContext?.user?.nickname);
+    console.log("현재 사용자 닉네임:", authContext?.user?.nickname);
+    console.log("currentMember:", currentMember);
+    console.log("memberId:", memberId);
+    console.log("members:", members);
 
     console.log("스터디장:", studyLeader);
     console.log("스터디장 여부:", isStudyLeader);
@@ -1450,43 +1455,55 @@ const StudyDetailPage: React.FC = () => {
                             </div>
                         </div>
                         {/* 버튼 영역 */}
-                        {!isEditing &&
-                        !isLoading &&
-                        isStudyLeader &&
-                        !isStudyEnd ? (
+                        {!isEditing && !isLoading && isStudyLeader ? (
                             <div className="flex gap-2 mt-3">
-                                {/* 모집 중일 때만 '모집 마감' 버튼 표시 */}
-                                {isRecruiting && (
+                                {isStudyEnd ? (
+                                    /* 스터디가 종료된 경우 - 비활성화된 버튼만 표시 */
                                     <button
                                         type="button"
-                                        onClick={handleRecruitmentToggle}
-                                        className="flex-1 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer transition-colors duration-200"
-                                        style={{ backgroundColor: "#EF4444" }}
+                                        disabled
+                                        className="flex-1 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-not-allowed opacity-50"
+                                        style={{ backgroundColor: "#6B7280" }}
                                     >
-                                        모집 마감
+                                        스터디 종료
                                     </button>
-                                )}
+                                ) : (
+                                    /* 스터디가 진행 중인 경우 - 기존 버튼들 표시 */
+                                    <>
+                                        {/* 모집 중일 때만 '모집 마감' 버튼 표시 */}
+                                        {isRecruiting && (
+                                            <button
+                                                type="button"
+                                                onClick={handleRecruitmentToggle}
+                                                className="flex-1 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer transition-colors duration-200"
+                                                style={{ backgroundColor: "#EF4444" }}
+                                            >
+                                                모집 마감
+                                            </button>
+                                        )}
 
-                                {/* 모집 마감된 경우 재시작 버튼 표시 */}
-                                {!isRecruiting && (
-                                    <button
-                                        type="button"
-                                        onClick={handleRecruitmentToggle}
-                                        className="flex-1 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer transition-colors duration-200"
-                                        style={{ backgroundColor: "#10B981" }}
-                                    >
-                                        모집 재시작
-                                    </button>
-                                )}
+                                        {/* 모집 마감된 경우 재시작 버튼 표시 */}
+                                        {!isRecruiting && (
+                                            <button
+                                                type="button"
+                                                onClick={handleRecruitmentToggle}
+                                                className="flex-1 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer transition-colors duration-200"
+                                                style={{ backgroundColor: "#10B981" }}
+                                            >
+                                                모집 재시작
+                                            </button>
+                                        )}
 
-                                <button
-                                    type="button"
-                                    onClick={handleStudyEnd}
-                                    className="flex-1 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer transition-colors duration-200"
-                                    style={{ backgroundColor: "#6B7280" }}
-                                >
-                                    스터디 종료
-                                </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleStudyEnd}
+                                            className="flex-1 px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer transition-colors duration-200"
+                                            style={{ backgroundColor: "#6B7280" }}
+                                        >
+                                            스터디 종료
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         ) : !isEditing &&
                           !isLoading &&
@@ -1547,14 +1564,21 @@ const StudyDetailPage: React.FC = () => {
                 );
             case "과제 제출":
                 // 로그인 및 스터디 멤버 권한 확인
+                console.log("🔍 과제 제출 권한 확인:", {
+                    isLoggedIn,
+                    userMemberType,
+                    memberId,
+                    currentMember
+                });
+                
                 if (
                     !isLoggedIn ||
-                    !currentMember ||
                     !(
-                        currentMember.memberType === "leader" ||
-                        currentMember.memberType === "member"
+                        userMemberType === "leader" ||
+                        userMemberType === "member"
                     )
                 ) {
+                    console.log("❌ 과제 제출 권한 없음");
                     return (
                         <div className="flex items-center justify-center h-64">
                             <div className="text-center">
@@ -1564,10 +1588,14 @@ const StudyDetailPage: React.FC = () => {
                                 <p className="text-sm text-gray-400">
                                     스터디에 가입한 멤버만 접근할 수 있습니다.
                                 </p>
+                                <p className="text-xs text-gray-400 mt-2">
+                                    디버그: userMemberType = {userMemberType}, memberId = {memberId}
+                                </p>
                             </div>
                         </div>
                     );
                 }
+                console.log("✅ 과제 제출 권한 있음, Assignment 컴포넌트 렌더링");
                 // ✅ 권한 확인 후, Assignment 컴포넌트에 memberId를 전달합니다.
                 return (
                     <Assignment

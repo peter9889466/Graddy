@@ -75,7 +75,7 @@ const Login: React.FC = () => {
             const token = response.data.data.accessToken;
 
             const userData = {
-                nickname: response.data.nickname || id,
+                nickname: response.data.data.nickname || id,
             };
 
             // 💡 2. AuthContext의 login 함수에 userData와 함께 token을 전달합니다.
@@ -179,140 +179,143 @@ const Login: React.FC = () => {
                             </div>
                         )}
 
-                        <div>
-                            <div className="flex items-center gap-2 mb-2">
-                                <div className="w-1 h-6 bg-indigo-600 rounded-full"></div>
-                                <h3 className="text-xl font-bold text-gray-800">
-                                    아이디
-                                </h3>
-                            </div>
-                            <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <User className="h-5 w-5 text-gray-400" />
+                        <form onSubmit={(e) => { e.preventDefault(); loginBtn(); }} className="space-y-6">
+                            <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-1 h-6 bg-indigo-600 rounded-full"></div>
+                                    <h3 className="text-xl font-bold text-gray-800">
+                                        아이디
+                                    </h3>
                                 </div>
-                                <input
-                                    type="text"
-                                    value={id}
-                                    onChange={(e) => {
-                                        setId(e.target.value);
-                                        setIdError("");
-                                    }}
-                                    placeholder="아이디를 입력하세요"
-                                    className={`w-full pl-10 pr-4 py-3 border rounded-xl transition-all duration-200 ${
-                                        idError
-                                            ? "border-red-300 focus:ring-red-200"
-                                            : "border-gray-200 focus:ring-2 focus:border-transparent"
-                                    }`}
-                                    onKeyDown={handleKeyDown}
-                                />
-                            </div>
-                            {idError && (
-                                <p className="text-red-500 text-sm mt-1">
-                                    {idError}
-                                </p>
-                            )}
-                        </div>
-
-                        <div>
-                            <div className="flex items-center gap-2 mb-2">
-                                <div className="w-1 h-6 bg-indigo-600 rounded-full"></div>
-                                <h3 className="text-xl font-bold text-gray-800">
-                                    비밀번호
-                                </h3>
-                            </div>
-                            <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <Lock className="h-5 w-5 text-gray-400" />
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <User className="h-5 w-5 text-gray-400" />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        name="userId"
+                                        value={id}
+                                        onChange={(e) => {
+                                            setId(e.target.value);
+                                            setIdError("");
+                                        }}
+                                        placeholder="아이디를 입력하세요"
+                                        className={`w-full pl-10 pr-4 py-3 border rounded-xl transition-all duration-200 ${
+                                            idError
+                                                ? "border-red-300 focus:ring-red-200"
+                                                : "border-gray-200 focus:ring-2 focus:border-transparent"
+                                        }`}
+                                        onKeyDown={handleKeyDown}
+                                    />
                                 </div>
-                                <input
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => {
-                                        setPassword(e.target.value);
-                                        setPasswordError("");
-                                    }}
-                                    onKeyDown={handleKeyDown}
-                                    placeholder="비밀번호를 입력하세요"
-                                    className={`w-full pl-10 pr-4 py-3 border rounded-xl transition-all duration-200 ${
-                                        passwordError
-                                            ? "border-red-300 focus:ring-red-200"
-                                            : "border-gray-200 focus:ring-2 focus:border-transparent"
-                                    }`}
-                                />
+                                {idError && (
+                                    <p className="text-red-500 text-sm mt-1">
+                                        {idError}
+                                    </p>
+                                )}
                             </div>
-                            {passwordError && (
-                                <p className="text-red-500 text-sm mt-1">
-                                    {passwordError}
-                                </p>
-                            )}
-                        </div>
 
-                        <div className="flex items-center space-x-2">
-                            <input
-                                type="checkbox"
-                                id="rememberId"
-                                checked={rememberId}
-                                onChange={(e) =>
-                                    setRememberId(e.target.checked)
+                            <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-1 h-6 bg-indigo-600 rounded-full"></div>
+                                    <h3 className="text-xl font-bold text-gray-800">
+                                        비밀번호
+                                    </h3>
+                                </div>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <Lock className="h-5 w-5 text-gray-400" />
+                                    </div>
+                                    <input
+                                        type="password"
+                                        value={password}
+                                        onChange={(e) => {
+                                            setPassword(e.target.value);
+                                            setPasswordError("");
+                                        }}
+                                        onKeyDown={handleKeyDown}
+                                        placeholder="비밀번호를 입력하세요"
+                                        className={`w-full pl-10 pr-4 py-3 border rounded-xl transition-all duration-200 ${
+                                            passwordError
+                                                ? "border-red-300 focus:ring-red-200"
+                                                : "border-gray-200 focus:ring-2 focus:border-transparent"
+                                        }`}
+                                    />
+                                </div>
+                                {passwordError && (
+                                    <p className="text-red-500 text-sm mt-1">
+                                        {passwordError}
+                                    </p>
+                                )}
+                            </div>
+
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="checkbox"
+                                    id="rememberId"
+                                    checked={rememberId}
+                                    onChange={(e) =>
+                                        setRememberId(e.target.checked)
+                                    }
+                                    className="w-5 h-5 rounded-md border border-gray-300 text-[#8B85E9] focus:ring-[#8B85E9]"
+                                />
+                                <label
+                                    htmlFor="rememberId"
+                                    className="text-gray-600 text-sm"
+                                >
+                                    아이디 저장
+                                </label>
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                className={`w-full py-4 px-6 rounded-xl font-semibold text-white transition-all duration-200 hover:shadow-xl transform hover:scale-105 ${
+                                    isLoading
+                                        ? "bg-gray-400 cursor-not-allowed"
+                                        : "bg-[#8B85E9]"
+                                }`}
+                                style={{
+                                    boxShadow:
+                                        "0 10px 15px -3px rgba(139, 133, 233, 0.1), 0 4px 6px -2px rgba(139, 133, 233, 0.05)",
+                                }}
+                                onMouseEnter={(e) =>
+                                    !isLoading &&
+                                    (e.currentTarget.style.backgroundColor =
+                                        "#7d75e3")
                                 }
-                                className="w-5 h-5 rounded-md border border-gray-300 text-[#8B85E9] focus:ring-[#8B85E9]"
-                            />
-                            <label
-                                htmlFor="rememberId"
-                                className="text-gray-600 text-sm"
+                                onMouseLeave={(e) =>
+                                    !isLoading &&
+                                    (e.currentTarget.style.backgroundColor =
+                                        "#8B85E9")
+                                }
                             >
-                                아이디 저장
-                            </label>
-                        </div>
+                                {isLoading ? "로그인 중..." : "로그인"}
+                            </button>
 
-                        <button
-                            onClick={loginBtn}
-                            disabled={isLoading}
-                            className={`w-full py-4 px-6 rounded-xl font-semibold text-white transition-all duration-200 hover:shadow-xl transform hover:scale-105 ${
-                                isLoading
-                                    ? "bg-gray-400 cursor-not-allowed"
-                                    : "bg-[#8B85E9]"
-                            }`}
-                            style={{
-                                boxShadow:
-                                    "0 10px 15px -3px rgba(139, 133, 233, 0.1), 0 4px 6px -2px rgba(139, 133, 233, 0.05)",
-                            }}
-                            onMouseEnter={(e) =>
-                                !isLoading &&
-                                (e.currentTarget.style.backgroundColor =
-                                    "#7d75e3")
-                            }
-                            onMouseLeave={(e) =>
-                                !isLoading &&
-                                (e.currentTarget.style.backgroundColor =
-                                    "#8B85E9")
-                            }
-                        >
-                            {isLoading ? "로그인 중..." : "로그인"}
-                        </button>
+                            <div className="pt-4 text-center space-y-2">
+                                <p className="text-sm text-gray-600">
+                                    아직 회원이 아니신가요?{" "}
+                                    <Link
+                                        to="/join"
+                                        className="text-[#8B85E9] hover:underline"
+                                    >
+                                        회원가입
+                                    </Link>
+                                </p>
+                            </div>
 
-                        <div className="pt-4 text-center space-y-2">
-                            <p className="text-sm text-gray-600">
-                                아직 회원이 아니신가요?{" "}
-                                <Link
-                                    to="/join"
-                                    className="text-[#8B85E9] hover:underline"
-                                >
-                                    회원가입
-                                </Link>
-                            </p>
-                        </div>
-
-                        <div className="pt-2 text-center space-y-2">
-                            <p className="text-sm text-gray-600">
-                                <Link
-                                    to="/findAcc"
-                                    className="text-[#8B85E9] hover:underline"
-                                >
-                                    아이디/비밀번호 찾기
-                                </Link>
-                            </p>
-                        </div>
+                            <div className="pt-2 text-center space-y-2">
+                                <p className="text-sm text-gray-600">
+                                    <Link
+                                        to="/findAcc"
+                                        className="text-[#8B85E9] hover:underline"
+                                    >
+                                        아이디/비밀번호 찾기
+                                    </Link>
+                                </p>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
