@@ -2,7 +2,10 @@ import axios, { AxiosResponse } from 'axios';
 
 // API 기본 설정 - 환경에 따라 동적으로 설정
 // Spring Boot context path가 /api이므로 프론트엔드에서는 /api를 추가하지 않음
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+  (window.location.hostname === 'ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com' 
+    ? 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com:8080/api' 
+    : '');
 
 const api = axios.create({
     baseURL: API_BASE_URL,

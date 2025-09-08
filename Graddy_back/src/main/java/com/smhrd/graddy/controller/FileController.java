@@ -35,7 +35,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/files")
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"}, 
+@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173", "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com"}, 
              methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS, RequestMethod.HEAD},
              allowedHeaders = "*", 
              allowCredentials = "true")

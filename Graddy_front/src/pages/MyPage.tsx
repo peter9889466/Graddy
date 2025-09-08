@@ -11,6 +11,7 @@ import ProfileEditForm from "../components/mypage/ProfileEditForm";
 import MyPageSidebar from "../components/mypage/MyPageSidebar";
 import { MyStudyList } from "../components/mypage/MyStudyList";
 import { AuthContext } from "../contexts/AuthContext";
+import { apiPostFile } from "../services/api";
 import {
     getMyPageInfo,
     getUpdatePageInfo,
@@ -214,20 +215,8 @@ export const MyPage = () => {
                 const formData = new FormData();
                 formData.append('file', file);
 
-                const response = await fetch('http://localhost:8080/api/files/upload', {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('userToken')}`
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error(`프로필 이미지 업로드 실패: ${response.status}`);
-                }
-
-                const result = await response.json();
-                const imageUrl = result.data?.fileUrl;
+                const response = await apiPostFile('/files/upload', formData);
+                const imageUrl = response.data.data?.fileUrl;
 
                 if (imageUrl) {
                     // 2단계: 사용자 프로필 이미지 URL 저장 (없으면 insert, 있으면 update)
