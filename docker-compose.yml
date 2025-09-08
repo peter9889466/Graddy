@@ -5,6 +5,7 @@ services:
         container_name: graddy-front
         # [수정] build 대신 Docker Hub의 image를 사용하도록 변경
         image: peter4855/graddy-front:latest
+        platform: linux/amd64  # ARM64 호환성을 위해 AMD64 플랫폼 지정
         ports:
             - "80:80"
         networks:
@@ -16,6 +17,7 @@ services:
         container_name: graddy-back
         # [수정] build 대신 Docker Hub의 image를 사용하도록 변경
         image: peter4855/graddy-back:latest
+        platform: linux/amd64  # ARM64 호환성을 위해 AMD64 플랫폼 지정
         ports:
             - "8080:8080" # EC2의 8080번 포트를 컨테이너의 8080번 포트와 연결
         # [추가] .env 파일에 있는 환경 변수들을 컨테이너 내부로 주입
