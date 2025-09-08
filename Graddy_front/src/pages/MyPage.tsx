@@ -211,7 +211,7 @@ export const MyPage = () => {
                 const formData = new FormData();
                 formData.append('file', file);
 
-                const response = await fetch('http://localhost:8080/api/files/upload', {
+                const response = await fetch('http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/files/upload', {
                     method: 'POST',
                     body: formData,
                     headers: {

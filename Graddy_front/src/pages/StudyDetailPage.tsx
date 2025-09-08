@@ -813,7 +813,7 @@ const StudyDetailPage: React.FC = () => {
             try {
                 console.log("멤버 아이디",memberId)
                 const response = await fetch(
-                    `http://localhost:8080/api/members/${memberId}/withdraw`,
+                    `http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/members/${memberId}/withdraw`,
                     {
                         method: "PATCH",
                         headers: {
@@ -860,7 +860,7 @@ const StudyDetailPage: React.FC = () => {
             const token = localStorage.getItem('userToken');
             console.log('사용할 토큰:', token ? '토큰 있음' : '토큰 없음');
             
-            const apiUrl = `http://localhost:8080/api/members/my-status?studyProjectId=${id}`;
+            const apiUrl = `http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/members/my-status?studyProjectId=${id}`;
             console.log('API 호출 URL:', apiUrl);
             
             const response = await fetch(apiUrl, {

@@ -313,7 +313,7 @@ const InterestSelection: React.FC<InterestProps> = ({
             // 먼저 사용자 정보 조회로 사용자 존재 여부 확인
             console.log("🔍 [DEBUG] 사용자 정보 조회 시도...");
             try {
-                const userInfoResponse = await fetch('http://localhost:8080/api/me', {
+                const userInfoResponse = await fetch('http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/me', {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${token}`,
