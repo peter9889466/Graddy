@@ -27,8 +27,22 @@ services:
         restart: always # 항상 재시작 옵션 추가
         depends_on:
             - localstack
+            - graddy-fastapi
 
-    # 3. LocalStack - AWS 서비스 로컬 시뮬레이션
+    # 3. FastAPI AI 서비스
+    graddy-fastapi:
+        container_name: graddy-fastapi
+        # [수정] build 대신 Docker Hub의 image를 사용하도록 변경
+        image: peter4855/graddy-fastapi:latest
+        ports:
+            - "8000:8000" # FastAPI 서버 포트
+        env_file:
+            - .env
+        networks:
+            - graddy-net
+        restart: always
+
+    # 4. LocalStack - AWS 서비스 로컬 시뮬레이션
     localstack:
         container_name: localstack
         image: localstack/localstack:latest
