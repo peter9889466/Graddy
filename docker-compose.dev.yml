@@ -14,7 +14,7 @@ services:
             - DEBUG=1
             - DATA_DIR=/tmp/localstack/data
             - PERSISTENCE=1  # 데이터 지속성 활성화
-            - AWS_DEFAULT_REGION=ap-northeast-2
+            - AWS_DEFAULT_REGION=ap-northeast-1
             - AWS_ACCESS_KEY_ID=test
             - AWS_SECRET_ACCESS_KEY=test
         volumes:
@@ -37,7 +37,7 @@ services:
         environment:
             - AWS_ACCESS_KEY_ID=test
             - AWS_SECRET_ACCESS_KEY=test
-            - AWS_DEFAULT_REGION=ap-northeast-2
+            - AWS_DEFAULT_REGION=ap-northeast-1
         command: >
             sh -c "
                 aws --endpoint-url=http://localstack:4566 s3 mb s3://graddy-files || true &&

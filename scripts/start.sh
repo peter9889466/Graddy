@@ -18,11 +18,6 @@ cd /home/ubuntu/app
 # 환경변수에서 DOCKER_HUB_ID를 가져오거나 기본값 사용
 DOCKER_HUB_ID=${DOCKER_HUB_ID:-"peter4855"}
 
-if [ -z "$DOCKER_HUB_ID" ] || [ "$DOCKER_HUB_ID" = "peter4855" ]; then
-    echo "> DOCKER_HUB_ID is not set or using default value. Please set the environment variable."
-    echo "> You can set it by running: export DOCKER_HUB_ID=peter4855"
-    exit 1
-fi
 echo "Docker Hub ID is set to: ${DOCKER_HUB_ID}"
 
 # --- 3. AWS 리전(Region) 설정 ---
