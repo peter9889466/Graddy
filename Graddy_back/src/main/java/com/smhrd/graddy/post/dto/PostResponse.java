@@ -25,6 +25,9 @@ public class PostResponse {
     @Schema(description = "작성자 ID", example = "nano1")
     private String memberId;
     
+    @Schema(description = "작성자 닉네임", example = "개발자킹")
+    private String nick;
+    
     @Schema(description = "글 제목", example = "스터디 모임 공지사항")
     private String title;
     

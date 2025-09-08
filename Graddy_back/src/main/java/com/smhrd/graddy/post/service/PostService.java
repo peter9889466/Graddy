@@ -5,6 +5,8 @@ import com.smhrd.graddy.post.dto.PostResponse;
 import com.smhrd.graddy.post.dto.PostUpdateRequest;
 import com.smhrd.graddy.post.entity.Post;
 import com.smhrd.graddy.post.repository.PostRepository;
+import com.smhrd.graddy.user.entity.User;
+import com.smhrd.graddy.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -13,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -22,6 +25,7 @@ import java.util.stream.Collectors;
 public class PostService {
     
     private final PostRepository postRepository;
+    private final UserRepository userRepository;
     
     /**
      * 게시글 생성
@@ -218,10 +222,18 @@ public class PostService {
      * Post 엔티티를 PostResponse로 변환
      */
     private PostResponse convertToResponse(Post post) {
+        // 사용자 닉네임 조회
+        String nick = "";
+        Optional<User> user = userRepository.findById(post.getMemberId());
+        if (user.isPresent()) {
+            nick = user.get().getNick();
+        }
+        
         return PostResponse.builder()
                 .stPrPostId(post.getStPrPostId())
                 .studyProjectId(post.getStudyProjectId())
                 .memberId(post.getMemberId())
+                .nick(nick)
                 .title(post.getTitle())
                 .content(post.getContent())
                 .createdAt(timestampToLocalDateTime(post.getCreatedAt()))
