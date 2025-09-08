@@ -103,7 +103,8 @@ export const apiDelete = async <T = any>(url: string): Promise<AxiosResponse<Api
 export const apiPostFile = async <T = any>(url: string, formData: FormData): Promise<AxiosResponse<ApiResponse<T>>> => {
     return api.post(url, formData, {
         headers: {
-            'Content-Type': 'multipart/form-data',
+            // Content-Type은 브라우저가 자동으로 설정하도록 제거 (multipart/form-data)
+            // 'Content-Type': 'multipart/form-data', // 제거
         },
     });
 };

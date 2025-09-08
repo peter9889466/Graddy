@@ -1222,7 +1222,10 @@ const ProjectDetailPage = () => {
                     {renderMainContent()}
                 </ResponsiveMainContent>
             </ResponsiveContainer>
-            <DraggableChatWidget studyProjectId={parseInt(id!, 10)} />
+            <DraggableChatWidget 
+                studyProjectId={parseInt(id!, 10)} 
+                isStudyMember={!isLoading && (userMemberType === "leader" || userMemberType === "member")}
+            />
 
             {/* 태그 모달 */}
             {isTagModalOpen && (

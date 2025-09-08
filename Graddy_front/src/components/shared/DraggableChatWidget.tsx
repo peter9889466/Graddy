@@ -43,9 +43,10 @@ interface ChatSettings {
 
 interface DraggableChatWidgetProps {
 	studyProjectId?: number;
+	isStudyMember?: boolean;
 }
 
-const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectId }) => {
+const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectId, isStudyMember = false }) => {
 	const authContext = useAuth();
 	const user = authContext?.user;
 	const token = authContext?.token;
@@ -610,15 +611,29 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 		return null;
 	}
 
+	// 채팅 버튼 클릭 핸들러
+	const handleChatButtonClick = () => {
+		if (!isStudyMember) {
+			alert('스터디 멤버가 아니어서 채팅을 이용할 수 없습니다.');
+			return;
+		}
+		setIsOpen(true);
+	};
+
 	return (
 		<div className="fixed z-50">
 			{!isOpen ? (
 				// 채팅 버튼
 				<button
-					onClick={() => setIsOpen(true)}
-					className="fixed bottom-6 right-6 w-14 h-14 bg-[#8B85E9] hover:bg-[#7A75D8] text-white rounded-full shadow-lg transition-all duration-300 hover:scale-110 flex items-center justify-center"
+					onClick={handleChatButtonClick}
+					className={`fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center ${
+						isStudyMember 
+							? 'bg-[#8B85E9] hover:bg-[#7A75D8] hover:scale-110 text-white' 
+							: 'bg-gray-400 text-gray-200 cursor-not-allowed'
+					}`}
 					style={{ zIndex: 1000 }}
-					title={`스터디 #${currentStudyProjectId} 채팅`}
+					title={isStudyMember ? `스터디 #${currentStudyProjectId} 채팅` : '스터디 멤버만 채팅 이용 가능'}
+					disabled={!isStudyMember}
 				>
 					<MessageCircle className="w-6 h-6" />
 				</button>
