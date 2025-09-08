@@ -182,17 +182,13 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
       formData.append('file', file);
 
       console.log("📡 [DEBUG] FormData 생성 완료, 서버 요청 시작");
+      console.log("📡 [DEBUG] Authorization 헤더:", `Bearer ${localStorage.getItem('userToken')}`);
 
       const response = await fetch('http://localhost:8080/api/files/upload/assignment', {
         method: 'POST',
         body: formData,
         headers: {
-<<<<<<< HEAD
           'Authorization': `Bearer ${localStorage.getItem('userToken')}`
-=======
-          'Authorization': `Bearer ${currentToken}`
-          // Content-Type은 브라우저가 자동으로 설정하도록 제거 (multipart/form-data)
->>>>>>> fc0f1a701776b413607538a08e4af4cd90bca5ab
         }
       });
 
