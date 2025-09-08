@@ -174,6 +174,7 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
         body: formData,
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('userToken')}`
+          // Content-Type은 브라우저가 자동으로 설정하도록 제거 (multipart/form-data)
         }
       });
 

@@ -215,8 +215,23 @@ export const MyPage = () => {
                 const formData = new FormData();
                 formData.append('file', file);
 
-                const response = await apiPostFile('/files/upload', formData);
-                const imageUrl = response.data.data?.fileUrl;
+                // 파일 업로드 시 직접 fetch 사용 (apiPostFile 대신)
+                const token = localStorage.getItem('userToken');
+                const response = await fetch('/api/files/upload', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                        // Content-Type은 브라우저가 자동으로 설정하도록 제거
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`파일 업로드 실패: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                const imageUrl = result.data?.fileUrl;
 
                 if (imageUrl) {
                     // 2단계: 사용자 프로필 이미지 URL 저장 (없으면 insert, 있으면 update)
