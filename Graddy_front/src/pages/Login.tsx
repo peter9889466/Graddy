@@ -64,7 +64,7 @@ const Login: React.FC = () => {
 
         try {
             const response = await axios.post(
-                "/api/auth/login",
+                "http://localhost:8080/api/auth/login",
                 {
                     userId: id,
                     password: password,

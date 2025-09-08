@@ -209,7 +209,7 @@ interface FeedBackProps {
         try {
             console.log('📋 [DEBUG] 과제 목록 조회 시작 - studyProjectId:', studyProjectId);
             
-            const response = await fetch(`/api/assignments/study-project/${studyProjectId}`,
+            const response = await fetch(`http://localhost:8080/api/assignments/study-project/${studyProjectId}`,
                 { method: 'GET', headers: getAuthHeaders() }
             );
             
@@ -242,9 +242,7 @@ interface FeedBackProps {
             setFeedbackLoading(true);
             setError(null);
             
-            console.log('🤖 [DEBUG] AI 피드백 조회 시작:', submissionId);
-            
-            const response = await fetch(`/api/feedbacks/submission/${submissionId}`,
+            const response = await fetch(`http://localhost:8080/api/feedbacks/submission/${submissionId}`,
                 { method: 'GET', headers: getAuthHeaders() }
             );
             if (!response.ok) {
@@ -257,11 +255,8 @@ interface FeedBackProps {
                 const feedback = data.data[0];
                 setAiFeedback(feedback.comment);
                 setFeedbackScore(feedback.score);
-                console.log('✅ [DEBUG] AI 피드백 조회 성공:', feedback.score, '점');
             } else {
-                // 피드백이 없는 경우 AI 피드백 생성 요청
-                console.log('⚠️ [DEBUG] 기존 피드백 없음, AI 피드백 생성 요청');
-                await generateNewAIFeedback(submissionId);
+                throw new Error(data.message || 'AI 피드백 조회 실패');
             }
         } catch (err: any) {
             console.error('AI 피드백 조회 실패:', err);
@@ -273,49 +268,13 @@ interface FeedBackProps {
         }
     };
 
-    // 새로운 AI 피드백 생성 함수
-    const generateNewAIFeedback = async (submissionId: number) => {
-        try {
-            console.log('🚀 [DEBUG] 새로운 AI 피드백 생성 시작:', submissionId);
-            
-            // 현재 제출 데이터가 있는지 확인
-            if (!currentSubmissionData || !selectedAssignmentId) {
-                console.log('⚠️ [DEBUG] 제출 데이터 또는 과제 ID가 없음');
-                return;
-            }
-            
-            // AI 피드백 생성 API 호출 (백엔드에서 자동으로 생성하도록)
-            const response = await fetch(`/api/feedbacks/generate`, {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({
-                    assignmentId: selectedAssignmentId
-                })
-            });
-            
-            if (!response.ok) {
-                throw new Error(`AI 피드백 생성 실패: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            console.log('✅ [DEBUG] AI 피드백 생성 완료:', data);
-            
-            // 생성된 피드백을 다시 조회
-            await generateAIFeedback(submissionId);
-            
-        } catch (err: any) {
-            console.error('새로운 AI 피드백 생성 실패:', err);
-            setError('AI 피드백 생성에 실패했습니다.');
-        }
-    };
-
     // 개별 제출 내용을 가져오는 함수
     const fetchSubmissionContent = async (assignmentId: number, memberId: number) => {
         try {
             setLoading(true);
             setError(null);
             
-            const response = await fetch(`/api/submissions/assignment/${assignmentId}/member/${memberId}`,
+            const response = await fetch(`http://localhost:8080/api/submissions/assignment/${assignmentId}/member/${memberId}`,
                 { method: 'GET', headers: getAuthHeaders() }
             );
             if (!response.ok) {
@@ -356,8 +315,7 @@ interface FeedBackProps {
                 setCurrentSubmissionData(submissionData);
                 setAssignmentContent(submissionData.content);
                 
-                // 과제 내용을 가져온 후 AI 피드백 자동 조회/생성
-                console.log('🔄 [DEBUG] 과제 내용 로드 완료, AI 피드백 조회 시작');
+                // 과제 내용을 가져온 후 AI 피드백 자동 생성
                 await generateAIFeedback(data.data.submissionId);
             } else {
                 throw new Error(data.message || 'API 응답 오류');
@@ -417,7 +375,7 @@ interface FeedBackProps {
             setLoading(true);
             setError(null);
             
-            const response = await fetch(`/api/submissions/assignment/${assignmentId}`,
+            const response = await fetch(`http://localhost:8080/api/submissions/assignment/${assignmentId}`,
                 { method: 'GET', headers: getAuthHeaders() }
             );
             if (!response.ok) {
@@ -521,7 +479,7 @@ interface FeedBackProps {
                 return;
             }
             
-            const response = await fetch(`/api/submissions/member/${memberId}`,
+            const response = await fetch(`http://localhost:8080/api/submissions/member/${memberId}`,
                 { method: 'GET', headers: getAuthHeaders() }
             );
             if (!response.ok) {
@@ -802,7 +760,7 @@ interface FeedBackProps {
                                                             let downloadUrl: string;
                                                             
                                                             if (fileUrl.startsWith('/api/files/')) {
-                                                                downloadUrl = `${fileUrl}`;
+                                                                downloadUrl = `http://localhost:8080${fileUrl}`;
                                                             } else if (fileUrl.startsWith('http')) {
                                                                 downloadUrl = fileUrl;
                                                             } else {
@@ -889,7 +847,7 @@ interface FeedBackProps {
                     <p className="text-lg font-bold text-gray-500">
                         AI 피드백
                     </p>
-                    {feedbackScore !== null && !feedbackLoading && (
+                    {feedbackScore !== null && (
                         <div className="flex items-center gap-2">
                             <span className="text-sm text-gray-600">점수:</span>
                             <span className="text-lg font-bold text-[#8B85E9]">{feedbackScore}점</span>
@@ -898,14 +856,7 @@ interface FeedBackProps {
                 </div>
                 <div className="w-full min-h-[120px] p-3 border-2 border-[#8B85E9] rounded-lg bg-gray-50">
                     {feedbackLoading ? (
-                        <div className="flex flex-col items-center justify-center h-full">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8B85E9] mb-3"></div>
-                            <p className="text-gray-500 text-center">
-                                {selectedAssignment !== '과제를 선택하세요' && selectedMember !== '스터디원을 선택하세요' 
-                                    ? 'AI 피드백을 생성하는 중입니다...' 
-                                    : '피드백을 불러오는 중입니다...'}
-                            </p>
-                        </div>
+                        <p className="text-gray-500 text-center">피드백을 생성하는 중입니다...</p>
                     ) : aiFeedback ? (
                         <div className="text-gray-700 text-sm leading-relaxed">
                             {aiFeedback.split('\n').map((line: string, index: number) => (
@@ -916,11 +867,7 @@ interface FeedBackProps {
                             ))}
                         </div>
                     ) : (
-                        <p className="text-gray-400 text-center">
-                            {selectedAssignment !== '과제를 선택하세요' && selectedMember !== '스터디원을 선택하세요'
-                                ? 'AI 피드백을 생성하고 있습니다...'
-                                : '과제와 스터디원을 선택하면 AI 피드백이 생성됩니다.'}
-                        </p>
+                        <p className="text-gray-400 text-center">과제와 스터디원을 선택하면 AI 피드백이 생성됩니다.</p>
                     )}
                 </div>
                 {/* {currentSubmissionData && !feedbackLoading && (

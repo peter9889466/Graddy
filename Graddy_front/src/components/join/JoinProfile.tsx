@@ -117,7 +117,7 @@ const JoinProfile: React.FC<JoinProfileProps> = ({
 
         try {
             const response = await axios.get(
-                `/api/join/check-userId`,
+                `http://localhost:8080/api/join/check-userId`,
                 {
                     params: { userId: id },
                     validateStatus: () => true, // HTTP 상태와 상관없이 항상 then으로 처리
@@ -164,7 +164,7 @@ const JoinProfile: React.FC<JoinProfileProps> = ({
 
         try {
             const response = await axios.get(
-                "/api/join/check-nick",
+                "http://localhost:8080/api/join/check-nick",
                 {
                     params: { nick: nickname },
                     validateStatus: () => true, // HTTP 상태와 상관없이 then으로 처리
@@ -275,7 +275,7 @@ const JoinProfile: React.FC<JoinProfileProps> = ({
         try {
             // 전화번호 중복 확인 및 인증번호 발송 (통합)
             const unifiedResponse = await axios.post(
-                "/api/api/phone-verification/unified",
+                "http://localhost:8080/api/api/phone-verification/unified",
                 {
                     tel: phoneNumber,
                     purpose: "JOIN",
@@ -322,7 +322,7 @@ const JoinProfile: React.FC<JoinProfileProps> = ({
 
         try {
             const response = await axios.post(
-                "/api/api/auth/verify-code",
+                "http://localhost:8080/api/auth/verify-code",
                 {
                     phoneNumber: phoneNumber,
                     code: verificationCode,
@@ -1162,7 +1162,13 @@ const JoinProfile: React.FC<JoinProfileProps> = ({
                                                         : {}
                                                 }
                                             >
-                                                확인
+                                                {isLoading
+                                                    ? "처리중..."
+                                                    : isVerified
+                                                    ? "인증 완료"
+                                                    : showVerificationInput
+                                                    ? "인증번호 재발송"
+                                                    : "인증번호 발송"}
                                             </button>
                                         </div>
                                     </div>

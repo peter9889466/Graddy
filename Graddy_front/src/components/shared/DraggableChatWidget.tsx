@@ -43,13 +43,10 @@ interface ChatSettings {
 
 interface DraggableChatWidgetProps {
 	studyProjectId?: number;
-	isStudyMember?: boolean;
 }
 
-const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectId, isStudyMember = false }) => {
-	const authContext = useAuth();
-	const user = authContext?.user;
-	const token = authContext?.token;
+const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectId }) => {
+	const { user, token } = useAuth();
 	
 	// 초기 설정 불러오기
 	const getSavedSettings = (): ChatSettings => {
@@ -82,7 +79,6 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 	const [inputText, setInputText] = useState('');
 	const [showSettings, setShowSettings] = useState(false);
 	const [isConnected, setIsConnected] = useState(false);
-	const [isConnecting, setIsConnecting] = useState(false);
 	const [connectionError, setConnectionError] = useState<string | null>(null);
 	const [subscriptionActive, setSubscriptionActive] = useState(false);
 	const [currentStudyProjectId, setCurrentStudyProjectId] = useState<number | null>(studyProjectId || null);
@@ -105,9 +101,6 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 			return;
 		}
 
-		setIsConnecting(true);
-		setConnectionError(null);
-
 		let currentToken = token;
 		
 		// 토큰이 없거나 유효하지 않으면 갱신 시도
@@ -119,7 +112,6 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 			} catch (error) {
 				console.error('토큰 갱신 실패:', error);
 				setConnectionError('인증 오류가 발생했습니다. 다시 로그인해주세요.');
-				setIsConnecting(false);
 				return;
 			}
 		}
@@ -127,12 +119,12 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 		console.log('WebSocket 연결 시도:', {
 			token: currentToken ? '토큰 있음' : '토큰 없음',
 			studyProjectId: currentStudyProjectId,
-			userNick: user?.nickname
+			userNick: user?.nick
 		});
 
 		try {
 			// SockJS를 사용한 WebSocket 연결
-			const socket = new SockJS('/api/ws-stomp');
+			const socket = new SockJS('http://localhost:8080/api/ws-stomp');
 			const stompClient = new Client({
 				webSocketFactory: () => socket,
 				debug: (str: string) => {
@@ -149,7 +141,6 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 						destination: `/topic/chat/room/${currentStudyProjectId}`
 					});
 					setIsConnected(true);
-					setIsConnecting(false);
 					setConnectionError(null);
 
 					// 스터디방 메시지 구독
@@ -263,14 +254,12 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 					});
 					setConnectionError('채팅 서버 연결에 실패했습니다.');
 					setIsConnected(false);
-					setIsConnecting(false);
 					setSubscriptionActive(false);
 				},
 				onWebSocketError: (error: any) => {
 					console.error('❌ WebSocket 오류:', error);
 					setConnectionError('채팅 서버 연결에 실패했습니다.');
 					setIsConnected(false);
-					setIsConnecting(false);
 					setSubscriptionActive(false);
 				}
 			});
@@ -280,7 +269,6 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 		} catch (error) {
 			console.error('WebSocket 연결 오류:', error);
 			setConnectionError('채팅 서버 연결에 실패했습니다.');
-			setIsConnecting(false);
 		}
 	}, [token, currentStudyProjectId, user?.nickname]);
 
@@ -291,7 +279,6 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 			stompClientRef.current.deactivate();
 			stompClientRef.current = null;
 			setIsConnected(false);
-			setIsConnecting(false);
 			setSubscriptionActive(false);
 		}
 	}, []);
@@ -328,7 +315,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 		try {
 			console.log('채팅 이력 불러오기 시작:', currentStudyProjectId);
 			
-			const response = await fetch(`/api/chat/history/${currentStudyProjectId}`, {
+			const response = await fetch(`http://localhost:8080/api/chat/history/${currentStudyProjectId}`, {
 				method: 'GET',
 				headers: {
 					'Authorization': `Bearer ${currentToken}`,
@@ -500,7 +487,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 
 	// 메시지 전송
 	const handleSendMessage = useCallback(async () => {
-		if (!inputText.trim() || !stompClientRef.current || !isConnected || isConnecting || !currentStudyProjectId) {
+		if (!inputText.trim() || !stompClientRef.current || !isConnected || !currentStudyProjectId) {
 			return;
 		}
 
@@ -570,7 +557,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 			// 전송 실패 시 임시 메시지 제거
 			setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
 		}
-	}, [inputText, isConnected, isConnecting, currentStudyProjectId, token, user?.nickname, scrollToBottom]);
+	}, [inputText, isConnected, currentStudyProjectId, token, user?.nick, scrollToBottom]);
 
 	// Enter 키로 메시지 전송
 	const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
@@ -611,29 +598,15 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 		return null;
 	}
 
-	// 채팅 버튼 클릭 핸들러
-	const handleChatButtonClick = () => {
-		if (!isStudyMember) {
-			alert('스터디 멤버가 아니어서 채팅을 이용할 수 없습니다.');
-			return;
-		}
-		setIsOpen(true);
-	};
-
 	return (
 		<div className="fixed z-50">
 			{!isOpen ? (
 				// 채팅 버튼
 				<button
-					onClick={handleChatButtonClick}
-					className={`fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center ${
-						isStudyMember 
-							? 'bg-[#8B85E9] hover:bg-[#7A75D8] hover:scale-110 text-white' 
-							: 'bg-gray-400 text-gray-200 cursor-not-allowed'
-					}`}
+					onClick={() => setIsOpen(true)}
+					className="fixed bottom-6 right-6 w-14 h-14 bg-[#8B85E9] hover:bg-[#7A75D8] text-white rounded-full shadow-lg transition-all duration-300 hover:scale-110 flex items-center justify-center"
 					style={{ zIndex: 1000 }}
-					title={isStudyMember ? `스터디 #${currentStudyProjectId} 채팅` : '스터디 멤버만 채팅 이용 가능'}
-					disabled={!isStudyMember}
+					title={`스터디 #${currentStudyProjectId} 채팅`}
 				>
 					<MessageCircle className="w-6 h-6" />
 				</button>
@@ -666,17 +639,8 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 									{currentStudyProjectId ? '스터디 채팅' : '채팅 상담'}
 								</h3>
 								<div className="flex items-center gap-2 text-xs">
-									{isConnecting ? (
-										<>
-											<div className="animate-spin rounded-full h-2 w-2 border-b border-white"></div>
-											<span>연결 중...</span>
-										</>
-									) : (
-										<>
-											<div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'}`}></div>
-											<span>{isConnected ? '연결됨' : '연결 안됨'}</span>
-										</>
-									)}
+									<div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'}`}></div>
+									<span>{isConnected ? '연결됨' : '연결 안됨'}</span>
 								</div>
 							</div>
 						</div>
@@ -741,16 +705,6 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 						className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50"
 						onMouseDown={handleDragStart}
 					>
-						{/* 연결 중일 때 로딩 표시 */}
-						{isConnecting && (
-							<div className="flex justify-center items-center py-4">
-								<div className="flex items-center gap-2 text-gray-500">
-									<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#8B85E9]"></div>
-									<span className="text-sm">채팅방에 연결 중...</span>
-								</div>
-							</div>
-						)}
-						
 						{messages.map((message, index) => (
 							<div key={`${message.id}-${message.timestamp.getTime()}-${index}`} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
 								<div
@@ -802,15 +756,13 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 								placeholder={
 									!currentStudyProjectId 
 										? "스터디 페이지에서 채팅을 이용하세요"
-										: isConnecting
-										? "연결 중..."
 										: !isConnected 
-										? "연결 안됨"
+										? "연결 중..."
 										: "메시지를 입력하세요..."
 								}
-								disabled={!currentStudyProjectId || !isConnected || isConnecting}
+								disabled={!currentStudyProjectId || !isConnected}
 								className={`flex-1 p-2 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] select-text ${
-									!currentStudyProjectId || !isConnected || isConnecting
+									!currentStudyProjectId || !isConnected
 										? 'border-gray-200 bg-gray-100 text-gray-500'
 										: 'border-gray-300'
 								}`}
@@ -819,7 +771,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 							/>
 							<button
 								onClick={handleSendMessage}
-								disabled={!inputText.trim() || !currentStudyProjectId || !isConnected || isConnecting}
+								disabled={!inputText.trim() || !currentStudyProjectId || !isConnected}
 								className="p-2 bg-[#8B85E9] hover:bg-[#7A75D8] disabled:bg-gray-300 text-white rounded-lg transition-colors disabled:cursor-not-allowed"
 							>
 								<Send className="w-4 h-4" />

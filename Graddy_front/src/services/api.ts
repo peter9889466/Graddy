@@ -1,11 +1,7 @@
 import axios, { AxiosResponse } from 'axios';
 
-// API 기본 설정 - 환경에 따라 동적으로 설정
-// Spring Boot context path가 /api이므로 프론트엔드에서는 /api를 추가하지 않음
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
-  (window.location.hostname === 'ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com' 
-    ? 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com:8080/api' 
-    : '');
+// API 기본 설정
+const API_BASE_URL = 'http://localhost:8080/api';
 
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -103,8 +99,7 @@ export const apiDelete = async <T = any>(url: string): Promise<AxiosResponse<Api
 export const apiPostFile = async <T = any>(url: string, formData: FormData): Promise<AxiosResponse<ApiResponse<T>>> => {
     return api.post(url, formData, {
         headers: {
-            // Content-Type은 브라우저가 자동으로 설정하도록 제거 (multipart/form-data)
-            // 'Content-Type': 'multipart/form-data', // 제거
+            'Content-Type': 'multipart/form-data',
         },
     });
 };

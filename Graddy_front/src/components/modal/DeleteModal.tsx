@@ -1,6 +1,5 @@
 import { AlertTriangle, Trash2 } from "lucide-react";
 import { Button } from "../ui/button";
-import { useState } from "react";
 
 interface DeleteModalProps {
     onClose?: () => void;
@@ -8,33 +7,10 @@ interface DeleteModalProps {
 }
 
 export default function DeleteModal({ onClose, onConfirm }: DeleteModalProps) {
-    const [confirmationText, setConfirmationText] = useState("");
-    const [isDeleting, setIsDeleting] = useState(false);
-    
-    const isConfirmationValid = confirmationText === "DELETE ACCOUNT";
-    
-    const handleConfirm = async () => {
-        if (!isConfirmationValid || !onConfirm) return;
-        
-        setIsDeleting(true);
-        try {
-            await onConfirm();
-        } catch (error) {
-            console.error("회원탈퇴 실패:", error);
-        } finally {
-            setIsDeleting(false);
-        }
-    };
-
-    const handleClose = () => {
-        setConfirmationText("");
-        setIsDeleting(false);
-        onClose?.();
-    };
     return (
         <div
             className="fixed inset-0 bg-gray-900/60 flex items-center justify-center z-[200] p-4"
-            onClick={handleClose}
+            onClick={onClose}
         >
             <div
                 className="w-full max-w-md"
@@ -87,28 +63,24 @@ export default function DeleteModal({ onClose, onConfirm }: DeleteModalProps) {
                         </div>
                         <input
                             type="text"
-                            value={confirmationText}
-                            onChange={(e) => setConfirmationText(e.target.value)}
                             placeholder="DELETE ACCOUNT"
                             className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none text-base disabled:bg-gray-100"
-                            disabled={isDeleting}
                         />
                     </div>
 
                     {/* 버튼 그룹 */}
                     <div className="flex gap-3">
                         <Button
-                            onClick={handleConfirm}
-                            disabled={!isConfirmationValid || isDeleting}
+                            onClick={onConfirm}
                             className="bg-rose-400 hover:bg-rose-500 text-white font-semibold flex-1 py-3 disabled:bg-gray-300 disabled:cursor-not-allowed"
                         >
-                            {isDeleting ? "삭제 중..." : "계정 영구 삭제"}
+                            계정 영구 삭제
                         </Button>
                         <Button
                             variant="outline"
                             className="flex-1 py-3 border-gray-300 hover:bg-gray-50 bg-transparent"
-                            onClick={handleClose}
-                            disabled={isDeleting}
+                            onClick={onClose}
+                            // disabled={isDeleting}
                         >
                             취소
                         </Button>

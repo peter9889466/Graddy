@@ -87,7 +87,7 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
     setError(null);
     
     try {
-      const response = await fetch(`/api/assignments/study-project/${studyProjectId}`, {
+      const response = await fetch(`http://localhost:8080/api/assignments/study-project/${studyProjectId}`, {
         method: 'GET',
         headers: getAuthHeaders()
       });
@@ -105,7 +105,7 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
           assignments.map(async (assignment: FetchedAssignment) => {
             try {
               const submissionResponse = await fetch(
-                `/api/submissions/assignment/${assignment.assignmentId}/member/${memberId}`,
+                `http://localhost:8080/api/submissions/assignment/${assignment.assignmentId}/member/${memberId}`,
                 { headers: getAuthHeaders() }
               );
               return {
@@ -138,7 +138,7 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
     
     try {
       const response = await fetch(
-        `/api/submissions/assignment/${assignmentId}/member/${memberId}`,
+        `http://localhost:8080/api/submissions/assignment/${assignmentId}/member/${memberId}`,
         { headers: getAuthHeaders() }
       );
       
@@ -169,12 +169,11 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
 
       console.log("📡 [DEBUG] FormData 생성 완료, 서버 요청 시작");
 
-      const response = await fetch('/api/files/upload/assignment', {
+      const response = await fetch('http://localhost:8080/api/files/upload/assignment', {
         method: 'POST',
         body: formData,
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('userToken')}`
-          // Content-Type은 브라우저가 자동으로 설정하도록 제거 (multipart/form-data)
         }
       });
 
@@ -288,7 +287,7 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
       console.log("📦 [DEBUG] 제출 데이터:", submissionData);
 
       console.log("🌐 [DEBUG] 서버에 제출 요청 시작");
-      const response = await fetch('/api/submissions/submit', {
+      const response = await fetch('http://localhost:8080/api/submissions/submit', {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify(submissionData)

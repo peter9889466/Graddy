@@ -43,11 +43,7 @@ import { useCommunityContext } from "@/contexts/CommunityContext";
 const StudyDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState(() => {
-        // localStorage에서 저장된 탭 상태를 복원
-        const savedTab = localStorage.getItem('studyDetailActiveTab');
-        return savedTab || "스터디 정보";
-    });
+    const [activeTab, setActiveTab] = useState("스터디 정보");
     const [isApplied, setIsApplied] = useState(false);
     const [isRecruiting, setIsRecruiting] = useState(true); // 모집 상태 관리
     const [isStudyEnd, setIsStudyEnd] = useState(false);
@@ -812,7 +808,7 @@ const StudyDetailPage: React.FC = () => {
             try {
                 console.log("멤버 아이디",memberId)
                 const response = await fetch(
-                    `/api/members/${memberId}/withdraw`,
+                    `http://localhost:8080/api/members/${memberId}/withdraw`,
                     {
                         method: "PATCH",
                         headers: {
@@ -859,7 +855,7 @@ const StudyDetailPage: React.FC = () => {
             const token = localStorage.getItem('userToken');
             console.log('사용할 토큰:', token ? '토큰 있음' : '토큰 없음');
             
-            const apiUrl = `/api/members/my-status?studyProjectId=${id}`;
+            const apiUrl = `http://localhost:8080/api/members/my-status?studyProjectId=${id}`;
             console.log('API 호출 URL:', apiUrl);
             
             const response = await fetch(apiUrl, {
@@ -1260,7 +1256,6 @@ const StudyDetailPage: React.FC = () => {
                                 </span>
                             )}
                         </div>
-
                         {/* 스터디 레벨 */}
                         <div className="text-gray-700 mb-4">
                             <div className="flex items-center gap-2 mb-2">
@@ -1454,7 +1449,6 @@ const StudyDetailPage: React.FC = () => {
                                 )}
                             </div>
                         </div>
-
                         {/* 버튼 영역 */}
                         {!isEditing &&
                         !isLoading &&
@@ -1497,7 +1491,7 @@ const StudyDetailPage: React.FC = () => {
                         ) : !isEditing &&
                           !isLoading &&
                           (userMemberType === "member" ||
-                        userMemberType === null) ? (
+                              userMemberType === null) ? (
                             // 일반 사용자이거나 멤버인 경우 (수정 모드가 아닐 때만 표시)
                             <div className="w-full mt-3">
                                 {userMemberType === "member" ? (
@@ -1514,34 +1508,26 @@ const StudyDetailPage: React.FC = () => {
                                         <button
                                             type="button"
                                             onClick={handleApplyToStudy}
-                                            disabled={isApplying || isLoadingWithdrawalStatus || isWithdrawn || members.length >= maxMembers || !isRecruiting}
+                                            disabled={isApplying || isLoadingWithdrawalStatus || isWithdrawn}
                                             className={`w-full px-4 py-2 rounded-lg text-white text-sm sm:text-base transition-colors ${
-                                            (isWithdrawn || isLoadingWithdrawalStatus || members.length >= maxMembers || !isRecruiting)
-                                                ? 'cursor-not-allowed opacity-50' 
-                                                : 'cursor-pointer'
+                                                (isWithdrawn || isLoadingWithdrawalStatus)
+                                                    ? 'cursor-not-allowed opacity-50' 
+                                                    : 'cursor-pointer'
                                             }`}
                                             style={{
-                                                backgroundColor: (isApplying || isLoadingWithdrawalStatus || isWithdrawn || members.length >= maxMembers || !isRecruiting)
-                                                ? "#6b7280"
-                                                : "#8B85E9",
+                                                backgroundColor: (isApplying || isLoadingWithdrawalStatus || isWithdrawn)
+                                                    ? "#6B7280"
+                                                    : "#8B85E9",
                                             }}
-                                            title={
-                                                isWithdrawn 
-                                                    ? "탈퇴한 사용자는 재가입할 수 없습니다" 
-                                                    : !isRecruiting || members.length >= maxMembers
-                                                        ? "모집이 마감되었습니다"
-                                                        : ""
-                                            }
+                                            title={isWithdrawn ? "탈퇴한 사용자는 재가입할 수 없습니다" : ""}
                                         >
                                             {isLoadingWithdrawalStatus 
                                                 ? "상태 확인 중..." 
                                                 : isWithdrawn 
                                                     ? "재가입 불가" 
-                                                    : !isRecruiting ||  members.length >= maxMembers
-                                                        ? "모집이 마감되었습니다"
-                                                        : isApplying 
-                                                            ? "신청 중..." 
-                                                            : "스터디 가입 신청"
+                                                    : isApplying 
+                                                        ? "신청 중..." 
+                                                        : "스터디 가입 신청"
                                             }
                                         </button>
                                     ) : (
@@ -1559,7 +1545,6 @@ const StudyDetailPage: React.FC = () => {
                         ) : null}
                     </div>
                 );
-
             case "과제 제출":
                 // 로그인 및 스터디 멤버 권한 확인
                 if (
@@ -1706,10 +1691,7 @@ const StudyDetailPage: React.FC = () => {
                 <ResponsiveSidebar>
                     <StudyDetailSideBar
                         activeTab={activeTab}
-                        onTabChange={(tab) => {
-                            setActiveTab(tab);
-                            localStorage.setItem('studyDetailActiveTab', tab);
-                        }}
+                        onTabChange={(tab) => setActiveTab(tab)}
                         isLoggedIn={isLoggedIn}
                         isStudyMember={
                             !isLoading &&
@@ -1733,10 +1715,7 @@ const StudyDetailPage: React.FC = () => {
                     {renderMainContent()}
                 </ResponsiveMainContent>
             </ResponsiveContainer>
-            <DraggableChatWidget 
-                studyProjectId={parseInt(id!, 10)} 
-                isStudyMember={!isLoading && (userMemberType === "leader" || userMemberType === "member")}
-            />
+            <DraggableChatWidget studyProjectId={parseInt(id!, 10)} />
 
             {/* 태그 모달 */}
             {isTagModalOpen && (

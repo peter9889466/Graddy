@@ -48,7 +48,7 @@ const commentApi = {
         postId: number
     ): Promise<ApiResponse<CommentResponse[]>> => {
         const response = await fetch(
-            `/api/api/comments/free-posts/${postId}`,
+            `http://localhost:8080/api/api/comments/free-posts/${postId}`,
             {
                 method: "GET",
                 headers: getAuthHeaders(),
@@ -64,7 +64,7 @@ const commentApi = {
         commentData: CommentRequest
     ): Promise<ApiResponse<CommentResponse>> => {
         const response = await fetch(
-            `/api/api/comments/free-posts/${postId}`,
+            `http://localhost:8080/api/api/comments/free-posts/${postId}`,
             {
                 method: "POST",
                 headers: getAuthHeaders(),
@@ -80,7 +80,7 @@ const commentApi = {
         content: string
     ): Promise<ApiResponse<CommentResponse>> => {
         const response = await fetch(
-            `/api/api/comments/${commentId}?content=${encodeURIComponent(
+            `http://localhost:8080/api/api/comments/${commentId}?content=${encodeURIComponent(
                 content
             )}`,
             {
@@ -94,7 +94,7 @@ const commentApi = {
     // 댓글 삭제
     deleteComment: async (commentId: number): Promise<ApiResponse<null>> => {
         const response = await fetch(
-            `/api/api/comments/${commentId}`,
+            `http://localhost:8080/api/api/comments/${commentId}`,
             {
                 method: "DELETE",
                 headers: getAuthHeaders(),

@@ -105,7 +105,7 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({
         try {
             // API URL 및 Request Body를 새 요구사항에 맞게 수정
             const response = await fetch(
-                "/api/password-find/reset-password",
+                "http://localhost:8080/api/password-find/reset-password",
                 {
                     method: "POST",
                     headers: {

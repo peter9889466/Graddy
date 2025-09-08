@@ -8,7 +8,7 @@
     "containerDefinitions": [
         {
             "name": "graddy-backend-container",
-            "image": "197088316799.dkr.ecr.ap-northeast-1.amazonaws.com/graddy-backend:latest",
+            "image": "197088316799.dkr.ecr.ap-northeast-2.amazonaws.com/graddy-backend:latest",
             "portMappings": [
                 {
                     "containerPort": 8080,
@@ -26,14 +26,14 @@
             "secrets": [
                 {
                     "name": "DB_PASSWORD",
-                    "valueFrom": "arn:aws:ssm:ap-northeast-1:197088316799:parameter/graddy/db-password"
+                    "valueFrom": "arn:aws:ssm:ap-northeast-2:197088316799:parameter/graddy/db-password"
                 }
             ],
             "logConfiguration": {
                 "logDriver": "awslogs",
                 "options": {
                     "awslogs-group": "/ecs/graddy-backend",
-                    "awslogs-region": "ap-northeast-1",
+                    "awslogs-region": "ap-northeast-2",
                     "awslogs-stream-prefix": "ecs"
                 }
             }

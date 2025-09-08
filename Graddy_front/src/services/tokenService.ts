@@ -46,7 +46,7 @@ export class TokenService {
         }
 
         try {
-            const response = await fetch('/auth/refresh', {
+            const response = await fetch('http://localhost:8080/auth/refresh', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

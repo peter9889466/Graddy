@@ -114,9 +114,7 @@ public class FileConfig implements WebMvcConfigurer, InitializingBean {
                     "http://localhost:5173",   // Vite 기본 포트
                     "http://localhost:8080",   // 같은 서버 (self)
                     "http://127.0.0.1:3000",
-                    "http://127.0.0.1:5173",
-                    "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com", // 배포 환경 도메인
-                    "https://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com"  // HTTPS 지원
+                    "http://127.0.0.1:5173"
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD")
                 .allowedHeaders("*")
@@ -126,14 +124,11 @@ public class FileConfig implements WebMvcConfigurer, InitializingBean {
         
         // 일반 API 엔드포인트에 대한 CORS 설정
         registry.addMapping("/api/**")
-                .allowedOriginPatterns(
-                    "*", // 모든 Origin 허용 (개발용)
+                .allowedOrigins(
                     "http://localhost:3000",
                     "http://localhost:5173", 
                     "http://127.0.0.1:3000",
-                    "http://127.0.0.1:5173",
-                    "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com", // 배포 환경 도메인
-                    "https://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com"  // HTTPS 지원
+                    "http://127.0.0.1:5173"
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD")
                 .allowedHeaders("*")

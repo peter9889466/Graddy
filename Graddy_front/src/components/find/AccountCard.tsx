@@ -164,7 +164,7 @@ const AccountCard: React.FC<AccountCardProps> = ({ onVerificationSuccess }) => {
             console.log("전송할 데이터:", requestData); // 디버깅용
 
             const response = await fetch(
-                "/api/find-id",
+                "http://localhost:8080/api/find-id",
                 {
                     method: "POST",
                     headers: {
@@ -230,7 +230,7 @@ const AccountCard: React.FC<AccountCardProps> = ({ onVerificationSuccess }) => {
         try {
             // 사용자 존재 여부 확인
             const verifyResponse = await fetch(
-                "/api/password-find/verify-user",
+                "http://localhost:8080/api/password-find/verify-user",
                 {
                     method: "POST",
                     headers: {
@@ -248,7 +248,7 @@ const AccountCard: React.FC<AccountCardProps> = ({ onVerificationSuccess }) => {
             if (verifyResult.status === 200 && verifyResult.data === true) {
                 // 인증번호 발송
                 const sendResponse = await fetch(
-                    "/api/auth/send-code",
+                    "http://localhost:8080/api/auth/send-code",
                     {
                         method: "POST",
                         headers: {
@@ -301,7 +301,7 @@ const AccountCard: React.FC<AccountCardProps> = ({ onVerificationSuccess }) => {
 
         try {
             const response = await fetch(
-                "/api/auth/verify-code",
+                "http://localhost:8080/api/auth/verify-code",
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },

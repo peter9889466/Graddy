@@ -9,7 +9,7 @@ export interface BackendStudyProjectData {
     studyLevel: number;
     typeCheck: string;
     userId: string;
-    isRecruiting: 'recruitment' | 'complete' | 'end';
+    isRecruiting: 'RECRUITING' | 'COMPLETE' | 'END';
     studyProjectStart: string;
     studyProjectEnd: string;
     studyProjectTotal: number;
@@ -165,7 +165,7 @@ export class StudyApiService {
         try {
             console.log('getStudiesProjects 호출 시작');
 
-            const response = await fetch('/api/studies-projects', {
+            const response = await fetch('http://localhost:8080/api/studies-projects', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'

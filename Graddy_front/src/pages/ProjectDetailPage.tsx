@@ -1115,51 +1115,34 @@ const ProjectDetailPage = () => {
                           (userMemberType === "member" ||
                               userMemberType === null) ? (
                             // 일반 사용자이거나 멤버인 경우 (수정 모드가 아닐 때만 표시)
-<div className="w-full mt-3">
-    {members.length >= maxMembers || !isRecruiting ? (
-        <button
-            type="button"
-            disabled
-            className="w-full px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-not-allowed"
-            style={{ backgroundColor: "#6b7280" }}
-        >
-            {members.length >= maxMembers 
-                ? "모집이 마감되었습니다"
-                : "모집이 마감되었습니다"
-            }
-        </button>
-    ) : !isApplied ? (
-        <button
-            type="button"
-            onClick={handleApplyToProject}
-            disabled={isApplying}
-            className="w-full px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer"
-            style={{
-                backgroundColor: isApplying
-                    ? "#6B7280"
-                    : "#8B85E9",
-            }}
-        >
-            {isApplying ? (
-                <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    신청 중...
-                </>
-            ) : (
-                "프로젝트 가입 신청"
-            )}
-        </button>
-    ) : (
-        <button
-            type="button"
-            onClick={handleCancelApplication}
-            className="w-full px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer hover:bg-gray-700 transition-colors"
-            style={{ backgroundColor: "#6B7280" }}
-        >
-            승인 대기 중
-        </button>
-    )}
-</div>
+                            <div className="w-full mt-3">
+                                {!isApplied ? (
+                                    <button
+                                        type="button"
+                                        onClick={handleApplyToProject}
+                                        disabled={isApplying}
+                                        className="w-full px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer"
+                                        style={{
+                                            backgroundColor: isApplying
+                                                ? "#6B7280"
+                                                : "#8B85E9",
+                                        }}
+                                    >
+                                        {isApplying
+                                            ? "신청 중..."
+                                            : "프로젝트 가입 신청"}
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={handleCancelApplication}
+                                        className="w-full px-4 py-2 rounded-lg text-white text-sm sm:text-base cursor-pointer hover:bg-gray-700 transition-colors"
+                                        style={{ backgroundColor: "#6B7280" }}
+                                    >
+                                        승인 대기 중
+                                    </button>
+                                )}
+                            </div>
                         ) : null}
                     </div>
                 );
@@ -1188,7 +1171,6 @@ const ProjectDetailPage = () => {
                     <Community
                         studyProjectId={parseInt(id!, 10)}
                         currentUserId={authContext?.user?.nickname || "사용자"}
-                        members={members}
                     />
                 );
         }
@@ -1222,10 +1204,7 @@ const ProjectDetailPage = () => {
                     {renderMainContent()}
                 </ResponsiveMainContent>
             </ResponsiveContainer>
-            <DraggableChatWidget 
-                studyProjectId={parseInt(id!, 10)} 
-                isStudyMember={!isLoading && (userMemberType === "leader" || userMemberType === "member")}
-            />
+            <DraggableChatWidget studyProjectId={parseInt(id!, 10)} />
 
             {/* 태그 모달 */}
             {isTagModalOpen && (

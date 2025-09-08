@@ -51,7 +51,7 @@ export const Ranking = () => {
     const fetchRankingData = async (): Promise<RankingResponse> => {
         try {
             const response = await fetch(
-                "/api/scores/ranking/top100"
+                "http://localhost:8080/api/scores/ranking/top100"
             );
             if (!response.ok) {
                 throw new Error("Failed to fetch ranking data");
@@ -69,7 +69,7 @@ export const Ranking = () => {
         
         try {
             const response = await fetch(
-                `/api/scores/user/${currentUserId}`
+                `http://localhost:8080/api/scores/user/${currentUserId}`
             );
             if (!response.ok) {
                 if (response.status === 404) {
@@ -102,35 +102,22 @@ export const Ranking = () => {
             try {
                 setLoading(true);
                 
-                // 로그인 상태에 따라 다른 방식으로 데이터 가져오기
-                if (auth?.isLoggedIn && currentUserId) {
-                    // 로그인된 사용자: 랭킹 데이터와 내 랭킹 정보 모두 가져오기
-                    const [rankingResponse, myRankingResponse] = await Promise.all([
-                        fetchRankingData(),
-                        fetchMyRankingInfo()
-                    ]);
-                    
-                    setRankingData(rankingResponse.data.rankings);
-                    setTotalUsers(rankingResponse.data.totalUsers);
-                    setMyRankingInfo(myRankingResponse);
-                    
-                    // 디버깅용 로그
-                    console.log("현재 사용자 ID:", currentUserId);
-                    console.log("TOP 100 랭킹 데이터:", rankingResponse.data.rankings);
-                    console.log("내 랭킹 정보:", myRankingResponse);
-                    console.log("TOP 100에서 내 정보:", rankingResponse.data.rankings.find(user => user.userId === currentUserId));
-                } else {
-                    // 비로그인 사용자: 랭킹 데이터만 가져오기
-                    const rankingResponse = await fetchRankingData();
-                    
-                    setRankingData(rankingResponse.data.rankings);
-                    setTotalUsers(rankingResponse.data.totalUsers);
-                    setMyRankingInfo(null); // 비로그인 사용자는 내 랭킹 정보 없음
-                    
-                    console.log("비로그인 사용자 - TOP 100 랭킹 데이터:", rankingResponse.data.rankings);
-                }
+                // 병렬로 데이터 가져오기
+                const [rankingResponse, myRankingResponse] = await Promise.all([
+                    fetchRankingData(),
+                    fetchMyRankingInfo()
+                ]);
                 
+                setRankingData(rankingResponse.data.rankings);
+                setTotalUsers(rankingResponse.data.totalUsers);
+                setMyRankingInfo(myRankingResponse);
                 setError(null);
+                
+                // 디버깅용 로그
+                console.log("현재 사용자 ID:", currentUserId);
+                console.log("TOP 100 랭킹 데이터:", rankingResponse.data.rankings);
+                console.log("내 랭킹 정보:", myRankingResponse);
+                console.log("TOP 100에서 내 정보:", rankingResponse.data.rankings.find(user => user.userId === currentUserId));
             } catch (err) {
                 setError("랭킹 데이터를 불러오는데 실패했습니다.");
                 console.error("랭킹 데이터 로드 실패:", err);
@@ -139,8 +126,9 @@ export const Ranking = () => {
             }
         };
 
-        // 로그인 상태와 관계없이 항상 랭킹 데이터 로드
-        loadRankingData();
+        if (auth?.isLoggedIn) {
+            loadRankingData();
+        }
     }, [auth?.isLoggedIn, currentUserId]);
 
     // 랭킹 메달 아이콘 반환
@@ -240,7 +228,7 @@ export const Ranking = () => {
                     <div
                         key={user.scoreId}
                         className={`p-6 hover:bg-gray-50 transition-colors cursor-pointer ${
-                            auth?.isLoggedIn && user.userId === currentUserId ? "bg-blue-50" : ""
+                            user.userId === currentUserId ? "bg-blue-50" : ""
                         }`}
                         onClick={() => handleUserClick(user)}
                     >
@@ -259,7 +247,7 @@ export const Ranking = () => {
                                 <div>
                                     <h3 className="text-lg font-semibold text-gray-900">
                                         {user.userId}
-                                        {auth?.isLoggedIn && user.userId === currentUserId && (
+                                        {user.userId === currentUserId && (
                                             <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
                                                 나
                                             </span>
@@ -293,9 +281,9 @@ export const Ranking = () => {
                     </div>
                 )}
 
-                {/* 내 랭킹 표시 - 로그인된 사용자만 표시 */}
-                {auth?.isLoggedIn && (currentUserRanking || myRankingInfo) && (
-                    <div className="p-6 bg-blue-50 border-t-2 border-blue-200 fixed bottom-0 left-85 right-85 rounded-lg">
+                {/* 내 랭킹 표시 - TOP 100에 있으면 currentUserRanking, 없으면 myRankingInfo 사용 */}
+                {(currentUserRanking || myRankingInfo) && (
+                    <div className="p-6 bg-blue-50 border-t-2 border-blue-200 fixed bottom-0 left-85 right-85">
                         <h3 className="text-lg font-semibold text-blue-800 mb-2">
                             내 랭킹
                         </h3>
@@ -346,8 +334,8 @@ export const Ranking = () => {
                     </div>
                 )}
 
-                {/* 내 랭킹 정보가 없는 경우 - 로그인된 사용자만 표시 */}
-                {auth?.isLoggedIn && !currentUserRanking && !myRankingInfo && currentUserId && (
+                {/* 내 랭킹 정보가 없는 경우 */}
+                {!currentUserRanking && !myRankingInfo && currentUserId && (
                     <div className="p-6 bg-gray-50 border-t-2 border-gray-200 text-center">
                         <div className="text-gray-500">
                             <div className="text-4xl mb-2">📊</div>
@@ -391,7 +379,7 @@ export const Ranking = () => {
                         <div>
                             <div className="text-xl font-semibold text-gray-900">
                                 {selectedUser.userId}
-                                {auth?.isLoggedIn && selectedUser.userId === currentUserId && (
+                                {selectedUser.userId === currentUserId && (
                                     <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
                                         본인
                                     </span>
@@ -455,7 +443,7 @@ export const Ranking = () => {
                     </div>
 
                     {/* 참여 중인 스터디/프로젝트 리스트 (현재 사용자인 경우만) */}
-                    {auth?.isLoggedIn && selectedUser.userId === currentUserId && currentUserId && (
+                    {selectedUser.userId === currentUserId && currentUserId && (
                         <div className="mt-6">
                             <div className="text-sm text-gray-600 mb-3">
                                 참여 중인 스터디/프로젝트

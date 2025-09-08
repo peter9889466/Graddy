@@ -205,7 +205,7 @@ new Thread(() -> {
 
 ```properties
 # application.properties
-fastapi.server.url=http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com:8000
+fastapi.server.url=http://localhost:8000
 ```
 
 ### 2. OpenAI API 설정

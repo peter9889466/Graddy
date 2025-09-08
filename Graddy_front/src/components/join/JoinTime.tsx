@@ -203,9 +203,7 @@ const JoinTime: React.FC<JoinTimeProps> = ({
             const soltEnd = toISOTime(customTimeSlot.endTime);
 
             // 📌 수정: Join2에서 전달받은 관심사 데이터 올바르게 처리
-            const interestsFromJoin2 = Array.isArray(interestData)
-  ? interestData
-  : interestData?.selectedInterests || [];
+            const interestsFromJoin2 = interestData?.selectedInterests || [];
 
             // 난이도 매핑
             const difficultyMapping: { [key: string]: number } = {
@@ -244,7 +242,7 @@ const JoinTime: React.FC<JoinTimeProps> = ({
 
             // API 호출
             const response = await axios.post(
-                "/api/join",
+                "http://localhost:8080/api/join",
                 requestBody,
                 {
                     headers: {

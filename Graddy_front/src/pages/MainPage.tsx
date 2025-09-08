@@ -247,7 +247,7 @@ const MainPage = () => {
 
             // 백엔드 서버 연결 확인
             const response = await fetch(
-                "/api/recommendation/studies?limit=3",
+                "http://localhost:8080/api/recommendation/studies?limit=3",
                 {
                     method: "GET",
                     headers: {
@@ -297,7 +297,7 @@ const MainPage = () => {
                 error.message === "Failed to fetch"
             ) {
                 errorMessage =
-                    "백엔드 서버에 연결할 수 없습니다. 서버가 에서 실행 중인지 확인해주세요.";
+                    "백엔드 서버에 연결할 수 없습니다. 서버가 http://localhost:8080에서 실행 중인지 확인해주세요.";
             } else if (error instanceof Error) {
                 errorMessage = error.message;
             }
@@ -317,7 +317,7 @@ const MainPage = () => {
             console.log("스터디 일정 조회 시작");
 
             const response = await fetch(
-                "/api/schedules/my/study",
+                "http://localhost:8080/api/schedules/my/study",
                 {
                     method: "GET",
                     headers: {
@@ -364,7 +364,7 @@ const MainPage = () => {
             console.log("개인 일정 조회 시작");
 
             const response = await fetch(
-                "/api/schedules/my",
+                "http://localhost:8080/api/schedules/my",
                 {
                     method: "GET",
                     headers: {
@@ -529,7 +529,7 @@ const MainPage = () => {
             const scheduleDateTime = new Date(`${selectedDate}T${time}:00`);
 
             const response = await fetch(
-                "/api/schedules/personal",
+                "http://localhost:8080/api/schedules/personal",
                 {
                     method: "POST",
                     headers: {
@@ -575,7 +575,7 @@ const MainPage = () => {
 
         try {
             const response = await fetch(
-                `/api/schedules/${id}`,
+                `http://localhost:8080/api/schedules/${id}`,
                 {
                     method: "DELETE",
                     headers: {
@@ -630,7 +630,7 @@ const MainPage = () => {
             });
 
             const response = await fetch(
-                `/api/schedules/${id}`,
+                `http://localhost:8080/api/schedules/${id}`,
                 {
                     method: "PUT",
                     headers: {

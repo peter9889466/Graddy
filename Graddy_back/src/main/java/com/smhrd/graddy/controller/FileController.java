@@ -35,7 +35,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/files")
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173", "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com"}, 
+@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"}, 
              methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS, RequestMethod.HEAD},
              allowedHeaders = "*", 
              allowCredentials = "true")
@@ -81,13 +81,10 @@ public class FileController implements InitializingBean {
               description = "과제 제출시 첨부할 파일을 업로드합니다.")
     public ResponseEntity<ApiResponse<Map<String, String>>> uploadAssignmentFile(
             @Parameter(description = "업로드할 파일")
-            @RequestParam("file") MultipartFile file,
-            HttpServletRequest request) {
+            @RequestParam("file") MultipartFile file) {
         
         try {
             log.info("과제 파일 업로드 요청: {} (스토리지 타입: {})", file.getOriginalFilename(), storageType);
-            log.info("요청 헤더 - Authorization: {}", request.getHeader("Authorization") != null ? "있음" : "없음");
-            log.info("요청 헤더 - Content-Type: {}", request.getHeader("Content-Type"));
             
             String fileUrl = fileService.uploadFile(file, "assignments");
             
@@ -115,13 +112,10 @@ public class FileController implements InitializingBean {
             @Parameter(description = "업로드할 파일")
             @RequestParam("file") MultipartFile file,
             @Parameter(description = "저장할 폴더명 (선택사항)")
-            @RequestParam(value = "folder", defaultValue = "general") String folder,
-            HttpServletRequest request) {
+            @RequestParam(value = "folder", defaultValue = "general") String folder) {
         
         try {
             log.info("파일 업로드 요청: {} -> {} (스토리지 타입: {})", file.getOriginalFilename(), folder, storageType);
-            log.info("요청 헤더 - Authorization: {}", request.getHeader("Authorization") != null ? "있음" : "없음");
-            log.info("요청 헤더 - Content-Type: {}", request.getHeader("Content-Type"));
             
             String fileUrl = fileService.uploadFile(file, folder);
             

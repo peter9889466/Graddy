@@ -13,7 +13,6 @@ export interface UserInterest {
 export interface MyPageResponse {
     nick: string; // 백엔드에서 nick 필드 사용
     gitUrl?: string; // 백엔드에서 gitUrl 필드 사용
-    imgUrl?: string; // 백엔드에서 imgUrl 필드 사용
     userScore: number;
     interests: string[]; // 백엔드에서 문자열 배열로 반환
     userRefer?: string; // 백엔드에서 userRefer 필드 사용
@@ -29,18 +28,14 @@ export interface UpdatePageInfo {
     availableTime: string;
 }
 
-
-// 회원정보 수정 요청 타입 - 백엔드 API 스펙에 맞게 수정
+// 회원정보 수정 요청 타입
 export interface UserProfileUpdateRequest {
     newPassword?: string;
     newNickname?: string;
     newTel?: string;
-    availableDays?: number[];    // 숫자 배열로 변경
-    soltStartHour?: number;      // 시작 시간 (숫자)
-    soltEndHour?: number;        // 종료 시간 (숫자)
 }
 
-// 회원정보 수정 응답 타입 - 백엔드 응답 구조에 맞게 수정
+// 회원정보 수정 응답 타입
 export interface UserProfileUpdateResponse {
     message: string;
     updatedFields: Record<string, string>;
@@ -119,13 +114,4 @@ export interface UserGitInfoUpdateResponse {
 // Git 정보 수정
 export const updateUserGitInfo = (data: UserGitInfoUpdateRequest): Promise<AxiosResponse<ApiResponse<UserGitInfoUpdateResponse>>> => {
     return apiPut<UserGitInfoUpdateResponse>('/me/git-info', data);
-};
-
-// 프로필 이미지 URL 저장/수정
-export interface UserImageUpdateRequest { 
-    imgUrl: string; 
-}
-
-export const updateUserProfileImage = (data: UserImageUpdateRequest): Promise<AxiosResponse<ApiResponse<{ imgUrl: string }>>> => {
-    return apiPut<{ imgUrl: string }>('/me/profile-image', data);
 };

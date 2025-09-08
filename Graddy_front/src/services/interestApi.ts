@@ -26,7 +26,7 @@ export interface InterestResponse {
 export class InterestApiService {
     // JWT 토큰을 자동으로 포함하지 않는 axios 인스턴스 생성
     private static interestsAxiosInstance = axios.create({
-        baseURL: import.meta.env.VITE_API_BASE_URL || '',
+        baseURL: 'http://localhost:8080',
         timeout: 10000,
         headers: {
             'Content-Type': 'application/json',
@@ -38,7 +38,7 @@ export class InterestApiService {
         try {
             console.log('관심사 데이터 조회 시작');
 
-            const response = await this.interestsAxiosInstance.get('/interests');
+            const response = await this.interestsAxiosInstance.get('/api/interests');
             console.log('관심사 API 응답:', response.data);
 
             if (!response.data || !response.data.data) {

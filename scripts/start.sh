@@ -14,9 +14,20 @@ echo "### Deployment script started ###"
 # CodeDeploy에 의해 파일들이 /home/ubuntu/app에 위치하게 됩니다.
 cd /home/ubuntu/app
 
-# --- 2. Docker Hub ID 설정 ---
-# Docker Hub ID를 직접 설정 (GitHub Actions 없이도 배포 가능하도록 수정)
-DOCKER_HUB_ID="peter4855"
+# --- 2. 배포 환경변수 파일 로드 ---
+# GitHub Actions에서 생성한 deploy.env 파일을 로드하여 DOCKER_HUB_ID를 export 합니다.
+if [ -f ./deploy.env ]; then
+    echo "Loading environment variables from deploy.env..."
+    export $(cat ./deploy.env | xargs)
+else
+    echo "> deploy.env file not found. Exiting."
+    exit 1
+fi
+
+if [ -z "$DOCKER_HUB_ID" ]; then
+    echo "> DOCKER_HUB_ID is not set. Exiting."
+    exit 1
+fi
 echo "Docker Hub ID is set to: ${DOCKER_HUB_ID}"
 
 # --- 3. AWS 리전(Region) 설정 ---
@@ -44,7 +55,7 @@ echo ".env file created successfully."
 
 # --- 5. Docker Compose 파일에서 플레이스홀더를 실제 값으로 치환 ---
 echo "Updating docker-compose.yml with actual Docker Hub username..."
-sed -i "s/peter4855/${DOCKER_HUB_ID}/g" docker-compose.yml
+sed -i "s/DOCKER_HUB_USERNAME_PLACEHOLDER/${DOCKER_HUB_ID}/g" docker-compose.yml
 
 # --- 6. Docker Compose를 사용하여 애플리케이션 실행 ---
 echo "Stopping existing services using docker-compose down..."

@@ -94,11 +94,6 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [isLoadingMember, setIsLoadingMember] = useState(false);
 
-    // 탭 변경 핸들러
-    const handleTabChange = (tab: string) => {
-        onTabChange(tab);
-    };
-
     const sideMenuItems: SideMenuItem[] = isProject 
         ? [
             { name: "프로젝트 메인" },
@@ -119,7 +114,7 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
             const token = localStorage.getItem("userToken");
 
             const response = await axios.get(
-                `/api/user/info/${userId}`,
+                `http://localhost:8080/api/user/info/${userId}`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -170,7 +165,7 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
             const token = localStorage.getItem("userToken");
 
             const response = await axios.get<MemberDetailResponse>(
-                `/api/api/study/members/${studyProjectId}/${memberId}`,
+                `http://localhost:8080/api/api/study/members/${studyProjectId}/${memberId}`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -256,7 +251,7 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
                                 alert('스터디원만 확인할 수 있습니다.');
                                 return;
                             }
-                            handleTabChange(item.name);
+                            onTabChange(item.name);
                         };
 
                         return (

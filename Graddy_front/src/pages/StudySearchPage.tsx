@@ -136,27 +136,15 @@ export const StudySearchPage = () => {
         // 백엔드 데이터를 프론트엔드 형식으로 변환
         const convertedStudies = studiesProjects.map((study) => {
             // ENUM 값에 따른 모집 상태 매핑
-            const getRecruitmentStatus = (isRecruiting: string, currentMembers: number, studyTotal: number) => {
-                console.log(`스터디 ID ${study.studyProjectId}: isRecruiting = ${isRecruiting}, currentMembers = ${currentMembers}, studyTotal = ${studyTotal}`);
-                
-                // 먼저 isRecruiting 값을 확인
+            const getRecruitmentStatus = (isRecruiting: string) => {
                 switch (isRecruiting) {
-                    case "end":
-                        console.log(`스터디 ID ${study.studyProjectId}: 종료 상태로 인식`);
-                        return "스터디 종료";
-                    case "complete":
-                        console.log(`스터디 ID ${study.studyProjectId}: 모집 완료 상태로 인식`);
-                        return "모집 완료";
                     case "recruitment":
-                        // 현재 인원이 총 인원과 같으면 모집완료
-                        if (currentMembers >= studyTotal) {
-                            console.log(`스터디 ID ${study.studyProjectId}: 인원 충족으로 모집 완료`);
-                            return "모집 완료";
-                        }
-                        console.log(`스터디 ID ${study.studyProjectId}: 모집중 상태로 인식`);
                         return "모집중";
+                    case "complete":
+                        return "모집 완료";
+                    case "end":
+                        return "스터디 종료";
                     default:
-                        console.log(`스터디 ID ${study.studyProjectId}: 알 수 없는 상태 ${isRecruiting}, 기본값으로 모집중 설정`);
                         return "모집중";
                 }
             };
@@ -180,7 +168,7 @@ export const StudySearchPage = () => {
                 return study.userId;
             };
 
-            const convertedStudy = {
+            return {
                 studyId: study.studyProjectId,
                 studyName: study.studyProjectName,
                 studyTitle: study.studyProjectTitle,
@@ -193,40 +181,28 @@ export const StudySearchPage = () => {
                 soltStart: study.soltStart,
                 soltEnd: study.soltEnd,
                 isRecruiting: getIsRecruiting(study.isRecruiting),
-                recruitmentStatus: getRecruitmentStatus(
-                    study.isRecruiting, 
-                    study.currentMemberCount || 0, 
-                    study.studyProjectTotal
-                ),
+                recruitmentStatus: getRecruitmentStatus(study.isRecruiting),
                 type: study.typeCheck === "study" ? "스터디" : "프로젝트",
                 tags: study.tagNames || [],
-                leader: getLeaderNickname(),
+                leader: getLeaderNickname(), // 닉네임 우선, 없으면 userId
                 currentMembers: study.currentMemberCount || 0,
                 createdAt: study.createdAt,
                 updatedAt: study.createdAt,
             };
-
-            console.log(`변환된 스터디 ID ${study.studyProjectId}:`, {
-                name: convertedStudy.studyName,
-                recruitmentStatus: convertedStudy.recruitmentStatus,
-                originalIsRecruiting: study.isRecruiting
-            });
-
-            return convertedStudy;
         });
 
         let filtered = convertedStudies;
 
-        console.log("=== 필터링 시작 ===");
-        console.log("전체 스터디 수:", convertedStudies.length);
-        console.log("선택된 상태:", selectedStatus);
-        
-        // 각 스터디의 상태를 로그로 출력
-        convertedStudies.forEach(study => {
-            console.log(`스터디 "${study.studyName}": ${study.recruitmentStatus}`);
-        });
-
         // 모집 상태 필터링
+        console.log("선택된 상태:", selectedStatus);
+        console.log(
+            "필터링 전 데이터:",
+            convertedStudies.map((s) => ({
+                title: s.studyTitle,
+                status: s.recruitmentStatus,
+            }))
+        );
+
         if (selectedStatus === "모집중") {
             filtered = filtered.filter(
                 (study) => study.recruitmentStatus === "모집중"
@@ -243,12 +219,11 @@ export const StudySearchPage = () => {
             );
             console.log("종료됨 필터 적용 후:", filtered.length);
         } else {
-            // "전체" 선택 시: 종료된 것은 제외
-            const beforeFilter = filtered.length;
+            // "전체" 선택 시: 모집중, 모집완료만 표시 (종료된 것은 제외)
             filtered = filtered.filter(
                 (study) => study.recruitmentStatus !== "스터디 종료"
             );
-            console.log(`전체 필터 적용: ${beforeFilter} -> ${filtered.length} (종료된 스터디 ${beforeFilter - filtered.length}개 제외)`);
+            console.log("전체 필터 적용 후:", filtered.length);
         }
 
         // 타입 필터링 (스터디/프로젝트)
@@ -286,9 +261,6 @@ export const StudySearchPage = () => {
                 }
             });
         }
-
-        console.log("최종 필터링 결과:", filtered.length);
-        console.log("=== 필터링 종료 ===");
 
         return filtered;
     }, [
@@ -664,7 +636,7 @@ export const StudySearchPage = () => {
                                 >
                                     {study.studyTitle}
                                 </div>
- 
+
                                 <div className="text-sm text-gray-600 mb-2">
                                     {study.type === "프로젝트"
                                         ? "프로젝트"

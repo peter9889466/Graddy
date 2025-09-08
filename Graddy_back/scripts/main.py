@@ -189,34 +189,24 @@ def read_local_file(file_url: str) -> str:
                     else:
                         # 바이너리 파일인 경우
                         file_size = len(response.content)
-                        print(f"📦 [DEBUG] 바이너리 파일 감지: {file_size} bytes")
+                        print(f"📄 [DEBUG] 바이너리 파일 감지: {file_size} bytes")
                         
-                        # 파일 확장자 확인
-                        file_extension = file_url.split('.')[-1].lower() if '.' in file_url else "unknown"
-                        print(f"📎 [DEBUG] 파일 확장자: {file_extension}")
-                        
-                        # 이미지나 압축 파일 등은 텍스트로 읽을 수 없음
-                        if file_extension in ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'zip', 'rar', '7z', 'tar', 'gz']:
-                            return f"바이너리 파일입니다 (크기: {file_size} bytes, 확장자: {file_extension}). 브라우저에서 다운로드하여 확인하세요."
+                        # 파일 확장자에 따른 처리
+                        if file_url.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.pdf', '.zip', '.rar')):
+                            return f"바이너리 파일입니다 (크기: {file_size} bytes). 브라우저에서 다운로드하여 확인하세요."
                         else:
-                            # 텍스트로 해석 시도 (코드 파일 등)
+                            # 텍스트로 해석 시도
                             try:
                                 content = response.content.decode('utf-8', errors='ignore')
                                 print(f"📄 [DEBUG] 바이너리 파일을 텍스트로 해석: {len(content)} characters")
-                                print(f"📄 [DEBUG] 파일 내용 미리보기 (처음 200자): {content[:200]}")
                                 
-                                # 의미있는 텍스트가 있는지 확인
-                                if content.strip():
-                                    if len(content) > 10000:
-                                        content = content[:10000] + "... (내용이 길어 일부만 표시)"
-                                        print(f"✂️ [DEBUG] 파일 내용이 길어 일부만 처리")
-                                    
-                                    return content
-                                else:
-                                    return f"파일이 비어있거나 텍스트로 읽을 수 없습니다 (크기: {file_size} bytes, 확장자: {file_extension})"
+                                if len(content) > 10000:
+                                    content = content[:10000] + "... (내용이 길어 일부만 표시)"
+                                
+                                return content
                             except Exception as decode_e:
                                 print(f"💥 [DEBUG] 텍스트 디코딩 실패: {decode_e}")
-                                return f"파일을 텍스트로 읽을 수 없습니다 (크기: {file_size} bytes, 확장자: {file_extension})"
+                                return f"파일을 텍스트로 읽을 수 없습니다 (크기: {file_size} bytes)"
                 
                 elif response.status_code == 404:
                     print(f"❌ [DEBUG] 파일을 찾을 수 없음 (404)")
@@ -816,7 +806,7 @@ async def generate_feedback(request: FeedbackRequest):
                 comment = "과제 제출에 대한 상세한 피드백이 생성되었습니다."
         if not detailed_feedback:
             detailed_feedback = feedback_text
-        
+
         # 점수가 존재하지 않거나 파싱 실패 시, 과제-제출물 관련도 기반으로 점수 산정
         if score is None:
             score = derive_score_from_relevance(
@@ -884,22 +874,8 @@ async def generate_feedback(request: FeedbackRequest):
         else:
             relevance_threshold = 0.06
             length_threshold = 0.05
-
-        # 의미 없는 제출물(무응답/짧은 텍스트) 감지 시 즉시 불일치 처리 강화
-        low_substance = _is_low_substance_text(request.submission_content or "")
-        abusive = _is_abusive_or_offensive(request.submission_content or "")
-        if low_substance:
-            print("⚠️ [CRITICAL] 저품질/무응답 제출물 감지")
-            relevance = 0.0
-            length_ratio = 0.0
-
-        if abusive:
-            print("⚠️ [CRITICAL] 공격적/부적절 제출물 감지")
-            relevance = 0.0
-            length_ratio = 0.0
-
-        computed_mismatch = (relevance < relevance_threshold) and (length_ratio < length_threshold)
-        mismatch = computed_mismatch or low_substance or abusive
+        
+        mismatch = (relevance < relevance_threshold) and (length_ratio < length_threshold)
         print(f"🎭 [CRITICAL] 불일치 여부: {mismatch} (관련도: {relevance:.3f} >= {relevance_threshold}, 길이비율: {length_ratio:.3f} >= {length_threshold})")
 
         # 불일치 감지 조건을 더 엄격하게 설정
@@ -910,17 +886,8 @@ async def generate_feedback(request: FeedbackRequest):
             print(f"⚠️ [CRITICAL]   - 코드 제출물: {is_code_submission}")
             print(f"⚠️ [CRITICAL]   - 현재 점수: {score}")
             
-            # 1. 저품질/무응답 제출물은 즉시 최저점 부여
-            if abusive:
-                old_score = score
-                score = -5
-                print(f"⚠️ [CRITICAL] 공격적 제출물: 점수 조정 {old_score} -> {score}")
-            elif low_substance:
-                old_score = score
-                score = -5
-                print(f"⚠️ [CRITICAL] 저품질 제출물: 점수 조정 {old_score} -> {score}")
-            # 2. 점수가 아예 없으면 관련도 기반으로 산정
-            elif score is None:
+            # 1. 점수가 아예 없으면 관련도 기반으로 산정
+            if score is None:
                 score = derive_score_from_relevance(
                     assignment_title=request.assignment_title,
                     assignment_description=request.assignment_description,
@@ -944,17 +911,9 @@ async def generate_feedback(request: FeedbackRequest):
             else:
                 print(f"✅ [CRITICAL] 첨부파일 읽기 성공으로 점수 유지: {score}")
 
-            # 불일치에서는 높은 점수 방지 (최대 1점)
-            if score is not None and score > -3 and (low_substance or abusive):
-                print(f"⚠️ [CRITICAL] 저품질/공격적 제출물 점수 하한 적용: {score} -> -5")
-                score = -5
-            elif score is not None and score > 1 and not (low_substance or abusive):
-                print(f"⚠️ [CRITICAL] 불일치 고득점 제한: {score} -> 1")
-                score = 1
-
-            # 불일치 메시지를 더 명확하게
-            if (not file_reading_success and score < 3) or low_substance or abusive:
-                mismatch_comment = "제출된 내용이 과제 요구사항과 일치하지 않습니다. 요구사항을 확인하고 다시 제출해주세요."
+            # 불일치 메시지를 덜 공격적으로 수정
+            if not file_reading_success and score < 3:
+                mismatch_comment = "제출된 내용이 과제 요구사항과 다소 다를 수 있습니다. 추가 설명이나 체크를 다시 해주세요."
                 mismatch_detail = (
                     f"제출물 검토 결과:\n\n"
                     f"- 과제 제목: {request.assignment_title}\n"
@@ -1102,61 +1061,6 @@ def _enhanced_relevance_score(assignment_title: str, assignment_desc: str, submi
         jaccard_sim += length_bonus
     
     return min(1.0, jaccard_sim)  # 1.0을 초과하지 않도록 제한
-
-def _is_low_substance_text(text: str) -> bool:
-    """
-    의미 있는 내용이 거의 없는 제출물 판단:
-    - 아주 짧은 길이/토큰 수
-    - 회피/무응답 표현(예: "잘 모르겠습니다", "모르겠", "idk", "no idea", "pass", "skip")
-    - 특수문자/반복문자만 있는 경우
-    """
-    try:
-        import re
-        if not text:
-            return True
-        normalized = (text or "").strip().lower()
-        # 아주 짧은 경우
-        if len(normalized) < 15 and len(normalized.split()) < 4:
-            return True
-        # 회피/무응답 패턴
-        low_phrases = [
-            "잘 모르", "모르겠", "몰라요", "모름", "모르겟", "모르겠어요",
-            "idk", "i don't know", "dont know", "no idea", "pass", "skip",
-            "???", "없음", "미제출"
-        ]
-        if any(p in normalized for p in low_phrases):
-            return True
-        # 특수문자/숫자만 또는 반복문자 위주
-        if re.fullmatch(r"[\W_\d\s]+", normalized or "") is not None:
-            return True
-        # 반복 문자 (예: ㅋㅋㅋㅋ, ..... 등)
-        if len(set(normalized)) <= 3 and len(normalized) >= 3:
-            return True
-        return False
-    except Exception:
-        return False
-
-def _is_abusive_or_offensive(text: str) -> bool:
-    """
-    비속어/모욕/공격적 표현 탐지(간단 휴리스틱).
-    한국어/영문 비속어 대표 패턴과 '손가락' 표현(ㅗ 반복) 등을 포함.
-    """
-    if not text:
-        return False
-    lowered = (text or "").lower()
-    offensive_keywords = [
-        "ㅗㅗ", "씨발", "ㅅㅂ", "ㅆㅂ", "좆", "개새", "병신", "염병", "지랄",
-        "fuck", "shit", "bitch", "bastard", "asshole"
-    ]
-    try:
-        if any(k in lowered for k in offensive_keywords):
-            return True
-        # 'ㅗ'가 과도하게 반복되는 경우
-        if lowered.count('ㅗ') >= 2:
-            return True
-    except Exception:
-        return False
-    return False
 
 def derive_score_from_relevance(assignment_title: str, assignment_description: str, submission_content: str) -> int:
     """
