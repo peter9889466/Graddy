@@ -93,6 +93,21 @@ const Community: React.FC<CommunityProps> = ({
     };
 
 
+    // 디버깅을 위한 상세 로그
+    console.log("=== 멤버십 검증 디버깅 ===");
+    console.log("현재 사용자 ID:", currentUserId);
+    console.log("스터디 멤버 배열:", members);
+    console.log("멤버 배열 상세 정보:");
+    members.forEach((member, index) => {
+        console.log(`  멤버 ${index}:`, {
+            memberId: member.memberId,
+            userId: member.userId,
+            nick: member.nick,
+            memberType: member.memberType,
+            memberStatus: member.memberStatus
+        });
+    });
+
     const isStudyMember = members.some(
         (member) => member.userId === currentUserId
         );
@@ -103,9 +118,7 @@ const Community: React.FC<CommunityProps> = ({
         (member) => member.userId === currentUserId && member.memberStatus === 'approved'
     );
     console.log("승인된 스터디 멤버 여부:", isApprovedMember);
-        
-    console.log("스터디 멤버 배열:", members);
-    console.log("현재 사용자 ID:", currentUserId);
+    console.log("=== 멤버십 검증 디버깅 끝 ===");
 
         
     const handleChangeComment = (postId: string, value: string) => {
