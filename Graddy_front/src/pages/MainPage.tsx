@@ -244,6 +244,7 @@ const MainPage = () => {
 
         try {
             console.log("추천 스터디 API 호출 시작");
+            console.log("token:", token);
 
             // 백엔드 서버 연결 확인
             const response = await fetch(
