@@ -247,7 +247,7 @@ const MainPage = () => {
 
             // 백엔드 서버 연결 확인
             const response = await fetch(
-                "http://localhost:8080/api/recommendation/studies?limit=3",
+                "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/recommendation/studies?limit=3",
                 {
                     method: "GET",
                     headers: {

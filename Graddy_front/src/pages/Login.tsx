@@ -63,9 +63,7 @@ const Login: React.FC = () => {
         setIsLoading(true);
 
         try {
-            const API_BASE_URL = window.location.hostname === 'localhost' 
-                ? 'http://localhost:8080/api'
-                : 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api';
+            const API_BASE_URL = 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api';
                 
             const response = await axios.post(
                 `${API_BASE_URL}/auth/login`,

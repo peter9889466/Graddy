@@ -1,9 +1,7 @@
 import axios, { AxiosResponse } from 'axios';
 
 // API 기본 설정
-const API_BASE_URL = window.location.hostname === 'localhost' 
-    ? 'http://localhost:8080/api'
-    : 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api';
+const API_BASE_URL = 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api';
 
 const api = axios.create({
     baseURL: API_BASE_URL,
