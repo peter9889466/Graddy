@@ -52,7 +52,7 @@ const Schedule: React.FC<ScheduleProps> = ({
     // 빈 배열로 시작 (백엔드에서 데이터 로드 예정)
     const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    
+
     // AI 과제 생성 관련 상태
     const [isGeneratingAI, setIsGeneratingAI] = useState(false);
     const [aiGeneratedAssignment, setAiGeneratedAssignment] = useState<any>(null);
@@ -83,20 +83,20 @@ const Schedule: React.FC<ScheduleProps> = ({
         setIsLoading(true);
         try {
             console.log('과제 목록 로드 시도 - studyProjectId:', studyProjectId);
-            
+
             // DB에서 과제 목록 가져오기
             const response = await apiGet(`/assignments/study-project/${studyProjectId}`);
             console.log('과제 목록 응답:', response);
-            
+
             // API 응답 구조 확인 - response.data.data 구조 처리
             let assignmentsData = null;
-            
+
             if (response?.data?.data && Array.isArray(response.data.data)) {
                 assignmentsData = response.data.data;
             } else if (response?.data && Array.isArray(response.data)) {
                 assignmentsData = response.data;
             }
-            
+
             if (assignmentsData) {
                 const assignments = assignmentsData.map((assignment: any) => ({
                     id: assignment.assignmentId.toString(),
@@ -108,9 +108,9 @@ const Schedule: React.FC<ScheduleProps> = ({
                     createdAt: assignment.createdAt,
                     isExpanded: false
                 }));
-                
+
                 console.log('변환된 과제 목록:', assignments);
-                
+
                 // 기존 일정은 유지하고 과제만 업데이트
                 setScheduleItems(prevItems => {
                     const existingSchedules = prevItems.filter(item => item.type === 'schedule');
@@ -134,14 +134,14 @@ const Schedule: React.FC<ScheduleProps> = ({
     const loadSchedules = async () => {
         try {
             console.log('일정 목록 로드 시도 - studyProjectId:', studyProjectId);
-            
+
             // DB에서 일정 목록 가져오기 (정확한 엔드포인트)
             const response = await apiGet(`/schedules/study/${studyProjectId}`);
             console.log('일정 목록 응답:', response);
-            
+
             // 응답이 직접 배열인 경우와 data 프로퍼티에 배열이 있는 경우 모두 처리
             const scheduleData = response?.data || response;
-            
+
             if (scheduleData && Array.isArray(scheduleData)) {
                 const schedules = scheduleData.map((schedule: any) => ({
                     id: schedule.schId.toString(),
@@ -153,7 +153,7 @@ const Schedule: React.FC<ScheduleProps> = ({
                     createdAt: schedule.schTime,
                     isExpanded: false
                 }));
-                
+
                 // 기존 과제는 유지하고 일정만 업데이트
                 setScheduleItems(prevItems => {
                     const existingAssignments = prevItems.filter(item => item.type === 'assignment');
@@ -172,7 +172,7 @@ const Schedule: React.FC<ScheduleProps> = ({
         console.log('newItem:', newItem);
         console.log('activeTab:', activeTab);
         console.log('aiGeneratedAssignment:', aiGeneratedAssignment);
-        
+
         if (newItem.title && newItem.date) {
             try {
                 if (activeTab === 'assignment') {
@@ -192,7 +192,7 @@ const Schedule: React.FC<ScheduleProps> = ({
                     // AI 생성된 과제인지 확인하고 중복 생성 방지
                     if (aiGeneratedAssignment) {
                         console.log('AI 생성된 과제 처리 중...');
-                        
+
                         // AI 과제는 이미 생성된 상태이므로 추가 생성하지 않음
                         if (isAIAssignmentSaved) {
                             console.log('AI 과제가 이미 저장됨 - 중복 생성 방지');
@@ -200,7 +200,7 @@ const Schedule: React.FC<ScheduleProps> = ({
                             setIsAddingAssignment(false);
                             return;
                         }
-                        
+
                         console.log('AI 생성된 과제를 일반 과제로 저장 진행...');
                     } else {
                         console.log('일반 수동 과제 생성 중...');
@@ -210,7 +210,7 @@ const Schedule: React.FC<ScheduleProps> = ({
                     const assignmentData = {
                         studyProjectId: studyProjectId,
                         memberId: memberId,
-                title: newItem.title,
+                        title: newItem.title,
                         description: newItem.description || '',
                         deadline: new Date(newItem.date).toISOString(),
                         fileUrl: selectedFile ? selectedFile.name : '', // 임시로 파일명 저장
@@ -218,25 +218,25 @@ const Schedule: React.FC<ScheduleProps> = ({
                     };
 
                     console.log('과제 추가 데이터:', assignmentData);
-                    
+
                     try {
-                        const response = await apiPost('/assignments/ai/generate', assignmentData);
+                        const response = await apiPost('/assignments', assignmentData);
                         console.log('과제 추가 응답:', response);
 
                         // 응답 구조 확인 및 처리
                         const responseData = response?.data || response;
                         console.log('response 전체:', response);
                         console.log('responseData:', responseData);
-                        
+
                         if (responseData) {
                             alert('과제가 추가되었습니다!');
-                            
+
                             // AI 생성된 과제였다면 저장 상태 업데이트
                             if (aiGeneratedAssignment) {
                                 setIsAIAssignmentSaved(true);
                                 console.log('AI 과제 저장 완료 - 상태 업데이트됨');
                             }
-                            
+
                             // 폼 및 AI 상태 완전 초기화
                             setNewItem({ title: '', description: '', date: '', time: '' });
                             setSelectedFile(null);
@@ -244,15 +244,15 @@ const Schedule: React.FC<ScheduleProps> = ({
                             setShowAIPreview(false);
                             setAiGeneratedAssignment(null);
                             setIsAIAssignmentSaved(false);
-                            
+
                             // 과제 목록 다시 로드
                             await loadAssignments();
-                            
+
                             // 잠시 대기 후 스터디 메인으로 이동
                             setTimeout(() => {
                                 navigate(`/study/${studyProjectId}`);
                             }, 1000);
-                            
+
                             return; // 성공 시 여기서 종료
                         } else {
                             throw new Error('응답 데이터가 없습니다');
@@ -274,7 +274,7 @@ const Schedule: React.FC<ScheduleProps> = ({
                     };
 
                     console.log('일정 추가 데이터:', scheduleData);
-                    
+
                     try {
                         const response = await apiPost('/schedules/study', scheduleData);
                         console.log('일정 추가 응답:', response);
@@ -282,15 +282,15 @@ const Schedule: React.FC<ScheduleProps> = ({
                         const responseData = response?.data || response;
                         if (responseData) {
                             alert('일정이 추가되었습니다!');
-                            
+
                             // 폼 초기화
                             setNewItem({ title: '', description: '', date: '', time: '' });
                             setSelectedFile(null);
                             setIsAdding(false);
-                            
+
                             // 일정 목록 다시 로드
                             await loadSchedules();
-                            
+
                             return; // 성공 시 여기서 종료
                         } else {
                             throw new Error('응답 데이터가 없습니다');
@@ -312,85 +312,85 @@ const Schedule: React.FC<ScheduleProps> = ({
 
     // const handleEditItem
     // 과제 수정을 위한 상태 추가 (기존 일정 수정 상태와 함께)
-const [editingAssignment, setEditingAssignment] = useState<string | null>(null);
-const [editingAssignmentData, setEditingAssignmentData] = useState({
-    title: '',
-    description: '',
-    date: '',
-    fileUrl: ''
-});
-
-// 과제 수정 시작 함수
-const handleEditAssignment = (item: ScheduleItem) => {
-    setEditingAssignment(item.id);
-    setEditingAssignmentData({
-        title: item.title,
-        description: item.description || '',
-        date: item.date,
-        fileUrl: item.fileUrl || ''
+    const [editingAssignment, setEditingAssignment] = useState<string | null>(null);
+    const [editingAssignmentData, setEditingAssignmentData] = useState({
+        title: '',
+        description: '',
+        date: '',
+        fileUrl: ''
     });
-};
 
-// 과제 수정 완료 함수
-const handleUpdateAssignment = async (assignmentId: string) => {
-    if (!editingAssignmentData.title || !editingAssignmentData.date) {
-        alert('제목과 마감일을 입력해주세요.');
-        return;
-    }
+    // 과제 수정 시작 함수
+    const handleEditAssignment = (item: ScheduleItem) => {
+        setEditingAssignment(item.id);
+        setEditingAssignmentData({
+            title: item.title,
+            description: item.description || '',
+            date: item.date,
+            fileUrl: item.fileUrl || ''
+        });
+    };
 
-    // 마감일 유효성 검사
-    const selectedDate = new Date(editingAssignmentData.date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    if (selectedDate < today) {
-        alert('과제 마감일은 오늘 이후로 설정해주세요.');
-        return;
-    }
-
-    try {
-        const updateData = {
-            title: editingAssignmentData.title,
-            description: editingAssignmentData.description,
-            deadline: new Date(editingAssignmentData.date).toISOString(),
-            fileUrl: editingAssignmentData.fileUrl
-        };
-
-        console.log('과제 수정 데이터:', updateData);
-        const response = await apiPut(`/assignments/${assignmentId}`, updateData);
-        console.log('과제 수정 응답:', response);
-
-        const responseData = response?.data || response;
-        if (responseData) {
-            alert('과제가 성공적으로 수정되었습니다.');
-            
-            // 수정 모드 종료
-            setEditingAssignment(null);
-            setEditingAssignmentData({ title: '', description: '', date: '', fileUrl: '' });
-            
-            // 과제 목록 다시 로드
-            await loadAssignments();
-        } else {
-            throw new Error('과제 수정에 실패했습니다.');
+    // 과제 수정 완료 함수
+    const handleUpdateAssignment = async (assignmentId: string) => {
+        if (!editingAssignmentData.title || !editingAssignmentData.date) {
+            alert('제목과 마감일을 입력해주세요.');
+            return;
         }
-        
-    } catch (error) {
-        console.error('과제 수정 중 오류 발생:', error);
-        const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
-        alert(`과제 수정 실패: ${errorMessage}`);
-    }
-};
 
-// 과제 수정 취소 함수
-const handleCancelAssignmentEdit = () => {
-    setEditingAssignment(null);
-    setEditingAssignmentData({ title: '', description: '', date: '', fileUrl: '' });
-};
+        // 마감일 유효성 검사
+        const selectedDate = new Date(editingAssignmentData.date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (selectedDate < today) {
+            alert('과제 마감일은 오늘 이후로 설정해주세요.');
+            return;
+        }
+
+        try {
+            const updateData = {
+                title: editingAssignmentData.title,
+                description: editingAssignmentData.description,
+                deadline: new Date(editingAssignmentData.date).toISOString(),
+                fileUrl: editingAssignmentData.fileUrl
+            };
+
+            console.log('과제 수정 데이터:', updateData);
+            const response = await apiPut(`/assignments/${assignmentId}`, updateData);
+            console.log('과제 수정 응답:', response);
+
+            const responseData = response?.data || response;
+            if (responseData) {
+                alert('과제가 성공적으로 수정되었습니다.');
+
+                // 수정 모드 종료
+                setEditingAssignment(null);
+                setEditingAssignmentData({ title: '', description: '', date: '', fileUrl: '' });
+
+                // 과제 목록 다시 로드
+                await loadAssignments();
+            } else {
+                throw new Error('과제 수정에 실패했습니다.');
+            }
+
+        } catch (error) {
+            console.error('과제 수정 중 오류 발생:', error);
+            const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
+            alert(`과제 수정 실패: ${errorMessage}`);
+        }
+    };
+
+    // 과제 수정 취소 함수
+    const handleCancelAssignmentEdit = () => {
+        setEditingAssignment(null);
+        setEditingAssignmentData({ title: '', description: '', date: '', fileUrl: '' });
+    };
 
     const handleDeleteItem = async (id: string, type: 'assignment' | 'schedule') => {
         // 확인 창 띄우기
         const isConfirmed = window.confirm('정말 삭제하시겠습니까?');
-        
+
         if (!isConfirmed) {
             return;
         }
@@ -409,7 +409,7 @@ const handleCancelAssignmentEdit = () => {
                 }
             } else {
                 console.log('일정 삭제 요청 - schId:', id);
-                
+
                 try {
                     await apiDelete(`/schedules/${id}`);
                     console.log('일정 삭제 성공');
@@ -438,7 +438,7 @@ const handleCancelAssignmentEdit = () => {
     };
 
     const handleEditSchedule = (item: ScheduleItem) => {
-        
+
         setEditingSchedule(item.id);
         setEditingData({
             title: item.title,
@@ -467,14 +467,14 @@ const handleCancelAssignmentEdit = () => {
 
             // PUT 요청은 일반적으로 성공 시 수정된 데이터를 반환
             alert('일정이 성공적으로 수정되었습니다.');
-            
+
             // 수정 모드 종료
             setEditingSchedule(null);
             setEditingData({ title: '', date: '', time: '' });
-            
+
             // 일정 목록 다시 로드
             await loadSchedules();
-            
+
         } catch (error) {
             console.error('일정 수정 실패:', error);
             alert('일정 수정에 실패했습니다. 다시 시도해주세요.');
@@ -488,7 +488,7 @@ const handleCancelAssignmentEdit = () => {
 
     const handleGenerateAIAssignment = async () => {
         console.log('AI 과제 생성 함수 호출됨 - 백엔드 API 연동 모드');
-        
+
         // 이미 AI 과제가 생성되어 있고 저장되지 않은 상태인지 확인
         if (showAIPreview && aiGeneratedAssignment && !isAIAssignmentSaved) {
             const confirmRegenerate = window.confirm('이미 생성된 AI 과제가 있습니다. 새로 생성하면 기존 내용이 사라집니다. 계속하시겠습니까?');
@@ -496,24 +496,24 @@ const handleCancelAssignmentEdit = () => {
                 return;
             }
         }
-        
+
         setIsGeneratingAI(true);
-        
+
         try {
             console.log('백엔드 AI 과제 생성 API 호출 중...');
-            
+
             // 백엔드 AI 과제 생성 API 호출
             const requestData = {
                 studyProjectId: studyProjectId,
                 assignmentType: "과제", // 기본값으로 "과제" 설정
                 deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7일 후
             };
-            
+
             console.log('AI 과제 생성 요청 데이터:', requestData);
-            
+
             const response = await apiPost('/assignments/ai/generate', requestData);
             console.log('AI 과제 생성 API 응답:', response);
-            
+
             // 응답 데이터 처리
             const responseData = response?.data?.data || response?.data || response;
             if (responseData && responseData.title && responseData.title !== "string") {
@@ -530,13 +530,13 @@ const handleCancelAssignmentEdit = () => {
                     fileUrl: responseData.fileUrl,
                     createdAt: responseData.createdAt
                 };
-                
+
                 console.log('AI 과제 데이터 생성 완료:', aiAssignmentData);
-                
+
                 // 생성된 데이터를 상태에 저장
                 setAiGeneratedAssignment(aiAssignmentData);
                 setShowAIPreview(true);
-                
+
                 // AI 생성된 내용을 폼에 미리보기로 채우기
                 // deadline이 Timestamp 형식이므로 Date 객체로 변환
                 const deadlineDate = new Date(aiAssignmentData.deadline);
@@ -546,21 +546,21 @@ const handleCancelAssignmentEdit = () => {
                     date: deadlineDate.toISOString().split('T')[0],
                     time: ''
                 });
-                
+
                 console.log('AI 과제 미리보기 데이터를 폼에 설정 완료');
                 alert('AI 과제생성이 완료되었습니다!');
-                
+
                 // 새로고침 전에 현재 탭 상태를 localStorage에 저장
                 localStorage.setItem('studyDetailActiveTab', '과제 / 일정 관리');
-                
+
                 // 새로고침
                 window.location.reload();
-                
+
             } else {
                 // AI 과제 생성이 실패했거나 기본값이 반환된 경우
                 console.warn('AI 과제 생성 실패 또는 기본값 반환:', responseData);
                 alert('AI 과제 생성에 실패했습니다. 기본 과제 템플릿을 사용합니다.');
-                
+
                 // 기본 과제 데이터 생성
                 const defaultAssignmentData = {
                     title: "프로그래밍 기초 실습",
@@ -569,11 +569,11 @@ const handleCancelAssignmentEdit = () => {
                     isAIGenerated: false,
                     generatedAt: new Date().toISOString()
                 };
-                
+
                 // 기본 과제 데이터를 상태에 저장
                 setAiGeneratedAssignment(defaultAssignmentData);
                 setShowAIPreview(true);
-                
+
                 // 기본 과제 내용을 폼에 미리보기로 채우기
                 setNewItem({
                     title: defaultAssignmentData.title,
@@ -581,16 +581,16 @@ const handleCancelAssignmentEdit = () => {
                     date: new Date(defaultAssignmentData.deadline).toISOString().split('T')[0],
                     time: ''
                 });
-                
+
                 alert('AI 과제생성이 완료되었습니다!');
-                
+
                 // 새로고침 전에 현재 탭 상태를 localStorage에 저장
                 localStorage.setItem('studyDetailActiveTab', '과제 / 일정 관리');
-                
+
                 // 새로고침
                 window.location.reload();
             }
-            
+
         } catch (error) {
             console.error('백엔드 AI 과제 생성 실패:', error);
             alert('AI 과제 생성에 실패했습니다. 다시 시도해주세요.');
@@ -618,7 +618,7 @@ const handleCancelAssignmentEdit = () => {
     console.log('필터링된 아이템:', filteredItems, 'activeTab:', activeTab, '전체 아이템:', scheduleItems);
 
     return (
-        		<div className="space-y-6 p-4 pr-10">
+        <div className="space-y-6 p-4 pr-10">
             {/* 일정 목록 */}
             <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-800">
@@ -642,15 +642,15 @@ const handleCancelAssignmentEdit = () => {
                                 <div
                                     key={item.id}
                                     className={`bg-white border rounded-lg hover:shadow-md transition-shadow duration-200 ${isOverdue
-                                            ? 'border-red-300 bg-red-50'
-                                            : 'border-gray-200'
+                                        ? 'border-red-300 bg-red-50'
+                                        : 'border-gray-200'
                                         }`}
                                 >
                                     {item.type === 'assignment' ? (
                                         // 과제: 토글 형태
                                         <>
                                             {/* 헤더 (항상 표시) */}
-                                            <div 
+                                            <div
                                                 className="flex items-center justify-between p-4 cursor-pointer"
                                                 onClick={() => toggleItemExpansion(item.id)}
                                             >
@@ -688,7 +688,7 @@ const handleCancelAssignmentEdit = () => {
                                                     </div>
                                                 </div>
                                             </div>
-                                            
+
                                             {/* 상세 내용 (토글) */}
                                             {item.isExpanded && (
                                                 <div className="px-4 pb-4 border-t border-gray-100">
@@ -702,7 +702,7 @@ const handleCancelAssignmentEdit = () => {
                                                                 <input
                                                                     type="text"
                                                                     value={editingAssignmentData.title}
-                                                                    onChange={(e) => setEditingAssignmentData({...editingAssignmentData, title: e.target.value})}
+                                                                    onChange={(e) => setEditingAssignmentData({ ...editingAssignmentData, title: e.target.value })}
                                                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
                                                                 />
                                                             </div>
@@ -712,7 +712,7 @@ const handleCancelAssignmentEdit = () => {
                                                                 </label>
                                                                 <textarea
                                                                     value={editingAssignmentData.description}
-                                                                    onChange={(e) => setEditingAssignmentData({...editingAssignmentData, description: e.target.value})}
+                                                                    onChange={(e) => setEditingAssignmentData({ ...editingAssignmentData, description: e.target.value })}
                                                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
                                                                     rows={3}
                                                                 />
@@ -724,7 +724,7 @@ const handleCancelAssignmentEdit = () => {
                                                                 <input
                                                                     type="date"
                                                                     value={editingAssignmentData.date}
-                                                                    onChange={(e) => setEditingAssignmentData({...editingAssignmentData, date: e.target.value})}
+                                                                    onChange={(e) => setEditingAssignmentData({ ...editingAssignmentData, date: e.target.value })}
                                                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
                                                                     min={new Date().toISOString().split('T')[0]}
                                                                 />
@@ -736,7 +736,7 @@ const handleCancelAssignmentEdit = () => {
                                                                 <input
                                                                     type="text"
                                                                     value={editingAssignmentData.fileUrl}
-                                                                    onChange={(e) => setEditingAssignmentData({...editingAssignmentData, fileUrl: e.target.value})}
+                                                                    onChange={(e) => setEditingAssignmentData({ ...editingAssignmentData, fileUrl: e.target.value })}
                                                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
                                                                 />
                                                             </div>
@@ -756,46 +756,39 @@ const handleCancelAssignmentEdit = () => {
                                                             </div>
                                                         </div>
                                                     ) : (
-                                                    <>
-                                                    <div className="flex items-center gap-3">
-                                                    {item.description && (
-                                                        <div className="mt-3">
-                                                            <p className="text-gray-600 text-sm whitespace-pre-wrap">{item.description}</p>
-                                                        </div>
-                                                    )}
-                                                    {item.fileUrl && item.fileUrl.trim() !== '' && (
-                                                        <div className="mt-3">
-                                                            <p className="text-sm text-gray-500">
-                                                                <span className="font-medium">첨부파일:</span>
-                                                                {item.fileUrl.startsWith('blob:') || item.fileUrl.startsWith('http') ? (
-                                                                    <a
-                                                                        href={item.fileUrl}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        className="text-blue-500 hover:text-blue-700 ml-1"
-                                                                    >
-                                                                        파일 다운로드
-                                                                    </a>
-                                                                ) : (
-                                                                    <span className="text-gray-600 ml-1">{item.fileUrl}</span>
+                                                        <>
+                                                            <div className="flex items-center gap-3">
+                                                                {item.description && (
+                                                                    <div className="mt-3">
+                                                                        <p className="text-gray-600 text-sm whitespace-pre-wrap">{item.description}</p>
+                                                                    </div>
                                                                 )}
-                                                            </p>
-                                                        </div>
-                                                    )}
-                                                    {item.createdAt && (
-                                                        <div className="mt-2">
-                                                            <p className="text-xs text-gray-400">
-                                                                생성일: {new Date(item.createdAt).toLocaleDateString()}
-                                                            </p>
-                                                        </div>
-                                                    )}
-                                                    </div>
-                                                    </>
-                                                    
+                                                                {item.fileUrl && item.fileUrl.trim() !== '' && (
+                                                                    <div className="mt-3">
+                                                                        <p className="text-sm text-gray-500">
+                                                                            <span className="font-medium">첨부파일:</span>
+                                                                            {item.fileUrl.startsWith('blob:') || item.fileUrl.startsWith('http') ? (
+                                                                                <a
+                                                                                    href={item.fileUrl}
+                                                                                    target="_blank"
+                                                                                    rel="noopener noreferrer"
+                                                                                    className="text-blue-500 hover:text-blue-700 ml-1"
+                                                                                >
+                                                                                    파일 다운로드
+                                                                                </a>
+                                                                            ) : (
+                                                                                <span className="text-gray-600 ml-1">{item.fileUrl}</span>
+                                                                            )}
+                                                                        </p>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </>
+
                                                     )}
                                                 </div>
                                             )}
-                                            
+
                                         </>
                                     ) : (
                                         // 일정: 수정 기능 포함
@@ -810,7 +803,7 @@ const handleCancelAssignmentEdit = () => {
                                                         <input
                                                             type="text"
                                                             value={editingData.title}
-                                                            onChange={(e) => setEditingData({...editingData, title: e.target.value})}
+                                                            onChange={(e) => setEditingData({ ...editingData, title: e.target.value })}
                                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
                                                         />
                                                     </div>
@@ -822,7 +815,7 @@ const handleCancelAssignmentEdit = () => {
                                                             <input
                                                                 type="date"
                                                                 value={editingData.date}
-                                                                onChange={(e) => setEditingData({...editingData, date: e.target.value})}
+                                                                onChange={(e) => setEditingData({ ...editingData, date: e.target.value })}
                                                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
                                                                 min={new Date().toISOString().split('T')[0]}
                                                             />
@@ -833,7 +826,7 @@ const handleCancelAssignmentEdit = () => {
                                                             </label>
                                                             <select
                                                                 value={editingData.time}
-                                                                onChange={(e) => setEditingData({...editingData, time: e.target.value})}
+                                                                onChange={(e) => setEditingData({ ...editingData, time: e.target.value })}
                                                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
                                                             >
                                                                 {Array.from({ length: 24 }, (_, i) => {
@@ -909,66 +902,65 @@ const handleCancelAssignmentEdit = () => {
 
             {/* 추가 버튼들 - 스터디장만 표시 */}
             {isStudyLeader && (
-            <div className="relative w-[420px] mx-auto">
-              {/* 보라색 바 */}
-              <div className="bg-[#8B85E9] rounded-full h-12 shadow-md relative flex items-center px-1">
-                {/* 슬라이더 (하얀 버튼) */}
-                <div
+                <div className="relative w-[420px] mx-auto">
+                    {/* 보라색 바 */}
+                    <div className="bg-[#8B85E9] rounded-full h-12 shadow-md relative flex items-center px-1">
+                        {/* 슬라이더 (하얀 버튼) */}
+                        <div
                             className={`absolute top-1 left-1 h-10 w-[calc(50%-4px)] bg-white rounded-full shadow transition-transform duration-300 ${activeTab === "schedule" ? "translate-x-full" : "translate-x-0"
-                  }`}
-                />
+                                }`}
+                        />
 
-                {/* 버튼들 */}
-                                 <button
-                   onClick={() => {
-                     if (activeTab === "assignment" && isAdding) {
-                       setIsAdding(false);
-                     } else {
-                       setActiveTab("assignment");
-                       setIsAdding(true);
-                     }
-                   }}
+                        {/* 버튼들 */}
+                        <button
+                            onClick={() => {
+                                if (activeTab === "assignment" && isAdding) {
+                                    setIsAdding(false);
+                                } else {
+                                    setActiveTab("assignment");
+                                    setIsAdding(true);
+                                }
+                            }}
                             className={`flex-1 z-10 text-sm font-medium transition-colors duration-300 ${activeTab === "assignment" ? "text-[#8B85E9]" : "text-white"
-                   }`}
-                 >
-                   + 과제 추가
-                 </button>
-                 <button
-                   onClick={() => {
-                     if (activeTab === "schedule" && isAdding) {
-                       setIsAdding(false);
-                     } else {
-                       setActiveTab("schedule");
-                       setIsAdding(true);
-                     }
-                   }}
+                                }`}
+                        >
+                            + 과제 추가
+                        </button>
+                        <button
+                            onClick={() => {
+                                if (activeTab === "schedule" && isAdding) {
+                                    setIsAdding(false);
+                                } else {
+                                    setActiveTab("schedule");
+                                    setIsAdding(true);
+                                }
+                            }}
                             className={`flex-1 z-10 text-sm font-medium transition-colors duration-300 ${activeTab === "schedule" ? "text-[#8B85E9]" : "text-white"
-                   }`}
-                 >
-                   + 스터디 일정 추가
-                 </button>
-              </div>
-            </div>
+                                }`}
+                        >
+                            + 스터디 일정 추가
+                        </button>
+                    </div>
+                </div>
             )}
 
             {/* 추가 폼 (슬라이드 애니메이션) - 스터디장만 표시 */}
             {isStudyLeader && (
                 <div className={`overflow-hidden transition-all duration-500 ease-in-out ${isAdding ? 'max-h-[500px] opacity-100 mt-4' : 'max-h-0 opacity-0'
-                }`}>
+                    }`}>
                     <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
                         <div className="flex justify-between items-center">
-                        <h3 className="text-lg font-semibold text-gray-800">
-                            {activeTab === 'assignment' ? '과제 내용' : '일정 내용'}
-                        </h3>
+                            <h3 className="text-lg font-semibold text-gray-800">
+                                {activeTab === 'assignment' ? '과제 내용' : '일정 내용'}
+                            </h3>
                             {activeTab === 'assignment' && (
                                 <button
                                     onClick={handleGenerateAIAssignment}
                                     disabled={isGeneratingAI}
-                                    className={`px-3 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2 ${
-                                        isGeneratingAI 
-                                            ? 'opacity-50 cursor-not-allowed' 
+                                    className={`px-3 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2 ${isGeneratingAI
+                                            ? 'opacity-50 cursor-not-allowed'
                                             : 'hover:from-purple-600 hover:to-pink-600'
-                                    }`}
+                                        }`}
                                 >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
@@ -987,53 +979,49 @@ const handleCancelAssignmentEdit = () => {
                                     value={newItem.title}
                                     onChange={(e) => setNewItem({ ...newItem, title: e.target.value })}
                                     disabled={isGeneratingAI}
-                                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] ${
-                                        isGeneratingAI ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''
-                                    }`}
+                                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] ${isGeneratingAI ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''
+                                        }`}
                                     placeholder={activeTab === 'assignment' ? '과제 제목을 입력하세요' : '일정 제목을 입력하세요'}
                                 />
                             </div>
                             {activeTab === 'assignment' ? (
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
                                         과제 마감일
-                                </label>
-                                <input
-                                    type="date"
-                                    value={newItem.date}
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={newItem.date}
                                         onChange={(e) => setNewItem({ ...newItem, date: e.target.value })}
-                                    disabled={isGeneratingAI}
-                                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] ${
-                                        isGeneratingAI ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''
-                                    }`}
+                                        disabled={isGeneratingAI}
+                                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] ${isGeneratingAI ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''
+                                            }`}
                                         placeholder="과제 마감일을 선택하세요"
                                         min={new Date().toISOString().split('T')[0]}
-                                />
-                            </div>
+                                    />
+                                </div>
                             ) : (
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
                                         일정 날짜 및 시간
-                                </label>
+                                    </label>
                                     <div className="flex gap-2">
-                                <input
+                                        <input
                                             type="date"
                                             value={newItem.date}
                                             onChange={(e) => setNewItem({ ...newItem, date: e.target.value })}
                                             disabled={isGeneratingAI}
-                                            className={`flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] ${
-                                                isGeneratingAI ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''
-                                            }`}
+                                            className={`flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] ${isGeneratingAI ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''
+                                                }`}
                                             placeholder="날짜 선택"
                                             min={new Date().toISOString().split('T')[0]}
                                         />
                                         <select
-                                    value={newItem.time}
+                                            value={newItem.time}
                                             onChange={(e) => setNewItem({ ...newItem, time: e.target.value })}
                                             disabled={isGeneratingAI}
-                                            className={`flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] ${
-                                                isGeneratingAI ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''
-                                            }`}
+                                            className={`flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] ${isGeneratingAI ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''
+                                                }`}
                                         >
                                             <option value="">시간 선택</option>
                                             {Array.from({ length: 24 }, (_, i) => {
@@ -1046,23 +1034,22 @@ const handleCancelAssignmentEdit = () => {
                                             })}
                                         </select>
                                     </div>
-                            </div>
-                        )}
+                                </div>
+                            )}
                         </div>
                         {activeTab === 'assignment' && (
                             <>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
                                         과제 설명
-                            </label>
-                            <textarea
-                                value={newItem.description}
+                                    </label>
+                                    <textarea
+                                        value={newItem.description}
                                         onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
                                         disabled={isGeneratingAI}
-                                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] ${
-                                            isGeneratingAI ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''
-                                        }`}
-                                rows={3}
+                                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] ${isGeneratingAI ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''
+                                            }`}
+                                        rows={3}
                                         placeholder="과제에 대한 설명을 입력하세요"
                                     />
                                 </div>
@@ -1078,11 +1065,10 @@ const handleCancelAssignmentEdit = () => {
                                         className={`block w-full text-sm file:mr-4 file:py-2 file:px-4
                                                     file:rounded-lg file:border-0
                                                     file:text-sm file:font-semibold file:text-[#8B85E9]
-                                                    file:bg-violet-50 hover:file:bg-violet-100 ${
-                                                        isGeneratingAI ? 'opacity-50 cursor-not-allowed' : ''
-                                                    }`}
-                            />
-                        </div>
+                                                    file:bg-violet-50 hover:file:bg-violet-100 ${isGeneratingAI ? 'opacity-50 cursor-not-allowed' : ''
+                                            }`}
+                                    />
+                                </div>
                             </>
                         )}
                         {/* AI 생성 알림 */}
@@ -1107,11 +1093,10 @@ const handleCancelAssignmentEdit = () => {
                             <button
                                 onClick={handleAddItem}
                                 disabled={isAddingAssignment || isGeneratingAI}
-                                className={`px-4 py-2 text-white rounded-md transition-colors duration-200 flex items-center justify-center gap-2 ${
-                                    isAddingAssignment || isGeneratingAI
-                                        ? 'opacity-50 cursor-not-allowed' 
+                                className={`px-4 py-2 text-white rounded-md transition-colors duration-200 flex items-center justify-center gap-2 ${isAddingAssignment || isGeneratingAI
+                                        ? 'opacity-50 cursor-not-allowed'
                                         : 'hover:cursor-pointer'
-                                }`}
+                                    }`}
                                 style={{
                                     backgroundColor: isAddingAssignment || isGeneratingAI ? "#6B7280" : "#8B85E9",
                                     filter: isAddingAssignment || isGeneratingAI ? "brightness(1)" : "brightness(1)"
@@ -1142,9 +1127,9 @@ const handleCancelAssignmentEdit = () => {
                                 )}
                             </button>
                             <button
-                                                                 onClick={() => {
-                                     setIsAdding(false);
-                                     setNewItem({ title: '', description: '', date: '', time: '' });
+                                onClick={() => {
+                                    setIsAdding(false);
+                                    setNewItem({ title: '', description: '', date: '', time: '' });
                                     setSelectedFile(null);
                                     setShowAIPreview(false);
                                     setAiGeneratedAssignment(null);
@@ -1155,20 +1140,19 @@ const handleCancelAssignmentEdit = () => {
                                         fileInput.value = '';
                                     }
                                     console.log('과제 추가 폼 취소됨 - 모든 상태 초기화');
-                                 }}
+                                }}
                                 disabled={isGeneratingAI}
-                                className={`px-4 py-2 bg-gray-300 text-gray-700 rounded-md transition-colors duration-200 ${
-                                    isGeneratingAI 
-                                        ? 'opacity-50 cursor-not-allowed' 
+                                className={`px-4 py-2 bg-gray-300 text-gray-700 rounded-md transition-colors duration-200 ${isGeneratingAI
+                                        ? 'opacity-50 cursor-not-allowed'
                                         : 'hover:bg-gray-400'
-                                }`}
+                                    }`}
                             >
                                 취소
                             </button>
                         </div>
                     </div>
-                    </div>
-                )}
+                </div>
+            )}
         </div>
     );
 };
