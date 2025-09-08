@@ -314,7 +314,7 @@ const Community: React.FC<CommunityProps> = ({
                     timestamp: formatTimestamp(backendPost.createdAt),
                     comments: [],
                     canEdit: backendPost.memberId === currentUserId,
-                    nick: members.find(member => backendPost.memberId === member.userId)?.nick || '알 수 없음'
+                    nick: members.find(member => member.userId === backendPost.memberId)?.nick || '알 수 없음'
                 }));
                 
                 // console.log(posts[0].nick);
