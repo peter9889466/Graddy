@@ -119,7 +119,7 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
             const token = localStorage.getItem("userToken");
 
             const response = await axios.get(
-                `http://localhost:8080/api/user/info/${userId}`,
+                `/api/user/info/${userId}`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -170,7 +170,7 @@ const StudyDetailSideBar: React.FC<StudyDetailSideBarProps> = ({
             const token = localStorage.getItem("userToken");
 
             const response = await axios.get<MemberDetailResponse>(
-                `http://localhost:8080/api/api/study/members/${studyProjectId}/${memberId}`,
+                `/api/api/study/members/${studyProjectId}/${memberId}`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,

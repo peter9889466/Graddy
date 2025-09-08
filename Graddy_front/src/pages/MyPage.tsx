@@ -212,7 +212,7 @@ export const MyPage = () => {
                 const formData = new FormData();
                 formData.append('file', file);
 
-                const response = await fetch('http://localhost:8080/api/files/upload', {
+                const response = await fetch('/api/files/upload', {
                     method: 'POST',
                     body: formData,
                     headers: {

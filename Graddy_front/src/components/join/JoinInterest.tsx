@@ -93,7 +93,7 @@ const JoinInterest: React.FC<JoinInterestProps> = ({
 
     const maxSelections = 10;
     const apiEndpoint =
-        "http://localhost:8080/api/interests";
+        "/api/interests";
 
     // 컴포넌트 마운트 시 API 데이터 가져오기
     useEffect(() => {

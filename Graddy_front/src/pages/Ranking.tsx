@@ -51,7 +51,7 @@ export const Ranking = () => {
     const fetchRankingData = async (): Promise<RankingResponse> => {
         try {
             const response = await fetch(
-                "http://localhost:8080/api/scores/ranking/top100"
+                "/api/scores/ranking/top100"
             );
             if (!response.ok) {
                 throw new Error("Failed to fetch ranking data");
@@ -69,7 +69,7 @@ export const Ranking = () => {
         
         try {
             const response = await fetch(
-                `http://localhost:8080/api/scores/user/${currentUserId}`
+                `/api/scores/user/${currentUserId}`
             );
             if (!response.ok) {
                 if (response.status === 404) {

@@ -14,6 +14,7 @@ export default defineConfig({
     },
     define: {
         global: 'globalThis',
+        'import.meta.env.VITE_API_BASE_URL': JSON.stringify(process.env.NODE_ENV === 'production' ? '' : 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com:8080')
     },
     optimizeDeps: {
         include: ['sockjs-client', '@stomp/stompjs']

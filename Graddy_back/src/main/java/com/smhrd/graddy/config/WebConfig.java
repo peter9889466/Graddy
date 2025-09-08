@@ -12,9 +12,15 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOriginPatterns("*") // 모든 Origin 허용 (개발용)
-                // 또는 특정 Origin만 허용하려면:
-                // .allowedOrigins("http://localhost:5173", "http://localhost:3000")
+                .allowedOriginPatterns(
+                    "*", // 모든 Origin 허용 (개발용)
+                    "http://localhost:5173", 
+                    "http://localhost:3000",
+                    "http://127.0.0.1:5173",
+                    "http://127.0.0.1:3000",
+                    "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com", // 배포 환경 도메인
+                    "https://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com"  // HTTPS 지원
+                )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true)

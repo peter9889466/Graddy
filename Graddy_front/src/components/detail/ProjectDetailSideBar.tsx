@@ -95,7 +95,7 @@ const ProjectDetailSideBar: React.FC<ProjectDetailSideBarProps> = ({
             const token = localStorage.getItem("userToken");
 
             const response = await axios.get(
-                `http://localhost:8080/api/user/info/${userId}`,
+                `/api/user/info/${userId}`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,

@@ -107,7 +107,7 @@ const Community: React.FC<CommunityProps> = ({
     const fetchCommentCount = async (postId: string) => {
         try {
             const response = await fetch(
-                `http://localhost:8080/api/api/comments/study-posts/${postId}/count`,
+                `/api/api/comments/study-posts/${postId}/count`,
                 { headers: getAuthHeaders() }
             );
             if (!response.ok) throw new Error("댓글 수 조회 실패");
@@ -125,7 +125,7 @@ const Community: React.FC<CommunityProps> = ({
     const fetchComments = async (postId: string) => {
         try {
             const response = await fetch(
-            `http://localhost:8080/api/api/comments/study-posts/${postId}`,
+            `/api/api/comments/study-posts/${postId}`,
             { headers: getAuthHeaders() }
             );
             if (!response.ok) throw new Error(`댓글 목록 조회 실패: HTTP ${response.status}`);
@@ -161,7 +161,7 @@ const Community: React.FC<CommunityProps> = ({
 
         try {
             const response = await fetch(
-                `http://localhost:8080/api/api/comments/study-posts/${postId}`,
+                `/api/api/comments/study-posts/${postId}`,
                 {
                     method: "POST",
                     headers: getAuthHeaders(),
@@ -200,7 +200,7 @@ const Community: React.FC<CommunityProps> = ({
             
         try {
             const response = await fetch(
-                `http://localhost:8080/api/api/comments/${editingCommentId}?content=${encodeURIComponent(editCommentContent)}`,
+                `/api/api/comments/${editingCommentId}?content=${encodeURIComponent(editCommentContent)}`,
                 {
                     method: "PUT",
                     headers: {
@@ -248,7 +248,7 @@ const Community: React.FC<CommunityProps> = ({
         
         try {
             const response = await fetch(
-                `http://localhost:8080/api/api/comments/${commentId}`,
+                `/api/api/comments/${commentId}`,
                 { method: "DELETE", headers: getAuthHeaders() }
             );
 
@@ -292,7 +292,7 @@ const Community: React.FC<CommunityProps> = ({
 
         try {
             const response = await fetch(
-                `http://localhost:8080/api/posts/study-project/${studyProjectId}`,
+                `/api/posts/study-project/${studyProjectId}`,
                 {
                     method: "GET",
                     headers: getAuthHeaders(),
@@ -369,7 +369,7 @@ const Community: React.FC<CommunityProps> = ({
     setIsSubmitting(true);
 
     try {
-        const response = await fetch("http://localhost:8080/api/posts", {
+        const response = await fetch("/api/posts", {
             method: "POST",
             headers: getAuthHeaders(),
             body: JSON.stringify({
@@ -397,7 +397,7 @@ const Community: React.FC<CommunityProps> = ({
     const updatePost = async (postId: string, title: string, content: string) => {
     try {
         const response = await fetch(
-            `http://localhost:8080/api/posts/${postId}?currentMemberId=${currentUserId}`,
+            `/api/posts/${postId}?currentMemberId=${currentUserId}`,
             {
             method: "PUT",
             headers: getAuthHeaders(),
@@ -423,7 +423,7 @@ const Community: React.FC<CommunityProps> = ({
     const deletePost = async (postId: string) => {
     try {
         const response = await fetch(
-            `http://localhost:8080/api/posts/${postId}?currentMemberId=${currentUserId}`,
+            `/api/posts/${postId}?currentMemberId=${currentUserId}`,
             {
             method: "DELETE",
             headers: getAuthHeaders(),

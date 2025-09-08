@@ -131,7 +131,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 
 		try {
 			// SockJS를 사용한 WebSocket 연결
-			const socket = new SockJS('http://localhost:8080/api/ws-stomp');
+			const socket = new SockJS('/api/ws-stomp');
 			const stompClient = new Client({
 				webSocketFactory: () => socket,
 				debug: (str: string) => {
@@ -327,7 +327,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 		try {
 			console.log('채팅 이력 불러오기 시작:', currentStudyProjectId);
 			
-			const response = await fetch(`http://localhost:8080/api/chat/history/${currentStudyProjectId}`, {
+			const response = await fetch(`/api/chat/history/${currentStudyProjectId}`, {
 				method: 'GET',
 				headers: {
 					'Authorization': `Bearer ${currentToken}`,

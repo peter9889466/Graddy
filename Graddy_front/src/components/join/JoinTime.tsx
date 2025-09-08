@@ -244,7 +244,7 @@ const JoinTime: React.FC<JoinTimeProps> = ({
 
             // API 호출
             const response = await axios.post(
-                "http://localhost:8080/api/join",
+                "/api/join",
                 requestBody,
                 {
                     headers: {
