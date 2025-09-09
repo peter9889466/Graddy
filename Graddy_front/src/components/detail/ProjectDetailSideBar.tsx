@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { User, Settings, Trash2 } from "lucide-react";
 import ProfileModal from "../modal/ProfileModal";
+import axios from "axios";
 
 interface SideMenuItem {
     name: string;
@@ -36,6 +37,25 @@ interface ProjectDetailSideBarProps {
     onApplyToProject?: () => void;
 }
 
+// API 응답 타입 정의
+interface MemberDetailResponse {
+    memberId: number;
+    userId: string;
+    studyProjectId: number;
+    nick: string;
+    gitUrl: string;
+    userRefer: string;
+    imgUrl: string | null;
+    userScore: number;
+    interests: Array<{
+        id: number;
+        name: string;
+        category: string;
+        difficulty: string;
+    }>;
+    joinedAt: string;
+}
+
 // 프로젝트 멤버 프로필 타입 (스터디와 동일한 모달을 재사용)
 interface ProjectMemberProfile {
     nickname: string;
@@ -63,19 +83,49 @@ const ProjectDetailSideBar: React.FC<ProjectDetailSideBarProps> = ({
 }) => {
     const [selectedMember, setSelectedMember] = useState<ProjectMemberProfile | null>(null);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [isLoadingMember, setIsLoadingMember] = useState(false);
 
-    // 백엔드 멤버 데이터를 모달에 맞는 구조로 변환
-    const projectMembers: ProjectMemberProfile[] = members.map((member) => ({
-        nickname: member.nick || member.userId,
-        githubUrl: "", // TODO: 백엔드에서 GitHub URL 추가 시 매핑
-        score: 0, // TODO: 점수 데이터 연동 시 교체
-        interests: [], // TODO: 관심사 데이터 연동 시 교체
-        introduction: `${member.memberType === 'leader' ? '리더' : '멤버'}입니다.`,
-    }));
+    // 멤버 클릭 시 API 호출하여 상세 데이터 로드
+    const handleMemberClick = async (member: { memberId: number; userId: string; nick: string }) => {
+        setIsLoadingMember(true);
+        try {
+            const response = await axios.get<MemberDetailResponse>(
+                `http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/members/${member.memberId}`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('userToken')}`,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
 
-    const handleMemberClick = (member: ProjectMemberProfile) => {
-        setSelectedMember(member);
-        setIsProfileModalOpen(true);
+            if (response.data) {
+                const memberData: ProjectMemberProfile = {
+                    nickname: response.data.nick || response.data.userId,
+                    githubUrl: response.data.gitUrl || "",
+                    score: response.data.userScore || 0,
+                    interests: response.data.interests || [],
+                    introduction: response.data.userRefer || `${member.nick}님의 프로필입니다.`,
+                    profileImage: response.data.imgUrl || undefined,
+                };
+                setSelectedMember(memberData);
+                setIsProfileModalOpen(true);
+            }
+        } catch (error) {
+            console.error('멤버 상세 정보 로드 실패:', error);
+            // API 호출 실패 시 기본 데이터로 모달 표시
+            const fallbackData: ProjectMemberProfile = {
+                nickname: member.nick || member.userId,
+                githubUrl: "",
+                score: 0,
+                interests: [],
+                introduction: `${member.nick}님의 프로필입니다.`,
+            };
+            setSelectedMember(fallbackData);
+            setIsProfileModalOpen(true);
+        } finally {
+            setIsLoadingMember(false);
+        }
     };
 
     const handleCloseProfileModal = () => {
@@ -195,14 +245,15 @@ const ProjectDetailSideBar: React.FC<ProjectDetailSideBarProps> = ({
                 </div>
                 <hr className="mb-3 border-gray-200" />
                 <div className="bg-gray-50 rounded-lg p-3 pl-6 space-y-3">
-                    {projectMembers.length > 0 ? (
-                        projectMembers.map((member, index) => (
+                    {members.length > 0 ? (
+                        members.map((member, index) => (
                             <button
                                 key={index}
                                 onClick={() => handleMemberClick(member)}
-                                className="w-full text-left text-sm text-gray-700 hover:text-[#8B85E9] hover:font-medium transition-all duration-200 cursor-pointer"
+                                disabled={isLoadingMember}
+                                className="w-full text-left text-sm text-gray-700 hover:text-[#8B85E9] hover:font-medium transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                {member.nickname}
+                                {isLoadingMember ? '로딩 중...' : member.nick || member.userId}
                             </button>
                         ))
                     ) : (
@@ -217,6 +268,7 @@ const ProjectDetailSideBar: React.FC<ProjectDetailSideBarProps> = ({
                     isOpen={isProfileModalOpen}
                     onClose={handleCloseProfileModal}
                     memberData={selectedMember}
+                    studyType="project"
                 />
             )}
         </>
