@@ -4,7 +4,7 @@ services:
     graddy-front:
         container_name: graddy-front
         # [수정] build 대신 Docker Hub의 image를 사용하도록 변경
-        image: DOCKER_HUB_USERNAME_PLACEHOLDER/graddy-front:latest
+        image: peter4855/graddy-front:latest
         ports:
             - "80:80"
         networks:
@@ -15,7 +15,7 @@ services:
     graddy-back:
         container_name: graddy-back
         # [수정] build 대신 Docker Hub의 image를 사용하도록 변경
-        image: DOCKER_HUB_USERNAME_PLACEHOLDER/graddy-back:latest
+        image: peter4855/graddy-back:latest
         ports:
             - "8080:8080" # EC2의 8080번 포트를 컨테이너의 8080번 포트와 연결
         # [추가] .env 파일에 있는 환경 변수들을 컨테이너 내부로 주입
@@ -27,7 +27,23 @@ services:
         depends_on:
             - localstack
 
-    # 3. LocalStack - AWS 서비스 로컬 시뮬레이션
+    # 3. FastAPI AI 서비스
+    graddy-ai:
+        container_name: graddy-ai
+        # [수정] build 대신 Docker Hub의 image를 사용하도록 변경
+        image: peter4855/graddy-ai:latest
+        ports:
+            - "8000:8000"  # FastAPI 서버 포트
+        # [추가] .env 파일에 있는 환경 변수들을 컨테이너 내부로 주입
+        env_file:
+            - .env
+        networks:
+            - graddy-net
+        restart: always # 항상 재시작 옵션 추가
+        depends_on:
+            - graddy-back
+
+    # 4. LocalStack - AWS 서비스 로컬 시뮬레이션
     localstack:
         container_name: localstack
         image: localstack/localstack:latest

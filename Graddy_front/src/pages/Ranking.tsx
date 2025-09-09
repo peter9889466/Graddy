@@ -5,6 +5,7 @@ import ResponsiveMainContent from "../components/layout/ResponsiveMainContent";
 import { myStudyList } from "../data/myStudyData";
 import { AuthContext } from "@/contexts/AuthContext";
 import { getUserIdFromToken } from "../utils/jwtUtils";
+import { toKoreanLocaleDateString, toKoreanLocaleString } from "../utils/timeUtils";
 
 // API 응답 타입 정의
 interface RankingItem {
@@ -255,9 +256,7 @@ export const Ranking = () => {
                                     </h3>
                                     <div className="text-xs text-gray-500">
                                         최근 업데이트:{" "}
-                                        {new Date(
-                                            user.lastUpdated
-                                        ).toLocaleDateString('ko-KR')}
+                                        {toKoreanLocaleDateString(user.lastUpdated)}
                                     </div>
                                 </div>
                             </div>
@@ -314,9 +313,7 @@ export const Ranking = () => {
                                             </h3>
                                             <div className="text-xs text-gray-500">
                                                 최근 업데이트:{" "}
-                                                {new Date(
-                                                    myRanking.lastUpdated
-                                                ).toLocaleDateString('ko-KR')}
+                                                {toKoreanLocaleDateString(myRanking.lastUpdated)}
                                             </div>
                                         </div>
                                     </div>
@@ -434,9 +431,7 @@ export const Ranking = () => {
                                     최근 업데이트:
                                 </span>
                                 <span className="font-medium">
-                                    {new Date(
-                                        selectedUser.lastUpdated
-                                    ).toLocaleString('ko-KR')}
+                                    {toKoreanLocaleString(selectedUser.lastUpdated)}
                                 </span>
                             </div>
                         </div>

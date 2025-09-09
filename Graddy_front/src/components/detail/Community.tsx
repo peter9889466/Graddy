@@ -8,6 +8,7 @@ import {
     Trash2,
     AlertCircle,
 } from "lucide-react";
+import { toKoreanTime, toKoreanLocaleString } from "../../utils/timeUtils";
 
 // API 기본 URL 설정
 const API_BASE_URL = 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api';
@@ -380,22 +381,14 @@ const Community: React.FC<CommunityProps> = ({
 
     const formatTimestamp = (isoString: string) => {
         try {
-            // 백엔드에서 LocalDateTime으로 전송된 시간을 한국 시간대로 정확히 변환
-            // LocalDateTime은 시간대 정보가 없으므로 한국 시간으로 해석
-            const date = new Date(isoString + '+09:00'); // 한국 시간대(UTC+9) 명시적 지정
-            
-            if (isNaN(date.getTime())) {
-                console.warn('날짜 파싱 실패:', isoString);
-                return '날짜 형식 오류';
-            }
-            
-            return date.toLocaleString("ko-KR", {
+            // 한국 시간 유틸리티를 사용하여 일관된 시간 처리
+            return toKoreanLocaleString(isoString, {
                 year: "numeric",
                 month: "2-digit",
                 day: "2-digit",
                 hour: "2-digit",
                 minute: "2-digit",
-                timeZone: "Asia/Seoul" // 한국 시간대 명시적 지정
+                hour12: false,
             });
         } catch (error) {
             console.error('날짜 포맷팅 오류:', error, '원본:', isoString);

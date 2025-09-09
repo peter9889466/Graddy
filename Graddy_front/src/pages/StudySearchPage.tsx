@@ -8,6 +8,7 @@ import {
     BackendStudyProjectData,
 } from "../services/studyApi";
 import { Search, Plus } from "lucide-react";
+import { toKoreanLocaleDateString } from "../utils/timeUtils";
 import { AuthContext } from "../contexts/AuthContext";
 
 export const StudySearchPage = () => {
@@ -288,7 +289,7 @@ export const StudySearchPage = () => {
     const formatDate = (dateString: string): string => {
         try {
             const date = new Date(dateString);
-            return date.toLocaleDateString('ko-KR');
+            return toKoreanLocaleDateString(date);
         } catch (error) {
             console.error("날짜 포맷팅 오류:", error);
             return dateString; // 오류 시 원본 문자열 반환

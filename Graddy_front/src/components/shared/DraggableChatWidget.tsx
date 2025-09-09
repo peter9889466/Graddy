@@ -4,6 +4,7 @@ import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { useAuth } from '../../contexts/AuthContext';
 import { TokenService } from '../../services/tokenService.js';
+import { toKoreanISOString, toKoreanLocaleTimeString, getKoreanTime } from '../../utils/timeUtils';
 
 interface Message {
 	id: string;
@@ -157,7 +158,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 									rawMessage: message.body,
 									currentUser: user?.nickname,
 									messageHeaders: message.headers,
-									timestamp: new Date().toISOString()
+									timestamp: toKoreanISOString()
 								});
 								
 								const chatMessage: ChatMessageResponse = JSON.parse(message.body);
@@ -418,9 +419,9 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 		};
 	}, []);
 
-	// 시간 포맷팅
+	// 시간 포맷팅 (한국 시간 기준)
 	const formatTime = (date: Date) => {
-		return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+		return toKoreanLocaleTimeString(date, { hour: '2-digit', minute: '2-digit' });
 	};
 
 	// 드래그 시작
@@ -529,7 +530,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 			text: inputText.trim(),
 			sender: 'user',
 			senderNick: user?.nickname || '나',
-			timestamp: new Date(),
+			timestamp: getKoreanTime(),
 			messageType: 'TEXT'
 		};
 		console.log('💬 임시 메시지 추가:', tempMessage);

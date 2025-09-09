@@ -2,6 +2,15 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, BookOpen, Calendar } from 'lucide-react';
 import { apiPost, apiGet, apiDelete, apiPut } from '../../services/api';
+import { 
+    getKoreanTime, 
+    toKoreanTime, 
+    toKoreanISOString, 
+    toKoreanDateString, 
+    setKoreanTime,
+    getKoreanTimestamp,
+    toKoreanLocaleDateString 
+} from '../../utils/timeUtils';
 
 interface ScheduleItem {
     id: string;
@@ -99,7 +108,7 @@ const Schedule: React.FC<ScheduleProps> = ({
                     id: assignment.assignmentId.toString(),
                     title: assignment.title,
                     type: 'assignment' as const,
-                    date: new Date(assignment.deadline).toISOString().split('T')[0],
+                    date: toKoreanDateString(assignment.deadline),
                     description: assignment.description || '',
                     fileUrl: assignment.fileUrl || '',
                     createdAt: assignment.createdAt,
@@ -144,7 +153,7 @@ const Schedule: React.FC<ScheduleProps> = ({
                     id: schedule.schId.toString(),
                     title: schedule.content,
                     type: 'schedule' as const,
-                    date: schedule.schTime.split('T')[0],
+                    date: toKoreanDateString(schedule.schTime),
                     time: schedule.schTime.split('T')[1].substring(0, 5),
                     description: schedule.content,
                     createdAt: schedule.schTime,
@@ -173,12 +182,12 @@ const Schedule: React.FC<ScheduleProps> = ({
         if (newItem.title && newItem.date) {
             try {
                 if (activeTab === 'assignment') {
-                    // 과제 마감일 유효성 검사
-                    const selectedDate = new Date(newItem.date);
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
+                    // 과제 마감일 유효성 검사 (한국 시간 기준)
+                    const selectedDate = toKoreanTime(newItem.date);
+                    const today = getKoreanTime();
+                    const todayStart = setKoreanTime(today, 0, 0, 0, 0);
 
-                    if (selectedDate < today) {
+                    if (selectedDate < todayStart) {
                         alert('과제 마감일은 오늘 이후로 설정해주세요.');
                         return;
                     }
@@ -201,7 +210,7 @@ const Schedule: React.FC<ScheduleProps> = ({
                         memberId: memberId,
                         title: newItem.title,
                         description: newItem.description || '',
-                        deadline: new Date(newItem.date).toISOString(),
+                        deadline: toKoreanISOString(newItem.date),
                         fileUrl: selectedFile ? selectedFile.name : '', // 임시로 파일명 저장
                         isAIGenerated: !!aiGeneratedAssignment // AI 생성 여부 표시
                     };
@@ -248,13 +257,17 @@ const Schedule: React.FC<ScheduleProps> = ({
                     }
                 } else {
                     // 일정 추가 API 호출
-                    // 한국 시간대(KST)를 고려한 날짜 생성
-                    const scheduleDateTime = new Date(`${newItem.date}T${newItem.time || '00:00'}:00+09:00`);
+                    // 한국 시간으로 일정 생성
+                    const scheduleDateTime = setKoreanTime(
+                        newItem.date, 
+                        parseInt(newItem.time?.split(':')[0] || '0'), 
+                        parseInt(newItem.time?.split(':')[1] || '0')
+                    );
                     const scheduleData = {
                         userId: userId,
                         studyProjectId: studyProjectId,
                         content: newItem.title,
-                        schTime: scheduleDateTime.toISOString()
+                        schTime: toKoreanISOString(scheduleDateTime)
                     };
 
                     console.log('일정 추가 데이터:', scheduleData);
@@ -322,12 +335,12 @@ const handleUpdateAssignment = async (assignmentId: string) => {
         return;
     }
 
-    // 마감일 유효성 검사
-    const selectedDate = new Date(editingAssignmentData.date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // 마감일 유효성 검사 (한국 시간 기준)
+    const selectedDate = toKoreanTime(editingAssignmentData.date);
+    const today = getKoreanTime();
+    const todayStart = setKoreanTime(today, 0, 0, 0, 0);
 
-    if (selectedDate < today) {
+    if (selectedDate < todayStart) {
         alert('과제 마감일은 오늘 이후로 설정해주세요.');
         return;
     }
@@ -336,7 +349,7 @@ const handleUpdateAssignment = async (assignmentId: string) => {
         const updateData = {
             title: editingAssignmentData.title,
             description: editingAssignmentData.description,
-            deadline: new Date(editingAssignmentData.date).toISOString(),
+            deadline: toKoreanISOString(editingAssignmentData.date),
             fileUrl: editingAssignmentData.fileUrl
         };
 
@@ -438,13 +451,17 @@ const handleCancelAssignmentEdit = () => {
         }
 
         try {
-            // 한국 시간대(KST)를 고려한 날짜 생성
-            const scheduleDateTime = new Date(`${editingData.date}T${editingData.time || '00:00'}:00+09:00`);
+            // 한국 시간으로 일정 수정
+            const scheduleDateTime = setKoreanTime(
+                editingData.date, 
+                parseInt(editingData.time?.split(':')[0] || '0'), 
+                parseInt(editingData.time?.split(':')[1] || '0')
+            );
             const updateData = {
                 userId: userId,
                 studyProjectId: studyProjectId,
                 content: editingData.title,
-                schTime: scheduleDateTime.toISOString()
+                schTime: toKoreanISOString(scheduleDateTime)
             };
 
             console.log('일정 수정 데이터:', updateData);
@@ -492,7 +509,7 @@ const handleCancelAssignmentEdit = () => {
             const requestData = {
                 studyProjectId: studyProjectId,
                 assignmentType: "과제", // 기본값으로 "과제" 설정
-                deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7일 후
+                deadline: toKoreanISOString(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)) // 7일 후
             };
             
             console.log('AI 과제 생성 요청 데이터:', requestData);
@@ -509,7 +526,7 @@ const handleCancelAssignmentEdit = () => {
                     description: responseData.description,
                     deadline: responseData.deadline,
                     isAIGenerated: true,
-                    generatedAt: new Date().toISOString(),
+                    generatedAt: toKoreanISOString(),
                     assignmentId: responseData.assignmentId,
                     studyProjectId: responseData.studyProjectId,
                     memberId: responseData.memberId,
@@ -529,7 +546,7 @@ const handleCancelAssignmentEdit = () => {
                 setNewItem({
                     title: aiAssignmentData.title,
                     description: aiAssignmentData.description,
-                    date: deadlineDate.toISOString().split('T')[0],
+                    date: toKoreanDateString(deadlineDate),
                     time: ''
                 });
                 
@@ -545,9 +562,9 @@ const handleCancelAssignmentEdit = () => {
                 const defaultAssignmentData = {
                     title: "프로그래밍 기초 실습",
                     description: "프로그래밍의 기본 개념을 이해하고 실습해보세요.\n\n**학습 목표:**\n• 기본 문법 이해\n• 문제 해결 능력 향상\n• 코드 작성 및 디버깅\n\n**과제 내용:**\n1. 기본 문법을 사용한 프로그램 작성\n2. 변수, 함수, 조건문, 반복문 활용\n3. 사용자 입력을 받아 처리하는 프로그램 구현\n\n**제출 형식:**\n• 소스 코드 파일\n• 실행 결과 스크린샷\n• 간단한 설명 문서",
-                    deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                    deadline: toKoreanISOString(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)),
                     isAIGenerated: false,
-                    generatedAt: new Date().toISOString()
+                    generatedAt: toKoreanISOString()
                 };
                 
                 // 기본 과제 데이터를 상태에 저장
@@ -558,7 +575,7 @@ const handleCancelAssignmentEdit = () => {
                 setNewItem({
                     title: defaultAssignmentData.title,
                     description: defaultAssignmentData.description,
-                    date: new Date(defaultAssignmentData.deadline).toISOString().split('T')[0],
+                    date: toKoreanDateString(defaultAssignmentData.deadline),
                     time: ''
                 });
             }
@@ -607,8 +624,8 @@ const handleCancelAssignmentEdit = () => {
                 ) : (
                     <div className="space-y-3">
                         {filteredItems.map((item) => {
-                            // 과제 마감일이 지났는지 확인
-                            const isOverdue = item.type === 'assignment' && new Date(item.date) < new Date();
+                            // 과제 마감일이 지났는지 확인 (한국 시간 기준)
+                            const isOverdue = item.type === 'assignment' && toKoreanTime(item.date) < getKoreanTime();
 
                             return (
                                 <div
@@ -698,7 +715,7 @@ const handleCancelAssignmentEdit = () => {
                                                                     value={editingAssignmentData.date}
                                                                     onChange={(e) => setEditingAssignmentData({...editingAssignmentData, date: e.target.value})}
                                                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
-                                                                    min={new Date().toISOString().split('T')[0]}
+                                                                    min={toKoreanDateString()}
                                                                 />
                                                             </div>
                                                             <div>
@@ -735,7 +752,7 @@ const handleCancelAssignmentEdit = () => {
                                                             <p className="text-gray-600 text-sm whitespace-pre-wrap">{item.description}</p>
                                                         </div>
                                                     )}
-                                                    {item.fileUrl && item.fileUrl.trim() !== '' && (
+                                                    {/* {item.fileUrl && item.fileUrl.trim() !== '' && (
                                                         <div className="mt-3">
                                                             <p className="text-sm text-gray-500">
                                                                 <span className="font-medium">첨부파일:</span>
@@ -753,11 +770,11 @@ const handleCancelAssignmentEdit = () => {
                                                                 )}
                                                             </p>
                                                         </div>
-                                                    )}
+                                                    )} */}
                                                     {item.createdAt && (
                                                         <div className="mt-2">
                                                             <p className="text-xs text-gray-400">
-                                                                생성일: {new Date(item.createdAt).toLocaleDateString('ko-KR')}
+                                                                생성일: {toKoreanLocaleDateString(item.createdAt)}
                                                             </p>
                                                         </div>
                                                     )}
@@ -796,7 +813,7 @@ const handleCancelAssignmentEdit = () => {
                                                                 value={editingData.date}
                                                                 onChange={(e) => setEditingData({...editingData, date: e.target.value})}
                                                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
-                                                                min={new Date().toISOString().split('T')[0]}
+                                                                min={toKoreanDateString()}
                                                             />
                                                         </div>
                                                         <div className="flex-1">
@@ -864,7 +881,7 @@ const handleCancelAssignmentEdit = () => {
                                                     && (
                                                         <div className="mt-2">
                                                             <p className="text-xs text-gray-400">
-                                                                생성일: {new Date(item.createdAt).toLocaleDateString('ko-KR')}
+                                                                생성일: {toKoreanLocaleDateString(item.createdAt)}
                                                             </p>
                                                         </div>
                                                     )} */}
@@ -973,7 +990,7 @@ const handleCancelAssignmentEdit = () => {
                                         onChange={(e) => setNewItem({ ...newItem, date: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
                                         placeholder="과제 마감일을 선택하세요"
-                                        min={new Date().toISOString().split('T')[0]}
+                                        min={toKoreanDateString()}
                                     />
                                 </div>
                             ) : (
@@ -988,7 +1005,7 @@ const handleCancelAssignmentEdit = () => {
                                             onChange={(e) => setNewItem({ ...newItem, date: e.target.value })}
                                             className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
                                             placeholder="날짜 선택"
-                                            min={new Date().toISOString().split('T')[0]}
+                                            min={toKoreanDateString()}
                                         />
                                         <select
                                             value={newItem.time}

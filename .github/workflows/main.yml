@@ -43,7 +43,19 @@ jobs:
                   file: ./Graddy_back/Dockerfile
                   platforms: linux/arm64
                   push: true
-                  tags: ${{ secrets.DOCKER_HUB_USERNAME }}/graddy-back:latest
+                  tags: peter4855/graddy-back:latest
+                  cache-from: type=gha
+                  cache-to: type=gha
+
+            # 3.5. FastAPI AI 서비스 이미지 빌드 및 푸시 (새로 추가)
+            - name: Build and push FastAPI AI image
+              uses: docker/build-push-action@v5
+              with:
+                  context: ./Graddy_back/scripts
+                  file: ./Graddy_back/scripts/Dockerfile
+                  platforms: linux/arm64
+                  push: true
+                  tags: peter4855/graddy-ai:latest
                   cache-from: type=gha
                   cache-to: type=gha
 

@@ -10,6 +10,7 @@ import {
     Post as ApiPost,
     CreatePostRequest,
 } from "../services/communityApi";
+import { toKoreanLocaleString } from "../utils/timeUtils";
 
 export type PostType = "project" | "study";
 
@@ -95,7 +96,7 @@ export const CommunityProvider: React.FC<ProviderProps> = ({ children }) => {
         title: apiPost.title,
         nickname: apiPost.nick || apiPost.userId,
         content: apiPost.content,
-        createdAt: new Date(apiPost.createdAt).toLocaleString("ko-KR"),
+        createdAt: toKoreanLocaleString(apiPost.createdAt),
     });
 
     // 게시글 목록 조회
@@ -192,7 +193,7 @@ export const CommunityProvider: React.FC<ProviderProps> = ({ children }) => {
             postId,
             content,
             nickname,
-            createdAt: new Date().toLocaleString("ko-KR"),
+            createdAt: toKoreanLocaleString(),
         };
         setComments((prev) => [...prev, newComment]);
     };
@@ -209,7 +210,7 @@ export const CommunityProvider: React.FC<ProviderProps> = ({ children }) => {
             parentCommentId,
             content,
             nickname,
-            createdAt: new Date().toLocaleString("ko-KR"),
+            createdAt: toKoreanLocaleString(),
         };
         setReplies((prev) => [...prev, newReply]);
     };

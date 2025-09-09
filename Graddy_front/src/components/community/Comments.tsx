@@ -1,6 +1,7 @@
 import React, { useState, useContext, useEffect } from "react";
 import { AuthContext } from "../../contexts/AuthContext";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { toKoreanLocaleString } from "../../utils/timeUtils";
 
 // API 응답 타입 정의
 interface CommentResponse {
@@ -406,7 +407,7 @@ const CommentItem: React.FC<{
                 </div>
                 <div className="flex flex-col items-end gap-1">
                     <div className="text-xs text-gray-500">
-                        {new Date(comment.createdAt).toLocaleString('ko-KR')}
+                        {toKoreanLocaleString(comment.createdAt)}
                     </div>
                     {/* 수정/삭제 버튼 - 본인 댓글만 (nickname 비교) */}
                     {isLoggedIn &&

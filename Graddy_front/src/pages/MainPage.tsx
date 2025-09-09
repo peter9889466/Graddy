@@ -8,6 +8,16 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { Plus, Clock, Calendar } from "lucide-react";
 import "./MainPage.css";
+import { 
+    getKoreanTime, 
+    toKoreanTime, 
+    toKoreanISOString, 
+    toKoreanDateString, 
+    toKoreanLocaleTimeString,
+    getKoreanTimestamp,
+    setKoreanTime,
+    toKoreanLocaleDateString 
+} from "../utils/timeUtils";
 
 // 편집 폼 컴포넌트
 const EditingScheduleForm = ({
@@ -138,24 +148,21 @@ const MainPage = () => {
     const events = [
         // 스터디 일정
         ...studySchedules.map((schedule) => {
-            const scheduleDate = new Date(schedule.schTime);
-            // 시간대 문제를 해결하기 위해 로컬 날짜로 변환
-            const localDate = new Date(
-                scheduleDate.getTime() -
-                scheduleDate.getTimezoneOffset() * 60000
-            );
+            // 한국 시간으로 변환
+            const scheduleDate = toKoreanTime(schedule.schTime);
+            const localDate = scheduleDate;
 
             return {
                 id: `study-${schedule.schId}`,
                 title: "",
-                date: localDate.toISOString().split("T")[0],
+                date: toKoreanDateString(localDate),
                 backgroundColor: "#EF4444", // 스터디: 빨간색
                 borderColor: "#EF4444",
                 extendedProps: {
                     type: "study",
                     studyName: schedule.studyProjectName || "스터디",
                     content: schedule.content,
-                    startTime: scheduleDate.toLocaleTimeString("ko-KR", {
+                    startTime: toKoreanLocaleTimeString(scheduleDate, {
                         hour: "2-digit",
                         minute: "2-digit",
                         hour12: false,
@@ -165,24 +172,21 @@ const MainPage = () => {
         }),
         // 과제 일정
         ...assignments.map((assignment) => {
-            const deadlineDate = new Date(assignment.deadline);
-            // 시간대 문제를 해결하기 위해 로컬 날짜로 변환
-            const localDate = new Date(
-                deadlineDate.getTime() -
-                deadlineDate.getTimezoneOffset() * 60000
-            );
+            // 한국 시간으로 변환
+            const deadlineDate = toKoreanTime(assignment.deadline);
+            const localDate = deadlineDate;
 
             return {
                 id: `assignment-${assignment.assignmentId}`,
                 title: "",
-                date: localDate.toISOString().split("T")[0],
+                date: toKoreanDateString(localDate),
                 backgroundColor: "#3B82F6", // 과제: 파란색
                 borderColor: "#3B82F6",
                 extendedProps: {
                     type: "assignment",
                     studyName: "스터디", // 스터디명은 별도 조회 필요
                     assignmentName: assignment.title,
-                    dueTime: deadlineDate.toLocaleTimeString("ko-KR", {
+                    dueTime: toKoreanLocaleTimeString(deadlineDate, {
                         hour: "2-digit",
                         minute: "2-digit",
                         hour12: false,
@@ -387,25 +391,19 @@ const MainPage = () => {
                 // 백엔드 데이터를 프론트엔드 형식으로 변환
                 const convertedPersonalSchedules = personalData.map(
                     (schedule: any) => {
-                        const scheduleDate = new Date(schedule.schTime);
-                        // 시간대 문제를 해결하기 위해 로컬 날짜로 변환
-                        const localDate = new Date(
-                            scheduleDate.getTime() -
-                            scheduleDate.getTimezoneOffset() * 60000
-                        );
+                        // 한국 시간으로 변환
+                        const scheduleDate = toKoreanTime(schedule.schTime);
+                        const localDate = scheduleDate;
 
                         return {
                             id: schedule.schId.toString(),
                             title: schedule.content,
-                            startTime: scheduleDate.toLocaleTimeString(
-                                "ko-KR",
-                                {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                    hour12: false,
-                                }
-                            ),
-                            date: localDate.toISOString().split("T")[0],
+                            startTime: toKoreanLocaleTimeString(scheduleDate, {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                hour12: false,
+                            }),
+                            date: toKoreanDateString(localDate),
                         };
                     }
                 );
@@ -458,51 +456,37 @@ const MainPage = () => {
         // 스터디 일정
         const studyItems = studySchedules
             .filter((schedule) => {
-                const scheduleDate = new Date(schedule.schTime);
-                const localDate = new Date(
-                    scheduleDate.getTime() -
-                    scheduleDate.getTimezoneOffset() * 60000
-                );
-                return localDate.toISOString().split("T")[0] === date;
+                const scheduleDate = toKoreanTime(schedule.schTime);
+                return toKoreanDateString(scheduleDate) === date;
             })
             .map((schedule) => ({
                 id: `study-${schedule.schId}`,
                 type: "study",
                 studyName: schedule.studyProjectName || "스터디",
                 content: schedule.content,
-                startTime: new Date(schedule.schTime).toLocaleTimeString(
-                    "ko-KR",
-                    {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: false,
-                    }
-                ),
+                startTime: toKoreanLocaleTimeString(schedule.schTime, {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                }),
             }));
 
         // 과제 일정
         const assignmentItems = assignments
             .filter((assignment) => {
-                const deadlineDate = new Date(assignment.deadline);
-                const localDate = new Date(
-                    deadlineDate.getTime() -
-                    deadlineDate.getTimezoneOffset() * 60000
-                );
-                return localDate.toISOString().split("T")[0] === date;
+                const deadlineDate = toKoreanTime(assignment.deadline);
+                return toKoreanDateString(deadlineDate) === date;
             })
             .map((assignment) => ({
                 id: `assignment-${assignment.assignmentId}`,
                 type: "assignment",
                 studyName: "스터디", // 스터디명은 별도 조회 필요
                 assignmentName: assignment.title,
-                dueTime: new Date(assignment.deadline).toLocaleTimeString(
-                    "ko-KR",
-                    {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: false,
-                    }
-                ),
+                dueTime: toKoreanLocaleTimeString(assignment.deadline, {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                }),
             }));
 
         // 개인 일정
@@ -528,7 +512,7 @@ const MainPage = () => {
 
         try {
             // 한국 시간대(KST)를 고려한 날짜 생성
-            const scheduleDateTime = new Date(`${selectedDate}T${time}:00+09:00`);
+            const scheduleDateTime = setKoreanTime(selectedDate, parseInt(time.split(':')[0]), parseInt(time.split(':')[1]));
 
             const response = await fetch(
                 "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/schedules/personal",
@@ -540,7 +524,7 @@ const MainPage = () => {
                     },
                     body: JSON.stringify({
                         content: title,
-                        schTime: scheduleDateTime.toISOString(),
+                        schTime: toKoreanISOString(scheduleDateTime),
                     }),
                 }
             );
@@ -621,15 +605,13 @@ const MainPage = () => {
             }
 
             // 한국 시간대(KST)를 고려한 날짜 생성
-            const scheduleDateTime = new Date(
-                `${currentSchedule.date}T${startTime}:00+09:00`
-            );
+            const scheduleDateTime = setKoreanTime(currentSchedule.date, parseInt(startTime.split(':')[0]), parseInt(startTime.split(':')[1]));
 
             console.log("개인 일정 수정 요청:", {
                 id,
                 title,
                 startTime,
-                scheduleDateTime: scheduleDateTime.toISOString(),
+                scheduleDateTime: toKoreanISOString(scheduleDateTime),
             });
 
             const response = await fetch(
@@ -642,7 +624,7 @@ const MainPage = () => {
                     },
                     body: JSON.stringify({
                         content: title,
-                        schTime: scheduleDateTime.toISOString(),
+                        schTime: toKoreanISOString(scheduleDateTime),
                     }),
                 }
             );
@@ -959,7 +941,7 @@ const MainPage = () => {
                                     ): string => {
                                         try {
                                             const date = new Date(dateString);
-                                            return date.toLocaleDateString('ko-KR');
+                                            return toKoreanLocaleDateString(date);
                                         } catch (error) {
                                             return dateString;
                                         }

@@ -3,6 +3,7 @@ import { useAssignmentContext } from '../../contexts/AssignmentContext';
 import { AuthContext } from '../../contexts/AuthContext';
 import { TokenService } from '../../services/tokenService';
 import { Loader2, CheckCircle, AlertCircle, Upload, X } from 'lucide-react';
+import { toKoreanISOString, toKoreanLocaleDateString } from '../../utils/timeUtils';
 
 interface AssignmentProps {
   studyProjectId: number;
@@ -209,7 +210,7 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
         storageType: result.data?.storageType || 'unknown',
         fileName: result.data?.fileName,
         fileUrl: result.data?.fileUrl,
-        uploadTime: new Date().toISOString()
+        uploadTime: toKoreanISOString()
       });
       
       const fileUrl = result.data?.fileUrl;
@@ -433,9 +434,9 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
     }
   }, []);
 
-  // 날짜 포맷팅 유틸리티
+  // 날짜 포맷팅 유틸리티 (한국 시간 기준)
   const formatDate = useCallback((dateString: string) => {
-    return new Date(dateString).toLocaleDateString('ko-KR', {
+    return toKoreanLocaleDateString(dateString, {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',

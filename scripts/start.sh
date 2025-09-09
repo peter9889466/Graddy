@@ -15,8 +15,8 @@ echo "### Deployment script started ###"
 cd /home/ubuntu/app
 
 # --- 2. Docker Hub ID 설정 ---
-# 환경변수에서 DOCKER_HUB_ID를 가져오거나 기본값 사용
-DOCKER_HUB_ID=${DOCKER_HUB_ID:-"peter4855"}
+# Docker Hub username을 하드코딩
+DOCKER_HUB_ID="peter4855"
 
 echo "Docker Hub ID is set to: ${DOCKER_HUB_ID}"
 

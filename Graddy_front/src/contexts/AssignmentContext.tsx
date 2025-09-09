@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { toKoreanLocaleString } from '../utils/timeUtils';
 
 export interface AssignmentSubmission {
     id: string;
@@ -42,7 +43,7 @@ export const AssignmentProvider: React.FC<AssignmentProviderProps> = ({ children
             id: Date.now().toString(),
             assignmentName,
             content,
-            submittedAt: new Date().toLocaleString('ko-KR'),
+            submittedAt: toKoreanLocaleString(),
             submittedBy,
             status: 'submitted',
             attachment

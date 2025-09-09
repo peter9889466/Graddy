@@ -3,6 +3,7 @@ import ChartComponent from '../detail/chart/LineChart'; // 위에서 만든 Char
 import { LineChart, MessageCircle, Reply, Trash2, User, Paperclip } from 'lucide-react';
 import { AuthContext } from '../../contexts/AuthContext';
 import { useAssignmentContext } from '../../contexts/AssignmentContext';
+import { toKoreanLocaleString, toKoreanLocaleDateString, getKoreanTime } from '../../utils/timeUtils';
 
 interface SubmissionData {   
     submissionId: number;
@@ -158,7 +159,7 @@ interface FeedBackProps {
                 return '유효하지 않은 날짜';
             }
             
-            return date.toLocaleDateString('ko-KR', {
+            return toKoreanLocaleDateString(date, {
                 year: 'numeric',
                 month: '2-digit',
                 day: '2-digit',
@@ -576,7 +577,7 @@ interface FeedBackProps {
                 content: newComment,
                 // 닉네임 들어오는 곳
                 author: authContext?.isLoggedIn ? '김개발' : '익명 사용자',
-                timestamp: new Date().toLocaleString('ko-KR'),
+                timestamp: toKoreanLocaleString(getKoreanTime()),
                 replies: []
             };
             setComments([...comments, comment]);
@@ -590,7 +591,7 @@ interface FeedBackProps {
                 id: `${parentId}-${Date.now()}`,
                 content: newReply,
                 author: authContext?.isLoggedIn ? '김개발' : '익명 사용자',
-                timestamp: new Date().toLocaleString('ko-KR'),
+                timestamp: toKoreanLocaleString(getKoreanTime()),
                 parentId
             };
             
@@ -742,7 +743,7 @@ interface FeedBackProps {
                     currentSubmissionData ? (
                         <div className="bg-gray-50 border-2 border-[#8B85E9] rounded-lg p-4">
                             <div className="mb-2 text-sm text-gray-600">
-                                <strong>제출일:</strong> {new Date(currentSubmissionData.createdAt).toLocaleString('ko-KR')}
+                                <strong>제출일:</strong> {toKoreanLocaleString(currentSubmissionData.createdAt)}
                             </div>
                             <div 
                                 className="text-gray-700 text-sm leading-relaxed whitespace-pre-line"

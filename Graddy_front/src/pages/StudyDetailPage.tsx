@@ -10,6 +10,7 @@ import { studyList } from "../data/studyData";
 import { AuthContext } from "../contexts/AuthContext";
 import PageLayout from "../components/layout/PageLayout";
 import { getUserFromToken } from "../utils/auth";
+import { toKoreanISOString, toKoreanDateString } from "../utils/timeUtils";
 import {
     StudyApiService,
     applyToStudyProject,
@@ -279,7 +280,7 @@ const StudyDetailPage: React.FC = () => {
                                 console.error("날짜 파싱 실패:", dateString);
                                 return dateString; // 파싱 실패 시 원본 반환
                             }
-                            return date.toISOString().split("T")[0];
+                            return toKoreanDateString(date);
                         };
 
                         const startDateStr = parseDate(
@@ -546,8 +547,8 @@ const StudyDetailPage: React.FC = () => {
         try {
             // 기간을 ISO 형식으로 변환
             const [startDate, endDate] = editPeriod.split(" ~ ");
-            const startISO = new Date(startDate).toISOString();
-            const endISO = new Date(endDate).toISOString();
+            const startISO = toKoreanISOString(startDate);
+            const endISO = toKoreanISOString(endDate);
 
             // 태그에서 interestIds 추출
             const interestIds = editTags.map((tag) => tag.interestId);
@@ -567,8 +568,8 @@ const StudyDetailPage: React.FC = () => {
                 studyProjectStart: startISO,
                 studyProjectEnd: endISO,
                 studyProjectTotal: maxMembers,
-                soltStart: new Date().toISOString(), // 기존 시간 유지
-                soltEnd: new Date().toISOString(), // 기존 시간 유지
+                soltStart: toKoreanISOString(), // 기존 시간 유지
+                soltEnd: toKoreanISOString(), // 기존 시간 유지
                 interestIds: interestIds,
                 dayIds: [], // 기존 요일 정보 유지
             };
