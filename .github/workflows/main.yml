@@ -55,7 +55,7 @@ jobs:
                   file: ./Graddy_back/scripts/Dockerfile
                   platforms: linux/arm64
                   push: true
-                  tags: peter4855/graddy-ai:latest
+                  tags: peter4855/graddy-fastapi:latest
                   cache-from: type=gha
                   cache-to: type=gha
 
