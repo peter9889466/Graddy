@@ -255,13 +255,26 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 									
 									// 멤버 ID 비교 함수 - 강화된 사용자 식별 로직
 									const isMessageFromCurrentUser = (messageMemberId: number): boolean => {
+									// 토큰에서 userId 추출
+									const currentUserId = token ? TokenService.getInstance().getUserIdFromToken(token) : null;
+										
+										console.log('🔍 사용자 식별 시작:', {
+											messageMemberId,
+											currentMemberId,
+											currentUserId,
+											senderNick: chatMessage.senderNick,
+											userNickname: user?.nickname,
+											userNick: user?.nick,
+											messageContent: chatMessage.content
+										});
+										
 										// 현재 멤버 ID (state에서 가져온 값 사용)
 										const myMemberId = currentMemberId;
 										
 										// 1차: memberId로 정확한 비교
 										if (myMemberId && messageMemberId) {
 											const isFromMe = messageMemberId === myMemberId;
-											console.log('🔍 멤버 ID 비교:', {
+											console.log('✅ 1차 멤버 ID 비교 성공:', {
 												messageMemberId,
 												myMemberId,
 												isFromMe
@@ -282,13 +295,15 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 												nick && chatMessage.senderNick === nick
 											);
 											
-											console.log('🔄 닉네임으로 fallback 비교:', {
+											console.log('🔄 2차 닉네임 비교:', {
 												messageSenderNick: chatMessage.senderNick,
 												userNicknames: userNicknames,
 												isFromMeByNick
 											});
 											
-											return isFromMeByNick;
+											if (isFromMeByNick) {
+												return true;
+											}
 										}
 										
 										// 3차: 임시 메시지와 내용 비교 (최후의 수단)
@@ -298,12 +313,34 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 											msg.sender === 'user'
 										);
 										
-										console.log('🔄 내용으로 fallback 비교:', {
+										console.log('🔄 3차 내용 비교:', {
 											messageContent: chatMessage.content,
+											tempMessages: prev.filter(msg => msg.id.startsWith('temp-')).map(msg => ({
+												id: msg.id,
+												text: msg.text,
+												sender: msg.sender
+											})),
 											isFromMeByContent
 										});
 										
-										return isFromMeByContent;
+										if (isFromMeByContent) {
+											return true;
+										}
+										
+										// 4차: 최후의 수단 - 현재 사용자가 보낸 메시지라고 가정
+										// (임시 메시지가 있는 경우에만)
+										const hasTempMessage = prev.some(msg => 
+											msg.id.startsWith('temp-') && 
+											msg.sender === 'user'
+										);
+										
+										if (hasTempMessage) {
+											console.log('⚠️ 4차 최후의 수단: 임시 메시지가 있으므로 내 메시지로 간주');
+											return true;
+										}
+										
+										console.log('❌ 모든 비교 실패 - 다른 사람 메시지로 판단');
+										return false;
 									};
 									
 									const isFromMe = isMessageFromCurrentUser(chatMessage.memberId);
@@ -318,6 +355,9 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 										fileUrl: chatMessage.fileUrl,
 									};
 									
+									// 토큰에서 userId 추출
+									const currentUserId = token ? TokenService.getInstance().getUserIdFromToken(token) : null;
+									
 									console.log('📝 생성된 메시지:', {
 										id: newMessage.id,
 										sender: newMessage.sender,
@@ -325,7 +365,17 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 										text: newMessage.text.substring(0, 20) + '...',
 										isFromMe: isFromMe,
 										chatMessageMemberId: chatMessage.memberId,
-										currentMemberId: currentMemberId
+										currentMemberId: currentMemberId,
+										userInfo: {
+											nickname: user?.nickname,
+											nick: user?.nick,
+											userId: currentUserId
+										},
+										chatMessageInfo: {
+											senderNick: chatMessage.senderNick,
+											memberId: chatMessage.memberId,
+											content: chatMessage.content
+										}
 									});
 									
 									const updatedMessages = [...filteredMessages, newMessage];
@@ -434,6 +484,9 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 			if (response.ok) {
 				const chatHistory: ChatMessageResponse[] = await response.json();
 				console.log('채팅 이력 불러오기 성공:', chatHistory.length, '개 메시지');
+				
+				// 토큰에서 userId 추출
+				const currentUserId = currentToken ? TokenService.getInstance().getUserIdFromToken(currentToken) : null;
 				
 				// 채팅 이력을 Message 형태로 변환하고 역순으로 정렬 (오래된 것부터 최신 순으로)
 				const historyMessages: Message[] = chatHistory
@@ -660,9 +713,13 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 			timestamp: getKoreanTime(),
 			messageType: 'TEXT'
 		};
+		// 토큰에서 userId 추출
+		const currentUserId = currentToken ? TokenService.getInstance().getUserIdFromToken(currentToken) : null;
+		
 		console.log('💬 임시 메시지 추가:', {
 			...tempMessage,
 			currentMemberId: currentMemberId,
+			currentUserId: currentUserId,
 			authUser: user
 		});
 		setMessages(prev => [...prev, tempMessage]);
