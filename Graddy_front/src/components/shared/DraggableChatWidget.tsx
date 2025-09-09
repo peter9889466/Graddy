@@ -492,19 +492,27 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 				// 토큰에서 userId 추출
 				const currentUserId = currentToken ? TokenService.getInstance().getUserIdFromToken(currentToken) : null;
 
+				// JWT 토큰에서 memberId 추출 (가장 정확함)
+				const tokenMemberId = currentToken ? TokenService.getInstance().getMemberIdFromToken(currentToken) : null;
+				
 				// 채팅 이력을 Message 형태로 변환하고 역순으로 정렬 (오래된 것부터 최신 순으로)
 				const historyMessages: Message[] = chatHistory
 					.reverse() // 배열을 역순으로 뒤집기
 					.map(chatMessage => {
-						// 강화된 사용자 식별 로직
+						// JWT 토큰 기반 정확한 사용자 식별 로직
 						let isFromMe = false;
-
-						// 1차: memberId로 정확한 비교
-						if (currentMemberId && chatMessage.memberId) {
+						
+						// 1차: JWT 토큰에서 추출한 memberId로 정확한 비교
+						if (tokenMemberId && chatMessage.memberId) {
+							isFromMe = chatMessage.memberId === tokenMemberId;
+						}
+						
+						// 2차: state의 currentMemberId로 fallback 비교
+						if (!isFromMe && currentMemberId && chatMessage.memberId) {
 							isFromMe = chatMessage.memberId === currentMemberId;
 						}
-
-						// 2차: 닉네임으로 fallback 비교
+						
+						// 3차: 닉네임으로 fallback 비교
 						if (!isFromMe && chatMessage.senderNick) {
 							const userNicknames = [
 								user?.nickname,
@@ -512,14 +520,15 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 								user?.nickname?.trim(),
 								user?.nick?.trim()
 							].filter(Boolean);
-
-							isFromMe = userNicknames.some(nick =>
+							
+							isFromMe = userNicknames.some(nick => 
 								nick && chatMessage.senderNick === nick
 							);
 						}
 
 						console.log('📚 채팅 이력 메시지 변환:', {
 							chatMessageMemberId: chatMessage.memberId,
+							tokenMemberId: tokenMemberId,
 							currentMemberId: currentMemberId,
 							senderNick: chatMessage.senderNick,
 							userNicknames: [user?.nickname, user?.nick],
@@ -709,6 +718,9 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 			content: messageContent,
 			messageType: 'TEXT'
 		};
+		// JWT 토큰에서 memberId 추출 (가장 정확함)
+		const tokenMemberId = currentToken ? TokenService.getInstance().getMemberIdFromToken(currentToken) : null;
+		
 		const tempMessage: Message = {
 			id: `temp-${Date.now()}-${Math.random()}`,
 			text: messageContent,
@@ -716,7 +728,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 			senderNick: user?.nick || user?.nickname || '나',
 			timestamp: getKoreanTime(),
 			messageType: 'TEXT',
-			memberId: currentMemberId || undefined // 현재 멤버 ID 포함
+			memberId: tokenMemberId || currentMemberId || undefined // JWT 토큰에서 추출한 memberId 우선 사용
 		};
 		// 토큰에서 userId 추출
 		const currentUserId = currentToken ? TokenService.getInstance().getUserIdFromToken(currentToken) : null;
@@ -910,20 +922,32 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 						onMouseDown={handleDragStart}
 					>
 						{messages.map((message, index) => {
-							// 현재 사용자의 메시지인지 확인 (다중 비교 로직)
+							// 현재 사용자의 메시지인지 확인 (JWT 토큰 기반 정확한 비교)
 							const isMyMessage = (() => {
-								// 1차: memberId로 정확한 비교 (가장 신뢰할 수 있음)
+								// 1차: JWT 토큰에서 직접 memberId 추출하여 비교 (가장 정확함)
+								const tokenMemberId = token ? TokenService.getInstance().getMemberIdFromToken(token) : null;
+								if (tokenMemberId && message.memberId) {
+									const isFromMeByTokenMemberId = message.memberId === tokenMemberId;
+									console.log('🔍 JWT 토큰 memberId 비교:', {
+										messageMemberId: message.memberId,
+										tokenMemberId: tokenMemberId,
+										isFromMeByTokenMemberId
+									});
+									if (isFromMeByTokenMemberId) return true;
+								}
+								
+								// 2차: state의 currentMemberId로 비교 (fallback)
 								if (currentMemberId && message.memberId) {
-									const isFromMeByMemberId = message.memberId === currentMemberId;
-									console.log('🔍 memberId 비교:', {
+									const isFromMeByCurrentMemberId = message.memberId === currentMemberId;
+									console.log('🔍 state memberId 비교:', {
 										messageMemberId: message.memberId,
 										currentMemberId: currentMemberId,
-										isFromMeByMemberId
+										isFromMeByCurrentMemberId
 									});
-									if (isFromMeByMemberId) return true;
+									if (isFromMeByCurrentMemberId) return true;
 								}
-
-								// 2차: 닉네임으로 fallback 비교
+								
+								// 3차: 닉네임으로 fallback 비교
 								if (message.senderNick) {
 									const userNicknames = [
 										user?.nickname,
@@ -931,34 +955,36 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 										user?.nickname?.trim(),
 										user?.nick?.trim()
 									].filter(Boolean);
-
-									const isFromMeByNick = userNicknames.some(nick =>
+									
+									const isFromMeByNick = userNicknames.some(nick => 
 										nick && message.senderNick === nick
 									);
-
+									
 									console.log('🔍 닉네임 비교:', {
 										messageSenderNick: message.senderNick,
 										userNicknames: userNicknames,
 										isFromMeByNick
 									});
-
+									
 									if (isFromMeByNick) return true;
 								}
-
-								// 3차: sender 필드로 비교 (임시 메시지의 경우)
+								
+								// 4차: sender 필드로 비교 (임시 메시지의 경우)
 								if (message.sender === 'user') {
 									console.log('🔍 sender 필드 비교: user로 판단');
 									return true;
 								}
-
+								
 								console.log('🔍 모든 비교 실패 - 다른 사람 메시지로 판단');
 								return false;
 							})();
 
 							// 디버깅을 위한 로그
+							const tokenMemberId = token ? TokenService.getInstance().getMemberIdFromToken(token) : null;
 							console.log('🎨 메시지 렌더링:', {
 								messageId: message.id,
 								messageMemberId: message.memberId,
+								tokenMemberId: tokenMemberId,
 								currentMemberId: currentMemberId,
 								senderNick: message.senderNick,
 								sender: message.sender,
