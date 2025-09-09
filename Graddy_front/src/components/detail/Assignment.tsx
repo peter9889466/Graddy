@@ -599,7 +599,7 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
         </div>
 
         {/* 첨부파일 */}
-        <div>
+        {/* <div>
           <label className="block text-lg font-bold mb-2 text-gray-500">
             첨부 파일 (선택사항)
           </label>
@@ -657,7 +657,7 @@ const Assignment: React.FC<AssignmentProps> = ({ studyProjectId, memberId }) => 
               </div>
             </div>
           )}
-        </div>
+        </div> */}
       </div>
 
       {/* 제출 버튼 */}

@@ -102,8 +102,12 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 	useEffect(() => {
 		const userId = TokenService.getInstance().getUserIdFromToken();
 		setCurrentUserId(userId);
-		console.log('🔑 채팅 위젯 사용자 ID 초기화:', userId);
-	}, []);
+		console.log('🔑 채팅 위젯 사용자 ID 초기화:', {
+			userId: userId,
+			token: localStorage.getItem('userToken')?.substring(0, 50) + '...',
+			authUser: user
+		});
+	}, [user]);
 
 	// WebSocket 연결 함수
 	const connectWebSocket = useCallback(async () => {
@@ -216,25 +220,74 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 										  msg.sender === 'user')
 									);
 									
-									// 새 메시지 생성 - 저장된 currentUserId와 비교
+									// 새 메시지 생성 - 실시간으로 토큰에서 사용자 ID 가져와서 비교
+									const realTimeUserId = TokenService.getInstance().getUserIdFromToken();
+									
+									// JWT 토큰 직접 디코딩해서 확인 (디버깅용)
+									let directDecodedUserId = null;
+									try {
+										const token = localStorage.getItem('userToken');
+										if (token) {
+											const payload = JSON.parse(atob(token.split('.')[1]));
+											directDecodedUserId = payload.sub || payload.userId;
+											console.log('🔍 JWT 직접 디코딩:', {
+												payload: payload,
+												sub: payload.sub,
+												userId: payload.userId,
+												directDecodedUserId: directDecodedUserId
+											});
+										}
+									} catch (error) {
+										console.error('JWT 직접 디코딩 실패:', error);
+									}
+									
 									// 사용자 ID 비교를 더 안전하게 처리
 									let isFromMe = false;
-									if (currentUserId && chatMessage.userId) {
-										// 정확한 매치
-										const exactMatch = chatMessage.userId === currentUserId;
-										// 대소문자 무시 매치
-										const caseInsensitiveMatch = chatMessage.userId.toLowerCase() === currentUserId.toLowerCase();
-										// 공백 제거 후 매치
-										const trimmedMatch = chatMessage.userId.trim() === currentUserId.trim();
+									
+									// 1차: TokenService로 가져온 사용자 ID로 비교
+									if (realTimeUserId && chatMessage.userId) {
+										const exactMatch = chatMessage.userId === realTimeUserId;
+										const caseInsensitiveMatch = chatMessage.userId.toLowerCase() === realTimeUserId.toLowerCase();
+										const trimmedMatch = chatMessage.userId.trim() === realTimeUserId.trim();
 										
 										isFromMe = exactMatch || caseInsensitiveMatch || trimmedMatch;
 									}
 									
+									// 2차: 직접 디코딩한 사용자 ID로 비교 (1차에서 매치되지 않은 경우)
+									if (!isFromMe && directDecodedUserId && chatMessage.userId) {
+										const directExactMatch = chatMessage.userId === directDecodedUserId;
+										const directCaseInsensitiveMatch = chatMessage.userId.toLowerCase() === directDecodedUserId.toLowerCase();
+										const directTrimmedMatch = chatMessage.userId.trim() === directDecodedUserId.trim();
+										
+										isFromMe = directExactMatch || directCaseInsensitiveMatch || directTrimmedMatch;
+									}
+									
+									// 3차: AuthContext 사용자 정보로 fallback (위에서 모두 매치되지 않은 경우)
+									if (!isFromMe && user?.nickname && chatMessage.userId) {
+										const fallbackMatch = chatMessage.userId === user.nickname;
+										const fallbackCaseInsensitive = chatMessage.userId.toLowerCase() === user.nickname.toLowerCase();
+										const fallbackTrimmed = chatMessage.userId.trim() === user.nickname.trim();
+										
+										isFromMe = fallbackMatch || fallbackCaseInsensitive || fallbackTrimmed;
+										
+										console.log('🔄 Fallback 사용자 ID 비교:', {
+											chatMessageUserId: chatMessage.userId,
+											authUserNickname: user.nickname,
+											isFromMe: isFromMe
+										});
+									}
+									
 									console.log('🔍 메시지 발신자 확인:', {
 										chatMessageUserId: chatMessage.userId,
+										realTimeUserId: realTimeUserId,
+										directDecodedUserId: directDecodedUserId,
 										currentUserId: currentUserId,
 										isFromMe: isFromMe,
-										token: localStorage.getItem('userToken')?.substring(0, 50) + '...'
+										exactMatch: chatMessage.userId === realTimeUserId,
+										caseInsensitiveMatch: chatMessage.userId?.toLowerCase() === realTimeUserId?.toLowerCase(),
+										trimmedMatch: chatMessage.userId?.trim() === realTimeUserId?.trim(),
+										token: localStorage.getItem('userToken')?.substring(0, 50) + '...',
+										messageContent: chatMessage.content.substring(0, 20) + '...'
 									});
 									
 									const newMessage: Message = {
@@ -246,6 +299,14 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 										messageType: chatMessage.messageType || 'TEXT',
 										fileUrl: chatMessage.fileUrl,
 									};
+									
+									console.log('📝 생성된 메시지:', {
+										id: newMessage.id,
+										sender: newMessage.sender,
+										senderNick: newMessage.senderNick,
+										text: newMessage.text.substring(0, 20) + '...',
+										isFromMe: isFromMe
+									});
 									
 									console.log('✅ 새 메시지 추가:', {
 										messageId: chatMessage.messageId,
@@ -560,7 +621,11 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 			timestamp: getKoreanTime(),
 			messageType: 'TEXT'
 		};
-		console.log('💬 임시 메시지 추가:', tempMessage);
+		console.log('💬 임시 메시지 추가:', {
+			...tempMessage,
+			currentUserId: currentUserId,
+			authUser: user
+		});
 		setMessages(prev => [...prev, tempMessage]);
 		
 		// 메시지 전송 후 자동 스크롤
