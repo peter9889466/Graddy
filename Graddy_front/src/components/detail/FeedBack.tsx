@@ -576,7 +576,7 @@ interface FeedBackProps {
                 id: Date.now().toString(),
                 content: newComment,
                 // 닉네임 들어오는 곳
-                author: authContext?.isLoggedIn ? '김개발' : '익명 사용자',
+                author: authContext?.isLoggedIn ? selectedMember : '익명 사용자',
                 timestamp: toKoreanLocaleString(getKoreanTime()),
                 replies: []
             };
@@ -590,7 +590,7 @@ interface FeedBackProps {
             const reply = {
                 id: `${parentId}-${Date.now()}`,
                 content: newReply,
-                author: authContext?.isLoggedIn ? '김개발' : '익명 사용자',
+                author: authContext?.isLoggedIn ? selectedMember : '익명 사용자',
                 timestamp: toKoreanLocaleString(getKoreanTime()),
                 parentId
             };

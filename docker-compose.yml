@@ -18,9 +18,17 @@ services:
         image: peter4855/graddy-back:latest
         ports:
             - "8080:8080" # EC2의 8080번 포트를 컨테이너의 8080번 포트와 연결
-        # [추가] .env 파일에 있는 환경 변수들을 컨테이너 내부로 주입
-        env_file:
-            - .env
+        # [수정] 환경 변수에서 직접 읽어오도록 변경
+        environment:
+            - OPENAI_API_KEY=${OPENAI_API_KEY}
+            - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}
+            - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
+            - DB_PASSWORD=${DB_PASSWORD}
+            - SOLAPI_SENDER_NUMBER=${SOLAPI_SENDER_NUMBER}
+            - SOLAPI_API_KEY=${SOLAPI_API_KEY}
+            - SOLAPI_API_SECRET=${SOLAPI_API_SECRET}
+            - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+            - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
         networks:
             - graddy-net
         restart: always # 항상 재시작 옵션 추가
@@ -34,14 +42,16 @@ services:
         image: peter4855/graddy-fastapi:latest
         ports:
             - "8000:8000"  # FastAPI 서버 포트
-        # [추가] .env 파일에 있는 환경 변수들을 컨테이너 내부로 주입
-        env_file:
-            - .env
+        # [수정] 환경 변수에서 직접 읽어오도록 변경
+        environment:
+            - OPENAI_API_KEY=${OPENAI_API_KEY}
+            - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}
+            - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
+            - DB_PASSWORD=${DB_PASSWORD}
         networks:
             - graddy-net
         restart: always # 항상 재시작 옵션 추가
-        depends_on:
-            - graddy-back
+
 
     # 4. LocalStack - AWS 서비스 로컬 시뮬레이션
     localstack:
