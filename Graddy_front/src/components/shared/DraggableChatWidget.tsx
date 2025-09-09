@@ -253,38 +253,57 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 										  msg.sender === 'user')
 									);
 									
-									// 멤버 ID 비교 함수 - 단순하고 정확한 비교
+									// 멤버 ID 비교 함수 - 강화된 사용자 식별 로직
 									const isMessageFromCurrentUser = (messageMemberId: number): boolean => {
 										// 현재 멤버 ID (state에서 가져온 값 사용)
 										const myMemberId = currentMemberId;
 										
-										if (!myMemberId || !messageMemberId) {
-											console.log('⚠️ 멤버 ID가 없어서 비교 불가:', { myMemberId, messageMemberId });
-											// memberId가 없을 때는 닉네임으로 fallback 비교
-											if (chatMessage.senderNick && user?.nickname) {
-												const isFromMeByNick = chatMessage.senderNick === user.nickname || 
-																	chatMessage.senderNick === user.nick;
-												console.log('🔄 닉네임으로 fallback 비교:', {
-													messageSenderNick: chatMessage.senderNick,
-													userNickname: user.nickname,
-													userNick: user.nick,
-													isFromMeByNick
-												});
-												return isFromMeByNick;
-											}
-											return false;
+										// 1차: memberId로 정확한 비교
+										if (myMemberId && messageMemberId) {
+											const isFromMe = messageMemberId === myMemberId;
+											console.log('🔍 멤버 ID 비교:', {
+												messageMemberId,
+												myMemberId,
+												isFromMe
+											});
+											return isFromMe;
 										}
 										
-										// 정확한 매치 (숫자이므로 단순 비교)
-										const isFromMe = messageMemberId === myMemberId;
+										// 2차: 닉네임으로 fallback 비교 (더 강력한 비교)
+										if (chatMessage.senderNick) {
+											const userNicknames = [
+												user?.nickname,
+												user?.nick,
+												user?.nickname?.trim(),
+												user?.nick?.trim()
+											].filter(Boolean); // null/undefined 제거
+											
+											const isFromMeByNick = userNicknames.some(nick => 
+												nick && chatMessage.senderNick === nick
+											);
+											
+											console.log('🔄 닉네임으로 fallback 비교:', {
+												messageSenderNick: chatMessage.senderNick,
+												userNicknames: userNicknames,
+												isFromMeByNick
+											});
+											
+											return isFromMeByNick;
+										}
 										
-										console.log('🔍 멤버 ID 비교:', {
-											messageMemberId,
-											myMemberId,
-											isFromMe
+										// 3차: 임시 메시지와 내용 비교 (최후의 수단)
+										const isFromMeByContent = prev.some(msg => 
+											msg.id.startsWith('temp-') && 
+											msg.text === chatMessage.content &&
+											msg.sender === 'user'
+										);
+										
+										console.log('🔄 내용으로 fallback 비교:', {
+											messageContent: chatMessage.content,
+											isFromMeByContent
 										});
 										
-										return isFromMe;
+										return isFromMeByContent;
 									};
 									
 									const isFromMe = isMessageFromCurrentUser(chatMessage.memberId);
@@ -420,21 +439,33 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 				const historyMessages: Message[] = chatHistory
 					.reverse() // 배열을 역순으로 뒤집기
 					.map(chatMessage => {
-						// 멤버 ID 비교 - 단순하고 정확한 비교
-						let isFromMe = currentMemberId && chatMessage.memberId && 
-							chatMessage.memberId === currentMemberId;
+						// 강화된 사용자 식별 로직
+						let isFromMe = false;
 						
-						// memberId가 없을 때는 닉네임으로 fallback 비교
-						if (!isFromMe && chatMessage.senderNick && user?.nickname) {
-							isFromMe = chatMessage.senderNick === user.nickname || 
-										chatMessage.senderNick === user.nick;
+						// 1차: memberId로 정확한 비교
+						if (currentMemberId && chatMessage.memberId) {
+							isFromMe = chatMessage.memberId === currentMemberId;
+						}
+						
+						// 2차: 닉네임으로 fallback 비교
+						if (!isFromMe && chatMessage.senderNick) {
+							const userNicknames = [
+								user?.nickname,
+								user?.nick,
+								user?.nickname?.trim(),
+								user?.nick?.trim()
+							].filter(Boolean);
+							
+							isFromMe = userNicknames.some(nick => 
+								nick && chatMessage.senderNick === nick
+							);
 						}
 						
 						console.log('📚 채팅 이력 메시지 변환:', {
 							chatMessageMemberId: chatMessage.memberId,
 							currentMemberId: currentMemberId,
 							senderNick: chatMessage.senderNick,
-							userNickname: user?.nickname,
+							userNicknames: [user?.nickname, user?.nick],
 							isFromMe: isFromMe
 						});
 						
@@ -613,16 +644,17 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 			}
 		}
 
+		// 먼저 로컬에 메시지 표시 (즉시 피드백)
+		const messageContent = inputText.trim();
+		
 		const messageRequest: ChatMessageRequest = {
 			studyProjectId: currentStudyProjectId,
-			content: inputText.trim(),
+			content: messageContent,
 			messageType: 'TEXT'
 		};
-
-		// 먼저 로컬에 메시지 표시 (즉시 피드백)
 		const tempMessage: Message = {
 			id: `temp-${Date.now()}-${Math.random()}`,
-			text: inputText.trim(),
+			text: messageContent,
 			sender: 'user',
 			senderNick: user?.nick || user?.nickname || '나',
 			timestamp: getKoreanTime(),
@@ -641,7 +673,6 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 		}, 100);
 		
 		// 입력 필드 초기화
-		const messageToSend = inputText.trim();
 		setInputText('');
 
 		try {
