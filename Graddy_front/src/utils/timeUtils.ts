@@ -10,7 +10,8 @@
 export const getKoreanTime = (): Date => {
     const now = new Date();
     // UTC 시간에 9시간을 더해서 한국 시간으로 변환
-    const koreanTime = new Date(now.getTime() + (9 * 60 * 60 * 1000));
+    const koreanTime = new Date(now.getTime());
+    console.log('🔍 [DEBUG] 현재 한국 시간:', koreanTime);
     return koreanTime;
 };
 
@@ -22,7 +23,7 @@ export const getKoreanTime = (): Date => {
 export const toKoreanTime = (date: Date | string): Date => {
     const inputDate = typeof date === 'string' ? new Date(date) : date;
     // UTC 시간에 9시간을 더해서 한국 시간으로 변환
-    return new Date(inputDate.getTime() + (9 * 60 * 60 * 1000));
+    return new Date(inputDate.getTime());
 };
 
 /**

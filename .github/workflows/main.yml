@@ -35,29 +35,37 @@ jobs:
             - name: Set up Docker Buildx
               uses: docker/setup-buildx-action@v3
 
-            # 3. 백엔드 이미지 빌드 및 푸시 (기존과 동일)
+            # 3. 백엔드 이미지 빌드 및 푸시 (멀티 아키텍처)
             - name: Build and push Backend image
               uses: docker/build-push-action@v5
               with:
                   context: ./Graddy_back
                   file: ./Graddy_back/Dockerfile
-                  platforms: linux/arm64
+                  platforms: linux/amd64,linux/arm64  # 멀티 아키텍처 지원
                   push: true
                   tags: peter4855/graddy-back:latest
-                  cache-from: type=gha
-                  cache-to: type=gha
+                  cache-from: |
+                      type=gha
+                      type=registry,ref=peter4855/graddy-back:buildcache
+                  cache-to: |
+                      type=gha,mode=max
+                      type=registry,ref=peter4855/graddy-back:buildcache,mode=max
 
-            # 3.5. FastAPI AI 서비스 이미지 빌드 및 푸시 (새로 추가)
+            # 3.5. FastAPI AI 서비스 이미지 빌드 및 푸시 (멀티 아키텍처)
             - name: Build and push FastAPI AI image
               uses: docker/build-push-action@v5
               with:
                   context: ./Graddy_back/scripts
                   file: ./Graddy_back/scripts/Dockerfile
-                  platforms: linux/arm64
+                  platforms: linux/amd64,linux/arm64  # 멀티 아키텍처 지원
                   push: true
                   tags: peter4855/graddy-fastapi:latest
-                  cache-from: type=gha
-                  cache-to: type=gha
+                  cache-from: |
+                      type=gha
+                      type=registry,ref=peter4855/graddy-fastapi:buildcache
+                  cache-to: |
+                      type=gha,mode=max
+                      type=registry,ref=peter4855/graddy-fastapi:buildcache,mode=max
 
             # ===============================================================
             # (★★수정/추가된 부분 1: 프론트엔드 빌드 단계★★)

@@ -751,7 +751,7 @@ interface FeedBackProps {
                                 {currentSubmissionData.content}
                             </div>
                             
-                            {/* 첨부파일 표시 */}
+                            {/* 첨부파일 표시
                             <div className="mt-4 bg-white rounded p-3 border border-gray-200">
                                 {currentSubmissionData.fileUrl ? (
                                     <div>
@@ -811,7 +811,7 @@ interface FeedBackProps {
                                                             
                                                             const link = document.createElement('a');
                                                             link.href = url;
-                                                            link.download = fileName;
+                                                            link.download = fileName;image.png
                                                             link.style.display = 'none';
                                                             document.body.appendChild(link);
                                                             link.click();
@@ -836,7 +836,7 @@ interface FeedBackProps {
                                         <p className="text-sm text-gray-500 text-center">첨부파일이 없습니다.</p>
                                     </div>
                                 )}
-                            </div>
+                            </div> */}
                         </div>
                     ) : loading ? (
                         <div className="bg-gray-50 border-2 border-gray-300 rounded-lg p-4">

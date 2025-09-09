@@ -1,15 +1,19 @@
-# fastapi==0.104.1
-# uvicorn[standard]==0.24.0
-openai==0.28.1
-# python-dotenv==1.0.0
-# pydantic==2.5.0
-# requests==2.31.0
-# mysql-connector-python==8.1.0
+# FastAPI 및 핵심 의존성
 fastapi==0.111.1
-uvicorn[standard]==0.30.3
-# openai==0.28.1
-python-dotenv==1.0.1
+uvicorn==0.30.3  # [standard] 제거하여 의존성 최소화
 pydantic==2.8.2
+
+# AI 및 API 관련
+openai==0.28.1
+
+# 환경 설정
+python-dotenv==1.0.1
+
+# HTTP 클라이언트
 requests==2.32.3
+
+# 데이터베이스 연결
 mysql-connector-python==8.4.0
+
+# AWS 서비스 (필요시에만)
 boto3==1.35.0
