@@ -52,7 +52,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // WebSocket 연결을 위한 엔드포인트 설정
         // context-path가 /api이므로 /api/ws-stomp로 설정
-        registry.addEndpoint("/ws-stomp")
+        registry.addEndpoint("/api/ws-stomp")
                 .setAllowedOriginPatterns("*")  // CORS 설정 (프로덕션에서는 특정 도메인만 허용 권장)
                 .withSockJS();                  // SockJS 지원 (WebSocket 폴백)
     }

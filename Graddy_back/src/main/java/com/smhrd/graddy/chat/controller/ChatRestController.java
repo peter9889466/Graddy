@@ -278,8 +278,12 @@ public class ChatRestController {
             String token = authorization.replace("Bearer ", "");
             String userId = jwtUtil.extractUserId(token);
             
+            log.info("채팅 이력 조회 요청: studyProjectId={}, userId={}", studyProjectId, userId);
+            
             // 멤버십 확인 (채팅 권한 확인)
             Long memberId = chatService.getMemberIdByUserIdAndStudyProjectId(userId, studyProjectId);
+            log.info("멤버십 확인 결과: studyProjectId={}, userId={}, memberId={}", studyProjectId, userId, memberId);
+            
             if (memberId == null) {
                 log.warn("채팅 이력 조회 권한 없음: studyProjectId={}, userId={}", studyProjectId, userId);
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).build();

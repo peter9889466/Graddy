@@ -39,7 +39,7 @@ api.interceptors.response.use(
         console.log("🔍 [DEBUG] API 응답 성공 - URL:", response.config.url, "Status:", response.status);
         return response;
     },
-    (error) => {
+    async (error) => {
         console.error("🔍 [DEBUG] API 응답 에러 - URL:", error.config?.url);
         console.error("🔍 [DEBUG] API 응답 에러 - Status:", error.response?.status);
         console.error("🔍 [DEBUG] API 응답 에러 - StatusText:", error.response?.statusText);
@@ -47,12 +47,29 @@ api.interceptors.response.use(
         console.error("🔍 [DEBUG] API 응답 에러 - Headers:", error.response?.headers);
         
         if (error.response?.status === 401) {
-            console.log("🔍 [DEBUG] 401 Unauthorized - 토큰 만료로 인한 로그인 페이지 리다이렉트");
-            // 토큰 만료 시 로그인 페이지로 리다이렉트
-            localStorage.removeItem('userToken'); // AuthContext와 일치하도록 수정
-            localStorage.removeItem('isLoggedIn');
-            localStorage.removeItem('userData');
-            window.location.href = '/login';
+            console.log("🔍 [DEBUG] 401 Unauthorized - 토큰 만료 감지");
+            
+            // 토큰 갱신 시도
+            try {
+                const { TokenService } = await import('./tokenService');
+                const tokenService = TokenService.getInstance();
+                const newToken = await tokenService.refreshAccessToken();
+                
+                console.log("🔍 [DEBUG] 토큰 갱신 성공, 원래 요청 재시도");
+                
+                // 원래 요청에 새 토큰으로 재시도
+                error.config.headers.Authorization = `Bearer ${newToken}`;
+                return api.request(error.config);
+                
+            } catch (refreshError) {
+                console.log("🔍 [DEBUG] 토큰 갱신 실패 - 로그인 페이지 리다이렉트");
+                // 토큰 갱신 실패 시 로그인 페이지로 리다이렉트
+                localStorage.removeItem('userToken');
+                localStorage.removeItem('refreshToken');
+                localStorage.removeItem('isLoggedIn');
+                localStorage.removeItem('userData');
+                window.location.href = '/login';
+            }
         } else if (error.response?.status === 403) {
             console.log("🔍 [DEBUG] 403 Forbidden - 권한 없음");
             console.log("🔍 [DEBUG] 403 오류 상세 정보:", {

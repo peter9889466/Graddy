@@ -119,8 +119,13 @@ public class StudyApplicationController {
             String token = authorization.replace("Bearer ", "");
             String userId = jwtUtil.extractUserId(token);
             
+            log.info("신청 목록 조회 요청: studyProjectId={}, userId={}", studyProjectId, userId);
+            
             // 리더 권한 확인
-            if (!applicationService.isLeader(studyProjectId, userId)) {
+            boolean isLeader = applicationService.isLeader(studyProjectId, userId);
+            log.info("리더 권한 확인 결과: studyProjectId={}, userId={}, isLeader={}", studyProjectId, userId, isLeader);
+            
+            if (!isLeader) {
                 log.warn("신청 목록 조회 권한 없음: studyProjectId={}, userId={}", studyProjectId, userId);
                 return ApiResponse.error(HttpStatus.FORBIDDEN, "해당 스터디/프로젝트의 리더만 신청 목록을 조회할 수 있습니다.", null);
             }
