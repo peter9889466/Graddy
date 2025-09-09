@@ -99,14 +99,14 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 
 	// 스터디별 멤버 ID 조회 및 초기화
 	useEffect(() => {
-		const fetchMemberId = async () => {
+		const fetchMemberId = async (retryCount = 0) => {
 			if (!currentStudyProjectId || !token) {
 				console.log('⚠️ 스터디 ID 또는 토큰이 없어서 멤버 ID 조회 불가');
 				return;
 			}
 
 			try {
-				console.log('🔍 스터디별 멤버 ID 조회 시작:', currentStudyProjectId);
+				console.log('🔍 스터디별 멤버 ID 조회 시작:', currentStudyProjectId, retryCount > 0 ? `(재시도 ${retryCount})` : '');
 				
 				const response = await fetch(`http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/chat/member-id/${currentStudyProjectId}`, {
 					method: 'GET',
@@ -125,11 +125,23 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 					});
 				} else {
 					console.warn('⚠️ 스터디별 멤버 ID 조회 실패:', response.status);
-					setCurrentMemberId(null);
+					// 재시도 로직 (최대 3번)
+					if (retryCount < 3) {
+						console.log(`🔄 ${retryCount + 1}초 후 재시도...`);
+						setTimeout(() => fetchMemberId(retryCount + 1), (retryCount + 1) * 1000);
+					} else {
+						setCurrentMemberId(null);
+					}
 				}
 			} catch (error) {
 				console.error('❌ 스터디별 멤버 ID 조회 오류:', error);
-				setCurrentMemberId(null);
+				// 재시도 로직 (최대 3번)
+				if (retryCount < 3) {
+					console.log(`🔄 ${retryCount + 1}초 후 재시도...`);
+					setTimeout(() => fetchMemberId(retryCount + 1), (retryCount + 1) * 1000);
+				} else {
+					setCurrentMemberId(null);
+				}
 			}
 		};
 
@@ -248,6 +260,18 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 										
 										if (!myMemberId || !messageMemberId) {
 											console.log('⚠️ 멤버 ID가 없어서 비교 불가:', { myMemberId, messageMemberId });
+											// memberId가 없을 때는 닉네임으로 fallback 비교
+											if (chatMessage.senderNick && user?.nickname) {
+												const isFromMeByNick = chatMessage.senderNick === user.nickname || 
+																	chatMessage.senderNick === user.nick;
+												console.log('🔄 닉네임으로 fallback 비교:', {
+													messageSenderNick: chatMessage.senderNick,
+													userNickname: user.nickname,
+													userNick: user.nick,
+													isFromMeByNick
+												});
+												return isFromMeByNick;
+											}
 											return false;
 										}
 										
@@ -397,12 +421,20 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 					.reverse() // 배열을 역순으로 뒤집기
 					.map(chatMessage => {
 						// 멤버 ID 비교 - 단순하고 정확한 비교
-						const isFromMe = currentMemberId && chatMessage.memberId && 
+						let isFromMe = currentMemberId && chatMessage.memberId && 
 							chatMessage.memberId === currentMemberId;
+						
+						// memberId가 없을 때는 닉네임으로 fallback 비교
+						if (!isFromMe && chatMessage.senderNick && user?.nickname) {
+							isFromMe = chatMessage.senderNick === user.nickname || 
+										chatMessage.senderNick === user.nick;
+						}
 						
 						console.log('📚 채팅 이력 메시지 변환:', {
 							chatMessageMemberId: chatMessage.memberId,
 							currentMemberId: currentMemberId,
+							senderNick: chatMessage.senderNick,
+							userNickname: user?.nickname,
 							isFromMe: isFromMe
 						});
 						
@@ -428,7 +460,8 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 
 	// 채팅창이 열릴 때 WebSocket 연결 및 이력 불러오기
 	useEffect(() => {
-		if (isOpen && currentStudyProjectId && token) {
+		if (isOpen && currentStudyProjectId && token && currentMemberId) {
+			console.log('🚀 채팅 초기화 시작:', { currentStudyProjectId, currentMemberId });
 			// 먼저 채팅 이력 불러오기
 			loadChatHistory().then(() => {
 				// 이력 불러오기 완료 후 WebSocket 연결
@@ -441,7 +474,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 		return () => {
 			disconnectWebSocket();
 		};
-	}, [isOpen, currentStudyProjectId, token, connectWebSocket, disconnectWebSocket, loadChatHistory]);
+	}, [isOpen, currentStudyProjectId, token, currentMemberId, connectWebSocket, disconnectWebSocket, loadChatHistory]);
 
 	// 자동 스크롤 함수
 	const scrollToBottom = useCallback(() => {
