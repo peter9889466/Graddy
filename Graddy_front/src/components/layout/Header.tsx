@@ -84,7 +84,7 @@ const Header: React.FC = () => {
 
     return (
         <header
-            className={`shadow-md transition-all duration-300 ease-in-out relative backdrop-blur-sm `}
+            className={`shadow-md transition-all duration-300 ease-in-out relative backdrop-blur-sm z-[9998]`}
         >
             <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
                 <div className="flex items-center h-20">
@@ -160,7 +160,7 @@ const Header: React.FC = () => {
 
                                 {/* 드롭다운 메뉴 */}
                                 {isProfileMenuOpen && (
-                                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-[9999]">
                                         <button
                                             onClick={handleMyPageClick}
                                             className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors duration-200 flex items-center space-x-2"
