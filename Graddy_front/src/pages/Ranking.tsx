@@ -51,7 +51,7 @@ export const Ranking = () => {
     const fetchRankingData = async (): Promise<RankingResponse> => {
         try {
             const response = await fetch(
-                "http://localhost:8080/api/scores/ranking/top100"
+                "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/scores/ranking/top100"
             );
             if (!response.ok) {
                 throw new Error("Failed to fetch ranking data");
@@ -69,7 +69,7 @@ export const Ranking = () => {
         
         try {
             const response = await fetch(
-                `http://localhost:8080/api/scores/user/${currentUserId}`
+                `http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/scores/user/${currentUserId}`
             );
             if (!response.ok) {
                 if (response.status === 404) {
@@ -257,7 +257,7 @@ export const Ranking = () => {
                                         최근 업데이트:{" "}
                                         {new Date(
                                             user.lastUpdated
-                                        ).toLocaleDateString()}
+                                        ).toLocaleDateString('ko-KR')}
                                     </div>
                                 </div>
                             </div>
@@ -316,7 +316,7 @@ export const Ranking = () => {
                                                 최근 업데이트:{" "}
                                                 {new Date(
                                                     myRanking.lastUpdated
-                                                ).toLocaleDateString()}
+                                                ).toLocaleDateString('ko-KR')}
                                             </div>
                                         </div>
                                     </div>
@@ -436,7 +436,7 @@ export const Ranking = () => {
                                 <span className="font-medium">
                                     {new Date(
                                         selectedUser.lastUpdated
-                                    ).toLocaleString()}
+                                    ).toLocaleString('ko-KR')}
                                 </span>
                             </div>
                         </div>

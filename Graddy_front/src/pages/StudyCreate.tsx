@@ -430,7 +430,7 @@ const StudyCreate: React.FC = () => {
             console.log("현재 사용자 정보:", user);
             console.log(
                 "API_BASE_URL:"+
-                    "http://localhost:8080/api"
+                    "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api"
             );
 
             const createdStudyProject =

@@ -37,16 +37,16 @@ public class CommentService {
      * @param assignmentId 과제 ID (URL 경로에서 추출)
      * @param request 댓글 요청 DTO
      * @return 작성된 댓글 응답 DTO
-     * @throws IllegalArgumentException 해당 스터디의 멤버가 아닌 경우
+     * @throws IllegalArgumentException 해당 스터디의 멤버가 아니거나 approved 상태가 아닌 경우
      */
     @Transactional
     public CommentResponse createAssignmentComment(String userId, Long assignmentId, CommentRequest request) {
         log.info("과제 댓글 작성 시작: userId={}, assignmentId={}, studyProjectId={}", 
                 userId, assignmentId, request.getStudyProjectId());
         
-        // 과제 댓글 작성 시 스터디 멤버십 검증
+        // 과제 댓글 작성 시 스터디 멤버십 검증 (memberStatus가 approved인지 확인)
         if (request.getStudyProjectId() != null) {
-            validateStudyMembership(userId, request.getStudyProjectId());
+            validateStudyMembershipForAssignment(userId, request.getStudyProjectId());
             log.info("과제 댓글 작성 - 스터디 멤버십 검증 완료: userId={}, studyProjectId={}", 
                     userId, request.getStudyProjectId());
         } else {
@@ -107,7 +107,7 @@ public class CommentService {
         log.info("스터디게시판 댓글 작성 시작: userId={}, stPrPostId={}", userId, stPrPostId);
         
         // 1. 스터디 멤버십 검증
-        // validateStudyMembership(userId, stPrPostId);
+        validateStudyMembership(userId, stPrPostId);
         
         Comment comment = Comment.builder()
                 .userId(userId)
@@ -124,41 +124,123 @@ public class CommentService {
     }
 
     /**
-     * 스터디 멤버십 검증
-     * 해당 사용자가 스터디의 멤버인지 확인
+     * 과제 댓글용 스터디 멤버십 검증
+     * 해당 사용자가 스터디의 멤버인지 확인하고, memberStatus가 'approved'인지 검증
      * 
      * @param userId 사용자 ID
-     * @param stPrPostId 스터디 커뮤니티 게시글 ID
-     * @throws IllegalArgumentException 멤버가 아닌 경우
+     * @param studyProjectId 스터디/프로젝트 ID
+     * @throws IllegalArgumentException 멤버가 아니거나 approved 상태가 아닌 경우
      */
-    private void validateStudyMembership(String userId, Long stPrPostId) {
-        log.info("스터디 멤버십 검증 시작: userId={}, stPrPostId={}", userId, stPrPostId);
+    private void validateStudyMembershipForAssignment(String userId, Long studyProjectId) {
+        log.info("🔍 과제 댓글용 스터디 멤버십 검증 시작: userId={}, studyProjectId={}", userId, studyProjectId);
         
         try {
-            // 게시글 ID로 스터디 ID 조회
-            Long studyProjectId = getStudyProjectIdByPostId(stPrPostId);
             if (studyProjectId == null) {
-                log.warn("게시글에 해당하는 스터디를 찾을 수 없음: stPrPostId={}", stPrPostId);
-                throw new IllegalArgumentException("해당 게시글의 스터디를 찾을 수 없습니다.");
+                log.warn("❌ studyProjectId가 null임: userId={}", userId);
+                throw new IllegalArgumentException("스터디/프로젝트 ID가 필요합니다.");
+            }
+            
+            // 해당 스터디의 모든 멤버 조회 (디버깅용)
+            List<com.smhrd.graddy.member.entity.Member> allMembers = 
+                    studyProjectMemberRepository.findByStudyProjectIdOrderByJoinedAtAsc(studyProjectId);
+            log.info("🔍 스터디 {}의 모든 멤버 수: {}", studyProjectId, allMembers.size());
+            for (com.smhrd.graddy.member.entity.Member member : allMembers) {
+                log.info("  - 멤버: memberId={}, userId={}, memberType={}, status={}", 
+                        member.getMemberId(), member.getUserId(), member.getMemberType(), member.getStudyProjectCheck());
             }
             
             // 스터디 멤버십 확인
             Optional<com.smhrd.graddy.member.entity.Member> memberOpt = 
                     studyProjectMemberRepository.findByUserIdAndStudyProjectId(userId, studyProjectId);
             
+            log.info("🔍 사용자 {}의 멤버십 검색 결과: {}", userId, memberOpt.isPresent() ? "존재함" : "존재하지 않음");
+            
             if (memberOpt.isEmpty()) {
-                log.warn("스터디 멤버가 아님: userId={}, studyProjectId={}", userId, studyProjectId);
+                log.warn("❌ 스터디 멤버가 아님: userId={}, studyProjectId={}", userId, studyProjectId);
                 throw new IllegalArgumentException("해당 스터디의 멤버가 아니므로 댓글을 작성할 수 없습니다.");
             }
             
-            log.info("스터디 멤버십 검증 완료: userId={}, studyProjectId={}, memberId={}", 
-                    userId, studyProjectId, memberOpt.get().getMemberId());
+            com.smhrd.graddy.member.entity.Member member = memberOpt.get();
+            
+            // memberStatus가 'approved'인지 확인
+            if (member.getStudyProjectCheck() != com.smhrd.graddy.member.entity.Member.MemberStatus.approved) {
+                log.warn("❌ 멤버 상태가 approved가 아님: userId={}, studyProjectId={}, status={}", 
+                        userId, studyProjectId, member.getStudyProjectCheck());
+                throw new IllegalArgumentException("승인된 스터디 멤버만 댓글을 작성할 수 있습니다.");
+            }
+            
+            log.info("✅ 과제 댓글용 스터디 멤버십 검증 완료: userId={}, studyProjectId={}, memberId={}, memberType={}, status={}", 
+                    userId, studyProjectId, member.getMemberId(), member.getMemberType(), member.getStudyProjectCheck());
             
         } catch (IllegalArgumentException e) {
             // 이미 검증된 예외는 그대로 던지기
+            log.error("❌ 과제 댓글용 멤버십 검증 실패: {}", e.getMessage());
             throw e;
         } catch (Exception e) {
-            log.error("스터디 멤버십 검증 중 오류 발생: userId={}, stPrPostId={}", userId, stPrPostId, e);
+            log.error("❌ 과제 댓글용 스터디 멤버십 검증 중 오류 발생: userId={}, studyProjectId={}", userId, studyProjectId, e);
+            throw new IllegalArgumentException("스터디 멤버십 확인 중 오류가 발생했습니다.");
+        }
+    }
+
+    /**
+     * 스터디 멤버십 검증
+     * 해당 사용자가 스터디의 멤버인지 확인하고, memberStatus가 'approved'인지 검증
+     * 
+     * @param userId 사용자 ID
+     * @param stPrPostId 스터디 커뮤니티 게시글 ID
+     * @throws IllegalArgumentException 멤버가 아니거나 approved 상태가 아닌 경우
+     */
+    private void validateStudyMembership(String userId, Long stPrPostId) {
+        log.info("🔍 스터디 멤버십 검증 시작: userId={}, stPrPostId={}", userId, stPrPostId);
+        
+        try {
+            // 게시글 ID로 스터디 ID 조회
+            Long studyProjectId = getStudyProjectIdByPostId(stPrPostId);
+            log.info("🔍 게시글 ID {}로 조회된 스터디 ID: {}", stPrPostId, studyProjectId);
+            
+            if (studyProjectId == null) {
+                log.warn("❌ 게시글에 해당하는 스터디를 찾을 수 없음: stPrPostId={}", stPrPostId);
+                throw new IllegalArgumentException("해당 게시글의 스터디를 찾을 수 없습니다.");
+            }
+            
+            // 해당 스터디의 모든 멤버 조회 (디버깅용)
+            List<com.smhrd.graddy.member.entity.Member> allMembers = 
+                    studyProjectMemberRepository.findByStudyProjectIdOrderByJoinedAtAsc(studyProjectId);
+            log.info("🔍 스터디 {}의 모든 멤버 수: {}", studyProjectId, allMembers.size());
+            for (com.smhrd.graddy.member.entity.Member member : allMembers) {
+                log.info("  - 멤버: memberId={}, userId={}, memberType={}, status={}", 
+                        member.getMemberId(), member.getUserId(), member.getMemberType(), member.getStudyProjectCheck());
+            }
+            
+            // 스터디 멤버십 확인
+            Optional<com.smhrd.graddy.member.entity.Member> memberOpt = 
+                    studyProjectMemberRepository.findByUserIdAndStudyProjectId(userId, studyProjectId);
+            
+            log.info("🔍 사용자 {}의 멤버십 검색 결과: {}", userId, memberOpt.isPresent() ? "존재함" : "존재하지 않음");
+            
+            if (memberOpt.isEmpty()) {
+                log.warn("❌ 스터디 멤버가 아님: userId={}, studyProjectId={}", userId, studyProjectId);
+                throw new IllegalArgumentException("해당 스터디의 멤버가 아니므로 댓글을 작성할 수 없습니다.");
+            }
+            
+            com.smhrd.graddy.member.entity.Member member = memberOpt.get();
+            
+            // memberStatus가 'approved'인지 확인
+            if (member.getStudyProjectCheck() != com.smhrd.graddy.member.entity.Member.MemberStatus.approved) {
+                log.warn("❌ 멤버 상태가 approved가 아님: userId={}, studyProjectId={}, status={}", 
+                        userId, studyProjectId, member.getStudyProjectCheck());
+                throw new IllegalArgumentException("승인된 스터디 멤버만 댓글을 작성할 수 있습니다.");
+            }
+            
+            log.info("✅ 스터디 멤버십 검증 완료: userId={}, studyProjectId={}, memberId={}, memberType={}, status={}", 
+                    userId, studyProjectId, member.getMemberId(), member.getMemberType(), member.getStudyProjectCheck());
+            
+        } catch (IllegalArgumentException e) {
+            // 이미 검증된 예외는 그대로 던지기
+            log.error("❌ 멤버십 검증 실패: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("❌ 스터디 멤버십 검증 중 오류 발생: userId={}, stPrPostId={}", userId, stPrPostId, e);
             throw new IllegalArgumentException("스터디 멤버십 확인 중 오류가 발생했습니다.");
         }
     }
@@ -264,10 +346,18 @@ public class CommentService {
             throw new IllegalArgumentException("댓글을 수정할 권한이 없습니다.");
         }
         
-        // 스터디 댓글인 경우 멤버십 추가 검증
-        // if (comment.getStPrPostId() != null) {
-        //     validateStudyMembership(userId, comment.getStPrPostId());
-        // }
+        // 스터디 댓글인 경우 멤버십 추가 검증 (memberStatus가 approved인지 확인)
+        if (comment.getStPrPostId() != null) {
+            validateStudyMembership(userId, comment.getStPrPostId());
+        }
+        
+        // 과제 댓글인 경우에도 멤버십 검증 (memberStatus가 approved인지 확인)
+        if (comment.getAssignmentId() != null) {
+            // 과제 댓글의 경우 studyProjectId를 request에서 가져와야 하는데, 
+            // 수정 시에는 request가 없으므로 다른 방법으로 검증해야 함
+            // 현재는 과제 댓글 수정 시에는 추가 검증을 하지 않음 (기존 댓글은 이미 검증되었으므로)
+            log.info("과제 댓글 수정 - 기존 댓글은 이미 멤버십 검증이 완료되었으므로 추가 검증 생략");
+        }
         
         comment.setContent(content);
         Comment updatedComment = commentRepository.save(comment);

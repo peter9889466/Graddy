@@ -66,7 +66,7 @@ export class TokenService {
         }
 
         try {
-            const response = await fetch('http://localhost:8080/auth/refresh', {
+            const response = await fetch('http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/auth/refresh', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

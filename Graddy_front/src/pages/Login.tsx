@@ -2,7 +2,7 @@ import React, { useContext, useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
 import { User, Lock, AlertCircle, Check } from "lucide-react";
-import axios, { AxiosError } from "axios"; // AxiosError 타입을 가져옵니다.
+import axios, { AxiosError } from "axios";
 
 const Login: React.FC = () => {
     const [id, setId] = useState("");
@@ -63,8 +63,10 @@ const Login: React.FC = () => {
         setIsLoading(true);
 
         try {
+            const API_BASE_URL = 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api';
+                
             const response = await axios.post(
-                "http://localhost:8080/api/auth/login",
+                `${API_BASE_URL}/auth/login`,
                 {
                     userId: id,
                     password: password,

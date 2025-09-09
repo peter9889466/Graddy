@@ -9,6 +9,7 @@ import Assignment from "../components/detail/Assignment";
 import { studyList } from "../data/studyData";
 import { AuthContext } from "../contexts/AuthContext";
 import PageLayout from "../components/layout/PageLayout";
+import { getUserFromToken } from "../utils/auth";
 import {
     StudyApiService,
     applyToStudyProject,
@@ -250,8 +251,8 @@ const StudyDetailPage: React.FC = () => {
                     setStudyLevel(studyData.studyLevel || 1);
                     setStudyTags(studyData.tagNames || []);
                     setMaxMembers(studyData.studyProjectTotal || 10);
-                    setIsRecruiting(studyData.isRecruiting === "recruitment");
-                    setIsStudyEnd(studyData.isRecruiting === "end");
+                    setIsRecruiting(studyData.isRecruiting === "RECRUITING");
+                    setIsStudyEnd(studyData.isRecruiting === "END");
 
                     // 기간 설정
                     if (
@@ -264,6 +265,8 @@ const StudyDetailPage: React.FC = () => {
                             studyData.studyProjectEnd
                         );
 
+                        console.log("studyData.studyProjectStart:", studyData.studyProjectStart);
+                        console.log("studyData.studyProjectEnd:", studyData.studyProjectEnd);
                         // 날짜 파싱 및 변환
                         const parseDate = (dateString: string) => {
                             // 이미 YYYY-MM-DD 형식인 경우
@@ -813,7 +816,7 @@ const StudyDetailPage: React.FC = () => {
             try {
                 console.log("멤버 아이디",memberId)
                 const response = await fetch(
-                    `http://localhost:8080/api/members/${memberId}/withdraw`,
+                    `http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/members/${memberId}/withdraw`,
                     {
                         method: "PATCH",
                         headers: {
@@ -860,7 +863,7 @@ const StudyDetailPage: React.FC = () => {
             const token = localStorage.getItem('userToken');
             console.log('사용할 토큰:', token ? '토큰 있음' : '토큰 없음');
             
-            const apiUrl = `http://localhost:8080/api/members/my-status?studyProjectId=${id}`;
+            const apiUrl = `http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/members/my-status?studyProjectId=${id}`;
             console.log('API 호출 URL:', apiUrl);
             
             const response = await fetch(apiUrl, {
@@ -1696,10 +1699,17 @@ const StudyDetailPage: React.FC = () => {
                 // ✅ members 콘솔에 찍기
                 console.log("Community로 전달되는 members:", members);
 
+                // JWT 토큰에서 실제 userId 추출
+                const tokenUser = getUserFromToken();
+                const actualUserId = tokenUser?.userId || authContext?.user?.nickname || "나";
+                console.log("JWT에서 추출한 userId:", tokenUser?.userId);
+                console.log("AuthContext의 nickname:", authContext?.user?.nickname);
+                console.log("최종 사용할 userId:", actualUserId);
+
                 return (
                     <Community
                         studyProjectId={parseInt(id!, 10)}
-                        currentUserId={authContext?.user?.nickname || "나"}
+                        currentUserId={actualUserId}
                         members={members} // 이미 타입 정의가 되어 있어야 함
                     />
                 );

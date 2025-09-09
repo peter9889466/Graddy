@@ -288,10 +288,7 @@ export const StudySearchPage = () => {
     const formatDate = (dateString: string): string => {
         try {
             const date = new Date(dateString);
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, "0");
-            const day = String(date.getDate()).padStart(2, "0");
-            return `${year}-${month}-${day}`;
+            return date.toLocaleDateString('ko-KR');
         } catch (error) {
             console.error("날짜 포맷팅 오류:", error);
             return dateString; // 오류 시 원본 문자열 반환

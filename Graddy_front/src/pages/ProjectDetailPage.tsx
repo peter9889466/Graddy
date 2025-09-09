@@ -8,6 +8,7 @@ import Assignment from "../components/detail/Assignment";
 import { studyList } from "../data/studyData";
 import { AuthContext } from "../contexts/AuthContext";
 import PageLayout from "../components/layout/PageLayout";
+import { getUserFromToken } from "../utils/auth";
 import {
     StudyApiService,
     applyToStudyProject,
@@ -201,8 +202,8 @@ const ProjectDetailPage = () => {
                     );
                     setStudyTags(studyData.tagNames || []);
                     setMaxMembers(studyData.studyProjectTotal || 10);
-                    setIsRecruiting(studyData.isRecruiting === "recruitment");
-                    setIsStudyEnd(studyData.isRecruiting === "end");
+                    setIsRecruiting(studyData.isRecruiting === "RECRUITING");
+                    setIsStudyEnd(studyData.isRecruiting === "END");
 
                     // 기간 설정
                     if (
@@ -1184,10 +1185,18 @@ const ProjectDetailPage = () => {
                         </div>
                     );
                 }
+                // JWT 토큰에서 실제 userId 추출
+                const tokenUser = getUserFromToken();
+                const actualUserId = tokenUser?.userId || authContext?.user?.nickname || "사용자";
+                console.log("JWT에서 추출한 userId:", tokenUser?.userId);
+                console.log("AuthContext의 nickname:", authContext?.user?.nickname);
+                console.log("최종 사용할 userId:", actualUserId);
+
                 return (
                     <Community
                         studyProjectId={parseInt(id!, 10)}
-                        currentUserId={authContext?.user?.nickname || "사용자"}
+                        currentUserId={actualUserId}
+                        members={members}
                     />
                 );
         }

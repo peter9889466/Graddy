@@ -12,8 +12,10 @@ const ApiTestComponent: React.FC = () => {
 
         try {
             // 1. 기본 연결 테스트
+            const API_BASE_URL = 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api';
+                
             const response = await fetch(
-                "http://localhost:8080/api/api/studies-projects",
+                `${API_BASE_URL}/api/studies-projects`,
                 {
                     method: "POST",
                     headers: {

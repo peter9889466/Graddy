@@ -244,10 +244,11 @@ const MainPage = () => {
 
         try {
             console.log("추천 스터디 API 호출 시작");
+            console.log("token:", token);
 
             // 백엔드 서버 연결 확인
             const response = await fetch(
-                "http://localhost:8080/api/recommendation/studies?limit=3",
+                "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/recommendation/studies?limit=3",
                 {
                     method: "GET",
                     headers: {
@@ -297,7 +298,7 @@ const MainPage = () => {
                 error.message === "Failed to fetch"
             ) {
                 errorMessage =
-                    "백엔드 서버에 연결할 수 없습니다. 서버가 http://localhost:8080에서 실행 중인지 확인해주세요.";
+                    "백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.";
             } else if (error instanceof Error) {
                 errorMessage = error.message;
             }
@@ -317,7 +318,7 @@ const MainPage = () => {
             console.log("스터디 일정 조회 시작");
 
             const response = await fetch(
-                "http://localhost:8080/api/schedules/my/study",
+                "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/schedules/my/study",
                 {
                     method: "GET",
                     headers: {
@@ -364,7 +365,7 @@ const MainPage = () => {
             console.log("개인 일정 조회 시작");
 
             const response = await fetch(
-                "http://localhost:8080/api/schedules/my",
+                "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/schedules/my",
                 {
                     method: "GET",
                     headers: {
@@ -530,7 +531,7 @@ const MainPage = () => {
             const scheduleDateTime = new Date(`${selectedDate}T${time}:00+09:00`);
 
             const response = await fetch(
-                "http://localhost:8080/api/schedules/personal",
+                "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/schedules/personal",
                 {
                     method: "POST",
                     headers: {
@@ -576,7 +577,7 @@ const MainPage = () => {
 
         try {
             const response = await fetch(
-                `http://localhost:8080/api/schedules/${id}`,
+                `http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/schedules/${id}`,
                 {
                     method: "DELETE",
                     headers: {
@@ -632,7 +633,7 @@ const MainPage = () => {
             });
 
             const response = await fetch(
-                `http://localhost:8080/api/schedules/${id}`,
+                `http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/schedules/${id}`,
                 {
                     method: "PUT",
                     headers: {
@@ -958,14 +959,7 @@ const MainPage = () => {
                                     ): string => {
                                         try {
                                             const date = new Date(dateString);
-                                            const year = date.getFullYear();
-                                            const month = String(
-                                                date.getMonth() + 1
-                                            ).padStart(2, "0");
-                                            const day = String(
-                                                date.getDate()
-                                            ).padStart(2, "0");
-                                            return `${year}-${month}-${day}`;
+                                            return date.toLocaleDateString('ko-KR');
                                         } catch (error) {
                                             return dateString;
                                         }

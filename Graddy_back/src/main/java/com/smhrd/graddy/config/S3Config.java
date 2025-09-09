@@ -20,7 +20,7 @@ import java.net.URI;
 @Slf4j
 public class S3Config {
 
-    @Value("${aws.s3.region:ap-northeast-2}")
+    @Value("${aws.s3.region:ap-northeast-1}")
     private String region;
 
     @Value("${aws.s3.access-key}")

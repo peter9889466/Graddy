@@ -9,6 +9,9 @@ import {
     AlertCircle,
 } from "lucide-react";
 
+// API 기본 URL 설정
+const API_BASE_URL = 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api';
+
 interface BackendPost {
     stPrPostId: number;
     studyProjectId: number;
@@ -54,7 +57,7 @@ interface CommunityProps {
 const Community: React.FC<CommunityProps> = ({
     studyProjectId = 55, // 기본값으로 55 사용
     currentUserId = "나", // 기본값
-    members, 
+    members = [], // 기본값으로 빈 배열
 }) => {
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
@@ -90,13 +93,32 @@ const Community: React.FC<CommunityProps> = ({
     };
 
 
+    // 디버깅을 위한 상세 로그
+    console.log("=== 멤버십 검증 디버깅 ===");
+    console.log("현재 사용자 ID:", currentUserId);
+    console.log("스터디 멤버 배열:", members);
+    console.log("멤버 배열 상세 정보:");
+    members.forEach((member, index) => {
+        console.log(`  멤버 ${index}:`, {
+            memberId: member.memberId,
+            userId: member.userId,
+            nick: member.nick,
+            memberType: member.memberType,
+            memberStatus: member.memberStatus
+        });
+    });
+
     const isStudyMember = members.some(
         (member) => member.userId === currentUserId
         );
     console.log("스터디 멤버 여부:", isStudyMember);
         
-    console.log("스터디 멤버 배열:", members);
-    console.log("현재 사용자 ID:", currentUserId);
+    // 현재 사용자가 approved 상태인 멤버인지 확인
+    const isApprovedMember = members.some(
+        (member) => member.userId === currentUserId && member.memberStatus === 'approved'
+    );
+    console.log("승인된 스터디 멤버 여부:", isApprovedMember);
+    console.log("=== 멤버십 검증 디버깅 끝 ===");
 
         
     const handleChangeComment = (postId: string, value: string) => {
@@ -107,7 +129,7 @@ const Community: React.FC<CommunityProps> = ({
     const fetchCommentCount = async (postId: string) => {
         try {
             const response = await fetch(
-                `http://localhost:8080/api/api/comments/study-posts/${postId}/count`,
+                `${API_BASE_URL}/api/comments/study-posts/${postId}/count`,
                 { headers: getAuthHeaders() }
             );
             if (!response.ok) throw new Error("댓글 수 조회 실패");
@@ -125,7 +147,7 @@ const Community: React.FC<CommunityProps> = ({
     const fetchComments = async (postId: string) => {
         try {
             const response = await fetch(
-            `http://localhost:8080/api/api/comments/study-posts/${postId}`,
+            `${API_BASE_URL}/api/comments/study-posts/${postId}`,
             { headers: getAuthHeaders() }
             );
             if (!response.ok) throw new Error(`댓글 목록 조회 실패: HTTP ${response.status}`);
@@ -147,6 +169,12 @@ const Community: React.FC<CommunityProps> = ({
         const content = (newComments[postId] || "").trim();
         if (!content) return;
 
+        // 멤버 상태 확인 - approved 상태인 멤버만 댓글 작성 가능
+        if (!isApprovedMember) {
+            alert("승인된 스터디 멤버만 댓글을 작성할 수 있습니다.");
+            return;
+        }
+
         // studyProjectId 타입 확인
         console.log("studyProjectId 타입:", typeof studyProjectId, "값:", studyProjectId);
         console.log("postId",postId)
@@ -161,7 +189,7 @@ const Community: React.FC<CommunityProps> = ({
 
         try {
             const response = await fetch(
-                `http://localhost:8080/api/api/comments/study-posts/${postId}`,
+                `${API_BASE_URL}/api/comments/study-posts/${postId}`,
                 {
                     method: "POST",
                     headers: getAuthHeaders(),
@@ -200,7 +228,7 @@ const Community: React.FC<CommunityProps> = ({
             
         try {
             const response = await fetch(
-                `http://localhost:8080/api/api/comments/${editingCommentId}?content=${encodeURIComponent(editCommentContent)}`,
+                `${API_BASE_URL}/api/comments/${editingCommentId}?content=${encodeURIComponent(editCommentContent)}`,
                 {
                     method: "PUT",
                     headers: {
@@ -248,7 +276,7 @@ const Community: React.FC<CommunityProps> = ({
         
         try {
             const response = await fetch(
-                `http://localhost:8080/api/api/comments/${commentId}`,
+                `${API_BASE_URL}/api/comments/${commentId}`,
                 { method: "DELETE", headers: getAuthHeaders() }
             );
 
@@ -292,7 +320,7 @@ const Community: React.FC<CommunityProps> = ({
 
         try {
             const response = await fetch(
-                `http://localhost:8080/api/posts/study-project/${studyProjectId}`,
+                `${API_BASE_URL}/posts/study-project/${studyProjectId}`,
                 {
                     method: "GET",
                     headers: getAuthHeaders(),
@@ -306,21 +334,28 @@ const Community: React.FC<CommunityProps> = ({
             const result = await response.json();
 
             if (result.status === 200 && result.data) {
-                const transformedPosts: Post[] = result.data.map((backendPost: BackendPost) => ({
-                    id: backendPost.stPrPostId.toString(),
-                    author: backendPost.memberId,
-                    title: backendPost.title,
-                    content: backendPost.content,
-                    timestamp: formatTimestamp(backendPost.createdAt),
-                    comments: [],
-                    canEdit: backendPost.memberId === currentUserId,
-                    nick: members.find(member => backendPost.memberId === member.userId)?.nick || '알 수 없음'
-                }));
-                
-                // console.log(posts[0].nick);
-
-                
-                console.log(members)
+                const transformedPosts: Post[] = result.data.map((backendPost: BackendPost) => {
+                    // 닉네임 매칭 디버깅
+                    const matchedMember = members.find(member => member.userId === backendPost.memberId);
+                    console.log('🔍 게시글 작성자 매칭:', {
+                        postId: backendPost.stPrPostId,
+                        authorId: backendPost.memberId,
+                        membersCount: members.length,
+                        matchedMember: matchedMember,
+                        finalNick: matchedMember?.nick || '알 수 없음'
+                    });
+                    
+                    return {
+                        id: backendPost.stPrPostId.toString(),
+                        author: backendPost.memberId,
+                        title: backendPost.title,
+                        content: backendPost.content,
+                        timestamp: formatTimestamp(backendPost.createdAt),
+                        comments: [],
+                        canEdit: backendPost.memberId === currentUserId,
+                        nick: matchedMember?.nick || '알 수 없음'
+                    };
+                });
                 
                 setPosts(transformedPosts);
 
@@ -375,9 +410,9 @@ const Community: React.FC<CommunityProps> = ({
     setIsSubmitting(true);
 
     try {
-        const response = await fetch("http://localhost:8080/api/posts", {
-            method: "POST",
-            headers: getAuthHeaders(),
+    const response = await fetch(`${API_BASE_URL}/posts`, {
+        method: "POST",
+        headers: getAuthHeaders(),
             body: JSON.stringify({
             studyProjectId,
             memberId: currentUserId,
@@ -403,7 +438,7 @@ const Community: React.FC<CommunityProps> = ({
     const updatePost = async (postId: string, title: string, content: string) => {
     try {
         const response = await fetch(
-            `http://localhost:8080/api/posts/${postId}?currentMemberId=${currentUserId}`,
+            `${API_BASE_URL}/posts/${postId}?currentMemberId=${currentUserId}`,
             {
             method: "PUT",
             headers: getAuthHeaders(),
@@ -429,7 +464,7 @@ const Community: React.FC<CommunityProps> = ({
     const deletePost = async (postId: string) => {
     try {
         const response = await fetch(
-            `http://localhost:8080/api/posts/${postId}?currentMemberId=${currentUserId}`,
+            `${API_BASE_URL}/posts/${postId}?currentMemberId=${currentUserId}`,
             {
             method: "DELETE",
             headers: getAuthHeaders(),
@@ -836,9 +871,9 @@ const Community: React.FC<CommunityProps> = ({
                                     </span>
                                 </div>
                                 <div className="flex-1">
-                                    {!isStudyMember ? (
+                                    {!isApprovedMember ? (
                                         <p className="text-sm text-gray-500">
-                                            스터디 멤버만 댓글을 작성할 수 있습니다.
+                                            승인된 스터디 멤버만 댓글을 작성할 수 있습니다.
                                         </p>
                                     ) : (
                                         <>

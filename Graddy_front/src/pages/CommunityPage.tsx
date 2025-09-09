@@ -52,7 +52,7 @@ const SearchAndCreate: React.FC = () => {
 
     const filtered = useMemo(() => {
         return posts.filter((p) => {
-            const field = searchField === "title" ? p.title : p.author;
+            const field = searchField === "title" ? p.title : p.nickname;
             const q = query.trim().toLowerCase();
             const fieldOk = q === "" || field.toLowerCase().includes(q);
             return fieldOk;
@@ -228,16 +228,16 @@ const SearchAndCreate: React.FC = () => {
                                             자유게시판
                                         </span>
                                         <span className="text-sm text-gray-500">
-                                            {post.author}
+                                            {post.nickname}
                                         </span>
-                                        <span className="text-xs text-gray-400">
+                                        {/* <span className="text-xs text-gray-400">
                                             {post.createdAt}
-                                        </span>
+                                        </span> */}
                                     </div>
 
                                     {/* 삭제 버튼 - 본인 게시글만 표시 */}
                                     {currentUser &&
-                                        post.author === currentUser.userId && (
+                                        post.nickname === currentUser.userId && (
                                             <button
                                                 onClick={() =>
                                                     handleDelete(post.id)
@@ -262,9 +262,10 @@ const SearchAndCreate: React.FC = () => {
 
                             {/* 댓글 섹션 */}
                             <Comments
-                                postId={post.id}
+                                postId={parseInt(post.id)}
                                 isExpanded={expandedComments.has(post.id)}
                                 onToggle={() => toggleComments(post.id)}
+                                postType="free"
                             />
                         </div>
                     ))}

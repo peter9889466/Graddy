@@ -24,7 +24,9 @@ export class StudyApplicationApiService {
         try {
             console.log('가입 신청 상태 조회 시작:', { studyProjectId, userId });
 
-            const response = await fetch(`http://localhost:8080/api/study-applications/status?studyProjectId=${studyProjectId}&userId=${encodeURIComponent(userId)}`, {
+            const API_BASE_URL = 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api';
+                
+            const response = await fetch(`${API_BASE_URL}/study-applications/status?studyProjectId=${studyProjectId}&userId=${encodeURIComponent(userId)}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -62,7 +64,9 @@ export class StudyApplicationApiService {
         try {
             console.log('스터디 가입 신청 시작:', { studyProjectId, userId });
 
-            const response = await fetch('http://localhost:8080/api/study-applications', {
+            const API_BASE_URL = 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api';
+                
+            const response = await fetch(`${API_BASE_URL}/study-applications`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -100,7 +104,9 @@ export class StudyApplicationApiService {
         try {
             console.log('가입 신청 취소 시작:', applicationId);
 
-            const response = await fetch(`http://localhost:8080/api/study-applications/${applicationId}`, {
+            const API_BASE_URL = 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api';
+                
+            const response = await fetch(`${API_BASE_URL}/study-applications/${applicationId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('userToken')}`
@@ -125,7 +131,9 @@ export class StudyApplicationApiService {
         try {
             console.log('가입 신청 처리 시작:', { applicationId, status });
 
-            const response = await fetch(`http://localhost:8080/api/study-applications/${applicationId}/process`, {
+            const API_BASE_URL = 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api';
+                
+            const response = await fetch(`${API_BASE_URL}/study-applications/${applicationId}/process`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -152,7 +160,9 @@ export class StudyApplicationApiService {
         try {
             console.log('스터디 가입 신청 목록 조회 시작:', studyProjectId);
 
-            const response = await fetch(`http://localhost:8080/api/study-applications/study/${studyProjectId}`, {
+            const API_BASE_URL = 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api';
+                
+            const response = await fetch(`${API_BASE_URL}/study-applications/study/${studyProjectId}`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('userToken')}`

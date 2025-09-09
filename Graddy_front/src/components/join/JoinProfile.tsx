@@ -117,7 +117,7 @@ const JoinProfile: React.FC<JoinProfileProps> = ({
 
         try {
             const response = await axios.get(
-                `http://localhost:8080/api/join/check-userId`,
+                `http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/join/check-userId`,
                 {
                     params: { userId: id },
                     validateStatus: () => true, // HTTP 상태와 상관없이 항상 then으로 처리
@@ -164,7 +164,7 @@ const JoinProfile: React.FC<JoinProfileProps> = ({
 
         try {
             const response = await axios.get(
-                "http://localhost:8080/api/join/check-nick",
+                "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/join/check-nick",
                 {
                     params: { nick: nickname },
                     validateStatus: () => true, // HTTP 상태와 상관없이 then으로 처리
@@ -275,7 +275,7 @@ const JoinProfile: React.FC<JoinProfileProps> = ({
         try {
             // 전화번호 중복 확인 및 인증번호 발송 (통합)
             const unifiedResponse = await axios.post(
-                "http://localhost:8080/api/api/phone-verification/unified",
+                "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/api/phone-verification/unified",
                 {
                     tel: phoneNumber,
                     purpose: "JOIN",
@@ -322,7 +322,7 @@ const JoinProfile: React.FC<JoinProfileProps> = ({
 
         try {
             const response = await axios.post(
-                "http://localhost:8080/api/auth/verify-code",
+                "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/auth/verify-code",
                 {
                     phoneNumber: phoneNumber,
                     code: verificationCode,

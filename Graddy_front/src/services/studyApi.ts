@@ -165,7 +165,9 @@ export class StudyApiService {
         try {
             console.log('getStudiesProjects 호출 시작');
 
-            const response = await fetch('http://localhost:8080/api/studies-projects', {
+            const API_BASE_URL = 'http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api';
+                
+            const response = await fetch(`${API_BASE_URL}/studies-projects`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'

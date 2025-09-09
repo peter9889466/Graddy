@@ -164,7 +164,7 @@ const AccountCard: React.FC<AccountCardProps> = ({ onVerificationSuccess }) => {
             console.log("전송할 데이터:", requestData); // 디버깅용
 
             const response = await fetch(
-                "http://localhost:8080/api/find-id",
+                "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/find-id",
                 {
                     method: "POST",
                     headers: {
@@ -230,7 +230,7 @@ const AccountCard: React.FC<AccountCardProps> = ({ onVerificationSuccess }) => {
         try {
             // 사용자 존재 여부 확인
             const verifyResponse = await fetch(
-                "http://localhost:8080/api/password-find/verify-user",
+                "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/password-find/verify-user",
                 {
                     method: "POST",
                     headers: {
@@ -248,7 +248,7 @@ const AccountCard: React.FC<AccountCardProps> = ({ onVerificationSuccess }) => {
             if (verifyResult.status === 200 && verifyResult.data === true) {
                 // 인증번호 발송
                 const sendResponse = await fetch(
-                    "http://localhost:8080/api/auth/send-code",
+                    "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/auth/send-code",
                     {
                         method: "POST",
                         headers: {
@@ -301,7 +301,7 @@ const AccountCard: React.FC<AccountCardProps> = ({ onVerificationSuccess }) => {
 
         try {
             const response = await fetch(
-                "http://localhost:8080/api/auth/verify-code",
+                "http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/auth/verify-code",
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },

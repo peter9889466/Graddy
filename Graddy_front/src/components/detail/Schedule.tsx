@@ -757,7 +757,7 @@ const handleCancelAssignmentEdit = () => {
                                                     {item.createdAt && (
                                                         <div className="mt-2">
                                                             <p className="text-xs text-gray-400">
-                                                                생성일: {new Date(item.createdAt).toLocaleDateString()}
+                                                                생성일: {new Date(item.createdAt).toLocaleDateString('ko-KR')}
                                                             </p>
                                                         </div>
                                                     )}
@@ -864,7 +864,7 @@ const handleCancelAssignmentEdit = () => {
                                                     && (
                                                         <div className="mt-2">
                                                             <p className="text-xs text-gray-400">
-                                                                생성일: {new Date(item.createdAt).toLocaleDateString()}
+                                                                생성일: {new Date(item.createdAt).toLocaleDateString('ko-KR')}
                                                             </p>
                                                         </div>
                                                     )} */}

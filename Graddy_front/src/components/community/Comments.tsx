@@ -48,7 +48,7 @@ const commentApi = {
         postId: number
     ): Promise<ApiResponse<CommentResponse[]>> => {
         const response = await fetch(
-            `http://localhost:8080/api/api/comments/free-posts/${postId}`,
+            `http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/api/comments/free-posts/${postId}`,
             {
                 method: "GET",
                 headers: getAuthHeaders(),
@@ -64,7 +64,7 @@ const commentApi = {
         commentData: CommentRequest
     ): Promise<ApiResponse<CommentResponse>> => {
         const response = await fetch(
-            `http://localhost:8080/api/api/comments/free-posts/${postId}`,
+            `http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/api/comments/free-posts/${postId}`,
             {
                 method: "POST",
                 headers: getAuthHeaders(),
@@ -80,7 +80,7 @@ const commentApi = {
         content: string
     ): Promise<ApiResponse<CommentResponse>> => {
         const response = await fetch(
-            `http://localhost:8080/api/api/comments/${commentId}?content=${encodeURIComponent(
+            `http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/api/comments/${commentId}?content=${encodeURIComponent(
                 content
             )}`,
             {
@@ -94,7 +94,7 @@ const commentApi = {
     // 댓글 삭제
     deleteComment: async (commentId: number): Promise<ApiResponse<null>> => {
         const response = await fetch(
-            `http://localhost:8080/api/api/comments/${commentId}`,
+            `http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/api/comments/${commentId}`,
             {
                 method: "DELETE",
                 headers: getAuthHeaders(),
@@ -406,7 +406,7 @@ const CommentItem: React.FC<{
                 </div>
                 <div className="flex flex-col items-end gap-1">
                     <div className="text-xs text-gray-500">
-                        {new Date(comment.createdAt).toLocaleString()}
+                        {new Date(comment.createdAt).toLocaleString('ko-KR')}
                     </div>
                     {/* 수정/삭제 버튼 - 본인 댓글만 (nickname 비교) */}
                     {isLoggedIn &&

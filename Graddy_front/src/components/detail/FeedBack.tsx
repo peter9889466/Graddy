@@ -106,6 +106,12 @@ interface FeedBackProps {
             membersCount: members.length,
             members: members
         });
+
+        // 현재 사용자가 approved 상태인 멤버인지 확인
+        const isApprovedMember = members.some(
+            (member) => member.userId === currentUserId && member.memberStatus === 'approved'
+        );
+        console.log("승인된 스터디 멤버 여부:", isApprovedMember);
     const [isAssignmentOpen, setIsAssignmentOpen] = useState(false);
     const [isMemberOpen, setIsMemberOpen] = useState(false);
     const [selectedAssignment, setSelectedAssignment] = useState('과제를 선택하세요');
@@ -209,7 +215,7 @@ interface FeedBackProps {
         try {
             console.log('📋 [DEBUG] 과제 목록 조회 시작 - studyProjectId:', studyProjectId);
             
-            const response = await fetch(`http://localhost:8080/api/assignments/study-project/${studyProjectId}`,
+            const response = await fetch(`http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/assignments/study-project/${studyProjectId}`,
                 { method: 'GET', headers: getAuthHeaders() }
             );
             
@@ -242,7 +248,7 @@ interface FeedBackProps {
             setFeedbackLoading(true);
             setError(null);
             
-            const response = await fetch(`http://localhost:8080/api/feedbacks/submission/${submissionId}`,
+            const response = await fetch(`http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/feedbacks/submission/${submissionId}`,
                 { method: 'GET', headers: getAuthHeaders() }
             );
             if (!response.ok) {
@@ -274,7 +280,7 @@ interface FeedBackProps {
             setLoading(true);
             setError(null);
             
-            const response = await fetch(`http://localhost:8080/api/submissions/assignment/${assignmentId}/member/${memberId}`,
+            const response = await fetch(`http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/submissions/assignment/${assignmentId}/member/${memberId}`,
                 { method: 'GET', headers: getAuthHeaders() }
             );
             if (!response.ok) {
@@ -375,7 +381,7 @@ interface FeedBackProps {
             setLoading(true);
             setError(null);
             
-            const response = await fetch(`http://localhost:8080/api/submissions/assignment/${assignmentId}`,
+            const response = await fetch(`http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/submissions/assignment/${assignmentId}`,
                 { method: 'GET', headers: getAuthHeaders() }
             );
             if (!response.ok) {
@@ -479,7 +485,7 @@ interface FeedBackProps {
                 return;
             }
             
-            const response = await fetch(`http://localhost:8080/api/submissions/member/${memberId}`,
+            const response = await fetch(`http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/submissions/member/${memberId}`,
                 { method: 'GET', headers: getAuthHeaders() }
             );
             if (!response.ok) {
@@ -558,6 +564,12 @@ interface FeedBackProps {
 
     // 댓글 관련 함수들
     const handleAddComment = () => {
+        // 멤버 상태 확인 - approved 상태인 멤버만 댓글 작성 가능
+        if (!isApprovedMember) {
+            alert("승인된 스터디 멤버만 댓글을 작성할 수 있습니다.");
+            return;
+        }
+
         if (newComment.trim()) {
             const comment = {
                 id: Date.now().toString(),
@@ -760,7 +772,7 @@ interface FeedBackProps {
                                                             let downloadUrl: string;
                                                             
                                                             if (fileUrl.startsWith('/api/files/')) {
-                                                                downloadUrl = `http://localhost:8080${fileUrl}`;
+                                                                downloadUrl = `http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com${fileUrl}`;
                                                             } else if (fileUrl.startsWith('http')) {
                                                                 downloadUrl = fileUrl;
                                                             } else {
@@ -897,22 +909,30 @@ interface FeedBackProps {
                         <User className="w-4 h-4 text-white" />
                     </div>
                     <div className="flex-1">
-                        <textarea
-                            value={newComment}
-                            onChange={(e) => setNewComment(e.target.value)}
-                            placeholder="댓글을 입력하세요..."
-                            className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
-                            rows={3}
-                        />
-                        <div className="flex justify-end mt-2">
-                            <button
-                                onClick={handleAddComment}
-                                className="px-4 py-2 text-white rounded-md transition-colors duration-200"
-                                style={{ backgroundColor: "#8B85E9" }}
-                            >
-                                댓글 작성
-                            </button>
-                        </div>
+                        {!isApprovedMember ? (
+                            <p className="text-sm text-gray-500 p-3">
+                                승인된 스터디 멤버만 댓글을 작성할 수 있습니다.
+                            </p>
+                        ) : (
+                            <>
+                                <textarea
+                                    value={newComment}
+                                    onChange={(e) => setNewComment(e.target.value)}
+                                    placeholder="댓글을 입력하세요..."
+                                    className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9]"
+                                    rows={3}
+                                />
+                                <div className="flex justify-end mt-2">
+                                    <button
+                                        onClick={handleAddComment}
+                                        className="px-4 py-2 text-white rounded-md transition-colors duration-200"
+                                        style={{ backgroundColor: "#8B85E9" }}
+                                    >
+                                        댓글 작성
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>

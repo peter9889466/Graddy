@@ -14,20 +14,10 @@ echo "### Deployment script started ###"
 # CodeDeploy에 의해 파일들이 /home/ubuntu/app에 위치하게 됩니다.
 cd /home/ubuntu/app
 
-# --- 2. 배포 환경변수 파일 로드 ---
-# GitHub Actions에서 생성한 deploy.env 파일을 로드하여 DOCKER_HUB_ID를 export 합니다.
-if [ -f ./deploy.env ]; then
-    echo "Loading environment variables from deploy.env..."
-    export $(cat ./deploy.env | xargs)
-else
-    echo "> deploy.env file not found. Exiting."
-    exit 1
-fi
+# --- 2. Docker Hub ID 설정 ---
+# 환경변수에서 DOCKER_HUB_ID를 가져오거나 기본값 사용
+DOCKER_HUB_ID=${DOCKER_HUB_ID:-"peter4855"}
 
-if [ -z "$DOCKER_HUB_ID" ]; then
-    echo "> DOCKER_HUB_ID is not set. Exiting."
-    exit 1
-fi
 echo "Docker Hub ID is set to: ${DOCKER_HUB_ID}"
 
 # --- 3. AWS 리전(Region) 설정 ---

@@ -9,6 +9,7 @@ import React, {
 
 interface User {
     nickname: string;  // 닉네임이 아닌 Id임.
+    nick?: string;     // 실제 닉네임
 }
 
 interface AuthContextType {
