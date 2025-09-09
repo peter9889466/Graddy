@@ -14,6 +14,7 @@ interface Message {
 	timestamp: Date;
 	messageType?: 'TEXT' | 'FILE' | 'IMAGE' | 'ENTER' | 'LEAVE';
 	fileUrl?: string;
+	memberId?: number;
 }
 
 interface ChatMessageRequest {
@@ -353,6 +354,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 										timestamp: new Date(chatMessage.createdAt),
 										messageType: chatMessage.messageType || 'TEXT',
 										fileUrl: chatMessage.fileUrl,
+										memberId: chatMessage.memberId,
 									};
 									
 									// 토큰에서 userId 추출
@@ -904,16 +906,20 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 						className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50"
 						onMouseDown={handleDragStart}
 					>
-						{messages.map((message, index) => (
-							<div key={`${message.id}-${message.timestamp.getTime()}-${index}`} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+						{messages.map((message, index) => {
+							// 현재 사용자의 메시지인지 확인 (memberId 비교)
+							const isMyMessage = currentMemberId && message.memberId && message.memberId === currentMemberId;
+							
+							return (
+							<div key={`${message.id}-${message.timestamp.getTime()}-${index}`} className={`flex ${isMyMessage ? 'justify-end' : 'justify-start'}`}>
 								<div
 									className={`max-w-[80%] p-3 rounded-lg ${
-										message.sender === 'user'
+										isMyMessage
 											? 'bg-[#8B85E9] text-white rounded-br-none'
 											: 'bg-white text-gray-800 border border-gray-200 rounded-bl-none'
 									}`}
 								>
-									{message.senderNick && message.sender !== 'user' && (
+									{message.senderNick && !isMyMessage && (
 										<p className="text-xs font-semibold mb-1 text-gray-600">
 											{message.senderNick}
 										</p>
@@ -933,7 +939,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 									)}
 									<p
 										className={`text-xs mt-1 ${
-											message.sender === 'user' 
+											isMyMessage 
 												? 'text-white/70' 
 												: 'text-gray-500'
 										}`}
@@ -942,7 +948,8 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 									</p>
 								</div>
 							</div>
-						))}
+							);
+						})}
 					</div>
 
 					{/* 입력 영역 */}
