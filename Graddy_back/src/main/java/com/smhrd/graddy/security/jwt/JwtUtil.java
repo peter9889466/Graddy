@@ -23,15 +23,21 @@ public class JwtUtil {
     // 3. Refresh Token 만료 시간 (1시간)
     private static final long REFRESH_TOKEN_EXPIRATION_TIME = 1000 * 60 * 60; // 1시간
 
-    // 4. Access Token 생성
-    public String generateAccessToken(String userId) {
+    // 4. Access Token 생성 (userId와 memberId 모두 포함)
+    public String generateAccessToken(String userId, Long memberId) {
         return Jwts.builder()
                 .setSubject(userId) // 토큰의 주체(subject)로 사용자 ID를 설정
                 .setIssuedAt(new Date(System.currentTimeMillis())) // 토큰 발급 시간
                 .setExpiration(new Date(System.currentTimeMillis() + ACCESS_TOKEN_EXPIRATION_TIME)) // 토큰 만료 시간
                 .claim("type", "access") // 토큰 타입 명시
+                .claim("memberId", memberId) // 멤버 ID 추가
                 .signWith(secretKey, SignatureAlgorithm.HS256) // 사용할 암호화 알고리즘과 비밀키
                 .compact(); // JWT 문자열 생성
+    }
+
+    // 4-1. 기존 호환성을 위한 Access Token 생성 (userId만)
+    public String generateAccessToken(String userId) {
+        return generateAccessToken(userId, null);
     }
 
     // 5. Refresh Token 생성
@@ -59,6 +65,11 @@ public class JwtUtil {
     // 8. 토큰에서 사용자 ID 추출
     public String extractUserId(String token) {
         return extractClaim(token, Claims::getSubject);
+    }
+
+    // 8-1. 토큰에서 멤버 ID 추출
+    public Long extractMemberId(String token) {
+        return extractClaim(token, claims -> claims.get("memberId", Long.class));
     }
 
     // 9. 토큰에서 만료 시간 추출

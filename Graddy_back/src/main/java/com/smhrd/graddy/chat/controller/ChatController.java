@@ -64,7 +64,7 @@ public class ChatController {
             log.info("채팅 메시지 수신: studyProjectId={}, userId={}, type={}", 
                     studyProjectId, userId, request.getMessageType());
             
-            // ChatService를 통해 메시지 처리 및 저장
+            // ChatService를 통해 메시지 처리 및 저장 (userId 사용)
             ChatMessageResponse response = chatService.processAndSaveMessage(studyProjectId, userId, request);
             
             log.info("채팅 메시지 처리 완료: messageId={}, sender={}", 

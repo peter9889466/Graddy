@@ -280,4 +280,48 @@ public class ChatRestController {
             return ResponseEntity.internalServerError().build();
         }
     }
+
+    /**
+     * 특정 스터디에서 현재 사용자의 memberId 조회
+     * 
+     * @param studyProjectId 스터디/프로젝트 ID
+     * @param authorization JWT 토큰
+     * @return memberId
+     */
+    @GetMapping("/member-id/{studyProjectId}")
+    @Operation(
+        summary = "스터디별 멤버 ID 조회",
+        description = "특정 스터디에서 현재 사용자의 memberId를 조회합니다."
+    )
+    public ResponseEntity<Long> getMemberId(
+            @Parameter(description = "스터디/프로젝트 ID", example = "1")
+            @PathVariable Long studyProjectId,
+            
+            @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiJ9...")
+            @RequestHeader("Authorization") String authorization) {
+        
+        try {
+            // JWT 토큰에서 userId 추출
+            String token = authorization.replace("Bearer ", "");
+            String userId = jwtUtil.extractUserId(token);
+            
+            log.info("멤버 ID 조회 요청: studyProjectId={}, userId={}", studyProjectId, userId);
+            
+            // ChatService를 통해 memberId 조회
+            Long memberId = chatService.getMemberIdByUserIdAndStudyProjectId(userId, studyProjectId);
+            
+            if (memberId != null) {
+                log.info("멤버 ID 조회 성공: studyProjectId={}, userId={}, memberId={}", 
+                        studyProjectId, userId, memberId);
+                return ResponseEntity.ok(memberId);
+            } else {
+                log.warn("멤버 ID 조회 실패 (권한 없음): studyProjectId={}, userId={}", studyProjectId, userId);
+                return ResponseEntity.badRequest().build();
+            }
+            
+        } catch (Exception e) {
+            log.error("멤버 ID 조회 중 오류 발생: studyProjectId={}", studyProjectId, e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
 }

@@ -56,6 +56,26 @@ export class TokenService {
     }
 
     /**
+     * JWT 토큰에서 멤버 ID 추출
+     * @param token JWT 토큰 (선택사항, 없으면 localStorage에서 가져옴)
+     * @returns 멤버 ID
+     */
+    public getMemberIdFromToken(token?: string): number | null {
+        const targetToken = token || localStorage.getItem('userToken');
+        
+        if (!targetToken) return null;
+        
+        try {
+            // JWT 토큰의 payload 부분을 디코딩
+            const payload = JSON.parse(atob(targetToken.split('.')[1]));
+            return payload.memberId || null;
+        } catch (error) {
+            console.error('토큰에서 멤버 ID 추출 중 오류:', error);
+            return null;
+        }
+    }
+
+    /**
      * Access Token을 갱신
      * @returns 새로운 Access Token
      */

@@ -26,13 +26,9 @@ public class ChatMessageResponse {
     
     /**
      * 발신자 멤버 ID (study_project_member 테이블의 member_id)
+     * userId 대신 memberId를 사용하여 일관성 확보
      */
     private Long memberId;
-    
-    /**
-     * 발신자 사용자 ID (users 테이블의 user_id)
-     */
-    private String userId;
     
     /**
      * 발신자 닉네임 (users 테이블에서 조회)
@@ -70,15 +66,14 @@ public class ChatMessageResponse {
      * 
      * @param message 저장된 ChatMessage 엔티티
      * @param senderNick 발신자 닉네임
-     * @param userId 발신자 사용자 ID
+     * @param memberId 발신자 멤버 ID
      * @param messageType 메시지 타입
      * @return ChatMessageResponse DTO
      */
-    public static ChatMessageResponse from(ChatMessage message, String senderNick, String userId, ChatMessageRequest.MessageType messageType) {
+    public static ChatMessageResponse from(ChatMessage message, String senderNick, Long memberId, ChatMessageRequest.MessageType messageType) {
         return ChatMessageResponse.builder()
                 .messageId(message.getMessageId())
-                .memberId(message.getMemberId())
-                .userId(userId)
+                .memberId(memberId)
                 .senderNick(senderNick)
                 .content(message.getContent())
                 .fileUrl(message.getFileUrl())

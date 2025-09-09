@@ -82,9 +82,9 @@ public class ChatService {
         String senderNick = getSenderNickname(memberId);
         log.info("발신자 정보 조회 완료: memberId={}, nickname={}", memberId, senderNick);
 
-        // 4. 응답 DTO 생성 및 반환
+        // 4. 응답 DTO 생성 및 반환 (memberId 사용)
         ChatMessageResponse response = ChatMessageResponse.from(
-                savedMessage, senderNick, userId, request.getMessageType());
+                savedMessage, senderNick, memberId, request.getMessageType());
         
         log.info("채팅 메시지 처리 완료: messageId={}, sender={}", 
                 savedMessage.getMessageId(), senderNick);
@@ -165,10 +165,33 @@ public class ChatService {
         return messages.stream()
                 .map(message -> {
                     String senderNick = getSenderNickname(message.getMemberId());
-                    String userId = getUserIdByMemberId(message.getMemberId());
-                    return ChatMessageResponse.from(message, senderNick, userId, ChatMessageRequest.MessageType.TEXT);
+                    return ChatMessageResponse.from(message, senderNick, message.getMemberId(), ChatMessageRequest.MessageType.TEXT);
                 })
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * userId와 studyProjectId로 memberId 조회
+     * 
+     * @param userId 사용자 ID
+     * @param studyProjectId 스터디/프로젝트 ID
+     * @return 멤버 ID (없으면 null)
+     */
+    public Long getMemberIdByUserIdAndStudyProjectId(String userId, Long studyProjectId) {
+        try {
+            Optional<Member> memberOpt = memberRepository.findByUserIdAndStudyProjectId(userId, studyProjectId);
+            if (memberOpt.isPresent()) {
+                Long memberId = memberOpt.get().getMemberId();
+                log.debug("멤버 ID 조회 성공: userId={}, studyProjectId={}, memberId={}", userId, studyProjectId, memberId);
+                return memberId;
+            } else {
+                log.warn("멤버 정보를 찾을 수 없음: userId={}, studyProjectId={}", userId, studyProjectId);
+                return null;
+            }
+        } catch (Exception e) {
+            log.error("멤버 ID 조회 중 오류 발생: userId={}, studyProjectId={}", userId, studyProjectId, e);
+            return null;
+        }
     }
 
     /**

@@ -26,7 +26,6 @@ interface ChatMessageRequest {
 interface ChatMessageResponse {
 	messageId: number;
 	memberId: number;
-	userId: string;
 	senderNick: string;
 	content: string;
 	fileUrl?: string;
@@ -85,7 +84,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 	const [connectionError, setConnectionError] = useState<string | null>(null);
 	const [subscriptionActive, setSubscriptionActive] = useState(false);
 	const [currentStudyProjectId, setCurrentStudyProjectId] = useState<number | null>(studyProjectId || null);
-	const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+	const [currentMemberId, setCurrentMemberId] = useState<number | null>(null);
 
 	// refs
 	const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -98,49 +97,44 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 	const dragStart = useRef({ x: 0, y: 0, offsetX: 0, offsetY: 0 });
 	const resizeStart = useRef({ x: 0, y: 0, width: 0, height: 0 });
 
-	// 사용자 ID 초기화 - 일관된 방식으로 사용자 ID 추출
+	// 스터디별 멤버 ID 조회 및 초기화
 	useEffect(() => {
-		const getConsistentUserId = () => {
-			// 1차: TokenService 사용
-			let userId = TokenService.getInstance().getUserIdFromToken();
-			if (userId) {
-				console.log('🔑 TokenService로 사용자 ID 추출:', userId);
-				return userId;
+		const fetchMemberId = async () => {
+			if (!currentStudyProjectId || !token) {
+				console.log('⚠️ 스터디 ID 또는 토큰이 없어서 멤버 ID 조회 불가');
+				return;
 			}
-			
-			// 2차: 직접 JWT 디코딩
+
 			try {
-				const token = localStorage.getItem('userToken');
-				if (token) {
-					const payload = JSON.parse(atob(token.split('.')[1]));
-					userId = payload.userId || payload.sub;
-					if (userId) {
-						console.log('🔑 직접 JWT 디코딩으로 사용자 ID 추출:', userId);
-						return userId;
+				console.log('🔍 스터디별 멤버 ID 조회 시작:', currentStudyProjectId);
+				
+				const response = await fetch(`http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/chat/member-id/${currentStudyProjectId}`, {
+					method: 'GET',
+					headers: {
+						'Authorization': `Bearer ${token}`,
+						'Content-Type': 'application/json'
 					}
+				});
+
+				if (response.ok) {
+					const memberId = await response.json();
+					setCurrentMemberId(memberId);
+					console.log('✅ 스터디별 멤버 ID 조회 성공:', {
+						studyProjectId: currentStudyProjectId,
+						memberId: memberId
+					});
+				} else {
+					console.warn('⚠️ 스터디별 멤버 ID 조회 실패:', response.status);
+					setCurrentMemberId(null);
 				}
 			} catch (error) {
-				console.error('JWT 직접 디코딩 실패:', error);
+				console.error('❌ 스터디별 멤버 ID 조회 오류:', error);
+				setCurrentMemberId(null);
 			}
-			
-			// 3차: AuthContext fallback
-			if (user?.nickname) {
-				console.log('🔑 AuthContext fallback으로 사용자 ID 추출:', user.nickname);
-				return user.nickname;
-			}
-			
-			console.warn('⚠️ 사용자 ID를 찾을 수 없습니다.');
-			return null;
 		};
-		
-		const userId = getConsistentUserId();
-		setCurrentUserId(userId);
-		console.log('🔑 채팅 위젯 사용자 ID 초기화 완료:', {
-			userId: userId,
-			token: localStorage.getItem('userToken')?.substring(0, 50) + '...',
-			authUser: user
-		});
-	}, [user]);
+
+		fetchMemberId();
+	}, [currentStudyProjectId, token]);
 
 	// WebSocket 연결 함수
 	const connectWebSocket = useCallback(async () => {
@@ -191,12 +185,6 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 					setIsConnected(true);
 					setConnectionError(null);
 					
-					// 연결 성공 시 사용자 ID 재확인
-					const userId = TokenService.getInstance().getUserIdFromToken();
-					if (userId && userId !== currentUserId) {
-						setCurrentUserId(userId);
-						console.log('🔄 WebSocket 연결 후 사용자 ID 업데이트:', userId);
-					}
 
 					// 스터디방 메시지 구독
 					console.log('📡 메시지 구독 시작:', `/topic/chat/room/${currentStudyProjectId}`);
@@ -217,13 +205,13 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 								
 								console.log('📨 파싱된 메시지:', {
 									messageId: chatMessage.messageId,
-									userId: chatMessage.userId,
+									memberId: chatMessage.memberId,
 									senderNick: chatMessage.senderNick,
 									content: chatMessage.content,
 									messageType: chatMessage.messageType,
-									currentUserId: TokenService.getInstance().getUserIdFromToken(),
+									currentMemberId: currentMemberId,
 									userNickname: user?.nickname,
-									isFromMe: chatMessage.userId === TokenService.getInstance().getUserIdFromToken()
+									isFromMe: chatMessage.memberId === currentMemberId
 								});
 								
 								// 메시지 추가 로직 - 일관된 사용자 ID 비교
@@ -253,38 +241,29 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 										  msg.sender === 'user')
 									);
 									
-									// 일관된 사용자 ID 비교 함수
-									const isMessageFromCurrentUser = (messageUserId: string): boolean => {
-										// 현재 사용자 ID (state에서 가져온 값 사용)
-										const myUserId = currentUserId;
+									// 멤버 ID 비교 함수 - 단순하고 정확한 비교
+									const isMessageFromCurrentUser = (messageMemberId: number): boolean => {
+										// 현재 멤버 ID (state에서 가져온 값 사용)
+										const myMemberId = currentMemberId;
 										
-										if (!myUserId || !messageUserId) {
-											console.log('⚠️ 사용자 ID가 없어서 비교 불가:', { myUserId, messageUserId });
+										if (!myMemberId || !messageMemberId) {
+											console.log('⚠️ 멤버 ID가 없어서 비교 불가:', { myMemberId, messageMemberId });
 											return false;
 										}
 										
-										// 정확한 매치
-										const exactMatch = messageUserId === myUserId;
-										// 대소문자 무시 매치
-										const caseInsensitiveMatch = messageUserId.toLowerCase() === myUserId.toLowerCase();
-										// 공백 제거 후 매치
-										const trimmedMatch = messageUserId.trim() === myUserId.trim();
+										// 정확한 매치 (숫자이므로 단순 비교)
+										const isFromMe = messageMemberId === myMemberId;
 										
-										const isFromMe = exactMatch || caseInsensitiveMatch || trimmedMatch;
-										
-										console.log('🔍 사용자 ID 비교:', {
-											messageUserId,
-											myUserId,
-											exactMatch,
-											caseInsensitiveMatch,
-											trimmedMatch,
+										console.log('🔍 멤버 ID 비교:', {
+											messageMemberId,
+											myMemberId,
 											isFromMe
 										});
 										
 										return isFromMe;
 									};
 									
-									const isFromMe = isMessageFromCurrentUser(chatMessage.userId);
+									const isFromMe = isMessageFromCurrentUser(chatMessage.memberId);
 									
 									const newMessage: Message = {
 										id: `${chatMessage.messageId}-${Date.now()}-${Math.random()}`,
@@ -302,8 +281,8 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 										senderNick: newMessage.senderNick,
 										text: newMessage.text.substring(0, 20) + '...',
 										isFromMe: isFromMe,
-										chatMessageUserId: chatMessage.userId,
-										currentUserId: currentUserId
+										chatMessageMemberId: chatMessage.memberId,
+										currentMemberId: currentMemberId
 									});
 									
 									const updatedMessages = [...filteredMessages, newMessage];
@@ -314,11 +293,10 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 								
 								console.log('🎉 메시지 수신 성공:', {
 									messageId: chatMessage.messageId,
-									userId: chatMessage.userId,
+									memberId: chatMessage.memberId,
 									senderNick: chatMessage.senderNick,
 									content: chatMessage.content,
-									isFromMe: chatMessage.userId === user?.nickname,
-									currentUser: user?.nickname
+									currentMemberId: currentMemberId
 								});
 							} catch (error) {
 								console.error('메시지 파싱 오류:', error);
@@ -357,7 +335,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 			console.error('WebSocket 연결 오류:', error);
 			setConnectionError('채팅 서버 연결에 실패했습니다.');
 		}
-	}, [token, currentStudyProjectId, user?.nickname]);
+	}, [token, currentStudyProjectId, user?.nickname, currentMemberId]);
 
 	// WebSocket 연결 해제 함수
 	const disconnectWebSocket = useCallback(() => {
@@ -418,15 +396,13 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 				const historyMessages: Message[] = chatHistory
 					.reverse() // 배열을 역순으로 뒤집기
 					.map(chatMessage => {
-						// 일관된 사용자 ID 비교
-						const isFromMe = currentUserId && chatMessage.userId && 
-							(chatMessage.userId === currentUserId || 
-							 chatMessage.userId.toLowerCase() === currentUserId.toLowerCase() ||
-							 chatMessage.userId.trim() === currentUserId.trim());
+						// 멤버 ID 비교 - 단순하고 정확한 비교
+						const isFromMe = currentMemberId && chatMessage.memberId && 
+							chatMessage.memberId === currentMemberId;
 						
 						console.log('📚 채팅 이력 메시지 변환:', {
-							chatMessageUserId: chatMessage.userId,
-							currentUserId: currentUserId,
+							chatMessageMemberId: chatMessage.memberId,
+							currentMemberId: currentMemberId,
 							isFromMe: isFromMe
 						});
 						
@@ -448,7 +424,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 		} catch (error) {
 			console.error('채팅 이력 불러오기 오류:', error);
 		}
-	}, [currentStudyProjectId, token, user?.nickname]);
+	}, [currentStudyProjectId, token, currentMemberId]);
 
 	// 채팅창이 열릴 때 WebSocket 연결 및 이력 불러오기
 	useEffect(() => {
@@ -621,7 +597,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 		};
 		console.log('💬 임시 메시지 추가:', {
 			...tempMessage,
-			currentUserId: currentUserId,
+			currentMemberId: currentMemberId,
 			authUser: user
 		});
 		setMessages(prev => [...prev, tempMessage]);
@@ -659,7 +635,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 			// 전송 실패 시 임시 메시지 제거
 			setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
 		}
-	}, [inputText, isConnected, currentStudyProjectId, token, user?.nick, user?.nickname, scrollToBottom]);
+	}, [inputText, isConnected, currentStudyProjectId, token, user?.nick, user?.nickname, scrollToBottom, currentMemberId]);
 
 	// Enter 키로 메시지 전송
 	const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
