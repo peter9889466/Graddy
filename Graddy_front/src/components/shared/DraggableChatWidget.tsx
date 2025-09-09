@@ -50,7 +50,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 	const authContext = useAuth();
 	const user = authContext?.user;
 	const token = authContext?.token;
-	
+
 	// 초기 설정 불러오기
 	const getSavedSettings = (): ChatSettings => {
 		const saved = localStorage.getItem('chatWidgetSettings');
@@ -108,7 +108,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 
 			try {
 				console.log('🔍 스터디별 멤버 ID 조회 시작:', currentStudyProjectId, retryCount > 0 ? `(재시도 ${retryCount})` : '');
-				
+
 				const response = await fetch(`http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/chat/member-id/${currentStudyProjectId}`, {
 					method: 'GET',
 					headers: {
@@ -125,12 +125,13 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 						memberId: memberId
 					});
 				} else {
-					console.warn('⚠️ 스터디별 멤버 ID 조회 실패:', response.status);
+					console.warn('⚠️ 스터디별 멤버 ID 조회 실패:', response.status, response.statusText);
 					// 재시도 로직 (최대 3번)
 					if (retryCount < 3) {
 						console.log(`🔄 ${retryCount + 1}초 후 재시도...`);
 						setTimeout(() => fetchMemberId(retryCount + 1), (retryCount + 1) * 1000);
 					} else {
+						console.warn('❌ 멤버 ID 조회 최종 실패 - 닉네임 기반 비교로 fallback');
 						setCurrentMemberId(null);
 					}
 				}
@@ -141,6 +142,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 					console.log(`🔄 ${retryCount + 1}초 후 재시도...`);
 					setTimeout(() => fetchMemberId(retryCount + 1), (retryCount + 1) * 1000);
 				} else {
+					console.warn('❌ 멤버 ID 조회 최종 실패 - 닉네임 기반 비교로 fallback');
 					setCurrentMemberId(null);
 				}
 			}
@@ -157,7 +159,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 		}
 
 		let currentToken = token;
-		
+
 		// 토큰이 없거나 유효하지 않으면 갱신 시도
 		if (!currentToken || !TokenService.getInstance().isTokenValid(currentToken)) {
 			try {
@@ -197,7 +199,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 					});
 					setIsConnected(true);
 					setConnectionError(null);
-					
+
 
 					// 스터디방 메시지 구독
 					console.log('📡 메시지 구독 시작:', `/topic/chat/room/${currentStudyProjectId}`);
@@ -213,9 +215,9 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 									messageHeaders: message.headers,
 									timestamp: toKoreanISOString()
 								});
-								
+
 								const chatMessage: ChatMessageResponse = JSON.parse(message.body);
-								
+
 								console.log('📨 파싱된 메시지:', {
 									messageId: chatMessage.messageId,
 									memberId: chatMessage.memberId,
@@ -226,18 +228,18 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 									userNickname: user?.nickname,
 									isFromMe: chatMessage.memberId === currentMemberId
 								});
-								
+
 								// 메시지 추가 로직 - 일관된 사용자 ID 비교
 								setMessages(prev => {
 									console.log('📝 메시지 추가 전 현재 메시지 수:', prev.length);
-									
+
 									// 같은 메시지 ID가 이미 있는지 확인 (중복 방지)
-									const existingMessage = prev.find(msg => 
+									const existingMessage = prev.find(msg =>
 										msg.id.includes(chatMessage.messageId?.toString() || '') &&
 										msg.text === chatMessage.content &&
 										msg.senderNick === chatMessage.senderNick
 									);
-									
+
 									if (existingMessage) {
 										console.log('🔄 중복 메시지 발견, 무시:', {
 											messageId: chatMessage.messageId,
@@ -246,19 +248,19 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 										});
 										return prev;
 									}
-									
+
 									// 임시 메시지가 있다면 제거 (자신이 보낸 메시지의 경우)
-									const filteredMessages = prev.filter(msg => 
-										!(msg.id.startsWith('temp-') && 
-										  msg.text === chatMessage.content && 
-										  msg.sender === 'user')
+									const filteredMessages = prev.filter(msg =>
+										!(msg.id.startsWith('temp-') &&
+											msg.text === chatMessage.content &&
+											msg.sender === 'user')
 									);
-									
+
 									// 멤버 ID 비교 함수 - 강화된 사용자 식별 로직
 									const isMessageFromCurrentUser = (messageMemberId: number): boolean => {
-									// 토큰에서 userId 추출
-									const currentUserId = token ? TokenService.getInstance().getUserIdFromToken(token) : null;
-										
+										// 토큰에서 userId 추출
+										const currentUserId = token ? TokenService.getInstance().getUserIdFromToken(token) : null;
+
 										console.log('🔍 사용자 식별 시작:', {
 											messageMemberId,
 											currentMemberId,
@@ -268,10 +270,10 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 											userNick: user?.nick,
 											messageContent: chatMessage.content
 										});
-										
+
 										// 현재 멤버 ID (state에서 가져온 값 사용)
 										const myMemberId = currentMemberId;
-										
+
 										// 1차: memberId로 정확한 비교
 										if (myMemberId && messageMemberId) {
 											const isFromMe = messageMemberId === myMemberId;
@@ -282,7 +284,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 											});
 											return isFromMe;
 										}
-										
+
 										// 2차: 닉네임으로 fallback 비교 (더 강력한 비교)
 										if (chatMessage.senderNick) {
 											const userNicknames = [
@@ -291,29 +293,29 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 												user?.nickname?.trim(),
 												user?.nick?.trim()
 											].filter(Boolean); // null/undefined 제거
-											
-											const isFromMeByNick = userNicknames.some(nick => 
+
+											const isFromMeByNick = userNicknames.some(nick =>
 												nick && chatMessage.senderNick === nick
 											);
-											
+
 											console.log('🔄 2차 닉네임 비교:', {
 												messageSenderNick: chatMessage.senderNick,
 												userNicknames: userNicknames,
 												isFromMeByNick
 											});
-											
+
 											if (isFromMeByNick) {
 												return true;
 											}
 										}
-										
+
 										// 3차: 임시 메시지와 내용 비교 (최후의 수단)
-										const isFromMeByContent = prev.some(msg => 
-											msg.id.startsWith('temp-') && 
+										const isFromMeByContent = prev.some(msg =>
+											msg.id.startsWith('temp-') &&
 											msg.text === chatMessage.content &&
 											msg.sender === 'user'
 										);
-										
+
 										console.log('🔄 3차 내용 비교:', {
 											messageContent: chatMessage.content,
 											tempMessages: prev.filter(msg => msg.id.startsWith('temp-')).map(msg => ({
@@ -323,29 +325,29 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 											})),
 											isFromMeByContent
 										});
-										
+
 										if (isFromMeByContent) {
 											return true;
 										}
-										
+
 										// 4차: 최후의 수단 - 현재 사용자가 보낸 메시지라고 가정
 										// (임시 메시지가 있는 경우에만)
-										const hasTempMessage = prev.some(msg => 
-											msg.id.startsWith('temp-') && 
+										const hasTempMessage = prev.some(msg =>
+											msg.id.startsWith('temp-') &&
 											msg.sender === 'user'
 										);
-										
+
 										if (hasTempMessage) {
 											console.log('⚠️ 4차 최후의 수단: 임시 메시지가 있으므로 내 메시지로 간주');
 											return true;
 										}
-										
+
 										console.log('❌ 모든 비교 실패 - 다른 사람 메시지로 판단');
 										return false;
 									};
-									
+
 									const isFromMe = isMessageFromCurrentUser(chatMessage.memberId);
-									
+
 									const newMessage: Message = {
 										id: `${chatMessage.messageId}-${Date.now()}-${Math.random()}`,
 										text: chatMessage.content,
@@ -356,10 +358,10 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 										fileUrl: chatMessage.fileUrl,
 										memberId: chatMessage.memberId,
 									};
-									
+
 									// 토큰에서 userId 추출
 									const currentUserId = token ? TokenService.getInstance().getUserIdFromToken(token) : null;
-									
+
 									console.log('📝 생성된 메시지:', {
 										id: newMessage.id,
 										sender: newMessage.sender,
@@ -379,13 +381,13 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 											content: chatMessage.content
 										}
 									});
-									
+
 									const updatedMessages = [...filteredMessages, newMessage];
 									console.log('📝 메시지 추가 후 총 메시지 수:', updatedMessages.length);
-									
+
 									return updatedMessages;
 								});
-								
+
 								console.log('🎉 메시지 수신 성공:', {
 									messageId: chatMessage.messageId,
 									memberId: chatMessage.memberId,
@@ -459,7 +461,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 		}
 
 		let currentToken = token;
-		
+
 		// 토큰이 없거나 유효하지 않으면 갱신 시도
 		if (!currentToken || !TokenService.getInstance().isTokenValid(currentToken)) {
 			try {
@@ -474,7 +476,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 
 		try {
 			console.log('채팅 이력 불러오기 시작:', currentStudyProjectId);
-			
+
 			const response = await fetch(`http://ec2-3-113-246-191.ap-northeast-1.compute.amazonaws.com/api/chat/history/${currentStudyProjectId}`, {
 				method: 'GET',
 				headers: {
@@ -486,22 +488,22 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 			if (response.ok) {
 				const chatHistory: ChatMessageResponse[] = await response.json();
 				console.log('채팅 이력 불러오기 성공:', chatHistory.length, '개 메시지');
-				
+
 				// 토큰에서 userId 추출
 				const currentUserId = currentToken ? TokenService.getInstance().getUserIdFromToken(currentToken) : null;
-				
+
 				// 채팅 이력을 Message 형태로 변환하고 역순으로 정렬 (오래된 것부터 최신 순으로)
 				const historyMessages: Message[] = chatHistory
 					.reverse() // 배열을 역순으로 뒤집기
 					.map(chatMessage => {
 						// 강화된 사용자 식별 로직
 						let isFromMe = false;
-						
+
 						// 1차: memberId로 정확한 비교
 						if (currentMemberId && chatMessage.memberId) {
 							isFromMe = chatMessage.memberId === currentMemberId;
 						}
-						
+
 						// 2차: 닉네임으로 fallback 비교
 						if (!isFromMe && chatMessage.senderNick) {
 							const userNicknames = [
@@ -510,12 +512,12 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 								user?.nickname?.trim(),
 								user?.nick?.trim()
 							].filter(Boolean);
-							
-							isFromMe = userNicknames.some(nick => 
+
+							isFromMe = userNicknames.some(nick =>
 								nick && chatMessage.senderNick === nick
 							);
 						}
-						
+
 						console.log('📚 채팅 이력 메시지 변환:', {
 							chatMessageMemberId: chatMessage.memberId,
 							currentMemberId: currentMemberId,
@@ -523,7 +525,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 							userNicknames: [user?.nickname, user?.nick],
 							isFromMe: isFromMe
 						});
-						
+
 						return {
 							id: `${chatMessage.messageId}-${Date.now()}-${Math.random()}`,
 							text: chatMessage.content,
@@ -534,7 +536,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 							fileUrl: chatMessage.fileUrl,
 						};
 					});
-				
+
 				setMessages(historyMessages);
 			} else {
 				console.error('채팅 이력 불러오기 실패:', response.status);
@@ -640,10 +642,10 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 			const newY = e.clientY - dragStart.current.offsetY;
 			const maxX = window.innerWidth - settings.width;
 			const maxY = window.innerHeight - settings.height;
-			
+
 			const constrainedX = Math.max(0, Math.min(newX, maxX));
 			const constrainedY = Math.max(0, Math.min(newY, maxY));
-			
+
 			setSettings(prev => ({
 				...prev,
 				position: { x: constrainedX, y: constrainedY }
@@ -653,7 +655,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 			const deltaY = e.clientY - resizeStart.current.y;
 			const newWidth = Math.max(280, Math.min(600, resizeStart.current.width + deltaX));
 			const newHeight = Math.max(200, Math.min(800, resizeStart.current.height + deltaY));
-			
+
 			setSettings(prev => ({
 				...prev,
 				width: newWidth,
@@ -685,7 +687,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 		}
 
 		let currentToken = token;
-		
+
 		// 토큰이 없거나 유효하지 않으면 갱신 시도
 		if (!currentToken || !TokenService.getInstance().isTokenValid(currentToken)) {
 			try {
@@ -701,7 +703,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 
 		// 먼저 로컬에 메시지 표시 (즉시 피드백)
 		const messageContent = inputText.trim();
-		
+
 		const messageRequest: ChatMessageRequest = {
 			studyProjectId: currentStudyProjectId,
 			content: messageContent,
@@ -713,11 +715,12 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 			sender: 'user',
 			senderNick: user?.nick || user?.nickname || '나',
 			timestamp: getKoreanTime(),
-			messageType: 'TEXT'
+			messageType: 'TEXT',
+			memberId: currentMemberId || undefined // 현재 멤버 ID 포함
 		};
 		// 토큰에서 userId 추출
 		const currentUserId = currentToken ? TokenService.getInstance().getUserIdFromToken(currentToken) : null;
-		
+
 		console.log('💬 임시 메시지 추가:', {
 			...tempMessage,
 			currentMemberId: currentMemberId,
@@ -725,12 +728,12 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 			authUser: user
 		});
 		setMessages(prev => [...prev, tempMessage]);
-		
+
 		// 메시지 전송 후 자동 스크롤
 		setTimeout(() => {
 			scrollToBottom();
 		}, 100);
-		
+
 		// 입력 필드 초기화
 		setInputText('');
 
@@ -740,7 +743,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 				messageRequest,
 				token: currentToken ? '토큰 있음' : '토큰 없음'
 			});
-			
+
 			// STOMP를 통해 메시지 전송
 			stompClientRef.current.publish({
 				destination: `/app/chat.sendMessage/${currentStudyProjectId}`,
@@ -754,7 +757,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 		} catch (error) {
 			console.error('메시지 전송 오류:', error);
 			setConnectionError('메시지 전송에 실패했습니다.');
-			
+
 			// 전송 실패 시 임시 메시지 제거
 			setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
 		}
@@ -855,7 +858,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 								title="설정"
 							>
 								<Settings className="w-4 h-4" />
-							</button>	
+							</button>
 							<button
 								onClick={(e) => {
 									e.stopPropagation();
@@ -901,53 +904,108 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 					)}
 
 					{/* 메시지 목록 */}
-					<div 
+					<div
 						ref={messagesContainerRef}
 						className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50"
 						onMouseDown={handleDragStart}
 					>
 						{messages.map((message, index) => {
-							// 현재 사용자의 메시지인지 확인 (memberId 비교)
-							const isMyMessage = currentMemberId && message.memberId && message.memberId === currentMemberId;
-							
+							// 현재 사용자의 메시지인지 확인 (다중 비교 로직)
+							const isMyMessage = (() => {
+								// 1차: memberId로 정확한 비교 (가장 신뢰할 수 있음)
+								if (currentMemberId && message.memberId) {
+									const isFromMeByMemberId = message.memberId === currentMemberId;
+									console.log('🔍 memberId 비교:', {
+										messageMemberId: message.memberId,
+										currentMemberId: currentMemberId,
+										isFromMeByMemberId
+									});
+									if (isFromMeByMemberId) return true;
+								}
+
+								// 2차: 닉네임으로 fallback 비교
+								if (message.senderNick) {
+									const userNicknames = [
+										user?.nickname,
+										user?.nick,
+										user?.nickname?.trim(),
+										user?.nick?.trim()
+									].filter(Boolean);
+
+									const isFromMeByNick = userNicknames.some(nick =>
+										nick && message.senderNick === nick
+									);
+
+									console.log('🔍 닉네임 비교:', {
+										messageSenderNick: message.senderNick,
+										userNicknames: userNicknames,
+										isFromMeByNick
+									});
+
+									if (isFromMeByNick) return true;
+								}
+
+								// 3차: sender 필드로 비교 (임시 메시지의 경우)
+								if (message.sender === 'user') {
+									console.log('🔍 sender 필드 비교: user로 판단');
+									return true;
+								}
+
+								console.log('🔍 모든 비교 실패 - 다른 사람 메시지로 판단');
+								return false;
+							})();
+
+							// 디버깅을 위한 로그
+							console.log('🎨 메시지 렌더링:', {
+								messageId: message.id,
+								messageMemberId: message.memberId,
+								currentMemberId: currentMemberId,
+								senderNick: message.senderNick,
+								sender: message.sender,
+								isMyMessage: isMyMessage,
+								justifyClass: isMyMessage ? 'justify-end' : 'justify-start',
+								userInfo: {
+									nickname: user?.nickname,
+									nick: user?.nick
+								}
+							});
+
 							return (
-							<div key={`${message.id}-${message.timestamp.getTime()}-${index}`} className={`flex ${isMyMessage ? 'justify-end' : 'justify-start'}`}>
-								<div
-									className={`max-w-[80%] p-3 rounded-lg ${
-										isMyMessage
-											? 'bg-[#8B85E9] text-white rounded-br-none'
-											: 'bg-white text-gray-800 border border-gray-200 rounded-bl-none'
-									}`}
-								>
-									{message.senderNick && !isMyMessage && (
-										<p className="text-xs font-semibold mb-1 text-gray-600">
-											{message.senderNick}
-										</p>
-									)}
-									<p className="text-sm select-text">{message.text}</p>
-									{message.fileUrl && (
-										<div className="mt-2">
-											<a 
-												href={message.fileUrl} 
-												target="_blank" 
-												rel="noopener noreferrer"
-												className="text-blue-500 underline text-xs"
-											>
-												첨부파일 보기
-											</a>
-										</div>
-									)}
-									<p
-										className={`text-xs mt-1 ${
-											isMyMessage 
-												? 'text-white/70' 
-												: 'text-gray-500'
-										}`}
+								<div key={`${message.id}-${message.timestamp.getTime()}-${index}`} className={`flex ${isMyMessage ? 'justify-end' : 'justify-start'}`}>
+									<div
+										className={`max-w-[80%] p-3 rounded-lg ${isMyMessage
+												? 'bg-[#8B85E9] text-white rounded-br-none'
+												: 'bg-white text-gray-800 border border-gray-200 rounded-bl-none'
+											}`}
 									>
-										{formatTime(message.timestamp)}
-									</p>
+										{message.senderNick && !isMyMessage && (
+											<p className="text-xs font-semibold mb-1 text-gray-600">
+												{message.senderNick}
+											</p>
+										)}
+										<p className="text-sm select-text">{message.text}</p>
+										{message.fileUrl && (
+											<div className="mt-2">
+												<a
+													href={message.fileUrl}
+													target="_blank"
+													rel="noopener noreferrer"
+													className="text-blue-500 underline text-xs"
+												>
+													첨부파일 보기
+												</a>
+											</div>
+										)}
+										<p
+											className={`text-xs mt-1 ${isMyMessage
+													? 'text-white/70'
+													: 'text-gray-500'
+												}`}
+										>
+											{formatTime(message.timestamp)}
+										</p>
+									</div>
 								</div>
-							</div>
 							);
 						})}
 					</div>
@@ -960,18 +1018,17 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 								onChange={(e) => setInputText(e.target.value)}
 								onKeyPress={handleKeyPress}
 								placeholder={
-									!currentStudyProjectId 
+									!currentStudyProjectId
 										? "스터디 페이지에서 채팅을 이용하세요"
-										: !isConnected 
-										? "연결 중..."
-										: "메시지를 입력하세요..."
+										: !isConnected
+											? "연결 중..."
+											: "메시지를 입력하세요..."
 								}
 								disabled={!currentStudyProjectId || !isConnected}
-								className={`flex-1 p-2 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] select-text ${
-									!currentStudyProjectId || !isConnected
+								className={`flex-1 p-2 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#8B85E9] focus:border-[#8B85E9] select-text ${!currentStudyProjectId || !isConnected
 										? 'border-gray-200 bg-gray-100 text-gray-500'
 										: 'border-gray-300'
-								}`}
+									}`}
 								rows={1}
 								style={{ minHeight: '40px', maxHeight: '100px' }}
 							/>
