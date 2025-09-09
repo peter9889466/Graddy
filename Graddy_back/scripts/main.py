@@ -658,6 +658,14 @@ async def generate_feedback(request: FeedbackRequest):
 **통합 제출 내용 (첨부파일 + 과제내용):**
 {full_content}
 
+**중요한 점수 기준:**
+- "모른다", "몰라", "모르겠다" 등의 답변은 즉시 -5점
+- 과제와 전혀 관련 없는 내용은 -3점 이하
+- 매우 짧거나 의미없는 답변은 -2점 이하
+- 과제 요구사항을 충족하지 못하면 0-3점
+- 부분적으로만 충족하면 4-6점
+- 잘 구현된 경우에만 7-10점
+
 **코드 리뷰 기준 및 요구사항:**
 
 **1. 코드 품질 (0-10점)**
@@ -698,6 +706,8 @@ async def generate_feedback(request: FeedbackRequest):
 
 **요구사항:**
 - 최종 점수는 -5점에서 10점 사이로 설정
+- 부적절한 답변은 즉시 -5점 부여
+- 과제와 관련성이 낮으면 낮은 점수 부여
 - 각 평가 기준별로 구체적인 코드 예시와 근거 제시
 - 코드의 장점과 개선점을 명확하게 분석
 - 구체적이고 실행 가능한 리팩토링 제안
@@ -720,6 +730,14 @@ async def generate_feedback(request: FeedbackRequest):
 
 **통합 제출 내용 (첨부파일 + 과제내용):**
 {full_content}
+
+**중요한 점수 기준:**
+- "모른다", "몰라", "모르겠다" 등의 답변은 즉시 -5점
+- 과제와 전혀 관련 없는 내용은 -3점 이하
+- 매우 짧거나 의미없는 답변은 -2점 이하
+- 과제 요구사항을 충족하지 못하면 0-3점
+- 부분적으로만 충족하면 4-6점
+- 잘 구현된 경우에만 7-10점
 
 **평가 기준 및 요구사항:**
 
@@ -745,6 +763,8 @@ async def generate_feedback(request: FeedbackRequest):
 
 **요구사항:**
 - 최종 점수는 -5점에서 10점 사이로 설정
+- 부적절한 답변은 즉시 -5점 부여
+- 과제와 관련성이 낮으면 낮은 점수 부여
 - 각 평가 기준별로 구체적인 예시와 근거 제시
 - 제출 내용의 장점과 단점을 명확하게 분석
 - 구체적이고 실행 가능한 개선 방안 제시
@@ -759,10 +779,10 @@ async def generate_feedback(request: FeedbackRequest):
         
         # OpenAI GPT API 호출
         if is_code_submission:
-            system_message = "당신은 시니어 개발자이자 코드 리뷰 전문가입니다. 매우 상세하고 구체적인 코드 리뷰를 제공하며, 개발자의 성장을 돕는 것이 목표입니다. 각 평가 기준별로 구체적인 코드 예시와 근거를 제시하고, 실행 가능한 리팩토링 방안을 제안합니다."
+            system_message = "당신은 시니어 개발자이자 코드 리뷰 전문가입니다. 매우 엄격하고 공정한 평가를 수행합니다. '모른다', '몰라' 등의 부적절한 답변은 즉시 -5점을 부여하고, 과제와 관련성이 낮은 답변은 낮은 점수를 부여합니다. 각 평가 기준별로 구체적인 코드 예시와 근거를 제시하고, 실행 가능한 리팩토링 방안을 제안합니다."
             print("🧑‍💻 [DEBUG] 코드 제출로 판단됨 - 코드 리뷰 모드")
         else:
-            system_message = "당신은 교육 전문가이자 과제 평가자입니다. 매우 상세하고 구체적인 피드백을 제공하며, 학생의 성장을 돕는 것이 목표입니다. 각 평가 기준별로 구체적인 예시와 근거를 제시하고, 실행 가능한 개선 방안을 제안합니다."
+            system_message = "당신은 교육 전문가이자 과제 평가자입니다. 매우 엄격하고 공정한 평가를 수행합니다. '모른다', '몰라' 등의 부적절한 답변은 즉시 -5점을 부여하고, 과제와 관련성이 낮은 답변은 낮은 점수를 부여합니다. 각 평가 기준별로 구체적인 예시와 근거를 제시하고, 실행 가능한 개선 방안을 제안합니다."
             print("📚 [DEBUG] 일반 제출로 판단됨 - 일반 피드백 모드")
         
         print(f"🤖 [DEBUG] OpenAI API 호출 시작")
@@ -912,63 +932,88 @@ async def generate_feedback(request: FeedbackRequest):
         mismatch = (relevance < relevance_threshold) and (length_ratio < length_threshold)
         print(f"🎭 [CRITICAL] 불일치 여부: {mismatch} (관련도: {relevance:.3f} >= {relevance_threshold}, 길이비율: {length_ratio:.3f} >= {length_threshold})")
 
-        # 불일치 감지 조건을 더 엄격하게 설정
-        # 불일치 처리 로직 개선: 더 신중하고 관대하게
-        if mismatch:
-            print(f"⚠️ [CRITICAL] 과제-제출물 불일치 감지")
-            print(f"⚠️ [CRITICAL]   - 첨부파일 읽기 성공: {file_reading_success}")
-            print(f"⚠️ [CRITICAL]   - 코드 제출물: {is_code_submission}")
-            print(f"⚠️ [CRITICAL]   - 현재 점수: {score}")
+        # 부적절한 답변 감지 및 처리
+        is_inappropriate = detect_inappropriate_content(full_content)
+        if is_inappropriate:
+            print(f"🚫 [CRITICAL] 부적절한 답변 감지 - 강제 점수 조정")
+            if score is None or score > 0:
+                old_score = score
+                score = -5  # 부적절한 답변은 최저점
+                print(f"🚫 [CRITICAL] 부적절한 답변으로 점수 조정: {old_score} -> {score}")
             
-            # 1. 점수가 아예 없으면 관련도 기반으로 산정
-            if score is None:
-                score = derive_score_from_relevance(
-                    assignment_title=request.assignment_title,
-                    assignment_description=request.assignment_description,
-                    submission_content=request.submission_content
-                )
-                print(f"⚠️ [CRITICAL] 점수 없어서 관련도 기반으로 산정: {score}")
-            
-            # 2. 첨부파일 읽기에 실패한 경우에만 점수 조정 고려
-            elif not file_reading_success:
-                # 매우 높은 점수만 제한적으로 조정 (코드가 아닌 경우에만)
-                if score > 8 and not is_code_submission:
-                    old_score = score
-                    score = max(3, min(score, 6))  # 3~6점으로 제한
-                    print(f"⚠️ [CRITICAL] 비코드 제출물의 과도한 고점 조정: {old_score} -> {score}")
-                elif score > 9:
-                    old_score = score
-                    score = min(score, 8)  # 최대 8점으로 제한
-                    print(f"⚠️ [CRITICAL] 과도한 고점 제한: {old_score} -> {score}")
-                else:
-                    print(f"✅ [CRITICAL] 점수 유지: {score} (적절한 범위)")
-            else:
-                print(f"✅ [CRITICAL] 첨부파일 읽기 성공으로 점수 유지: {score}")
-
-            # 불일치 메시지를 덜 공격적으로 수정
-            if not file_reading_success and score < 3:
-                mismatch_comment = "제출된 내용이 과제 요구사항과 다소 다를 수 있습니다. 추가 설명이나 체크를 다시 해주세요."
-                mismatch_detail = (
-                    f"제출물 검토 결과:\n\n"
-                    f"- 과제 제목: {request.assignment_title}\n"
-                    f"- 관련도 지표: {relevance:.2f}\n"
-                    f"- 제출물 길이 비율: {length_ratio:.2f}\n"
-                    f"- 첨부파일 읽기: {'성공' if file_reading_success else '실패 또는 없음'}\n\n"
-                    f"개선 방향:\n"
-                    f"1) 과제 설명의 핵심 요구사항 재확인\n"
-                    f"2) 관련 기술/개념 키워드 추가\n"
-                    f"3) 구체적인 구현 예시나 설명 보강\n"
-                    f"4) 첨부파일이 있다면 파일 경로 확인"
-                )
-                integrated_comment = create_integrated_comment(mismatch_comment, mismatch_detail, is_code_submission)
-                detailed_feedback = mismatch_detail
-            else:
-                # 정상적인 피드백 사용
-                integrated_comment = create_integrated_comment(comment, detailed_feedback, is_code_submission)
+            # 부적절한 답변에 대한 특별한 피드백
+            inappropriate_comment = "제출된 내용이 과제 요구사항에 적합하지 않습니다. 과제를 다시 확인하고 의미있는 답변을 작성해주세요."
+            inappropriate_detail = (
+                f"제출물 검토 결과:\n\n"
+                f"- 과제 제목: {request.assignment_title}\n"
+                f"- 제출 내용: '{request.submission_content[:100]}...'\n"
+                f"- 문제점: 부적절하거나 무의미한 답변 감지\n\n"
+                f"개선 방향:\n"
+                f"1) 과제 설명을 다시 읽고 요구사항 파악\n"
+                f"2) 관련 기술이나 개념에 대한 구체적인 답변 작성\n"
+                f"3) '모른다', '몰라' 등의 답변 대신 학습한 내용이나 생각 정리\n"
+                f"4) 최소한의 노력과 성의를 보여주는 답변 작성"
+            )
+            integrated_comment = create_integrated_comment(inappropriate_comment, inappropriate_detail, is_code_submission)
+            detailed_feedback = inappropriate_detail
         else:
-            print(f"✅ [CRITICAL] 정상 채점 결과 반환 (첨부파일 읽기: {file_reading_success})")
-            # 코멘트와 상세 피드백을 하나로 통합
-            integrated_comment = create_integrated_comment(comment, detailed_feedback, is_code_submission)
+            # 불일치 감지 조건을 더 엄격하게 설정
+            # 불일치 처리 로직 개선: 더 신중하고 관대하게
+            if mismatch:
+                print(f"⚠️ [CRITICAL] 과제-제출물 불일치 감지")
+                print(f"⚠️ [CRITICAL]   - 첨부파일 읽기 성공: {file_reading_success}")
+                print(f"⚠️ [CRITICAL]   - 코드 제출물: {is_code_submission}")
+                print(f"⚠️ [CRITICAL]   - 현재 점수: {score}")
+                
+                # 1. 점수가 아예 없으면 관련도 기반으로 산정
+                if score is None:
+                    score = derive_score_from_relevance(
+                        assignment_title=request.assignment_title,
+                        assignment_description=request.assignment_description,
+                        submission_content=request.submission_content
+                    )
+                    print(f"⚠️ [CRITICAL] 점수 없어서 관련도 기반으로 산정: {score}")
+                
+                # 2. 첨부파일 읽기에 실패한 경우에만 점수 조정 고려
+                elif not file_reading_success:
+                    # 매우 높은 점수만 제한적으로 조정 (코드가 아닌 경우에만)
+                    if score > 8 and not is_code_submission:
+                        old_score = score
+                        score = max(3, min(score, 6))  # 3~6점으로 제한
+                        print(f"⚠️ [CRITICAL] 비코드 제출물의 과도한 고점 조정: {old_score} -> {score}")
+                    elif score > 9:
+                        old_score = score
+                        score = min(score, 8)  # 최대 8점으로 제한
+                        print(f"⚠️ [CRITICAL] 과도한 고점 제한: {old_score} -> {score}")
+                    else:
+                        print(f"✅ [CRITICAL] 점수 유지: {score} (적절한 범위)")
+                else:
+                    print(f"✅ [CRITICAL] 첨부파일 읽기 성공으로 점수 유지: {score}")
+
+                # 불일치 메시지를 덜 공격적으로 수정
+                if not file_reading_success and score < 3:
+                    mismatch_comment = "제출된 내용이 과제 요구사항과 다소 다를 수 있습니다. 추가 설명이나 체크를 다시 해주세요."
+                    mismatch_detail = (
+                        f"제출물 검토 결과:\n\n"
+                        f"- 과제 제목: {request.assignment_title}\n"
+                        f"- 관련도 지표: {relevance:.2f}\n"
+                        f"- 제출물 길이 비율: {length_ratio:.2f}\n"
+                        f"- 첨부파일 읽기: {'성공' if file_reading_success else '실패 또는 없음'}\n\n"
+                        f"개선 방향:\n"
+                        f"1) 과제 설명의 핵심 요구사항 재확인\n"
+                        f"2) 관련 기술/개념 키워드 추가\n"
+                        f"3) 구체적인 구현 예시나 설명 보강\n"
+                        f"4) 첨부파일이 있다면 파일 경로 확인"
+                    )
+                    integrated_comment = create_integrated_comment(mismatch_comment, mismatch_detail, is_code_submission)
+                    detailed_feedback = mismatch_detail
+                else:
+                    # 정상적인 피드백 사용
+                    integrated_comment = create_integrated_comment(comment, detailed_feedback, is_code_submission)
+            else:
+                print(f"✅ [CRITICAL] 정상 채점 결과 반환 (첨부파일 읽기: {file_reading_success})")
+                # 코멘트와 상세 피드백을 하나로 통합
+                integrated_comment = create_integrated_comment(comment, detailed_feedback, is_code_submission)
         
         # 🎯 최종 반환 결과 로깅
         final_result = FeedbackResponse(
@@ -1064,56 +1109,143 @@ def _jaccard_similarity(a_tokens: list, b_tokens: list) -> float:
         return 0.0
     return inter / union
 
+def detect_inappropriate_content(content: str) -> bool:
+    """
+    부적절한 답변 감지 - "모른다", "몰라" 등 무의미한 답변 감지
+    """
+    if not content:
+        return True
+    
+    content_lower = content.lower().strip()
+    
+    # 부적절한 답변 패턴들
+    inappropriate_patterns = [
+        # 직접적인 거부 표현
+        '모른다', '몰라', '모르겠다', '모르겠어', '모르겠습니다',
+        '모르겠어요', '모르겠어요', '모르겠습니다',
+        '모르겠어', '모르겠어요', '모르겠습니다',
+        
+        # 무의미한 답변
+        '아', '어', '음', '흠', '그냥', '그래', '네', '아니요',
+        '잘 모르겠어요', '잘 모르겠습니다', '잘 모르겠다',
+        '잘 모르겠어', '잘 모르겠어요', '잘 모르겠습니다',
+        
+        # 과제와 관련 없는 내용
+        '과제가 뭔지 모르겠다', '과제가 뭔지 모르겠어',
+        '과제가 뭔지 모르겠어요', '과제가 뭔지 모르겠습니다',
+        '뭘 해야 하는지 모르겠다', '뭘 해야 하는지 모르겠어',
+        '뭘 해야 하는지 모르겠어요', '뭘 해야 하는지 모르겠습니다',
+        
+        # 매우 짧은 답변
+        '?', '??', '???', '...', 'ㅋ', 'ㅎ', 'ㅠ', 'ㅜ',
+        
+        # 영어 부적절한 답변
+        'i don\'t know', 'idk', 'dunno', 'no idea', 'not sure',
+        'i have no idea', 'i\'m not sure', 'i don\'t understand',
+        'what?', 'huh?', '???', '...', 'lol', 'haha'
+    ]
+    
+    # 패턴 매칭
+    for pattern in inappropriate_patterns:
+        if pattern in content_lower:
+            print(f"🚫 [DEBUG] 부적절한 답변 감지: '{pattern}' in '{content_lower}'")
+            return True
+    
+    # 길이가 너무 짧은 경우 (3단어 이하)
+    words = content_lower.split()
+    if len(words) <= 3:
+        print(f"🚫 [DEBUG] 너무 짧은 답변 감지: {len(words)}단어")
+        return True
+    
+    # 의미있는 내용이 거의 없는 경우 (특수문자나 반복 문자만 있는 경우)
+    meaningful_chars = sum(1 for c in content_lower if c.isalnum() or c in '가-힣')
+    if meaningful_chars < 5:  # 의미있는 문자가 5개 미만
+        print(f"🚫 [DEBUG] 의미없는 답변 감지: 의미있는 문자 {meaningful_chars}개")
+        return True
+    
+    return False
+
 def _enhanced_relevance_score(assignment_title: str, assignment_desc: str, submission_content: str, file_content: str = "") -> float:
     """
-    향상된 관련도 계산 - 단순 Jaccard 유사도보다 더 정교하게 계산
+    향상된 관련도 계산 - 부적절한 답변 감지 및 더 엄격한 관련도 계산
     """
-    # 기본 Jaccard 유사도
+    full_submission = (submission_content or "") + " " + (file_content or "")
+    
+    # 1. 부적절한 답변 감지
+    if detect_inappropriate_content(full_submission):
+        print(f"🚫 [DEBUG] 부적절한 답변으로 판단 - 관련도 0.0 반환")
+        return 0.0
+    
+    # 2. 기본 Jaccard 유사도 계산
     title_tokens = _normalize_text(assignment_title or "")
     desc_tokens = _normalize_text(assignment_desc or "")
     assign_tokens = title_tokens + desc_tokens
     
-    full_submission = (submission_content or "") + " " + (file_content or "")
     subm_tokens = _normalize_text(full_submission)
     
     jaccard_sim = _jaccard_similarity(assign_tokens, subm_tokens)
     
-    # 코드 제출물인 경우 관련도를 더 관대하게 계산
+    # 3. 더 엄격한 관련도 계산
+    # 기본적으로 더 보수적으로 계산
+    jaccard_sim *= 0.8  # 기본적으로 20% 감점
+    
+    # 4. 코드 제출물인 경우에만 보너스 (더 엄격하게)
     is_code = detect_code_submission(full_submission)
     if is_code:
-        # 코드 제출물의 경우 더 관대한 점수 부여
-        jaccard_sim *= 1.5
+        # 코드 제출물의 경우 약간의 보너스만 부여
+        jaccard_sim *= 1.2  # 20% 보너스로 축소
         
-        # 코드 키워드 보너스
+        # 코드 키워드 보너스도 축소
         code_keywords = ['class', 'function', 'def', 'public', 'private', 'import', 'package']
-        bonus = sum(1 for keyword in code_keywords if keyword in full_submission.lower()) * 0.02
-        jaccard_sim += min(bonus, 0.1)  # 최대 0.1 보너스
+        bonus = sum(1 for keyword in code_keywords if keyword in full_submission.lower()) * 0.01
+        jaccard_sim += min(bonus, 0.05)  # 최대 0.05 보너스로 축소
     
-    # 길이 보정 - 너무 짧지 않으면 보너스
-    if len(subm_tokens) >= 20:  # 20단어 이상이면 보너스
-        length_bonus = min(0.05, len(subm_tokens) / 1000)  # 최대 0.05 보너스
+    # 5. 길이 보정 - 더 엄격하게
+    if len(subm_tokens) >= 50:  # 50단어 이상이어야 보너스
+        length_bonus = min(0.03, len(subm_tokens) / 2000)  # 최대 0.03 보너스로 축소
         jaccard_sim += length_bonus
+    elif len(subm_tokens) < 10:  # 10단어 미만이면 강한 감점
+        jaccard_sim *= 0.5  # 50% 감점
     
-    return min(1.0, jaccard_sim)  # 1.0을 초과하지 않도록 제한
+    # 6. 과제 키워드와의 직접적인 매칭 확인
+    assignment_keywords = set(assign_tokens)
+    submission_keywords = set(subm_tokens)
+    
+    # 핵심 키워드 매칭 확인
+    core_matches = len(assignment_keywords & submission_keywords)
+    if core_matches == 0:
+        jaccard_sim *= 0.3  # 핵심 키워드가 하나도 없으면 70% 감점
+    elif core_matches < 2:
+        jaccard_sim *= 0.6  # 핵심 키워드가 1개면 40% 감점
+    
+    return min(1.0, max(0.0, jaccard_sim))  # 0.0~1.0 범위로 제한
 
 def derive_score_from_relevance(assignment_title: str, assignment_description: str, submission_content: str) -> int:
     """
     LLM이 점수를 명시하지 않았을 때, 과제 내용과 제출물의 관련도를 기반으로 점수 산정.
     점수는 최종적으로 -5 ~ 10 범위로 클램프.
     """
-    # 비어있거나 매우 짧은 제출물은 강한 감점
+    # 1. 부적절한 답변 감지 - 최우선 처리
+    if detect_inappropriate_content(submission_content):
+        print(f"🚫 [DEBUG] 부적절한 답변으로 판단 - 최저점(-5) 부여")
+        return -5
+    
+    # 2. 비어있거나 매우 짧은 제출물은 강한 감점
     if not submission_content or len(submission_content.strip()) < 10:
+        print(f"🚫 [DEBUG] 너무 짧은 답변 - 최저점(-5) 부여")
         return -5
 
-    # 향상된 관련도 계산 사용
+    # 3. 향상된 관련도 계산 사용
     enhanced_sim = _enhanced_relevance_score(
         assignment_title=assignment_title or "",
         assignment_desc=assignment_description or "",
         submission_content=submission_content or "",
         file_content=""  # 여기서는 파일 내용 없음
     )
+    
+    print(f"📊 [DEBUG] 관련도 기반 점수 산정 - 관련도: {enhanced_sim:.3f}")
 
-    # 길이 기반 보정
+    # 4. 길이 기반 보정
     try:
         desc_len = max(1, len((assignment_description or "").split()))
         sub_len = len((submission_content or "").split())
@@ -1121,32 +1253,40 @@ def derive_score_from_relevance(assignment_title: str, assignment_description: s
     except Exception:
         length_ratio = 0.0
 
-    # 더 관대한 휴리스틱 맵핑
-    if enhanced_sim < 0.02:
+    # 5. 더 엄격한 휴리스틱 맵핑
+    if enhanced_sim < 0.01:  # 매우 낮은 관련도
         base = -5
-    elif enhanced_sim < 0.05:
-        base = -2
-    elif enhanced_sim < 0.1:
-        base = 0
-    elif enhanced_sim < 0.2:
-        base = 2
-    elif enhanced_sim < 0.4:
-        base = 4
-    else:
-        base = 6
+    elif enhanced_sim < 0.03:  # 낮은 관련도
+        base = -3
+    elif enhanced_sim < 0.05:  # 매우 낮은 관련도
+        base = -1
+    elif enhanced_sim < 0.1:   # 낮은 관련도
+        base = 1
+    elif enhanced_sim < 0.2:   # 보통 관련도
+        base = 3
+    elif enhanced_sim < 0.4:   # 높은 관련도
+        base = 5
+    else:  # 매우 높은 관련도
+        base = 7
 
-    # 길이 보정 - 덜 엄격하게
-    if length_ratio < 0.05:
+    # 6. 길이 보정 - 더 엄격하게
+    if length_ratio < 0.02:  # 매우 짧은 답변
+        base -= 3
+    elif length_ratio < 0.05:  # 짧은 답변
         base -= 2
-    elif length_ratio < 0.1:
+    elif length_ratio < 0.1:   # 다소 짧은 답변
         base -= 1
 
-    # 코드 제출물인 경우 보너스
+    # 7. 코드 제출물인 경우 약간의 보너스 (더 보수적으로)
     if detect_code_submission(submission_content):
         base += 1
+        print(f"💻 [DEBUG] 코드 제출물로 판단 - 보너스 +1")
 
-    # 범위 제한
-    return max(-5, min(10, int(base)))
+    # 8. 최종 점수 로깅
+    final_score = max(-5, min(10, int(base)))
+    print(f"🎯 [DEBUG] 관련도 기반 최종 점수: {final_score} (기본: {base}, 관련도: {enhanced_sim:.3f})")
+    
+    return final_score
 
 def create_integrated_content(file_content: str, submission_content: str, file_url: str = None) -> str:
     """
@@ -1318,6 +1458,63 @@ async def debug_file_info(file_url: str):
         
     except Exception as e:
         return {"error": str(e), "file_url": file_url}
+
+@app.post("/debug/test-scoring")
+async def debug_test_scoring(
+    assignment_title: str,
+    assignment_description: str,
+    submission_content: str
+):
+    """
+    디버깅용: 점수 산정 로직 테스트 엔드포인트
+    """
+    try:
+        print(f"🧪 [DEBUG] 점수 산정 테스트 시작")
+        print(f"📝 [DEBUG] 과제 제목: {assignment_title}")
+        print(f"📝 [DEBUG] 과제 설명: {assignment_description}")
+        print(f"📄 [DEBUG] 제출 내용: {submission_content}")
+        
+        # 1. 부적절한 답변 감지 테스트
+        is_inappropriate = detect_inappropriate_content(submission_content)
+        print(f"🚫 [DEBUG] 부적절한 답변 여부: {is_inappropriate}")
+        
+        # 2. 관련도 계산 테스트
+        relevance = _enhanced_relevance_score(
+            assignment_title=assignment_title,
+            assignment_desc=assignment_description,
+            submission_content=submission_content
+        )
+        print(f"📊 [DEBUG] 관련도 점수: {relevance:.3f}")
+        
+        # 3. 점수 산정 테스트
+        score = derive_score_from_relevance(
+            assignment_title=assignment_title,
+            assignment_description=assignment_description,
+            submission_content=submission_content
+        )
+        print(f"🎯 [DEBUG] 최종 점수: {score}")
+        
+        # 4. 코드 제출물 여부 테스트
+        is_code = detect_code_submission(submission_content)
+        print(f"💻 [DEBUG] 코드 제출물 여부: {is_code}")
+        
+        result = {
+            "assignment_title": assignment_title,
+            "assignment_description": assignment_description,
+            "submission_content": submission_content,
+            "is_inappropriate": is_inappropriate,
+            "relevance_score": relevance,
+            "final_score": score,
+            "is_code_submission": is_code,
+            "test_timestamp": datetime.now().isoformat()
+        }
+        
+        print(f"✅ [DEBUG] 점수 산정 테스트 완료")
+        return result
+        
+    except Exception as e:
+        print(f"💥 [DEBUG] 점수 산정 테스트 실패: {e}")
+        return {"error": str(e)}
 
 if __name__ == "__main__":
     print("Starting FastAPI server with UTF-8 encoding...")
