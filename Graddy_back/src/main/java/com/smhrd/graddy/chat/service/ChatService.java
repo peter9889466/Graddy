@@ -181,9 +181,18 @@ public class ChatService {
         try {
             Optional<Member> memberOpt = memberRepository.findByUserIdAndStudyProjectId(userId, studyProjectId);
             if (memberOpt.isPresent()) {
-                Long memberId = memberOpt.get().getMemberId();
-                log.debug("멤버 ID 조회 성공: userId={}, studyProjectId={}, memberId={}", userId, studyProjectId, memberId);
-                return memberId;
+                Member member = memberOpt.get();
+                // 승인된 멤버만 채팅 권한 부여
+                if (member.getStudyProjectCheck() == Member.MemberStatus.approved) {
+                    Long memberId = member.getMemberId();
+                    log.debug("멤버 ID 조회 성공: userId={}, studyProjectId={}, memberId={}, status={}", 
+                            userId, studyProjectId, memberId, member.getStudyProjectCheck());
+                    return memberId;
+                } else {
+                    log.warn("승인되지 않은 멤버: userId={}, studyProjectId={}, status={}", 
+                            userId, studyProjectId, member.getStudyProjectCheck());
+                    return null;
+                }
             } else {
                 log.warn("멤버 정보를 찾을 수 없음: userId={}, studyProjectId={}", userId, studyProjectId);
                 return null;

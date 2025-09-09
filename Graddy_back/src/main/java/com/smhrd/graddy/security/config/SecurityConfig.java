@@ -35,7 +35,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         // 인증 관련 엔드포인트는 JWT 검증 없이 허용
                         .requestMatchers("/auth/login", "/auth/refresh", "/auth/logout", "/api/auth/login", "/login", "/interests", "/studies-projects", "/scores/ranking/**" , "/free/posts", "/posts/**", "/studies-projects/**").permitAll()
-                        .requestMatchers("/auth/**", "/scores/ranking/**","/api/phone-verification/**", "/join", "/interests", "/studies-projects","/join/check-userId", "/join/check-nick","/api/ws-stomp/**" ,"/ws-stomp/**").permitAll()
+                        .requestMatchers("/auth/**", "/scores/ranking/**","/api/phone-verification/**", "/join", "/interests", "/studies-projects","/join/check-userId", "/join/check-nick","/ws-stomp/**").permitAll()
 
                         // 파일 업로드/다운로드 엔드포인트 허용 (첨부파일 접근용)
                         .requestMatchers("/files/**").permitAll()
@@ -44,8 +44,6 @@ public class SecurityConfig {
                         .requestMatchers("/chat/**").authenticated()
                         // 사용자 정보 조회 엔드포인트 허용 (JWT 인증 필요)
                         .requestMatchers("/user/info/**").authenticated()
-                        // WebSocket 엔드포인트 허용
-                        .requestMatchers("/ws-stomp/**").permitAll()
                         // Swagger UI 관련 경로 허용
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/api-docs/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**", "/api/swagger-ui/**", "/api/api-docs/**").permitAll()
                         // 나머지 요청은 인증 필요

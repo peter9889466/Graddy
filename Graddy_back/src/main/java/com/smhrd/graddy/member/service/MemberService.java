@@ -61,8 +61,11 @@ public class MemberService {
 
     // 특정 사용자가 해당 스터디/프로젝트의 리더인지 확인
     public boolean isLeader(Long studyProjectId, String userId) {
-        Optional<Member> leaderMember = memberRepository.findByStudyProjectIdAndMemberType(studyProjectId, Member.MemberType.leader);
-        return leaderMember.isPresent() && leaderMember.get().getUserId().equals(userId);
+        // 해당 사용자가 해당 스터디/프로젝트의 리더인지 직접 확인
+        Optional<Member> member = memberRepository.findByUserIdAndStudyProjectId(userId, studyProjectId);
+        return member.isPresent() && 
+               member.get().getMemberType() == Member.MemberType.leader &&
+               member.get().getStudyProjectCheck() == Member.MemberStatus.approved;
     }
 
     // 사용자 ID와 스터디 프로젝트 ID로 member_id 조회
