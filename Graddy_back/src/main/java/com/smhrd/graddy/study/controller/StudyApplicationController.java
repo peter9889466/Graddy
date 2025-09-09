@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +21,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/study-applications")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(name = "스터디/프로젝트 신청", description = "스터디/프로젝트 가입 신청 및 관리 API")
 public class StudyApplicationController {
 
@@ -117,7 +119,12 @@ public class StudyApplicationController {
             String token = authorization.replace("Bearer ", "");
             String userId = jwtUtil.extractUserId(token);
             
-            // TODO: 리더 권한 확인 로직 추가
+            // 리더 권한 확인
+            if (!applicationService.isLeader(studyProjectId, userId)) {
+                log.warn("신청 목록 조회 권한 없음: studyProjectId={}, userId={}", studyProjectId, userId);
+                return ApiResponse.error(HttpStatus.FORBIDDEN, "해당 스터디/프로젝트의 리더만 신청 목록을 조회할 수 있습니다.", null);
+            }
+            
             List<StudyApplicationResponse> applications = applicationService.getApplicationsByStudyProject(studyProjectId);
             return ApiResponse.success("신청 목록 조회가 성공했습니다.", applications);
         } catch (Exception e) {

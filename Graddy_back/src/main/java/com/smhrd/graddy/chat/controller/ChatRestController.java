@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
@@ -264,15 +265,28 @@ public class ChatRestController {
     @GetMapping("/history/{studyProjectId}")
     @Operation(
         summary = "스터디방 채팅 이력 조회",
-        description = "특정 스터디방의 채팅 이력을 조회합니다."
+        description = "특정 스터디방의 채팅 이력을 조회합니다. 해당 스터디의 멤버만 조회 가능합니다."
     )
     public ResponseEntity<List<ChatMessageResponse>> getChatHistory(
             @Parameter(description = "스터디/프로젝트 ID", example = "1")
-            @PathVariable Long studyProjectId) {
+            @PathVariable Long studyProjectId,
+            @Parameter(description = "JWT 토큰", example = "Bearer eyJhbGciOiJIUzI1NiJ9...")
+            @RequestHeader("Authorization") String authorization) {
         
         try {
+            // JWT 토큰에서 userId 추출
+            String token = authorization.replace("Bearer ", "");
+            String userId = jwtUtil.extractUserId(token);
+            
+            // 멤버십 확인 (채팅 권한 확인)
+            Long memberId = chatService.getMemberIdByUserIdAndStudyProjectId(userId, studyProjectId);
+            if (memberId == null) {
+                log.warn("채팅 이력 조회 권한 없음: studyProjectId={}, userId={}", studyProjectId, userId);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+            
             List<ChatMessageResponse> history = chatService.getChatHistory(studyProjectId);
-            log.info("스터디방 채팅 이력 조회: studyProjectId={}, messageCount={}", studyProjectId, history.size());
+            log.info("스터디방 채팅 이력 조회: studyProjectId={}, userId={}, messageCount={}", studyProjectId, userId, history.size());
             return ResponseEntity.ok(history);
             
         } catch (Exception e) {

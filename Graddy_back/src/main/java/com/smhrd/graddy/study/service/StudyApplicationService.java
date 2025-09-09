@@ -147,6 +147,13 @@ public class StudyApplicationService {
     }
 
     /**
+     * 사용자가 해당 스터디/프로젝트의 리더인지 확인
+     */
+    public boolean isLeader(Long studyProjectId, String userId) {
+        return memberService.isLeader(studyProjectId, userId);
+    }
+
+    /**
      * Entity를 Response DTO로 변환
      */
     private StudyApplicationResponse convertToResponse(StudyProjectStatus application) {
