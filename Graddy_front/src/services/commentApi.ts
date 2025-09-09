@@ -35,7 +35,7 @@ export const createFreePostComment = (frPostId: number, data: CommentRequest): P
     return apiPost<CommentResponse>(`/comments/free-posts/${frPostId}`, data);
 };
 
-// 자유게시판 댓글 목록 조회
+// 555555555555555666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666
 export const getFreePostComments = (frPostId: number): Promise<AxiosResponse<ApiResponse<CommentResponse[]>>> => {
     return apiGet<CommentResponse[]>(`/comments/free-posts/${frPostId}`);
 };
