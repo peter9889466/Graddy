@@ -36,6 +36,7 @@ import {
     X,
 } from "lucide-react";
 import { getUserIdFromToken } from "../utils/jwtUtils";
+import { TokenService } from "../services/tokenService";
 import {
     InterestApiService,
     InterestForFrontend,
@@ -185,8 +186,42 @@ const ProjectDetailPage = () => {
                 }
 
                 if (studyData) {
-                    // JWT 토큰에서 사용자 ID 가져오기
-                    const currentUserId = getUserIdFromToken();
+                    // JWT 토큰에서 사용자 ID 가져오기 - 일관된 방식으로 추출
+                    const getConsistentUserId = () => {
+                        // 1차: getUserIdFromToken 사용
+                        let userId = getUserIdFromToken();
+                        if (userId) {
+                            console.log("🔑 getUserIdFromToken으로 사용자 ID 추출:", userId);
+                            return userId;
+                        }
+                        
+                        // 2차: TokenService 사용
+                        userId = TokenService.getInstance().getUserIdFromToken();
+                        if (userId) {
+                            console.log("🔑 TokenService로 사용자 ID 추출:", userId);
+                            return userId;
+                        }
+                        
+                        // 3차: 직접 JWT 디코딩
+                        try {
+                            const token = localStorage.getItem('userToken');
+                            if (token) {
+                                const payload = JSON.parse(atob(token.split('.')[1]));
+                                userId = payload.userId || payload.sub;
+                                if (userId) {
+                                    console.log("🔑 직접 JWT 디코딩으로 사용자 ID 추출:", userId);
+                                    return userId;
+                                }
+                            }
+                        } catch (error) {
+                            console.error('JWT 직접 디코딩 실패:', error);
+                        }
+                        
+                        console.warn('⚠️ 사용자 ID를 찾을 수 없습니다.');
+                        return null;
+                    };
+                    
+                    const currentUserId = getConsistentUserId();
                     console.log("JWT에서 추출한 사용자 ID:", currentUserId);
 
                     // 프로젝트 기본 정보 설정

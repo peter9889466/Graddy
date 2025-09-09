@@ -47,7 +47,8 @@ export class TokenService {
         try {
             // JWT 토큰의 payload 부분을 디코딩
             const payload = JSON.parse(atob(targetToken.split('.')[1]));
-            return payload.userId || payload.sub || null;
+            // 백엔드와 일치: Claims::getSubject (sub 필드) 사용
+            return payload.sub || null;
         } catch (error) {
             console.error('토큰에서 사용자 ID 추출 중 오류:', error);
             return null;

@@ -98,11 +98,44 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 	const dragStart = useRef({ x: 0, y: 0, offsetX: 0, offsetY: 0 });
 	const resizeStart = useRef({ x: 0, y: 0, width: 0, height: 0 });
 
-	// 사용자 ID 초기화
+	// 사용자 ID 초기화 - 일관된 방식으로 사용자 ID 추출
 	useEffect(() => {
-		const userId = TokenService.getInstance().getUserIdFromToken();
+		const getConsistentUserId = () => {
+			// 1차: TokenService 사용
+			let userId = TokenService.getInstance().getUserIdFromToken();
+			if (userId) {
+				console.log('🔑 TokenService로 사용자 ID 추출:', userId);
+				return userId;
+			}
+			
+			// 2차: 직접 JWT 디코딩
+			try {
+				const token = localStorage.getItem('userToken');
+				if (token) {
+					const payload = JSON.parse(atob(token.split('.')[1]));
+					userId = payload.userId || payload.sub;
+					if (userId) {
+						console.log('🔑 직접 JWT 디코딩으로 사용자 ID 추출:', userId);
+						return userId;
+					}
+				}
+			} catch (error) {
+				console.error('JWT 직접 디코딩 실패:', error);
+			}
+			
+			// 3차: AuthContext fallback
+			if (user?.nickname) {
+				console.log('🔑 AuthContext fallback으로 사용자 ID 추출:', user.nickname);
+				return user.nickname;
+			}
+			
+			console.warn('⚠️ 사용자 ID를 찾을 수 없습니다.');
+			return null;
+		};
+		
+		const userId = getConsistentUserId();
 		setCurrentUserId(userId);
-		console.log('🔑 채팅 위젯 사용자 ID 초기화:', {
+		console.log('🔑 채팅 위젯 사용자 ID 초기화 완료:', {
 			userId: userId,
 			token: localStorage.getItem('userToken')?.substring(0, 50) + '...',
 			authUser: user
@@ -193,7 +226,7 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 									isFromMe: chatMessage.userId === TokenService.getInstance().getUserIdFromToken()
 								});
 								
-								// 메시지 추가 로직
+								// 메시지 추가 로직 - 일관된 사용자 ID 비교
 								setMessages(prev => {
 									console.log('📝 메시지 추가 전 현재 메시지 수:', prev.length);
 									
@@ -220,75 +253,38 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 										  msg.sender === 'user')
 									);
 									
-									// 새 메시지 생성 - 실시간으로 토큰에서 사용자 ID 가져와서 비교
-									const realTimeUserId = TokenService.getInstance().getUserIdFromToken();
-									
-									// JWT 토큰 직접 디코딩해서 확인 (디버깅용)
-									let directDecodedUserId = null;
-									try {
-										const token = localStorage.getItem('userToken');
-										if (token) {
-											const payload = JSON.parse(atob(token.split('.')[1]));
-											directDecodedUserId = payload.sub || payload.userId;
-											console.log('🔍 JWT 직접 디코딩:', {
-												payload: payload,
-												sub: payload.sub,
-												userId: payload.userId,
-												directDecodedUserId: directDecodedUserId
-											});
+									// 일관된 사용자 ID 비교 함수
+									const isMessageFromCurrentUser = (messageUserId: string): boolean => {
+										// 현재 사용자 ID (state에서 가져온 값 사용)
+										const myUserId = currentUserId;
+										
+										if (!myUserId || !messageUserId) {
+											console.log('⚠️ 사용자 ID가 없어서 비교 불가:', { myUserId, messageUserId });
+											return false;
 										}
-									} catch (error) {
-										console.error('JWT 직접 디코딩 실패:', error);
-									}
-									
-									// 사용자 ID 비교를 더 안전하게 처리
-									let isFromMe = false;
-									
-									// 1차: TokenService로 가져온 사용자 ID로 비교
-									if (realTimeUserId && chatMessage.userId) {
-										const exactMatch = chatMessage.userId === realTimeUserId;
-										const caseInsensitiveMatch = chatMessage.userId.toLowerCase() === realTimeUserId.toLowerCase();
-										const trimmedMatch = chatMessage.userId.trim() === realTimeUserId.trim();
 										
-										isFromMe = exactMatch || caseInsensitiveMatch || trimmedMatch;
-									}
-									
-									// 2차: 직접 디코딩한 사용자 ID로 비교 (1차에서 매치되지 않은 경우)
-									if (!isFromMe && directDecodedUserId && chatMessage.userId) {
-										const directExactMatch = chatMessage.userId === directDecodedUserId;
-										const directCaseInsensitiveMatch = chatMessage.userId.toLowerCase() === directDecodedUserId.toLowerCase();
-										const directTrimmedMatch = chatMessage.userId.trim() === directDecodedUserId.trim();
+										// 정확한 매치
+										const exactMatch = messageUserId === myUserId;
+										// 대소문자 무시 매치
+										const caseInsensitiveMatch = messageUserId.toLowerCase() === myUserId.toLowerCase();
+										// 공백 제거 후 매치
+										const trimmedMatch = messageUserId.trim() === myUserId.trim();
 										
-										isFromMe = directExactMatch || directCaseInsensitiveMatch || directTrimmedMatch;
-									}
-									
-									// 3차: AuthContext 사용자 정보로 fallback (위에서 모두 매치되지 않은 경우)
-									if (!isFromMe && user?.nickname && chatMessage.userId) {
-										const fallbackMatch = chatMessage.userId === user.nickname;
-										const fallbackCaseInsensitive = chatMessage.userId.toLowerCase() === user.nickname.toLowerCase();
-										const fallbackTrimmed = chatMessage.userId.trim() === user.nickname.trim();
+										const isFromMe = exactMatch || caseInsensitiveMatch || trimmedMatch;
 										
-										isFromMe = fallbackMatch || fallbackCaseInsensitive || fallbackTrimmed;
-										
-										console.log('🔄 Fallback 사용자 ID 비교:', {
-											chatMessageUserId: chatMessage.userId,
-											authUserNickname: user.nickname,
-											isFromMe: isFromMe
+										console.log('🔍 사용자 ID 비교:', {
+											messageUserId,
+											myUserId,
+											exactMatch,
+											caseInsensitiveMatch,
+											trimmedMatch,
+											isFromMe
 										});
-									}
+										
+										return isFromMe;
+									};
 									
-									console.log('🔍 메시지 발신자 확인:', {
-										chatMessageUserId: chatMessage.userId,
-										realTimeUserId: realTimeUserId,
-										directDecodedUserId: directDecodedUserId,
-										currentUserId: currentUserId,
-										isFromMe: isFromMe,
-										exactMatch: chatMessage.userId === realTimeUserId,
-										caseInsensitiveMatch: chatMessage.userId?.toLowerCase() === realTimeUserId?.toLowerCase(),
-										trimmedMatch: chatMessage.userId?.trim() === realTimeUserId?.trim(),
-										token: localStorage.getItem('userToken')?.substring(0, 50) + '...',
-										messageContent: chatMessage.content.substring(0, 20) + '...'
-									});
+									const isFromMe = isMessageFromCurrentUser(chatMessage.userId);
 									
 									const newMessage: Message = {
 										id: `${chatMessage.messageId}-${Date.now()}-${Math.random()}`,
@@ -305,18 +301,9 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 										sender: newMessage.sender,
 										senderNick: newMessage.senderNick,
 										text: newMessage.text.substring(0, 20) + '...',
-										isFromMe: isFromMe
-									});
-									
-									console.log('✅ 새 메시지 추가:', {
-										messageId: chatMessage.messageId,
-										userId: chatMessage.userId,
-										senderNick: chatMessage.senderNick,
-										userNick: user?.nickname,
-										sender: newMessage.sender,
-										content: chatMessage.content,
-										isFromMe: chatMessage.userId === user?.nickname,
-										messageType: chatMessage.messageType
+										isFromMe: isFromMe,
+										chatMessageUserId: chatMessage.userId,
+										currentUserId: currentUserId
 									});
 									
 									const updatedMessages = [...filteredMessages, newMessage];
@@ -431,7 +418,18 @@ const DraggableChatWidget: React.FC<DraggableChatWidgetProps> = ({ studyProjectI
 				const historyMessages: Message[] = chatHistory
 					.reverse() // 배열을 역순으로 뒤집기
 					.map(chatMessage => {
-						const isFromMe = chatMessage.userId === user?.nickname;
+						// 일관된 사용자 ID 비교
+						const isFromMe = currentUserId && chatMessage.userId && 
+							(chatMessage.userId === currentUserId || 
+							 chatMessage.userId.toLowerCase() === currentUserId.toLowerCase() ||
+							 chatMessage.userId.trim() === currentUserId.trim());
+						
+						console.log('📚 채팅 이력 메시지 변환:', {
+							chatMessageUserId: chatMessage.userId,
+							currentUserId: currentUserId,
+							isFromMe: isFromMe
+						});
+						
 						return {
 							id: `${chatMessage.messageId}-${Date.now()}-${Math.random()}`,
 							text: chatMessage.content,

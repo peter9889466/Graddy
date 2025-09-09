@@ -109,16 +109,54 @@ const Community: React.FC<CommunityProps> = ({
         });
     });
 
-    const isStudyMember = members.some(
-        (member) => member.userId === currentUserId
-        );
-    console.log("스터디 멤버 여부:", isStudyMember);
+    // 멤버십 확인 함수 - 일관된 방식으로 사용자 ID 비교
+    const findCurrentUserMember = () => {
+        if (!currentUserId || !members.length) return null;
         
-    // 현재 사용자가 approved 상태인 멤버인지 확인
-    const isApprovedMember = members.some(
-        (member) => member.userId === currentUserId && member.memberStatus === 'approved'
-    );
+        // 1차: 정확한 매치
+        let matchedMember = members.find(member => member.userId === currentUserId);
+        if (matchedMember) {
+            console.log('✅ 정확한 매치로 현재 사용자 멤버 찾음:', matchedMember);
+            return matchedMember;
+        }
+        
+        // 2차: 대소문자 무시 매치
+        matchedMember = members.find(member => 
+            member.userId.toLowerCase() === currentUserId.toLowerCase()
+        );
+        if (matchedMember) {
+            console.log('✅ 대소문자 무시 매치로 현재 사용자 멤버 찾음:', matchedMember);
+            return matchedMember;
+        }
+        
+        // 3차: 공백 제거 후 매치
+        matchedMember = members.find(member => 
+            member.userId.trim() === currentUserId.trim()
+        );
+        if (matchedMember) {
+            console.log('✅ 공백 제거 매치로 현재 사용자 멤버 찾음:', matchedMember);
+            return matchedMember;
+        }
+        
+        console.log('❌ 현재 사용자 멤버를 찾을 수 없음:', {
+            currentUserId,
+            availableMembers: members.map(m => ({
+                userId: m.userId,
+                memberId: m.memberId,
+                nick: m.nick,
+                memberStatus: m.memberStatus
+            }))
+        });
+        return null;
+    };
+
+    const currentUserMember = findCurrentUserMember();
+    const isStudyMember = !!currentUserMember;
+    const isApprovedMember = currentUserMember?.memberStatus === 'approved';
+    
+    console.log("스터디 멤버 여부:", isStudyMember);
     console.log("승인된 스터디 멤버 여부:", isApprovedMember);
+    console.log("현재 사용자 멤버 정보:", currentUserMember);
     console.log("=== 멤버십 검증 디버깅 끝 ===");
 
         
@@ -171,6 +209,19 @@ const Community: React.FC<CommunityProps> = ({
         if (!content) return;
 
         // 멤버 상태 확인 - approved 상태인 멤버만 댓글 작성 가능
+        console.log('🔍 댓글 작성 권한 확인:', {
+            currentUserId,
+            isStudyMember,
+            isApprovedMember,
+            currentUserMember,
+            membersCount: members.length
+        });
+
+        if (!isStudyMember) {
+            alert("스터디 멤버만 댓글을 작성할 수 있습니다.");
+            return;
+        }
+
         if (!isApprovedMember) {
             alert("승인된 스터디 멤버만 댓글을 작성할 수 있습니다.");
             return;
@@ -336,9 +387,29 @@ const Community: React.FC<CommunityProps> = ({
 
             if (result.status === 200 && result.data) {
                 const transformedPosts: Post[] = result.data.map((backendPost: BackendPost) => {
-                    // 닉네임 매칭 디버깅
-                    const matchedMember = members.find(member => member.userId === backendPost.memberId);
-                    console.log('🔍 게시글 작성자 매칭:', {
+                    // 백엔드 데이터 구조에 맞게 작성자 매칭
+                    // backendPost.memberId는 MemberInfo.memberId (Long 타입)와 매칭해야 함
+                    const matchedMember = members.find(member => 
+                        member.memberId?.toString() === backendPost.memberId?.toString()
+                    );
+                    
+                    console.log('🔍 게시글 작성자 매칭 (백엔드 구조 반영):', {
+                        postId: backendPost.stPrPostId,
+                        backendPostMemberId: backendPost.memberId,
+                        backendPostMemberIdType: typeof backendPost.memberId,
+                        membersCount: members.length,
+                        matchedMember: matchedMember,
+                        finalNick: matchedMember?.nick || '알 수 없음',
+                        allMemberDetails: members.map(m => ({ 
+                            memberId: m.memberId, 
+                            userId: m.userId, 
+                            nick: m.nick,
+                            memberType: m.memberType,
+                            memberStatus: m.memberStatus
+                        }))
+                    });
+                    
+                    console.log('🔍 게시글 작성자 매칭 결과:', {
                         postId: backendPost.stPrPostId,
                         authorId: backendPost.memberId,
                         membersCount: members.length,
